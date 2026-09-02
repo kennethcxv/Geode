@@ -35,3 +35,45 @@ sysinfo.txt
 
 # Unity Package Manager
 .upmconfig.toml
+
+# Blender generated test/output assets
+Tools/Blender/Output/
+
+# Additional Unity generated output
+[Ee]xported[Oo]bj/
+.consulo/
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+*.unitypackage
+*.app
+*.apk
+*.aab
+crashlytics-build.properties
+# Addressables / StreamingAssets build artifacts
+/Geode/[Aa]ssets/AddressableAssetsData/*/*.bin*
+/Geode/[Aa]ssets/[Ss]treamingAssets/aa/*
+/Geode/[Aa]ssets/[Ss]treamingAssets/aa.meta
+# Unity Player / Editor caches and profiler output
+*.profilerlog
+[Uu]nity[Pp]ackage[Mm]anager/
+[Ss]hader[Cc]ache/
+
+# macOS extras
+._*
+.AppleDouble
+.Spotlight-V100
+.Trashes
+
+# Blender backup / autosave / temp files
+*.blend1
+*.blend2
+*.blend@
+*.blend.orig
+*.blend_autosave
+quit.blend
+
+# Python (bpy scripts run under Blender's bundled Python)
+__pycache__/
+*.py[cod]
+*.pyo
