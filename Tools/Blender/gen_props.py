@@ -335,6 +335,97 @@ def label_stand(rng):
     return bm, False
 
 
+
+def pendant_lamp(rng):
+    """Industrial pendant: cord, cap and conical shade. Origin at the ceiling attachment (top)."""
+    bm = bmesh.new()
+    cyl(bm, 0.03, 0.02, (0, 0, -0.02), segments=12)                     # ceiling cap
+    cyl(bm, 0.004, 0.5, (0, 0, -0.52), segments=6)                      # cord
+    cyl(bm, 0.025, 0.06, (0, 0, -0.58), segments=12)                    # socket
+    shade = lib.bm_cylinder(0.06, 0.16, segments=20, radius_top=0.2)
+    lib.bm_append(bm, shade, Matrix.Translation((0, 0, -0.74)) @ Matrix.Rotation(math.pi, 4, "X"))
+    return bm, True
+
+
+def wall_shelf(rng):
+    bm = bmesh.new()
+    box(bm, (0.9, 0.24, 0.03), (0, 0, 0.015), bevel=0.003)
+    for sx in (-1, 1):
+        box(bm, (0.03, 0.2, 0.03), (sx * 0.38, 0.0, -0.015))
+        box(bm, (0.03, 0.03, 0.18), (sx * 0.38, 0.1, -0.1))
+    return bm, False
+
+
+def jar(rng):
+    bm = bmesh.new()
+    cyl(bm, 0.045, 0.13, (0, 0, 0), segments=14, bevel=0.005)
+    cyl(bm, 0.03, 0.02, (0, 0, 0.13), segments=14)
+    cyl(bm, 0.034, 0.015, (0, 0, 0.15), segments=14)
+    return bm, True
+
+
+def rock_bin(rng):
+    bm = bmesh.new()
+    w, d, h, t = 0.6, 0.45, 0.32, 0.02
+    box(bm, (w, d, t), (0, 0, t / 2))
+    box(bm, (w, t, h), (0, d / 2 - t / 2, h / 2), bevel=0.002)
+    box(bm, (w, t, h), (0, -d / 2 + t / 2, h / 2), bevel=0.002)
+    box(bm, (t, d, h), (w / 2 - t / 2, 0, h / 2), bevel=0.002)
+    box(bm, (t, d, h), (-w / 2 + t / 2, 0, h / 2), bevel=0.002)
+    for _ in range(22):
+        r = rng.uniform(0.035, 0.07)
+        s = lib.bm_icosphere(r, 1, center=(rng.uniform(-0.22, 0.22), rng.uniform(-0.15, 0.15), 0.05 + rng.uniform(0.0, 0.18)))
+        for v in s.verts:
+            v.co += Vector((rng.uniform(-0.008, 0.008), rng.uniform(-0.008, 0.008), rng.uniform(-0.008, 0.008)))
+        lib.bm_append(bm, s)
+    return bm, True
+
+
+def extinguisher(rng):
+    bm = bmesh.new()
+    cyl(bm, 0.075, 0.42, (0, 0, 0.02), segments=16, bevel=0.01)
+    cyl(bm, 0.05, 0.03, (0, 0, 0.44), segments=12)
+    cyl(bm, 0.025, 0.08, (0, 0, 0.47), segments=10)
+    box(bm, (0.03, 0.16, 0.02), (0, 0.05, 0.53))
+    cyl(bm, 0.012, 0.2, (0.03, 0.06, 0.4), segments=8, matrix=Matrix.Rotation(math.radians(100), 4, "X"))
+    return bm, True
+
+
+def poster_frame(rng):
+    bm = bmesh.new()
+    w, h, t = 0.62, 0.62, 0.025
+    box(bm, (w, t, 0.03), (0, 0, h - 0.015))
+    box(bm, (w, t, 0.03), (0, 0, 0.015))
+    box(bm, (0.03, t, h), (-w / 2 + 0.015, 0, h / 2))
+    box(bm, (0.03, t, h), (w / 2 - 0.015, 0, h / 2))
+    box(bm, (w - 0.02, 0.008, h - 0.02), (0, 0.006, h / 2))   # backing board
+    return bm, False
+
+
+def wall_clock(rng):
+    bm = bmesh.new()
+    cyl(bm, 0.16, 0.03, (0, 0, 0), segments=24, matrix=Matrix.Rotation(math.radians(90), 4, "X"))
+    cyl(bm, 0.14, 0.005, (0, -0.031, 0), segments=24, matrix=Matrix.Rotation(math.radians(90), 4, "X"))
+    box(bm, (0.01, 0.006, 0.1), (0, -0.036, 0.045))
+    box(bm, (0.01, 0.006, 0.07), (0.025, -0.036, 0.02))
+    return bm, True
+
+
+def broom(rng):
+    bm = bmesh.new()
+    cyl(bm, 0.012, 1.2, (0, 0, 0.22), segments=8)
+    box(bm, (0.24, 0.05, 0.05), (0, 0, 0.2), bevel=0.005)
+    for i in range(9):
+        box(bm, (0.02, 0.035, 0.2), (-0.1 + i * 0.025, 0, 0.1))
+    return bm, False
+
+
+def sign_board(rng):
+    bm = bmesh.new()
+    box(bm, (0.5, 0.02, 0.14), (0, 0, 0.07), bevel=0.004)
+    return bm, False
+
+
 PROPS = [
     ("prop_hammer", hammer, 201),
     ("prop_chisel", lambda r: chisel(r, False), 202),
@@ -358,6 +449,15 @@ PROPS = [
     ("prop_pallet", pallet, 220),
     ("prop_cardboard_box", cardboard_box, 221),
     ("prop_label_stand", label_stand, 222),
+    ("prop_pendant_lamp", pendant_lamp, 223),
+    ("prop_wall_shelf", wall_shelf, 224),
+    ("prop_jar", jar, 225),
+    ("prop_rock_bin", rock_bin, 226),
+    ("prop_extinguisher", extinguisher, 227),
+    ("prop_poster_frame", poster_frame, 228),
+    ("prop_wall_clock", wall_clock, 229),
+    ("prop_broom", broom, 230),
+    ("prop_sign_board", sign_board, 231),
 ]
 
 
@@ -370,7 +470,9 @@ def build_all():
         bm, smooth = builder(rng)
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
         lib.bm_box_uv(bm, scale=UV_SCALE)
-        if name not in ("prop_chisel", "prop_chisel_fine", "prop_tablet"):
+        if name == "prop_pendant_lamp":
+            pass  # origin stays at the ceiling attachment point
+        elif name not in ("prop_chisel", "prop_chisel_fine", "prop_tablet"):
             lib.bm_origin_to_base(bm, center_xy=(name not in ("prop_hammer",)))
         else:
             lib.bm_origin_to_base(bm, center_xy=True)

@@ -162,11 +162,13 @@ namespace GeodeEmpire.EditorTools
             for (int x = 0; x < size; x++)
             {
                 float u = x / (float)size, v = y / (float)size;
-                float big = F(u, v, 2, 3, seed);
-                float grain = F(u, v, 24, 3, seed + 3);
-                float speck = F(u, v, 96, 1, seed + 9);
-                float stain = Mathf.Pow(F(u, v, 3, 2, seed + 21), 3f);
-                float val = 0.58f + (big - 0.5f) * 0.18f + (grain - 0.5f) * 0.12f + (speck > 0.72f ? 0.06f : 0f) - stain * 0.18f;
+                float big = F(u, v, 1, 3, seed, 0.45f);
+                float grain = F(u, v, 32, 3, seed + 3);
+                float speck = F(u, v, 128, 1, seed + 9);
+                float stain = Mathf.Pow(F(u, v, 2, 3, seed + 21), 4f);
+                float joint = Mathf.Min(Mathf.Min(u, 1f - u), Mathf.Min(v, 1f - v));
+                float jointDark = joint < 0.004f ? 0.22f : joint < 0.008f ? 0.08f : 0f;
+                float val = 0.6f + (big - 0.5f) * 0.1f + (grain - 0.5f) * 0.05f + (speck > 0.8f ? 0.04f : 0f) - stain * 0.22f - jointDark;
                 px[y * size + x] = new Color(val, val * 0.99f, val * 0.96f, 1f);
             }
             return px;
