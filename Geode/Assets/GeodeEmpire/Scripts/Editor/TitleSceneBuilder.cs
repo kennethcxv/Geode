@@ -17,7 +17,7 @@ namespace GeodeEmpire.EditorTools
         [MenuItem("GeodeEmpire/Build Title Scene")]
         public static void Build()
         {
-            var panel = AssetDatabase.LoadAssetAtPath<PanelSettings>(WorkshopSceneBuilder.PanelSettingsPath);
+            var panel = WorkshopSceneBuilder.EnsurePanelSettings();
             var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(WorkshopSceneBuilder.VolumeProfilePath);
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             RenderSettings.ambientMode = AmbientMode.Flat;

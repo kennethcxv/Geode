@@ -158,10 +158,10 @@ namespace GeodeEmpire.Specimens
             {
                 if (c.TopHalf != top || c.Secondary != secondary) continue;
                 byte dmg = Condition.DamageAt(c.Index);
-                if (dmg >= CrystalDamage.Missing) continue;
                 var data = _lib.GetMeshData(c.Archetype);
                 if (data == null) continue;
-                float cutY = dmg == CrystalDamage.Chipped ? data.Height * 0.78f : dmg == CrystalDamage.Broken ? data.Height * 0.42f : float.MaxValue;
+                // chipped: tip gone; broken: half gone; missing: only a pale stub of the base remains
+                float cutY = dmg == CrystalDamage.Chipped ? data.Height * 0.78f : dmg == CrystalDamage.Broken ? data.Height * 0.42f : dmg >= CrystalDamage.Missing ? data.Height * 0.14f : float.MaxValue;
                 var m = Matrix4x4.TRS(c.Position, c.Rotation, c.Scale);
                 var nm = m.inverse.transpose;
                 int baseIndex = verts.Count;
@@ -175,7 +175,9 @@ namespace GeodeEmpire.Specimens
                     verts.Add(m.MultiplyPoint3x4(v));
                     norms.Add(nm.MultiplyVector(n).normalized);
                     float zone = Mathf.Clamp01(v.y / data.Height);
-                    var col = cut ? new Color(tint.r * 0.8f, tint.g * 0.8f, tint.b * 0.8f, 0f) : new Color(tint.r, tint.g, tint.b, zone);
+                    // fresh fracture faces read frosted/pale, and everything on a stub is pale
+                    bool pale = cut || dmg >= CrystalDamage.Missing;
+                    var col = pale ? new Color(Mathf.Min(1.5f, tint.r * 1.55f), Mathf.Min(1.5f, tint.g * 1.5f), Mathf.Min(1.5f, tint.b * 1.45f), 0f) : new Color(tint.r, tint.g, tint.b, zone);
                     cols.Add(col);
                     uvs.Add(new Vector2(v.x, v.z));
                 }

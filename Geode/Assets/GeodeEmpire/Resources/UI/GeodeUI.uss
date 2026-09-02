@@ -24,7 +24,7 @@
 .crosshair-ring { position: absolute; width: 22px; height: 22px; border-radius: 11px; border-width: 2px; border-color: rgba(226, 178, 96, 0.9); background-color: rgba(0,0,0,0); }
 
 .prompt { position: absolute; left: 50%; top: 56%; translate: -50% 0; font-size: 22px; -unity-text-align: middle-center; }
-.prompt-hint { position: absolute; left: 50%; top: 61.5%; translate: -50% 0; font-size: 16px; color: rgba(242, 238, 230, 0.7); -unity-text-align: middle-center; padding: 4px 12px; background-color: rgba(18, 16, 14, 0.45); border-radius: 4px; }
+.prompt-hint { position: absolute; left: 50%; top: 84%; translate: -50% 0; font-size: 16px; color: rgba(242, 238, 230, 0.7); -unity-text-align: middle-center; padding: 4px 12px; background-color: rgba(18, 16, 14, 0.45); border-radius: 4px; }
 
 .cash-card { position: absolute; left: 28px; top: 24px; flex-direction: row; align-items: center; }
 .cash-label { font-size: 15px; color: rgba(242, 238, 230, 0.6); margin-right: 10px; letter-spacing: 2px; }

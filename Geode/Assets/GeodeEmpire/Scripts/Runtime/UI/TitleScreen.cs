@@ -23,6 +23,7 @@ namespace GeodeEmpire.UI
             CursorController.EnterMenu();
             Time.timeScale = 1f;
             var doc = GetComponent<UIDocument>();
+            if (doc.panelSettings == null) doc.panelSettings = Resources.Load<PanelSettings>("UI/GeodePanelSettings");
             _root = doc.rootVisualElement;
             _root.Clear();
             var ss = Resources.Load<StyleSheet>("UI/GeodeUI");
@@ -93,47 +94,6 @@ namespace GeodeEmpire.UI
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (_confirm.style.display == DisplayStyle.Flex && ((gp != null && gp.buttonEast.wasPressedThisFrame) || (kb != null && kb.escapeKey.wasPressedThisFrame)))
                 _confirm.style.display = DisplayStyle.None;
-        }
-    }
-
-    /// <summary>Builds and slowly turns a museum-grade specimen for the title backdrop.</summary>
-    public sealed class TitleHero : MonoBehaviour
-    {
-        public float TurnSpeed = 9f;
-        private Transform _spec;
-
-        private void Start()
-        {
-            var lib = SpecimenAssetLibrary.Load();
-            ulong seed = FindHeroSeed();
-            var g = SpecimenGenerator.Generate(seed);
-            var go = new GameObject("HeroSpecimen");
-            go.transform.SetParent(transform, false);
-            var vis = go.AddComponent<SpecimenVisual>();
-            vis.Build(g, new SpecimenCondition { Opened = true }, lib);
-            vis.SetCrystalsVisible(true);
-            var geo = vis.Geometry;
-            vis.TopHalf.localRotation = Quaternion.Euler(0f, 0f, 180f);
-            vis.TopHalf.localPosition = new Vector3(-geo.MeanEquatorRadius * 2.3f, geo.BottomY + geo.TopY, 0f);
-            go.transform.localPosition = new Vector3(0f, -geo.BottomY, 0f);
-            float scale = 0.11f / Mathf.Max(0.02f, geo.MaxRadius);
-            go.transform.localScale = Vector3.one * Mathf.Clamp(scale, 0.8f, 2.5f);
-            _spec = go.transform;
-        }
-
-        private static ulong FindHeroSeed()
-        {
-            for (ulong seed = 90001; seed < 90001 + 20000; seed++)
-            {
-                var g = SpecimenGenerator.Generate(seed);
-                if (g.Tier >= QualityTier.MuseumGrade && (g.Mineral == MineralId.Amethyst || g.Mineral == MineralId.Celestite || g.Mineral == MineralId.Fluorite) && g.Cavity != CavityArchetype.Nodule) return seed;
-            }
-            return 90001;
-        }
-
-        private void Update()
-        {
-            if (_spec != null) transform.Rotate(0f, TurnSpeed * Time.deltaTime, 0f, Space.World);
         }
     }
 }

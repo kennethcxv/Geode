@@ -122,7 +122,12 @@ namespace GeodeEmpire.Core
         private void PlacePlayerAtStart()
         {
             var start = FindAnyObjectByType<PlayerStart>();
-            if (start != null && Controller != null) Controller.Teleport(start.transform.position, start.transform.eulerAngles.y);
+            if (start != null && Controller != null)
+            {
+                Controller.Teleport(start.transform.position + Vector3.up * 0.08f, start.transform.eulerAngles.y);
+                Controller.SpawnPoint = start.transform.position + Vector3.up * 0.08f;
+                Controller.SpawnYaw = start.transform.eulerAngles.y;
+            }
         }
 
         private void ClearWorld()

@@ -30,6 +30,7 @@ namespace GeodeEmpire.UI
 
         private void OnEnable()
         {
+            if (_doc.panelSettings == null) _doc.panelSettings = Resources.Load<PanelSettings>("UI/GeodePanelSettings");
             _root = _doc.rootVisualElement;
             _root.Clear();
             var ss = Resources.Load<StyleSheet>("UI/GeodeUI");

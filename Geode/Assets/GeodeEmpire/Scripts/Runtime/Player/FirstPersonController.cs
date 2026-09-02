@@ -19,6 +19,8 @@ namespace GeodeEmpire.Player
         public float PitchLimit = 85f;
         public bool MovementEnabled = true;
         public bool LookEnabled = true;
+        public Vector3 SpawnPoint = new Vector3(0f, 0.08f, 0f);
+        public float SpawnYaw;
 
         private CharacterController _cc;
         private float _yaw, _pitch;
@@ -133,6 +135,8 @@ namespace GeodeEmpire.Player
             Vector3 wish = (transform.forward * move.y + transform.right * move.x) * speed;
             _velocity = Vector3.MoveTowards(_velocity, wish, Acceleration * dt);
 
+            // safety net: never let the player fall out of the workshop
+            if (transform.position.y < -3f) { Teleport(SpawnPoint, SpawnYaw); _verticalVelocity = 0f; }
             if (_cc.isGrounded && _verticalVelocity < 0f) _verticalVelocity = -2f;
             _verticalVelocity += Gravity * dt;
             var delta = _velocity * dt + Vector3.up * _verticalVelocity * dt;

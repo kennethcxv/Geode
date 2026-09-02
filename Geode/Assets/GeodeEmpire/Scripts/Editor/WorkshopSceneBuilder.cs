@@ -143,7 +143,7 @@ namespace GeodeEmpire.EditorTools
     {
         public const string ScenePath = "Assets/GeodeEmpire/Scenes/Workshop.unity";
         public const string PropFolder = "Assets/GeodeEmpire/Models/Props";
-        public const string PanelSettingsPath = "Assets/GeodeEmpire/UI/GeodePanelSettings.asset";
+        public const string PanelSettingsPath = "Assets/GeodeEmpire/Resources/UI/GeodePanelSettings.asset";
         public const string VolumeProfilePath = "Assets/GeodeEmpire/Data/WorkshopVolume.asset";
         public const string CratePrefabPath = "Assets/GeodeEmpire/Resources/Prefabs/Crate.prefab";
 
@@ -203,7 +203,7 @@ namespace GeodeEmpire.EditorTools
         }
 
         // ------------------------------------------------------------------------------------
-        private static PanelSettings EnsurePanelSettings()
+        public static PanelSettings EnsurePanelSettings()
         {
             var ps = AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelSettingsPath);
             if (ps == null)
