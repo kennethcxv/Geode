@@ -363,6 +363,7 @@ namespace GeodeEmpire.Core
                     if (style != "careless" || strikes % 2 == 0) yield return Rotate(0.42f, 1);
                     while (bench.Revealing) yield return null;
                 }
+                if (!bench.Opened) L($"  loop ended early: active={bench.Active} revealing={bench.Revealing} strikes={strikes} exitReason={bench.LastExitReason.Split('\n')[0]}");
                 yield return new WaitForSeconds(1.8f);
                 var g = rock.Geology;
                 L($"{rock.Id} {g.Mineral} {g.Tier} strikes={strikes} dmgEvents={bench.DamageEventsThisRock} note='{bench.ResultNote}' base=${g.BaseValue} dmgFrac={rock.Visual.CrystalDamageFraction():F2}");

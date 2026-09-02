@@ -77,11 +77,11 @@ namespace GeodeEmpire.Specimens
         /// <summary>Tier as perceived by the dealer, derived from value relative to the mineral baseline.</summary>
         public static QualityTier TierFromValue(float value)
         {
-            if (value < 7f) return QualityTier.Common;
-            if (value < 18f) return QualityTier.Decent;
-            if (value < 60f) return QualityTier.Good;
-            if (value < 240f) return QualityTier.Exceptional;
-            if (value < 850f) return QualityTier.MuseumGrade;
+            if (value < 9f) return QualityTier.Common;
+            if (value < 28f) return QualityTier.Decent;
+            if (value < 90f) return QualityTier.Good;
+            if (value < 320f) return QualityTier.Exceptional;
+            if (value < 1000f) return QualityTier.MuseumGrade;
             return QualityTier.WorldClass;
         }
 

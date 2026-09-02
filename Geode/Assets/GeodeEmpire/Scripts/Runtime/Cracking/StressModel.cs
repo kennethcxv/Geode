@@ -117,9 +117,10 @@ namespace GeodeEmpire.Cracking
             {
                 // energy goes past the open crack into the neighbours, but mostly wasted
                 r.Overstrike = force > 0.45f;
-                Stress[left] += baseStress * spread * 0.8f;
-                Stress[right] += baseStress * spread * 0.8f;
-                r.StressAdded = baseStress * spread * 1.6f;
+                Stress[left] += baseStress * spread * 0.5f;
+                Stress[right] += baseStress * spread * 0.5f;
+                Stress[sector] += baseStress * 0.3f;   // keeps accumulating toward a brute-force shatter
+                r.StressAdded = baseStress * spread;
             }
             else
             {
@@ -135,18 +136,21 @@ namespace GeodeEmpire.Cracking
 
             // damage: heavy force, off-seam hits, thin shells and overstrikes hurt crystals
             float thin = Mathf.InverseLerp(0.3f, 0.08f, ShellThickness);
-            float chance = Fragility * force * force * 0.38f * (1f + 0.9f * (1f - placement)) * (1f + 0.5f * thin);
+            float chance = Fragility * force * force * force * 0.6f * (1f + 0.9f * (1f - placement)) * (1f + 0.5f * thin);
             if (r.Overstrike) chance *= 1.7f;
             if (FineChisel) chance *= 0.7f;
-            if (force < 0.35f) chance *= 0.15f;
-            else if (force < 0.55f) chance *= 0.4f;
+            if (force < 0.35f) chance *= 0.1f;
+            else if (force < 0.55f) chance *= 0.45f;
             r.DamageChance = Mathf.Clamp01(chance);
             r.Damaged = rng.Chance(r.DamageChance);
             r.DamageSeverity = r.Damaged ? Mathf.Clamp01(force * rng.Range(0.55f, 1.05f) * (r.Overstrike ? 1.2f : 1f)) : 0f;
 
             // opening: enough of the ring is cracked, or the shell is simply overwhelmed
             bool ringOpen = cracks >= Mathf.CeilToInt(Sectors * OpenFraction) && (r.NewCrack || wasCracked || cracks >= Sectors - 1);
-            bool overwhelmed = TotalStress() >= Sectors * 1.05f;
+            // brute force: a sector hammered far past cracking, or a heavy blow on an already stressed shell
+            float maxStress = 0f;
+            for (int i = 0; i < Sectors; i++) maxStress = Mathf.Max(maxStress, Stress[i]);
+            bool overwhelmed = !ringOpen && (maxStress >= 6f || (force > 0.75f && TotalStress() >= Sectors * 1.1f));
             if (ringOpen || overwhelmed)
             {
                 r.Opened = true;

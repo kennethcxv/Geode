@@ -196,9 +196,15 @@ namespace GeodeEmpire.Cracking
             Entered?.Invoke();
         }
 
+        /// <summary>Dev diagnostics: record why the bench was left.</summary>
+        public static bool TraceExits;
+        public string LastExitReason { get; private set; } = "";
+
         public void Exit()
         {
             if (!Active || Revealing) return;
+            LastExitReason = new System.Diagnostics.StackTrace(1, false).ToString();
+            if (TraceExits) Debug.Log("[CrackingBench] Exit\n" + LastExitReason);
             Active = false;
             if (_controller != null) _controller.ExitStationView();
             if (_player != null) _player.InputLocked = false;
