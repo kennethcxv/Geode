@@ -28,6 +28,9 @@ namespace GeodeEmpire.Core
         public static event Action Changed;
 
         private static GameSettings _current;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { _current = null; Changed = null; }
         public static GameSettings Current
         {
             get

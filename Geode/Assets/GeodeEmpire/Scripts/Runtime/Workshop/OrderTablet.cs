@@ -15,6 +15,9 @@ namespace GeodeEmpire.Workshop
     public sealed class OrderTablet : InteractableBehaviour
     {
         public static event Action Opened;
+
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { Opened = null; }
         public override bool CanInteract(PlayerInteractor player) => player.Held == null;
         public override string GetPrompt(PlayerInteractor player) => "Use tablet";
         public override void Interact(PlayerInteractor player)

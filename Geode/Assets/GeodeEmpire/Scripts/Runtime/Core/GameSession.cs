@@ -20,6 +20,9 @@ namespace GeodeEmpire.Core
         public static GameSession Instance { get; private set; }
         public static SessionStartMode PendingStart = SessionStartMode.Auto;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { Instance = null; PendingStart = SessionStartMode.Auto; }
+
         public const float StartingCash = 120f;
 
         public GameState State { get; private set; }

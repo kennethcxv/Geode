@@ -11,6 +11,9 @@ namespace GeodeEmpire.VFX
         private Material _dustMat, _chipMat, _glintMat;
         private static Texture2D _softCircle, _sparkle;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { Instance = null; _softCircle = null; _sparkle = null; }
+
         private void Awake()
         {
             Instance = this;

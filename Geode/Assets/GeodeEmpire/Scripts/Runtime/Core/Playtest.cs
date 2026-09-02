@@ -21,6 +21,9 @@ namespace GeodeEmpire.Core
     public sealed class Playtest : MonoBehaviour
     {
         public static Playtest Instance { get; private set; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { Instance = null; }
         public readonly StringBuilder Log = new StringBuilder();
         public bool Running;
         public string Phase = "idle";

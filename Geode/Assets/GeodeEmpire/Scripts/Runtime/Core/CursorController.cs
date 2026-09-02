@@ -7,6 +7,9 @@ namespace GeodeEmpire.Core
     {
         private static int _menuDepth;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { _menuDepth = 0; }
+
         public static bool InMenu => _menuDepth > 0;
 
         public static void EnterMenu()

@@ -33,6 +33,9 @@ namespace GeodeEmpire.Specimens
 
         private static SpecimenAssetLibrary _instance;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { _instance = null; }
+
         public static SpecimenAssetLibrary Load()
         {
             if (_instance == null) _instance = Resources.Load<SpecimenAssetLibrary>(ResourcePath);

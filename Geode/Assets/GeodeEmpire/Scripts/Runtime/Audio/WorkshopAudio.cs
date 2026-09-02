@@ -19,10 +19,19 @@ namespace GeodeEmpire.Audio
 
         public static float SfxVolume => GameSettings.Current.SfxVolume;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _built = false; _root = null; _pool.Clear(); _bank.Clear(); _poolIndex = 0;
+        }
+
         public static void EnsureBuilt()
         {
-            if (_built) return;
+            if (_built && _root != null) return;
+            // (re)build: statics survive scene loads but the pool objects may have been destroyed
             _built = true;
+            _pool.Clear();
+            _bank.Clear();
             _root = new GameObject("_WorkshopAudio");
             Object.DontDestroyOnLoad(_root);
             for (int i = 0; i < 16; i++)
@@ -47,6 +56,7 @@ namespace GeodeEmpire.Audio
             if (!_bank.TryGetValue(name, out var clips) || clips.Length == 0) return;
             var clip = clips[Random.Range(0, clips.Length)];
             var src = _pool[_poolIndex++ % _pool.Count];
+            if (src == null) { _root = null; EnsureBuilt(); src = _pool[_poolIndex++ % _pool.Count]; }
             src.transform.position = position;
             src.pitch = pitch * Random.Range(0.96f, 1.04f);
             src.volume = volume * SfxVolume;
@@ -61,6 +71,7 @@ namespace GeodeEmpire.Audio
             if (!_bank.TryGetValue(name, out var clips) || clips.Length == 0) return;
             var clip = clips[Random.Range(0, clips.Length)];
             var src = _pool[_poolIndex++ % _pool.Count];
+            if (src == null) { _root = null; EnsureBuilt(); src = _pool[_poolIndex++ % _pool.Count]; }
             src.pitch = pitch;
             src.volume = volume * SfxVolume;
             src.spatialBlend = 0f;

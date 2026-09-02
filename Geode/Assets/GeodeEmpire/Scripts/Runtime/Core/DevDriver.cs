@@ -13,6 +13,9 @@ namespace GeodeEmpire.Core
     public sealed class DevDriver : MonoBehaviour
     {
         private static DevDriver _instance;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { _instance = null; }
         private Keyboard _kb;
         private Mouse _mouse;
         private Gamepad _pad;

@@ -35,6 +35,9 @@ namespace GeodeEmpire.Workshop
         public static event Action Changed;
         private static readonly HashSet<string> _sessionDone = new HashSet<string>();
 
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { Changed = null; _sessionDone.Clear(); }
+
         public static Step Current
         {
             get

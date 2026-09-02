@@ -17,6 +17,12 @@ namespace GeodeEmpire.Core
         private static double _lastGamepadTime = -1, _lastKbmTime = 0;
 
         public static ControlScheme Scheme { get; private set; } = ControlScheme.KeyboardMouse;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _ready = false; _player = null; _lastGamepadTime = -1; _lastKbmTime = 0; Scheme = ControlScheme.KeyboardMouse;
+        }
         public static bool UsingGamepad => Scheme == ControlScheme.Gamepad;
 
         public static void Ensure()

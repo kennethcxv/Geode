@@ -19,6 +19,9 @@ namespace GeodeEmpire.Save
 
         public static event Action<GameState> Saved;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { Saved = null; }
+
         public static bool Exists() => File.Exists(MainPath) || File.Exists(BackupPath);
 
         public static void Save(GameState state)
