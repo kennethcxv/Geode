@@ -3,6 +3,18 @@
 Durable development rules for every Claude Code session in this repository.
 Read fully before doing any work. These rules override default behavior.
 
+
+## Product Design Authority
+
+Before planning or implementing Geode Empire gameplay, read:
+
+`GEODE_EMPIRE_FINAL_DESIGN.md`
+
+Treat it as the authoritative product/design specification.
+
+Do not interpret the full-game vision as authorization to implement post-slice features. Follow its phase gates and scope classifications.
+
+
 ## Repository layout
 
 - Repository root: this directory (`/Users/kenneth/Documents/GitHub/Geode`).

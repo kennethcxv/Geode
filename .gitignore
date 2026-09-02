@@ -77,3 +77,6 @@ quit.blend
 __pycache__/
 *.py[cod]
 *.pyo
+
+# Geode Empire generated diagnostics (contact sheets, captures, sim reports)
+/Geode/Output/

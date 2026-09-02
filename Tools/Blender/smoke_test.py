@@ -8,11 +8,12 @@ Steps:
   1. Clear the scene.
   2. Create a low-poly icosphere.
   3. Procedurally deform it into an irregular rock.
-  4. Assign a simple rock-like material.
-  5. Apply transforms.
-  6. Ensure Tools/Blender/Output exists.
-  7. Save Tools/Blender/Output/blender_smoke_test.blend
-  8. Export Tools/Blender/Output/blender_smoke_test.fbx
+  4. Recalculate normals so every face points outward.
+  5. Assign a simple rock-like material.
+  6. Apply transforms and rest the rock on Z = 0.
+  7. Ensure Tools/Blender/Output exists.
+  8. Save Tools/Blender/Output/blender_smoke_test.blend
+  9. Export Tools/Blender/Output/blender_smoke_test.fbx
 
 The script verifies both files on disk and exits non-zero on any failure,
 so the Blender process exit code reflects the test result.
@@ -23,6 +24,7 @@ import random
 import sys
 import traceback
 
+import bmesh
 import bpy
 from mathutils import Vector, noise
 
@@ -112,7 +114,34 @@ def deform_into_rock(obj):
 
 
 # ---------------------------------------------------------------------------
-# 4. Simple rock material
+# 4. Sensible normals
+# ---------------------------------------------------------------------------
+def fix_normals(obj):
+    """Make face normals consistent and outward-facing, and check the result."""
+    mesh = obj.data
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+
+    non_manifold = [e for e in bm.edges if not e.is_manifold]
+    if non_manifold:
+        bm.free()
+        fail(f"Mesh has {len(non_manifold)} non-manifold edges")
+
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+
+    # The rock is centred on the origin at this point, so an outward normal
+    # must point roughly the same way as the face centre.
+    inward = sum(1 for poly in mesh.polygons if poly.normal.dot(poly.center) < 0.0)
+    if inward:
+        fail(f"{inward}/{len(mesh.polygons)} faces point inward after recalc")
+    log(f"Normals recalculated: {len(mesh.polygons)} faces, all outward, manifold")
+
+
+# ---------------------------------------------------------------------------
+# 5. Simple rock material
 # ---------------------------------------------------------------------------
 def assign_material(obj):
     mat = bpy.data.materials.new("RockMaterial")
@@ -154,7 +183,7 @@ def assign_material(obj):
 
 
 # ---------------------------------------------------------------------------
-# 5. Apply transforms
+# 6. Apply transforms, rest on Z = 0
 # ---------------------------------------------------------------------------
 def apply_transforms(obj):
     bpy.ops.object.select_all(action="DESELECT")
@@ -168,11 +197,14 @@ def apply_transforms(obj):
     obj.data.update()
     if any(abs(s - 1.0) > 1e-6 for s in obj.scale):
         fail(f"Scale not applied: {tuple(obj.scale)}")
-    log(f"Transforms applied; scale={tuple(round(s, 3) for s in obj.scale)}")
+    base_z = min(v.co.z for v in obj.data.vertices)
+    if abs(base_z) > 1e-5:
+        fail(f"Rock base not at Z=0: {base_z}")
+    log(f"Transforms applied; scale={tuple(round(s, 3) for s in obj.scale)}; base_z={base_z:.6f}")
 
 
 # ---------------------------------------------------------------------------
-# 6-8. Output
+# 7-9. Output
 # ---------------------------------------------------------------------------
 def ensure_output_dir():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -266,6 +298,7 @@ def main():
     clear_scene()
     rock = create_icosphere()
     deform_into_rock(rock)
+    fix_normals(rock)
     assign_material(rock)
     apply_transforms(rock)
     ensure_output_dir()

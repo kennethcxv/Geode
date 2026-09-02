@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa48bea31073a4b71b8479148bf6f0f4, type: 3}
+  m_Name: SpecimenAssetLibrary
+  m_EditorClassIdentifier: GeodeEmpire.Runtime::GeodeEmpire.Specimens.SpecimenAssetLibrary
+  CrystalMeshes:
+  - {fileID: 7078794718502195664, guid: 698f095e8ac534e51bf0107996cbdf6f, type: 3}
+  - {fileID: 4388066680392035012, guid: 3f3e197ae080748f7a9be27271c24da9, type: 3}
+  - {fileID: -1646831720612947437, guid: e50726007a93d4c01b836e160b88c6ea, type: 3}
+  - {fileID: 4153448984764541624, guid: c738af886ab1d44738177a6ba636e02f, type: 3}
+  - {fileID: 4860146874816873137, guid: 52000fb9f33684965a160295f5122573, type: 3}
+  - {fileID: -48717800575506021, guid: d9e5cce447a504dacbe19eaa1bf60745, type: 3}
+  - {fileID: 8995045033413379159, guid: ed6fda27d9f754c0aa6c48d446df854e, type: 3}
+  - {fileID: 8529375579019547098, guid: 622d26186bc254eb5999c1a1491ef70b, type: 3}
+  - {fileID: 9178090252913633216, guid: cc8f814bdbfce49a888d849005b74b80, type: 3}
+  - {fileID: -1896708159562362325, guid: 7ddef307936434c5080cf35019f8ddc9, type: 3}
+  - {fileID: -5346254965454137291, guid: 5dd29661aab1d46f3a23b7b698d3867d, type: 3}
+  - {fileID: 1929222265862084636, guid: 1a4e6341f8082439aabe001886c90d47, type: 3}
+  - {fileID: -5286583178923619919, guid: 23cf4644990964123aebf20a517b0882, type: 3}
+  - {fileID: 7636588085031167743, guid: 64ad56ae15858420580137f37ba9b5da, type: 3}
+  CrystalMaterial: {fileID: 2100000, guid: 85019ccd04437431695f56d48360a086, type: 2}
+  ShellMaterial: {fileID: 2100000, guid: 8ddfac2f3221b4431af85f3c03a5183f, type: 2}
+  CrackMaterial: {fileID: 2100000, guid: 7145000c2d78a4027ae8a5a93dda3898, type: 2}
+  HighlightMaterial: {fileID: 0}
+  NoiseTexture: {fileID: 2800000, guid: dac6ac82b8cc24daf9e0e60a01b657cc, type: 3}
+  RockTexture: {fileID: 2800000, guid: 76ae4cbd917df48b1ae1cf00cb8d4d1f, type: 3}
