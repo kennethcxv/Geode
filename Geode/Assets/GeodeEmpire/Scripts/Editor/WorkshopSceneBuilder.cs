@@ -427,17 +427,22 @@ namespace GeodeEmpire.EditorTools
         /// <param name="intoWallYaw">world yaw of the direction pointing into the wall the sign hangs on</param>
         private static void Sign(Transform parent, string text, Vector3 pos, float intoWallYaw, float scale = 1f)
         {
-            // board: its thin axis is local Z; rotate so local +Z points into the wall
-            var board = Prop("prop_sign_board", parent, pos, intoWallYaw, "M_WoodDark", collider: false, scale: new Vector3(scale, scale, 2.5f));
-            var label = new GameObject("Text");
-            label.transform.SetParent(board.transform, false);
-            label.transform.localPosition = new Vector3(0f, 0.07f, -0.028f);
-            label.transform.localRotation = Quaternion.identity;
+            // text first, so the board can be sized to it; the label is a sibling (not a child) of the scaled board
+            var rot = Quaternion.Euler(0f, intoWallYaw, 0f);
+            var label = new GameObject("SignText");
+            label.transform.SetParent(parent, false);
+            label.transform.SetPositionAndRotation(pos + rot * new Vector3(0f, 0.112f * scale, -0.06f), rot);
             var tm = label.AddComponent<TextMesh>();
-            tm.text = text; tm.characterSize = 0.03f; tm.fontSize = 64; tm.anchor = TextAnchor.MiddleCenter; tm.alignment = TextAlignment.Center;
+            tm.text = text; tm.characterSize = 0.03f * scale; tm.fontSize = 64; tm.anchor = TextAnchor.MiddleCenter; tm.alignment = TextAlignment.Center;
             tm.color = new Color(0.93f, 0.88f, 0.76f);
             var font = AssetDatabase.LoadAssetAtPath<Font>("Assets/GeodeEmpire/UI/Fonts/Roboto-Bold.ttf");
             if (font != null) { tm.font = font; label.GetComponent<MeshRenderer>().sharedMaterial = font.material; }
+            var b = label.GetComponent<MeshRenderer>().bounds;
+            float textWidth = Mathf.Max(b.size.x, b.size.z);
+            if (textWidth < 0.1f) textWidth = text.Length * 0.115f * scale;          // mesh not generated yet in batch mode
+            float boardWidth = textWidth + 0.22f * scale;
+            // board: its thin axis is local Z; rotate so local +Z points into the wall. Base mesh is 0.5 x 0.14 m.
+            Prop("prop_sign_board", parent, pos, intoWallYaw, "M_WoodDark", collider: false, scale: new Vector3(boardWidth / 0.5f, 1.6f * scale, 2.5f));
         }
 
         private static void Poster(Transform parent, string material, Vector3 pos, float yaw)
