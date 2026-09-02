@@ -36,6 +36,35 @@ namespace GeodeEmpire.Specimens
         public float[] EquatorY;             // per longitude, rim jitter (already signed)
         public float PoleY;
 
+        /// <summary>Coarse convex hull source (exterior every 4th longitude / 3rd ring + rim) so PhysX stays under its polygon limit.</summary>
+        public Mesh ToColliderMesh(string name, int longitudes, int latitudes)
+        {
+            int N = longitudes, M = latitudes;
+            int stepLon = 4, stepLat = 3;
+            var pts = new List<Vector3>();
+            for (int k = 0; k < M; k += stepLat)
+                for (int i = 0; i < N; i += stepLon)
+                    pts.Add(Vertices[k * N + i]);
+            pts.Add(Vertices[M * N]); // pole
+            int cols = N / stepLon;
+            var tris = new List<int>();
+            int rows = (M + stepLat - 1) / stepLat;
+            for (int r = 0; r < rows - 1; r++)
+                for (int c = 0; c < cols; c++)
+                {
+                    int a = r * cols + c, b = r * cols + (c + 1) % cols, d = (r + 1) * cols + c, e = (r + 1) * cols + (c + 1) % cols;
+                    tris.Add(a); tris.Add(b); tris.Add(e); tris.Add(a); tris.Add(e); tris.Add(d);
+                }
+            int pole = pts.Count - 1;
+            for (int c = 0; c < cols; c++) { tris.Add((rows - 1) * cols + c); tris.Add((rows - 1) * cols + (c + 1) % cols); tris.Add(pole); }
+            var m = new Mesh { name = name };
+            m.SetVertices(pts);
+            m.SetTriangles(tris, 0);
+            m.RecalculateNormals();
+            m.RecalculateBounds();
+            return m;
+        }
+
         public Mesh ToMesh(string name)
         {
             var m = new Mesh { name = name };

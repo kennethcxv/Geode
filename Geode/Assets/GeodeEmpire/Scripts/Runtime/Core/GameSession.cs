@@ -48,6 +48,7 @@ namespace GeodeEmpire.Core
         private void Awake()
         {
             Instance = this;
+            Time.timeScale = 1f;
             Library = SpecimenAssetLibrary.Load();
             if (Library == null) Debug.LogError("[GameSession] SpecimenAssetLibrary missing from Resources.");
             GameInput.Ensure();

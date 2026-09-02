@@ -194,14 +194,15 @@ namespace GeodeEmpire.EditorTools
             for (int x = 0; x < size; x++)
             {
                 float u = x / (float)size, v = y / (float)size;
-                float warp = F(u, v, 3, 3, seed) - 0.5f;
-                float grain = Mathf.Sin((v * 36f + warp * 5f + F(u * 0.5f, v, 12, 2, seed + 7) * 1.5f) * Mathf.PI) * 0.5f + 0.5f;
-                grain = Mathf.Pow(grain, 2.2f);
-                float fine = F(u, v, 64, 2, seed + 11);
+                float warp = F(u, v, 2, 3, seed) - 0.5f;
+                float grain = Mathf.Sin((v * 90f + warp * 9f + F(u * 0.5f, v, 12, 2, seed + 7) * 2.5f) * Mathf.PI) * 0.5f + 0.5f;
+                grain = Mathf.Pow(grain, 1.6f);
+                float fine = F(u, v, 96, 2, seed + 11);
+                float pores = F(u * 0.25f, v, 160, 1, seed + 19);
                 // plank seams every quarter tile along v
                 float plank = Mathf.Repeat(v * 4f + F(u, v, 1, 1, seed + 13) * 0.02f, 1f);
-                float seam = plank < 0.02f || plank > 0.98f ? 0.45f : 1f;
-                var c = Color.Lerp(light, dark, grain * 0.75f + (fine - 0.5f) * 0.3f) * seam;
+                float seam = plank < 0.012f || plank > 0.988f ? 0.55f : 1f;
+                var c = Color.Lerp(light, dark, grain * 0.32f + (fine - 0.5f) * 0.18f + (pores - 0.5f) * 0.12f) * seam;
                 px[y * size + x] = new Color(c.r, c.g, c.b, 1f);
             }
             return px;

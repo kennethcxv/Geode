@@ -16,6 +16,8 @@ namespace GeodeEmpire.Specimens
         public Transform BottomHalf { get; private set; }
         public MeshRenderer TopShellRenderer { get; private set; }
         public MeshRenderer BottomShellRenderer { get; private set; }
+        public Mesh TopColliderMesh { get; private set; }
+        public Mesh BottomColliderMesh { get; private set; }
 
         private SpecimenAssetLibrary _lib;
         private readonly List<MeshRenderer> _crystalRenderers = new List<MeshRenderer>();
@@ -70,6 +72,10 @@ namespace GeodeEmpire.Specimens
 
             BottomHalf = CreateHalf("BottomHalf", Geometry.Bottom, out var bottomRenderer);
             TopHalf = CreateHalf("TopHalf", Geometry.Top, out var topRenderer);
+            BottomColliderMesh = Geometry.Bottom.ToColliderMesh("BottomHalf_Collider", GeodeMeshBuilder.Longitudes, GeodeMeshBuilder.Latitudes);
+            TopColliderMesh = Geometry.Top.ToColliderMesh("TopHalf_Collider", GeodeMeshBuilder.Longitudes, GeodeMeshBuilder.Latitudes);
+            _ownedMeshes.Add(BottomColliderMesh);
+            _ownedMeshes.Add(TopColliderMesh);
             BottomShellRenderer = bottomRenderer;
             TopShellRenderer = topRenderer;
             RebuildCrystals();
@@ -208,7 +214,7 @@ namespace GeodeEmpire.Specimens
             _mpb.SetColor(RockColorId, weathered);
             _mpb.SetColor(RockColor2Id, tone2);
             _mpb.SetColor(CavityColorId, fam.CavityWall);
-            _mpb.SetColor(RimColorId, Color.Lerp(tone, Color.white, 0.1f));
+            _mpb.SetColor(RimColorId, Color.Lerp(tone, Color.black, 0.12f));
             _mpb.SetColor(BandAId, pal.BandA);
             _mpb.SetColor(BandBId, pal.BandB);
             _mpb.SetFloat(BandStrengthId, fam.BandStrength);

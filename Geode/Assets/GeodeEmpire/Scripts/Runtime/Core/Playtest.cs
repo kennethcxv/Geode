@@ -298,6 +298,33 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        /// <summary>Run C step: take the nicest opened specimen we can find to display slot 0 and verify it stuck.</summary>
+        public void RunDisplayKeep() { if (!Running) StartCoroutine(DisplayKeep()); }
+
+        private IEnumerator DisplayKeep()
+        {
+            Running = true;
+            Phase = "display";
+            SpecimenEntity best = null;
+            foreach (var e in S.Entities.Values)
+                if (e.IsOpened && e.Record.Location != SpecimenLocation.DisplaySlot && (best == null || e.Geology.BaseValue > best.Geology.BaseValue)) best = e;
+            if (best == null) { L("no opened specimen to display"); Running = false; yield break; }
+            Vector3 bp = best.transform.position;
+            yield return D.WalkTo(StandNear(bp, 0.9f), 0.3f);
+            yield return LookAndInteract(bp, "Take");
+            if (P.Held == null) { yield return LookAndInteract(bp, "Pick up"); }
+            L("held=" + (P.Held != null ? P.Held.Record.DisplayName : "none"));
+            if (P.Held == null) { Running = false; yield break; }
+            Vector3 slot = ZonePos(ZoneKind.DisplaySlot, 0);
+            yield return D.WalkTo(StandNear(slot, 1.0f), 0.3f);
+            yield return LookAndInteract(slot, "Place in display slot");
+            yield return new WaitForSeconds(0.4f);
+            var st = S.State;
+            L($"displayed={st.DisplayedCount()} collectionValue={st.CollectionValue()} prestige={st.Prestige} suppliers={string.Join(",", st.UnlockedSuppliers)} kept={st.Stats.SpecimensKept}");
+            Phase = "done";
+            Running = false;
+        }
+
         /// <summary>Crack every remaining rock on the bench quickly (for economy/pacing checks).</summary>
         public void RunCrackAll(string style = "careful") { if (!Running) StartCoroutine(CrackAll(style)); }
 

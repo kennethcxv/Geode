@@ -53,17 +53,15 @@ namespace GeodeEmpire.Specimens
         {
             foreach (var c in _colliders) if (c != null) Destroy(c);
             _colliders.Clear();
-            AddHalfCollider(Visual.BottomHalf);
-            AddHalfCollider(Visual.TopHalf);
+            AddHalfCollider(Visual.BottomHalf, Visual.BottomColliderMesh);
+            AddHalfCollider(Visual.TopHalf, Visual.TopColliderMesh);
         }
 
-        private void AddHalfCollider(Transform half)
+        private void AddHalfCollider(Transform half, Mesh colliderMesh)
         {
-            if (half == null) return;
-            var mf = half.GetComponent<MeshFilter>();
-            if (mf == null || mf.sharedMesh == null) return;
+            if (half == null || colliderMesh == null) return;
             var mc = half.gameObject.AddComponent<MeshCollider>();
-            mc.sharedMesh = mf.sharedMesh;
+            mc.sharedMesh = colliderMesh;
             mc.convex = true;
             mc.material = null;
             _colliders.Add(mc);

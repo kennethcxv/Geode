@@ -122,8 +122,8 @@ namespace GeodeEmpire.UI
             _freeRoam = visible;
             var d = visible ? DisplayStyle.Flex : DisplayStyle.None;
             _crosshair.style.display = d;
-            if (!visible) { _ring.style.display = DisplayStyle.None; _prompt.style.display = DisplayStyle.None; _hint.style.display = DisplayStyle.None; }
-            else RefreshPrompt();
+            if (!visible) { _ring.style.display = DisplayStyle.None; _prompt.style.display = DisplayStyle.None; _hint.style.display = DisplayStyle.None; _tutorialCard.style.display = DisplayStyle.None; }
+            else { RefreshPrompt(); RefreshTutorial(); }
         }
 
         private void RefreshPrompt()
@@ -149,7 +149,7 @@ namespace GeodeEmpire.UI
         private void RefreshTutorial()
         {
             var step = Tutorial.Current;
-            if (step == null) { _tutorialCard.style.display = DisplayStyle.None; return; }
+            if (step == null || !_freeRoam) { _tutorialCard.style.display = DisplayStyle.None; return; }
             _tutorial.text = Tutorial.Format(step.Text);
             _tutorialCard.style.display = DisplayStyle.Flex;
         }

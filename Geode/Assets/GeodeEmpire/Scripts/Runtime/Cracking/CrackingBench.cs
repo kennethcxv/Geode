@@ -103,6 +103,7 @@ namespace GeodeEmpire.Cracking
         private FirstPersonController _controller;
         private PlayerInteractor _player;
         private Camera _cam;
+        private Vector3 _camAnchorHomePos; private Quaternion _camAnchorHomeRot;
         private Vector3 _chiselRestPos, _hammerRestPos;
         private Quaternion _chiselRestRot, _hammerRestRot;
         private float _lightBase;
@@ -117,6 +118,7 @@ namespace GeodeEmpire.Cracking
             if (ChiselVisual != null) { _chiselRestPos = ChiselVisual.position; _chiselRestRot = ChiselVisual.rotation; }
             if (HammerVisual != null) { _hammerRestPos = HammerVisual.position; _hammerRestRot = HammerVisual.rotation; }
             if (TaskLight != null) _lightBase = TaskLight.intensity;
+            if (CameraAnchor != null) { _camAnchorHomePos = CameraAnchor.position; _camAnchorHomeRot = CameraAnchor.rotation; }
         }
 
         private void RestTools()
@@ -187,6 +189,7 @@ namespace GeodeEmpire.Cracking
             _ribbon.Refresh(_model, HasLamp);
             _rockYaw = 0f;
             _cursor = new Vector2(0.5f, 0.52f);
+            if (CameraAnchor != null) CameraAnchor.SetPositionAndRotation(_camAnchorHomePos, _camAnchorHomeRot);
             if (_controller != null) _controller.EnterStationView(CameraAnchor);
             if (_player != null) _player.InputLocked = true;
             if (TaskLight != null) TaskLight.intensity = _lightBase * (HasLamp ? 1.6f : 1f);
@@ -473,17 +476,32 @@ namespace GeodeEmpire.Cracking
                 StartCoroutine(DelayedSting(0.4f));
             }
 
-            // hinge the top half open on the far side
+            // hinge the top half open sideways (to the player's left) so both halves stay in view like an open book
             var top = vis.TopHalf;
             Vector3 camFlat = _cam.transform.position - _rock.transform.position; camFlat.y = 0f; camFlat.Normalize();
-            Vector3 fLocal = _rock.transform.InverseTransformDirection(camFlat);
+            Vector3 camRight = Vector3.Cross(Vector3.up, camFlat).normalized;   // player's right
+            Vector3 fLocal = _rock.transform.InverseTransformDirection(camRight);
             float R = geo.MeanEquatorRadius;
             Vector3 hinge = -fLocal * R;
             Vector3 axis = Vector3.Cross(Vector3.up, fLocal).normalized;
             Vector3 startPos = top.localPosition;
             Quaternion startRot = top.localRotation;
-            float finalLift = -geo.BottomY + geo.TopY;
+            // where the flipped half will come to rest: on whatever surface lies under its landing spot
+            Vector3 landLocal = hinge + Quaternion.AngleAxis(178f, axis) * (startPos - hinge);
+            Vector3 landWorld = _rock.transform.TransformPoint(landLocal);
+            float surfaceY = _rock.transform.position.y + geo.BottomY;
+            var downRay = new Ray(landWorld + Vector3.up * 0.25f, Vector3.down);
+            foreach (var h in Physics.RaycastAll(downRay, 0.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            {
+                if (h.collider.GetComponentInParent<SpecimenEntity>() == _rock) continue;
+                if (h.point.y > surfaceY - 0.3f) { surfaceY = Mathf.Max(surfaceY - 0.3f, h.point.y); break; }
+            }
+            float finalLift = (surfaceY + geo.TopY) - _rock.transform.TransformPoint(landLocal).y;
             float dur = rare ? 1.5f : 1.15f;
+            // dolly the bench camera in to admire the interior
+            Vector3 camFrom = CameraAnchor.position; Quaternion camFromRot = CameraAnchor.rotation;
+            Vector3 camTo = _rock.transform.position - camRight * geo.MaxRadius * 1.1f + camFlat * (geo.MaxRadius * 1.6f + 0.04f) + Vector3.up * (geo.MaxRadius * 1.9f + 0.03f);
+            Quaternion camToRot = Quaternion.LookRotation((_rock.transform.position - camRight * geo.MaxRadius * 1.1f + Vector3.up * geo.MaxRadius * 0.2f) - camTo, Vector3.up);
             float t = 0f;
             while (t < 1f)
             {
@@ -496,9 +514,12 @@ namespace GeodeEmpire.Cracking
                 top.localPosition = pos;
                 top.localRotation = rot * startRot;
                 light.intensity = Mathf.Sin(Mathf.Clamp01(t) * Mathf.PI) * (rare ? 2.4f : 1.5f);
+                float ct = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.15f) / 0.85f));
+                CameraAnchor.SetPositionAndRotation(Vector3.Lerp(camFrom, camTo, ct), Quaternion.Slerp(camFromRot, camToRot, ct));
                 if (t > 0.35f && t < 0.4f) EffectsFactory.Instance?.Glints(_rock.transform.position + Vector3.up * R * 0.4f, R * 0.7f, attractive ? 18 : 8, SpecimenVisual.ApplySaturation(g.Palette.SurfaceA, g.Saturation));
                 yield return null;
             }
+            CameraAnchor.SetPositionAndRotation(camTo, camToRot);
             top.localPosition = hinge + Quaternion.AngleAxis(178f, axis) * (startPos - hinge) + Vector3.up * finalLift;
             top.localRotation = Quaternion.AngleAxis(178f, axis) * startRot;
             WorkshopAudio.Play("rock_place", _rock.transform.TransformPoint(top.localPosition), 0.5f, 0.9f);
@@ -520,7 +541,7 @@ namespace GeodeEmpire.Cracking
 
         private static string BuildResultNote(SpecimenGeology g, float damage, StressModel.StrikeResult result)
         {
-            string tier = Valuation.TierLabel(g.Tier);
+            string tier = Valuation.TierLabel(Valuation.TierFromValue(Valuation.DamagedValue(g, damage, 0f)));
             string dmg = damage <= 0.001f ? "Clean open" : damage < 0.12f ? "Minor chipping" : damage < 0.35f ? "Noticeable damage" : "Heavy damage";
             if (result.Shattered) dmg = "Shattered open";
             return $"{tier}  •  {dmg}";

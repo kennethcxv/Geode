@@ -118,13 +118,13 @@ namespace GeodeEmpire.Specimens
                     Palettes = new[]
                     {
                         new MineralPalette("Grape", C(0.6f, 0.4f, 0.86f), C(0.45f, 0.24f, 0.72f), C(0.32f, 0.1f, 0.58f), C(0.18f, 0.04f, 0.38f), C(0.26f, 0.06f, 0.48f),
-                            C(0.86f, 0.86f, 0.84f), C(0.5f, 0.5f, 0.5f)),
+                            C(0.78f, 0.76f, 0.72f), C(0.5f, 0.5f, 0.5f)),
                         new MineralPalette("Lilac", C(0.78f, 0.66f, 0.92f), C(0.68f, 0.55f, 0.88f), C(0.55f, 0.38f, 0.78f), C(0.42f, 0.26f, 0.66f), C(0.5f, 0.3f, 0.75f),
-                            C(0.88f, 0.88f, 0.86f), C(0.55f, 0.55f, 0.55f)),
+                            C(0.8f, 0.78f, 0.75f), C(0.55f, 0.55f, 0.55f)),
                     },
                     PaletteWeights = new[] { 0.6f, 0.4f },
                     Translucency = 0.62f, Metallic = 0f, Smoothness = 0.94f, Sparkle = 0.6f, Rim = 0.6f, ZoningBase = 0.45f, Inclusions = 0.2f,
-                    CavityWall = C(0.56f, 0.54f, 0.51f), BandStrength = 0.35f, BandFrequency = 12f,
+                    CavityWall = C(0.56f, 0.54f, 0.51f), BandStrength = 0.28f, BandFrequency = 12f,
                     ValueMult = 1.5f, Fragility = 0.5f, ShellToughness = 1.05f,
                     SecondaryOptions = new[] { MineralId.Calcite, MineralId.Pyrite }, SecondaryChance = 0.2f,
                     BaseFrequency = 16, DruzyCapable = true, CenterpieceChance = 0.6f,

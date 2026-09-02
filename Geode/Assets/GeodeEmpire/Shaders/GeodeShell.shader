@@ -144,7 +144,7 @@ Shader "GeodeEmpire/GeodeShell"
                 cav = lerp(cav, druzyCol, _CavityDruzy * c.g);
 
                 float3 albedo = ext * c.r + cav * c.g + rim * c.b;
-                float smooth = 0.18 * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * c.g + 0.3 * c.b;
+                float smooth = 0.18 * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * c.g + 0.16 * c.b;
                 smooth += (grain - 0.5) * 0.1;
 
                 InputData inputData = (InputData)0;

@@ -85,14 +85,7 @@ namespace GeodeEmpire.Player
 
             if (!Inspecting)
             {
-                IInteractable found = null;
-                var ray = new Ray(Cam.transform.position, Cam.transform.forward);
-                if (Physics.Raycast(ray, out var hit, Range, Mask, QueryTriggerInteraction.Collide))
-                {
-                    found = hit.collider.GetComponentInParent<IInteractable>();
-                    if (found is SpecimenEntity se && se == Held) found = null;
-                }
-                SetTarget(found);
+                SetTarget(FindTarget());
                 if (Target != null && GameInput.InteractPressed && Time.frameCount > IgnoreInteractUntilFrame && Target.CanInteract(this))
                 {
                     Target.Interact(this);
@@ -103,6 +96,45 @@ namespace GeodeEmpire.Player
 
             if (Held != null && GameInput.DropPressed) Drop();
             RefreshPrompt();
+        }
+
+        private readonly RaycastHit[] _hits = new RaycastHit[16];
+
+        /// <summary>
+        /// Nearest interactable under the crosshair. Thin solid geometry (shelf lips, tray walls) may sit just in
+        /// front of a placement zone, so an interactable slightly behind the first solid hit still counts.
+        /// </summary>
+        private IInteractable FindTarget()
+        {
+            var ray = new Ray(Cam.transform.position, Cam.transform.forward);
+            int n = Physics.RaycastNonAlloc(ray, _hits, Range, Mask, QueryTriggerInteraction.Collide);
+            if (n == 0) return null;
+            System.Array.Sort(_hits, 0, n, RaycastDistanceComparer.Instance);
+            float firstSolid = float.MaxValue;
+            IInteractable best = null;
+            float bestDist = float.MaxValue;
+            for (int i = 0; i < n; i++)
+            {
+                var h = _hits[i];
+                var inter = h.collider.GetComponentInParent<IInteractable>();
+                if (inter is SpecimenEntity se && se == Held) inter = null;
+                if (inter != null)
+                {
+                    if (h.distance <= firstSolid + 0.4f && h.distance < bestDist) { best = inter; bestDist = h.distance; }
+                }
+                else if (!h.collider.isTrigger && h.distance < firstSolid)
+                {
+                    firstSolid = h.distance;
+                }
+                if (h.distance > firstSolid + 0.4f) break;
+            }
+            return best;
+        }
+
+        private sealed class RaycastDistanceComparer : System.Collections.Generic.IComparer<RaycastHit>
+        {
+            public static readonly RaycastDistanceComparer Instance = new RaycastDistanceComparer();
+            public int Compare(RaycastHit a, RaycastHit b) => a.distance.CompareTo(b.distance);
         }
 
         private void BeginInspect()

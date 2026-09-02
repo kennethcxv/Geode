@@ -9,7 +9,7 @@ namespace GeodeEmpire.Specimens
     /// </summary>
     public static class Valuation
     {
-        public const float ReferenceMassKg = 0.9f;
+        public const float ReferenceMassKg = 2.2f;
 
         public static float FormationFactor(CavityArchetype c) => c switch
         {

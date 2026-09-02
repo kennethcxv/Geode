@@ -43,7 +43,7 @@ namespace GeodeEmpire.UI
 
             _result = UiKit.Box(_root, "card");
             _result.style.position = Position.Absolute;
-            _result.style.left = Length.Percent(50); _result.style.top = Length.Percent(72);
+            _result.style.left = Length.Percent(50); _result.style.top = Length.Percent(80);
             _result.style.translate = new Translate(Length.Percent(-50), 0);
             _result.style.alignItems = Align.Center;
             _resultName = UiKit.Label(_result, "", "appraisal-name", "bold");

@@ -364,7 +364,7 @@ namespace GeodeEmpire.EditorTools
             var probe = probeGo.AddComponent<ReflectionProbe>();
             probe.mode = ReflectionProbeMode.Realtime;
             probe.refreshMode = ReflectionProbeRefreshMode.OnAwake;
-            probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
+            probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.AllFacesAtOnce;
             probe.resolution = 128;
             probe.size = new Vector3(RoomW, RoomH, RoomD);
             probe.boxProjection = true;
@@ -411,8 +411,8 @@ namespace GeodeEmpire.EditorTools
             chisel.transform.localRotation = Quaternion.Euler(90f, 30f, 0f);
             var hammer = Prop("prop_hammer", bench, new Vector3(-0.55f, 0.935f, 0.05f), 0f, "M_MetalDark", collider: false);
             hammer.transform.localRotation = Quaternion.Euler(0f, -20f, 90f);
-            var lampProp = Prop("prop_task_lamp", bench, new Vector3(0.75f, 0.9f, 0.25f), 200f, "M_MetalDark", collider: false);
-            var taskLight = MakeLight(bench, "TaskLight", new Vector3(0.62f, 1.32f, 0.05f), new Vector3(58f, -110f, 0f), LightType.Spot, new Color(1f, 0.92f, 0.8f), 3.2f, 2.6f, 62f, true);
+            var lampProp = Prop("prop_task_lamp", bench, new Vector3(1.05f, 0.9f, 0.36f), 220f, "M_MetalDark", collider: false);
+            var taskLight = MakeLight(bench, "TaskLight", new Vector3(0.62f, 1.32f, 0.05f), new Vector3(58f, -110f, 0f), LightType.Spot, new Color(1f, 0.92f, 0.8f), 2.4f, 2.6f, 62f, true);
             Prop("prop_pegboard", bench, new Vector3(0f, 1.35f, 0.5f), 0f, "M_Wood", collider: false);
             Prop("prop_bucket", bench, new Vector3(-1.2f, 0f, -0.1f), 0f, "M_PlasticBlue");
             Prop("prop_stool", bench, new Vector3(0.95f, 0f, -0.75f), 25f, "M_WoodDark");
@@ -500,7 +500,7 @@ namespace GeodeEmpire.EditorTools
                 {
                     float y = 0.215f + row * 0.5f;
                     float x = (col - 1.5f) * 0.29f;
-                    var z = Zone(cabinet, $"Slot{slot}", new Vector3(x, y, -0.02f), ZoneKind.DisplaySlot, $"display slot {slot + 1}", 1, true, false, new Vector3(0.26f, 0.3f, 0.3f));
+                    var z = Zone(cabinet, $"Slot{slot}", new Vector3(x, y, 0.04f), ZoneKind.DisplaySlot, $"display slot {slot + 1}", 1, true, false, new Vector3(0.28f, 0.4f, 0.4f));
                     z.SlotIndex = slot;
                     var a = new GameObject("Anchor").transform;
                     a.SetParent(z.transform, false);
@@ -573,6 +573,7 @@ namespace GeodeEmpire.EditorTools
             hud.AddComponent<TabletUI>();
             hud.AddComponent<AppraisalUI>();
             hud.AddComponent<PauseMenu>();
+            hud.AddComponent<SliceDirector>();
             var vol = new GameObject("GlobalVolume");
             var v = vol.AddComponent<Volume>();
             v.isGlobal = true;
