@@ -135,11 +135,11 @@ namespace GeodeEmpire.Cracking
 
             // damage: heavy force, off-seam hits, thin shells and overstrikes hurt crystals
             float thin = Mathf.InverseLerp(0.3f, 0.08f, ShellThickness);
-            float chance = Fragility * force * force * 0.5f * (1f + 0.9f * (1f - placement)) * (1f + 0.5f * thin);
+            float chance = Fragility * force * force * 0.38f * (1f + 0.9f * (1f - placement)) * (1f + 0.5f * thin);
             if (r.Overstrike) chance *= 1.7f;
             if (FineChisel) chance *= 0.7f;
-            if (force < 0.35f) chance *= 0.2f;
-            else if (force < 0.55f) chance *= 0.55f;
+            if (force < 0.35f) chance *= 0.15f;
+            else if (force < 0.55f) chance *= 0.4f;
             r.DamageChance = Mathf.Clamp01(chance);
             r.Damaged = rng.Chance(r.DamageChance);
             r.DamageSeverity = r.Damaged ? Mathf.Clamp01(force * rng.Range(0.55f, 1.05f) * (r.Overstrike ? 1.2f : 1f)) : 0f;

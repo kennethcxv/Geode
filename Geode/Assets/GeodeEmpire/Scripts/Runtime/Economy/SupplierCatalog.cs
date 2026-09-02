@@ -35,7 +35,7 @@ namespace GeodeEmpire.Economy
                 Id = Local, Name = "Local Quarry Mixed Crate", Tagline = "Cheap volume. Mostly ordinary. Now and then, not.",
                 Description = "Unsorted geodes straight off the quarry sorting belt. Great hammer practice and the occasional strange local outlier.",
                 Price = 75f, MinRocks = 9, MaxRocks = 10, CountHidden = false,
-                TierWeights = new[] { 0.62f, 0.24f, 0.10f, 0.03f, 0.008f, 0.002f },
+                TierWeights = new[] { 0.62f, 0.25f, 0.09f, 0.03f, 0.003f, 0.0005f },
                 UnlockHint = "", Accent = new Color(0.75f, 0.62f, 0.42f),
             },
             new SupplierDefinition
@@ -43,7 +43,7 @@ namespace GeodeEmpire.Economy
                 Id = Regional, Name = "Regional Curated Crate", Tagline = "Hand-picked. Fewer duds, fewer miracles.",
                 Description = "A regional dealer pre-sorts these by weight and sound. A better floor and steadier value, but the wild outliers were skimmed off already.",
                 Price = 190f, MinRocks = 8, MaxRocks = 8, CountHidden = false,
-                TierWeights = new[] { 0.30f, 0.40f, 0.22f, 0.065f, 0.013f, 0.002f },
+                TierWeights = new[] { 0.28f, 0.40f, 0.24f, 0.065f, 0.015f, 0.003f },
                 UnlockHint = "Unlocks after your first sale to the dealer.", Accent = new Color(0.45f, 0.65f, 0.55f),
             },
             new SupplierDefinition
@@ -51,15 +51,15 @@ namespace GeodeEmpire.Economy
                 Id = Estate, Name = "Estate Mystery Lot", Tagline = "Somebody's collection, boxed up unsorted. Could be anything.",
                 Description = "Unknown provenance, unknown count. Estate lots can be a box of gravel or the best week of your career.",
                 Price = 260f, MinRocks = 6, MaxRocks = 12, CountHidden = true,
-                TierWeights = new[] { 0.50f, 0.20f, 0.15f, 0.10f, 0.035f, 0.015f },
+                TierWeights = new[] { 0.50f, 0.20f, 0.15f, 0.10f, 0.03f, 0.01f },
                 UnlockHint = "Unlocks once you have a specimen on display.", Accent = new Color(0.62f, 0.45f, 0.72f),
             },
             new SupplierDefinition
             {
                 Id = Premium, Name = "Premium Dealer Crate", Tagline = "Invitation only. Display-grade floor.",
                 Description = "A dealer who only sells to serious collectors. Expensive, reliable, beautiful, and rarely the biggest upside.",
-                Price = 650f, MinRocks = 6, MaxRocks = 6, CountHidden = false,
-                TierWeights = new[] { 0.05f, 0.30f, 0.42f, 0.18f, 0.045f, 0.005f },
+                Price = 520f, MinRocks = 7, MaxRocks = 7, CountHidden = false,
+                TierWeights = new[] { 0.03f, 0.20f, 0.42f, 0.28f, 0.06f, 0.01f },
                 UnlockHint = "Invitation arrives when your displayed collection is worth $1,500.", Accent = new Color(0.85f, 0.7f, 0.35f),
             },
         };

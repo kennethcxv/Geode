@@ -34,7 +34,7 @@ namespace GeodeEmpire.Core
             return Instance;
         }
 
-        private DevDriver D => DevDriver.Get();
+        private DevDriver D { get { var d = DevDriver.Get(); d.UseGamepad = UseGamepad; return d; } }
         private GameSession S => GameSession.Instance;
         private PlayerInteractor P => D.Player;
 
@@ -125,6 +125,66 @@ namespace GeodeEmpire.Core
             yield return null;
         }
 
+        /// <summary>Move the bench cursor to a viewport target through the mouse/right-stick path.</summary>
+        private IEnumerator AimCursor(CrackingBench bench, Vector2 target)
+        {
+            for (int i = 0; i < 90; i++)
+            {
+                Vector2 delta = target - bench.Cursor;
+                if (delta.magnitude < 0.012f) break;
+                if (UseGamepad)
+                {
+                    D.PadState(Vector2.zero, Vector2.ClampMagnitude(delta * 12f, 1f), 0f, 0f);
+                    yield return null;
+                }
+                else
+                {
+                    D.MouseDelta(delta.x / 0.0011f, delta.y / 0.0011f);
+                    yield return null;
+                }
+            }
+            if (UseGamepad) D.PadState(Vector2.zero, Vector2.zero, 0f, 0f);
+            yield return null;
+        }
+
+        /// <summary>Run F: snapshot the career, reload it in place through the real save path, and diff.</summary>
+        public string RunSaveReloadCheck()
+        {
+            var s = S;
+            s.FlushSave("test");
+            var before = new Dictionary<string, string>();
+            foreach (var r in s.State.Specimens) before[r.Id] = Describe(r);
+            float cash = s.State.Cash;
+            int crates = s.State.Crates.Count;
+            var upgrades = string.Join(",", s.State.Upgrades);
+            s.ContinueGame();
+            var sb = new StringBuilder();
+            int mismatches = 0;
+            foreach (var r in s.State.Specimens)
+            {
+                if (!before.TryGetValue(r.Id, out var d)) { sb.AppendLine("  new after reload?! " + r.Id); mismatches++; continue; }
+                var now = Describe(r);
+                if (now != d) { sb.AppendLine($"  MISMATCH {r.Id}\n    before {d}\n    after  {now}"); mismatches++; }
+            }
+            int entities = s.Entities.Count;
+            int expectedEntities = 0;
+            foreach (var r in s.State.Specimens) if (r.Location != SpecimenLocation.Sold && r.Location != SpecimenLocation.Discarded) expectedEntities++;
+            sb.Insert(0, $"save/reload: specimens={s.State.Specimens.Count} cashBefore={cash} cashAfter={s.State.Cash} crates={crates}->{s.State.Crates.Count} upgrades='{upgrades}' entities={entities}/{expectedEntities} mismatches={mismatches}\n");
+            foreach (var e in s.Entities.Values)
+            {
+                float dist = (e.transform.position - e.Record.WorldPosition).magnitude;
+                if (dist > 0.3f && e.Record.Location != SpecimenLocation.Held) sb.AppendLine($"  {e.Id} {e.Record.Location} spawned {dist:F2} m from saved position");
+            }
+            L(sb.ToString());
+            return sb.ToString();
+        }
+
+        private static string Describe(SpecimenRecord r)
+        {
+            var g = r.Geology;
+            return $"seed={r.Seed:X} {g.Mineral} {g.Cavity} {g.Tier} ${g.BaseValue} loc={r.Location}/{r.LocationIndex} opened={r.IsOpened} appraised={r.Appraised}:{r.AppraisedValue} strikes={r.StrikeCount} dmg=[{string.Join("", r.Condition.CrystalDamage ?? new byte[0])}] stress=[{string.Join(",", System.Array.ConvertAll(r.SectorStress ?? new float[0], f => f.ToString("F2")))}] shell={r.ShellDamage:F2} name={r.CustomName}";
+        }
+
         private static Vector3 ZonePos(ZoneKind kind, int index = 0)
         {
             foreach (var z in FindObjectsByType<PlacementZone>(FindObjectsInactive.Exclude))
@@ -194,10 +254,9 @@ namespace GeodeEmpire.Core
             float hold = style == "careless" ? 1.0f : style == "light" ? 0.25f : 0.5f;
             while (bench.Active && !bench.Opened && !bench.Revealing && strikes < 60)
             {
-                // aim at the seam facing the camera (what a player learns to do), with a little error
-                var hint = bench.SeamCursorHint();
-                bench.SetCursor(hint + new Vector2(Random.Range(-0.02f, 0.02f), Random.Range(-0.02f, 0.02f)));
-                yield return null;
+                // aim at the seam facing the camera (what a player learns to do), with a little error, using real input
+                var hint = bench.SeamCursorHint() + new Vector2(Random.Range(-0.02f, 0.02f), Random.Range(-0.02f, 0.02f));
+                yield return AimCursor(bench, hint);
                 yield return Strike(hold);
                 strikes++;
                 var r = bench.LastResult;
@@ -268,8 +327,7 @@ namespace GeodeEmpire.Core
                 float hold = style == "careless" ? 1.0f : 0.5f;
                 while (bench.Active && !bench.Opened && strikes < 60)
                 {
-                    bench.SetCursor(bench.SeamCursorHint() + new Vector2(Random.Range(-0.02f, 0.02f), Random.Range(-0.02f, 0.02f)));
-                    yield return null;
+                    yield return AimCursor(bench, bench.SeamCursorHint() + new Vector2(Random.Range(-0.02f, 0.02f), Random.Range(-0.02f, 0.02f)));
                     yield return Strike(hold);
                     strikes++;
                     if (style != "careless" || strikes % 2 == 0) yield return Rotate(0.42f, 1);

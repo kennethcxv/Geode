@@ -472,7 +472,7 @@ namespace GeodeEmpire.EditorTools
             trayZone.Anchor = trayAnchor;
             var so = outbox.gameObject.AddComponent<SellOutbox>();
             so.Tray = trayZone;
-            var intercom = Box("DealerIntercom", outbox, new Vector3(-0.8f, 1.35f, -0.6f), new Vector3(0.16f, 0.22f, 0.06f), "M_Plastic", isStatic: false);
+            var intercom = Box("DealerIntercom", outbox, new Vector3(0.75f, 1.35f, -0.56f), new Vector3(0.16f, 0.22f, 0.06f), "M_Plastic", isStatic: false);
             var button = Box("Button", intercom.transform, new Vector3(0f, -0.05f, -0.035f), new Vector3(0.06f, 0.03f, 0.02f), "M_Metal", isStatic: false);
             var ic = intercom.AddComponent<DealerIntercom>();
             ic.Outbox = so;

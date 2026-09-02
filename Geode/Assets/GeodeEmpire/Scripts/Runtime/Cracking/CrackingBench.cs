@@ -51,6 +51,35 @@ namespace GeodeEmpire.Cracking
             return new Vector2(vp.x, vp.y);
         }
 
+        /// <summary>
+        /// Dev/clip-test staging: put a specimen of the given seed on the cradle, enter bench view with the ring
+        /// almost fully cracked, so one strike (or StageSplit) triggers the reveal. Repeatable for capture.
+        /// </summary>
+        public SpecimenEntity StageReveal(ulong seed, bool splitNow)
+        {
+            var session = GameSession.Instance;
+            if (Active) Exit();
+            var occupant = Cradle.First;
+            if (occupant != null) { Cradle.Take(occupant, true); session.Despawn(occupant); }
+            var rec = session.CreateSpecimenRecord(seed, "stage", "STAGE");
+            rec.Location = Save.SpecimenLocation.World;
+            var e = session.Spawn(rec, Cradle.Anchor.position, Quaternion.identity, false);
+            Cradle.Place(e, true);
+            Enter(e);
+            for (int i = 0; i < StressModel.Sectors - 3; i++) _model.Stress[i] = 1f;
+            _ribbon?.Refresh(_model, HasLamp);
+            if (splitNow) StageSplit();
+            return e;
+        }
+
+        public void StageSplit()
+        {
+            if (!Active || _rock == null || Opened || Revealing) return;
+            for (int i = 0; i < StressModel.Sectors; i++) _model.Stress[i] = Mathf.Max(_model.Stress[i], 1f);
+            var result = new StressModel.StrikeResult { Opened = true, CracksTotal = StressModel.Sectors };
+            StartCoroutine(RevealRoutine(result));
+        }
+
         public void SetCursor(Vector2 viewport) => _cursor = new Vector2(Mathf.Clamp(viewport.x, 0.12f, 0.88f), Mathf.Clamp(viewport.y, 0.12f, 0.9f));
 
         public event Action Entered;

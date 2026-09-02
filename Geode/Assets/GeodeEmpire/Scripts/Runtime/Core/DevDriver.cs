@@ -18,6 +18,7 @@ namespace GeodeEmpire.Core
         private Gamepad _pad;
         public string Status = "idle";
         public bool Busy;
+        public bool UseGamepad;
 
         public static DevDriver Get()
         {
@@ -130,11 +131,11 @@ namespace GeodeEmpire.Core
                 var flat = target - c.transform.position; flat.y = 0f;
                 if (flat.magnitude < tolerance) break;
                 LookAt(new Vector3(target.x, c.CameraPivot.position.y, target.z));
-                KeyDown(Key.W);
+                if (UseGamepad) PadState(new Vector2(0f, 1f), Vector2.zero, 0f, 0f); else KeyDown(Key.W);
                 t += Time.unscaledDeltaTime;
                 yield return null;
             }
-            KeyUp();
+            if (UseGamepad) PadState(Vector2.zero, Vector2.zero, 0f, 0f); else KeyUp();
             yield return null;
             Status = "idle";
             Busy = false;

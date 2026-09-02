@@ -50,7 +50,7 @@ namespace GeodeEmpire.Specimens
             var fam = g.Family;
             float sizeMult = Mathf.Pow(Mathf.Max(0.05f, g.MassKg) / ReferenceMassKg, 0.6f);
             float visual = VisualScore(g);
-            float value = 1.0f * fam.ValueMult * sizeMult * Mathf.Exp(visual * 7.0f) * FormationFactor(g.Cavity);
+            float value = 0.45f * fam.ValueMult * sizeMult * Mathf.Exp(visual * 6.2f) * FormationFactor(g.Cavity);
             foreach (var t in g.Traits) value *= TraitMultiplier(t);
             if (g.HasSecondary) value *= 1f + 0.25f * g.SecondaryAmount;
             return Mathf.Round(value);
@@ -77,11 +77,11 @@ namespace GeodeEmpire.Specimens
         /// <summary>Tier as perceived by the dealer, derived from value relative to the mineral baseline.</summary>
         public static QualityTier TierFromValue(float value)
         {
-            if (value < 18f) return QualityTier.Common;
-            if (value < 55f) return QualityTier.Decent;
-            if (value < 180f) return QualityTier.Good;
-            if (value < 700f) return QualityTier.Exceptional;
-            if (value < 2500f) return QualityTier.MuseumGrade;
+            if (value < 7f) return QualityTier.Common;
+            if (value < 18f) return QualityTier.Decent;
+            if (value < 60f) return QualityTier.Good;
+            if (value < 240f) return QualityTier.Exceptional;
+            if (value < 850f) return QualityTier.MuseumGrade;
             return QualityTier.WorldClass;
         }
 
