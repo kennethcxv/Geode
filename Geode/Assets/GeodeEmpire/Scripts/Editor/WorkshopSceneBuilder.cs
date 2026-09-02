@@ -142,9 +142,30 @@ namespace GeodeEmpire.EditorTools
         // Room dimensions (metres)
         const float RoomW = 7.2f, RoomD = 5.4f, RoomH = 3.0f;
 
+        /// <summary>Forward+ so a room full of lamps is not capped at four lights per object.</summary>
+        public static void EnsureRendererSettings()
+        {
+            var rd = AssetDatabase.LoadAssetAtPath<UniversalRendererData>("Assets/Settings/PC_Renderer.asset");
+            if (rd != null && rd.renderingMode != RenderingMode.ForwardPlus)
+            {
+                rd.renderingMode = RenderingMode.ForwardPlus;
+                EditorUtility.SetDirty(rd);
+            }
+            var rp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset");
+            if (rp != null)
+            {
+                rp.shadowDistance = 18f;
+                rp.shadowCascadeCount = 2;
+                rp.supportsHDR = true;
+                EditorUtility.SetDirty(rp);
+            }
+            AssetDatabase.SaveAssets();
+        }
+
         [MenuItem("GeodeEmpire/Build Workshop Scene")]
         public static void Build()
         {
+            EnsureRendererSettings();
             AssetLibraryBuilder.Build();
             WorkshopMaterials.EnsureAll();
             var panel = EnsurePanelSettings();
@@ -304,14 +325,11 @@ namespace GeodeEmpire.EditorTools
 
             // window on the east wall (frame + glass + outside backdrop)
             var win = Prop("prop_window_frame", parent, new Vector3(RoomW / 2f - 0.02f, 1.2f, 0.4f), -90f, "M_WoodPainted", collider: false);
-            var glass = Box("WindowGlass", parent, new Vector3(RoomW / 2f + 0.06f, 1.7f, 0.4f), new Vector3(0.02f, 0.96f, 1.16f), "M_Glass");
+            var glass = Box("WindowGlass", parent, new Vector3(RoomW / 2f - 0.035f, 1.7f, 0.4f), new Vector3(0.01f, 0.96f, 1.16f), "M_Glass");
             glass.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             Object.DestroyImmediate(glass.GetComponent<Collider>());
-            var backdrop = Box("WindowBackdrop", parent, new Vector3(RoomW / 2f + 0.9f, 1.7f, 0.4f), new Vector3(0.05f, 2.4f, 3f), "M_Plaster");
-            backdrop.GetComponent<MeshRenderer>().sharedMaterial = WorkshopMaterials.Get("M_Glass");
-            Object.DestroyImmediate(backdrop.GetComponent<Collider>());
-            // wall cut-out behind the window: a bright emissive panel reads as daylight
-            var sky = Box("WindowSky", parent, new Vector3(RoomW / 2f + 0.16f, 1.7f, 0.4f), new Vector3(0.02f, 0.96f, 1.16f), "M_Paper");
+            // daylight panel just inside the wall face: a bright emissive plane reads as the outside
+            var sky = Box("WindowSky", parent, new Vector3(RoomW / 2f - 0.012f, 1.7f, 0.4f), new Vector3(0.01f, 0.96f, 1.16f), "M_Paper");
             var skyMat = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = "M_WindowSky" };
             skyMat.SetColor("_BaseColor", new Color(1.6f, 1.75f, 2.0f));
             AssetDatabase.CreateAsset(skyMat, WorkshopMaterials.Folder + "/M_WindowSky.mat");
@@ -355,8 +373,8 @@ namespace GeodeEmpire.EditorTools
             MakeLight(lights, "CeilingLamp2", new Vector3(2.4f, 2.7f, -1.4f), Vector3.zero, LightType.Point, new Color(1f, 0.9f, 0.76f), 2.2f, 7f, 0f, false);
             MakeLight(lights, "CeilingLamp3", new Vector3(-2.4f, 2.7f, -1.2f), Vector3.zero, LightType.Point, new Color(1f, 0.9f, 0.76f), 2.0f, 7f, 0f, false);
             // cabinet spots (cool white, on the east wall cabinet)
-            MakeLight(lights, "CabinetSpotA", new Vector3(2.55f, 2.3f, 0.45f), new Vector3(62f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 2.2f, 3.2f, 60f, false);
-            MakeLight(lights, "CabinetSpotB", new Vector3(2.55f, 2.3f, 1.35f), new Vector3(62f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 2.2f, 3.2f, 60f, false);
+            MakeLight(lights, "CabinetSpotA", new Vector3(2.7f, 2.4f, 0.5f), new Vector3(66f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 4.5f, 3.2f, 55f, false);
+            MakeLight(lights, "CabinetSpotB", new Vector3(2.7f, 2.4f, 1.3f), new Vector3(66f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 4.5f, 3.2f, 55f, false);
             // reflection probe for crystals
             var probeGo = new GameObject("ReflectionProbe");
             probeGo.transform.SetParent(lights, false);
@@ -451,7 +469,7 @@ namespace GeodeEmpire.EditorTools
             var shelf = new GameObject("StorageShelf").transform;
             shelf.SetParent(parent, false);
             shelf.localPosition = new Vector3(-3.4f, 0f, 2.1f);
-            shelf.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            shelf.localRotation = Quaternion.Euler(0f, -90f, 0f);
             Prop("prop_shelf_unit", shelf, Vector3.zero, 0f, "M_WoodDark");
             Prop("prop_cardboard_box", shelf, new Vector3(-0.2f, 0.135f, 0f), 12f, "M_Cardboard");
             Prop("prop_cardboard_box", shelf, new Vector3(0.25f, 0.685f, 0f), -8f, "M_Cardboard", scale: new Vector3(0.7f, 0.7f, 0.7f));
@@ -489,7 +507,7 @@ namespace GeodeEmpire.EditorTools
             var cabinet = new GameObject("DisplayCabinet").transform;
             cabinet.SetParent(parent, false);
             cabinet.localPosition = new Vector3(3.35f, 0f, 0.9f);
-            cabinet.localRotation = Quaternion.Euler(0f, -90f, 0f);
+            cabinet.localRotation = Quaternion.Euler(0f, 90f, 0f);
             var cabProp = Prop("prop_display_cabinet", cabinet, Vector3.zero, 0f, "M_WoodDark");
             var dc = cabinet.gameObject.AddComponent<DisplayCabinet>();
             dc.LabelFont = AssetDatabase.LoadAssetAtPath<Font>("Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf");
