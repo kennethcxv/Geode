@@ -133,3 +133,123 @@ namespace GeodeEmpire.EditorTools
         }
     }
 }
+
+namespace GeodeEmpire.EditorTools
+{
+    /// <summary>Tileable workshop surface textures: concrete, plaster, wood, metal, cardboard, straw.</summary>
+    public static class WorkshopTextures
+    {
+        public static void EnsureAll(bool force = false)
+        {
+            var f = ProceduralTextureFactory.TextureFolder;
+            System.IO.Directory.CreateDirectory(f);
+            if (force || !System.IO.File.Exists(f + "/T_Concrete.png")) ProceduralTextureFactory.Save("T_Concrete", 512, Concrete(512, 501), false, true);
+            if (force || !System.IO.File.Exists(f + "/T_Plaster.png")) ProceduralTextureFactory.Save("T_Plaster", 512, Plaster(512, 502), false, true);
+            if (force || !System.IO.File.Exists(f + "/T_Wood.png")) ProceduralTextureFactory.Save("T_Wood", 512, Wood(512, 503, new Color(0.64f, 0.47f, 0.3f), new Color(0.38f, 0.26f, 0.15f)), false, true);
+            if (force || !System.IO.File.Exists(f + "/T_WoodDark.png")) ProceduralTextureFactory.Save("T_WoodDark", 512, Wood(512, 504, new Color(0.36f, 0.25f, 0.16f), new Color(0.18f, 0.12f, 0.07f)), false, true);
+            if (force || !System.IO.File.Exists(f + "/T_Metal.png")) ProceduralTextureFactory.Save("T_Metal", 256, Metal(256, 505), false, true);
+            if (force || !System.IO.File.Exists(f + "/T_Cardboard.png")) ProceduralTextureFactory.Save("T_Cardboard", 256, Cardboard(256, 506), false, true);
+            if (force || !System.IO.File.Exists(f + "/T_Straw.png")) ProceduralTextureFactory.Save("T_Straw", 256, Straw(256, 507), false, true);
+            UnityEditor.AssetDatabase.Refresh();
+        }
+
+        private static float F(float u, float v, int p, int oct, ulong seed, float gain = 0.5f) => ProceduralTextureFactory.TileableFbm(u, v, p, oct, seed, gain);
+
+        private static Color[] Concrete(int size, ulong seed)
+        {
+            var px = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float u = x / (float)size, v = y / (float)size;
+                float big = F(u, v, 2, 3, seed);
+                float grain = F(u, v, 24, 3, seed + 3);
+                float speck = F(u, v, 96, 1, seed + 9);
+                float stain = Mathf.Pow(F(u, v, 3, 2, seed + 21), 3f);
+                float val = 0.58f + (big - 0.5f) * 0.18f + (grain - 0.5f) * 0.12f + (speck > 0.72f ? 0.06f : 0f) - stain * 0.18f;
+                px[y * size + x] = new Color(val, val * 0.99f, val * 0.96f, 1f);
+            }
+            return px;
+        }
+
+        private static Color[] Plaster(int size, ulong seed)
+        {
+            var px = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float u = x / (float)size, v = y / (float)size;
+                float big = F(u, v, 2, 3, seed);
+                float fine = F(u, v, 40, 2, seed + 5);
+                float val = 0.82f + (big - 0.5f) * 0.08f + (fine - 0.5f) * 0.06f;
+                px[y * size + x] = new Color(val, val * 0.98f, val * 0.94f, 1f);
+            }
+            return px;
+        }
+
+        private static Color[] Wood(int size, ulong seed, Color light, Color dark)
+        {
+            var px = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float u = x / (float)size, v = y / (float)size;
+                float warp = F(u, v, 3, 3, seed) - 0.5f;
+                float grain = Mathf.Sin((v * 36f + warp * 5f + F(u * 0.5f, v, 12, 2, seed + 7) * 1.5f) * Mathf.PI) * 0.5f + 0.5f;
+                grain = Mathf.Pow(grain, 2.2f);
+                float fine = F(u, v, 64, 2, seed + 11);
+                // plank seams every quarter tile along v
+                float plank = Mathf.Repeat(v * 4f + F(u, v, 1, 1, seed + 13) * 0.02f, 1f);
+                float seam = plank < 0.02f || plank > 0.98f ? 0.45f : 1f;
+                var c = Color.Lerp(light, dark, grain * 0.75f + (fine - 0.5f) * 0.3f) * seam;
+                px[y * size + x] = new Color(c.r, c.g, c.b, 1f);
+            }
+            return px;
+        }
+
+        private static Color[] Metal(int size, ulong seed)
+        {
+            var px = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float u = x / (float)size, v = y / (float)size;
+                float scratch = F(u, v * 0.05f, 48, 2, seed);
+                float spots = F(u, v, 6, 3, seed + 3);
+                float val = 0.52f + (scratch - 0.5f) * 0.16f + (spots - 0.5f) * 0.1f;
+                px[y * size + x] = new Color(val, val, val * 1.02f, 1f);
+            }
+            return px;
+        }
+
+        private static Color[] Cardboard(int size, ulong seed)
+        {
+            var px = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float u = x / (float)size, v = y / (float)size;
+                float fine = F(u, v, 48, 2, seed);
+                float corr = Mathf.Sin(u * 160f) * 0.5f + 0.5f;
+                float val = 0.72f + (fine - 0.5f) * 0.1f + (corr - 0.5f) * 0.03f;
+                px[y * size + x] = new Color(val, val * 0.8f, val * 0.58f, 1f);
+            }
+            return px;
+        }
+
+        private static Color[] Straw(int size, ulong seed)
+        {
+            var px = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float u = x / (float)size, v = y / (float)size;
+                float streak = F(u * 0.1f, v, 40, 2, seed);
+                float streak2 = F(u, v * 0.1f, 40, 2, seed + 17);
+                float val = 0.62f + (Mathf.Max(streak, streak2) - 0.5f) * 0.45f;
+                px[y * size + x] = new Color(val * 1.05f, val * 0.85f, val * 0.45f, 1f);
+            }
+            return px;
+        }
+    }
+}

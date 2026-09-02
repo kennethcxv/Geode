@@ -48,7 +48,7 @@ namespace GeodeEmpire.Specimens
         public static float PristineValue(SpecimenGeology g)
         {
             var fam = g.Family;
-            float sizeMult = Mathf.Pow(Mathf.Max(0.05f, g.MassKg) / ReferenceMassKg, 0.72f);
+            float sizeMult = Mathf.Pow(Mathf.Max(0.05f, g.MassKg) / ReferenceMassKg, 0.6f);
             float visual = VisualScore(g);
             float value = 1.0f * fam.ValueMult * sizeMult * Mathf.Exp(visual * 7.0f) * FormationFactor(g.Cavity);
             foreach (var t in g.Traits) value *= TraitMultiplier(t);

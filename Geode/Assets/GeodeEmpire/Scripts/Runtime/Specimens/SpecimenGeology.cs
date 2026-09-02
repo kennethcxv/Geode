@@ -108,7 +108,7 @@ namespace GeodeEmpire.Specimens
             // --- exterior -----------------------------------------------------------------------
             g.Exterior = (ExteriorArchetype)rng.PickWeighted(new[] { 0.3f, 0.25f, 0.15f, 0.18f, 0.12f });
             float sizeRoll = Mathf.Pow(rng.NextFloat(), 1.35f);
-            g.Size = Mathf.Lerp(0.03f, 0.075f, sizeRoll) * Mathf.Lerp(0.92f, 1.4f, q);
+            g.Size = Mathf.Lerp(0.034f, 0.068f, sizeRoll) * Mathf.Lerp(0.9f, 1.5f, q);
             float ax = rng.Range(0.85f, 1.2f), ay = rng.Range(0.8f, 1.1f), az = rng.Range(0.85f, 1.2f);
             if (g.Exterior == ExteriorArchetype.Flattened) ay *= 0.68f;
             float meanAxis = (ax + ay + az) / 3f;

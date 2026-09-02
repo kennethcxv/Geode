@@ -52,10 +52,10 @@ namespace GeodeEmpire.Specimens
 
         public static readonly Color[] MatrixTones =
         {
-            new Color(0.4f, 0.36f, 0.32f), // warm brown-grey
-            new Color(0.36f, 0.36f, 0.35f), // neutral grey
-            new Color(0.47f, 0.4f, 0.32f),  // tan
-            new Color(0.27f, 0.26f, 0.25f), // dark basalt
+            new Color(0.5f, 0.45f, 0.4f), // warm brown-grey
+            new Color(0.46f, 0.46f, 0.45f), // neutral grey
+            new Color(0.56f, 0.48f, 0.38f), // tan
+            new Color(0.34f, 0.33f, 0.32f), // dark basalt
         };
 
         public void Build(SpecimenGeology geology, SpecimenCondition condition, SpecimenAssetLibrary lib)
