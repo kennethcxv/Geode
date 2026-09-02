@@ -57,10 +57,15 @@ namespace GeodeEmpire.Workshop
             if (box != null) box.enabled = false;
         }
 
+        // the lid mesh is 0.61 m deep about its pivot and 0.036 m thick; stood almost upright behind the 0.68 m deep
+        // body its top touches the crate's back face and its foot rests on the back edge of the crate's own pallet
+        private static readonly Vector3 LidRestPosition = new Vector3(0f, 0.31f, -0.355f);
+        private static readonly Quaternion LidRestRotation = Quaternion.Euler(-88f, 0f, 0f);
+
         private void LayLidOnFloor()
         {
-            Lid.localPosition = new Vector3(-0.86f, 0.0f, 0.06f);
-            Lid.localRotation = Quaternion.Euler(0f, 14f, 0f);
+            Lid.localPosition = LidRestPosition;
+            Lid.localRotation = LidRestRotation;
         }
 
         public override bool CanInteract(PlayerInteractor player)
@@ -90,8 +95,8 @@ namespace GeodeEmpire.Workshop
             if (Lid != null)
             {
                 Vector3 p0 = Lid.localPosition; Quaternion r0 = Lid.localRotation;
-                Vector3 p1 = p0 + new Vector3(-0.42f, 0.05f, 0f);
-                Quaternion r1 = Quaternion.Euler(0f, 0f, 78f);
+                Vector3 p1 = p0 + new Vector3(0f, 0.14f, -0.30f);
+                Quaternion r1 = Quaternion.Euler(-55f, 0f, 0f);
                 float t = 0f;
                 while (t < 1f)
                 {
@@ -101,10 +106,10 @@ namespace GeodeEmpire.Workshop
                     Lid.localRotation = Quaternion.Slerp(r0, r1, s);
                     yield return null;
                 }
-                // lid drops flat on the floor beside the crate
+                // lid settles standing up against the back of the crate (never under a neighbouring crate)
                 float t2 = 0f;
                 Vector3 pa = Lid.localPosition; Quaternion ra = Lid.localRotation;
-                Vector3 pb = new Vector3(-0.86f, 0.0f, 0.06f); Quaternion rb = Quaternion.Euler(0f, 14f, 0f);
+                Vector3 pb = LidRestPosition; Quaternion rb = LidRestRotation;
                 while (t2 < 1f)
                 {
                     t2 += Time.deltaTime * 3.2f;
@@ -127,29 +132,84 @@ namespace GeodeEmpire.Workshop
 
         private void SpawnRocks()
         {
-            var ids = Record.SpecimenIds;
-            int n = ids.Count;
-            int cols = Mathf.CeilToInt(Mathf.Sqrt(n * 1.5f));
-            int rows = Mathf.CeilToInt(n / (float)cols);
             var rng = new SeededRandom(Record.Seed ^ 0xABCDUL);
-            for (int i = 0; i < n; i++)
+            // spawn first so every rock knows its real footprint, then shelf-pack them largest-first: rows along the
+            // bed depth, a second layer on top when a big estate load does not fit, exactly like a straw-packed crate
+            var rocks = new List<SpecimenEntity>();
+            foreach (var id in Record.SpecimenIds)
             {
-                var rec = _session.State.FindSpecimen(ids[i]);
+                var rec = _session.State.FindSpecimen(id);
                 if (rec == null || rec.Location != SpecimenLocation.InCrate) continue;
-                int cx = i % cols, cz = i / cols;
-                float x = (cx - (cols - 1) * 0.5f) / Mathf.Max(1, cols - 1) * (BedSize.x - 0.16f);
-                float z = (cz - (rows - 1) * 0.5f) / Mathf.Max(1, rows - 1) * (BedSize.y - 0.16f);
-                if (cols == 1) x = 0f;
-                if (rows == 1) z = 0f;
-                x += rng.Range(-0.02f, 0.02f);
-                z += rng.Range(-0.015f, 0.015f);
-                var e = _session.Spawn(rec, Vector3.zero, Quaternion.identity, false);
-                var local = new Vector3(x, e.RestHeightOffset(false) + 0.01f, z);
-                e.SetPose(Bed.TransformPoint(local), Bed.rotation * Quaternion.Euler(rng.Range(-12f, 12f), rng.Range(0f, 360f), rng.Range(-12f, 12f)));
-                e.SetStaticCollidable();
-                e.SyncRecordTransform();
-                _rocks.Add(e);
+                rocks.Add(_session.Spawn(rec, Vector3.zero, Quaternion.identity, false));
             }
+            rocks.Sort((a, b) => Footprint(b).CompareTo(Footprint(a)));
+
+            const float gap = 0.018f, margin = 0.03f;
+            float usableX = BedSize.x - margin * 2f, usableZ = BedSize.y - margin * 2f;
+            var layers = new List<List<List<SpecimenEntity>>>();     // layer -> rows -> rocks
+            var layerRows = new List<List<SpecimenEntity>>();
+            var row = new List<SpecimenEntity>();
+            float rowWidth = 0f, rowsDepth = 0f, rowDepth = 0f;
+            foreach (var e in rocks)
+            {
+                float d = Footprint(e) * 2f;
+                if (row.Count > 0 && rowWidth + gap + d > usableX)
+                {
+                    layerRows.Add(row); rowsDepth += (rowsDepth > 0f ? gap : 0f) + rowDepth;
+                    row = new List<SpecimenEntity>(); rowWidth = 0f; rowDepth = 0f;
+                }
+                if (layerRows.Count > 0 && rowsDepth + gap + Mathf.Max(rowDepth, d) > usableZ && row.Count == 0)
+                {
+                    layers.Add(layerRows); layerRows = new List<List<SpecimenEntity>>(); rowsDepth = 0f;
+                }
+                row.Add(e);
+                rowWidth += (row.Count > 1 ? gap : 0f) + d;
+                rowDepth = Mathf.Max(rowDepth, d);
+            }
+            if (row.Count > 0) layerRows.Add(row);
+            if (layerRows.Count > 0) layers.Add(layerRows);
+
+            float layerY = 0f;
+            for (int li = 0; li < layers.Count; li++)
+            {
+                var rowsInLayer = layers[li];
+                float totalDepth = 0f, layerMaxR = 0f;
+                var depths = new float[rowsInLayer.Count];
+                for (int ri = 0; ri < rowsInLayer.Count; ri++)
+                {
+                    foreach (var e in rowsInLayer[ri]) { depths[ri] = Mathf.Max(depths[ri], Footprint(e) * 2f); layerMaxR = Mathf.Max(layerMaxR, Footprint(e)); }
+                    totalDepth += (ri > 0 ? gap : 0f) + depths[ri];
+                }
+                float z = -totalDepth * 0.5f;
+                for (int ri = 0; ri < rowsInLayer.Count; ri++)
+                {
+                    var r = rowsInLayer[ri];
+                    float width = 0f;
+                    foreach (var e in r) width += Footprint(e) * 2f;
+                    width += gap * (r.Count - 1);
+                    float x = -width * 0.5f;
+                    foreach (var e in r)
+                    {
+                        float fr = Footprint(e);
+                        float px = x + fr + rng.Range(-0.008f, 0.008f);
+                        float pz = z + depths[ri] * 0.5f + rng.Range(-0.008f, 0.008f);
+                        var local = new Vector3(px, layerY + e.RestHeightOffset(false) + 0.01f, pz);
+                        e.SetPose(Bed.TransformPoint(local), Bed.rotation * Quaternion.Euler(rng.Range(-12f, 12f), rng.Range(0f, 360f), rng.Range(-12f, 12f)));
+                        e.SetStaticCollidable();
+                        e.SyncRecordTransform();
+                        _rocks.Add(e);
+                        x += fr * 2f + gap;
+                    }
+                    z += depths[ri] + gap;
+                }
+                layerY += layerMaxR * 2f * 0.9f;   // next layer nestles into the straw on top of this one
+            }
+        }
+
+        private static float Footprint(SpecimenEntity e)
+        {
+            if (e.Visual != null && e.Visual.Geometry != null) return Mathf.Max(0.03f, e.Visual.Geometry.MaxRadius);
+            return Mathf.Max(0.03f, e.Geology != null ? e.Geology.Size * 1.3f : 0.06f);
         }
 
         /// <summary>Reload path: put a still-in-crate rock back at its saved spot.</summary>

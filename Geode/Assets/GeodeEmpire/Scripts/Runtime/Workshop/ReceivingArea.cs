@@ -16,12 +16,33 @@ namespace GeodeEmpire.Workshop
     {
         public Vector2 Footprint = new Vector2(1.1f, 0.7f);
 
+        /// <summary>Four pallet cells, front row first (closest to the room), each 1.2 x 0.8 m so a crate and its lid fit.</summary>
+        private static readonly Vector3[] Cells =
+        {
+            new Vector3(-0.6f, 0.12f, 0.4f), new Vector3(0.6f, 0.12f, 0.4f),
+            new Vector3(-0.6f, 0.12f, -0.4f), new Vector3(0.6f, 0.12f, -0.4f),
+        };
+
         public Vector3 NextSpot()
         {
-            int n = GameSession.Instance != null ? GameSession.Instance.Crates.Count : 0;
-            int col = n % 2, row = (n / 2) % 2, stack = n / 4;
-            var local = new Vector3((col - 0.5f) * 0.9f, 0.12f + stack * 0.42f, (row - 0.5f) * 0.66f);
-            return transform.TransformPoint(local);
+            var session = GameSession.Instance;
+            for (int stack = 0; stack < 3; stack++)
+            {
+                foreach (var cell in Cells)
+                {
+                    var spot = transform.TransformPoint(cell + Vector3.up * (stack * 0.44f));
+                    bool occupied = false;
+                    if (session != null)
+                        foreach (var c in session.Crates.Values)
+                        {
+                            if (c == null) continue;
+                            var d = c.transform.position - spot; d.y = 0f;          // a crate still dropping in counts too
+                            if (d.sqrMagnitude < 0.45f * 0.45f && Mathf.Abs(c.transform.position.y - spot.y) < 1.6f) { occupied = true; break; }
+                        }
+                    if (!occupied) return spot;
+                }
+            }
+            return transform.TransformPoint(Cells[0]);
         }
 
         public void Deliver(CrateRecord crate)

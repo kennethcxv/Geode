@@ -345,12 +345,12 @@ namespace GeodeEmpire.EditorTools
             Box("BenchMat", parent, new Vector3(0f, 0.006f, 1.35f), new Vector3(2.2f, 0.012f, 1.0f), "M_Rubber");
 
             // window on the east wall (frame + glass + outside backdrop)
-            var win = Prop("prop_window_frame", parent, new Vector3(RoomW / 2f - 0.02f, 1.2f, 0.4f), -90f, "M_WoodPainted", collider: false);
-            var glass = Box("WindowGlass", parent, new Vector3(RoomW / 2f - 0.035f, 1.7f, 0.4f), new Vector3(0.01f, 0.96f, 1.16f), "M_Glass");
+            var win = Prop("prop_window_frame", parent, new Vector3(RoomW / 2f - 0.02f, 1.2f, -0.6f), -90f, "M_WoodPainted", collider: false);
+            var glass = Box("WindowGlass", parent, new Vector3(RoomW / 2f - 0.035f, 1.7f, -0.6f), new Vector3(0.01f, 0.96f, 1.16f), "M_Glass");
             glass.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             Object.DestroyImmediate(glass.GetComponent<Collider>());
             // daylight panel just inside the wall face: a bright emissive plane reads as the outside
-            var sky = Box("WindowSky", parent, new Vector3(RoomW / 2f - 0.012f, 1.7f, 0.4f), new Vector3(0.01f, 0.96f, 1.16f), "M_Paper");
+            var sky = Box("WindowSky", parent, new Vector3(RoomW / 2f - 0.012f, 1.7f, -0.6f), new Vector3(0.01f, 0.96f, 1.16f), "M_Paper");
             var skyMat = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = "M_WindowSky" };
             skyMat.SetColor("_BaseColor", new Color(1.6f, 1.75f, 2.0f));
             AssetDatabase.CreateAsset(skyMat, WorkshopMaterials.Folder + "/M_WindowSky.mat");
@@ -562,8 +562,9 @@ namespace GeodeEmpire.EditorTools
             // ---- Receiving pallet (south-east, near the door) ----------------------------------
             var receiving = new GameObject("ReceivingArea").transform;
             receiving.SetParent(parent, false);
-            receiving.localPosition = new Vector3(2.3f, 0f, -2.0f);
-            Prop("prop_pallet", receiving, Vector3.zero, 0f, "M_Wood");
+            receiving.localPosition = new Vector3(2.3f, 0f, -1.8f);
+            foreach (var cell in new[] { new Vector3(-0.6f, 0f, 0.4f), new Vector3(0.6f, 0f, 0.4f), new Vector3(-0.6f, 0f, -0.4f), new Vector3(0.6f, 0f, -0.4f) })
+                Prop("prop_pallet", receiving, cell, 0f, "M_Wood");
             receiving.gameObject.AddComponent<ReceivingArea>();
 
             // ---- Display cabinet (east wall, visible from the bench) -------------------------
@@ -598,11 +599,11 @@ namespace GeodeEmpire.EditorTools
             }
 
             // ---- Saw teaser + clutter -----------------------------------------------------------
-            var teaser = Prop("prop_saw_teaser", parent, new Vector3(2.55f, 0f, -0.45f), -90f, "M_Tarp");
+            var teaser = Prop("prop_saw_teaser", parent, new Vector3(2.7f, 0f, 2.1f), 180f, "M_Tarp");   // north-east corner, facing the room
             var ts = teaser.AddComponent<TeaserSign>();
             Prop("prop_cardboard_box", parent, new Vector3(-2.9f, 0f, -1.4f), 30f, "M_Cardboard");
             Prop("prop_cardboard_box", parent, new Vector3(-2.7f, 0f, -0.9f), -10f, "M_Cardboard", scale: new Vector3(0.8f, 0.9f, 0.8f));
-            Prop("prop_bucket", parent, new Vector3(2.9f, 0f, 2.2f), 0f, "M_Plastic");
+            Prop("prop_bucket", parent, new Vector3(3.35f, 0f, 2.4f), 0f, "M_Plastic");
 
             // ---- dressing: shelves, signs, posters, clutter ----------------------------------------
             var wallShelf = Prop("prop_wall_shelf", parent, new Vector3(-3.47f, 1.55f, 0.55f), -90f, "M_WoodDark", collider: false);
@@ -610,7 +611,7 @@ namespace GeodeEmpire.EditorTools
             Prop("prop_jar", wallShelf.transform, new Vector3(-0.18f, 0.03f, -0.03f), 0f, "M_JarGlass", collider: false);
             Prop("prop_jar", wallShelf.transform, new Vector3(0.05f, 0.03f, 0.0f), 0f, "M_JarGlass", collider: false);
             Prop("prop_cardboard_box", wallShelf.transform, new Vector3(0.28f, 0.03f, 0.0f), 8f, "M_Cardboard", collider: false, scale: new Vector3(0.35f, 0.35f, 0.35f));
-            Prop("prop_rock_bin", parent, new Vector3(3.0f, 0f, -2.2f), 8f, "M_WoodDark");
+            Prop("prop_rock_bin", parent, new Vector3(3.2f, 0f, -0.55f), 8f, "M_WoodDark");
             Prop("prop_extinguisher", parent, new Vector3(-1.55f, 0f, -2.52f), 0f, "M_Red");
             Prop("prop_broom", parent, new Vector3(-3.35f, 0f, -2.35f), 20f, "M_Wood", collider: false).transform.localRotation = Quaternion.Euler(-6f, 20f, 8f);
             Prop("prop_wall_clock", parent, new Vector3(-2.3f, 2.5f, -RoomD / 2f + 0.02f), 180f, "M_Cream", collider: false);
