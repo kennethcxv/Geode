@@ -12,4 +12,5 @@ EditorBuildSettings:
     path: Assets/GeodeEmpire/Scenes/Workshop.unity
     guid: 269a87f726d4240969a7890ea226ab06
   m_configObjects:
+    com.unity.input.settings: {fileID: 11400000, guid: 25cf4819416d84cba943f342f1218a97, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

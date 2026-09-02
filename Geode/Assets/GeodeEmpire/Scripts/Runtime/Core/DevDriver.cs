@@ -22,6 +22,7 @@ namespace GeodeEmpire.Core
         public string Status = "idle";
         public bool Busy;
         public bool UseGamepad;
+        public float LastWalkRemaining;
 
         public static DevDriver Get()
         {
@@ -32,8 +33,15 @@ namespace GeodeEmpire.Core
             return _instance;
         }
 
+        private InputSettings.BackgroundBehavior _previousBackgroundBehavior;
+
         private void Awake()
         {
+            // The Editor loses application focus whenever another app (the automation client) is in front.
+            // With the default background behaviour the Input System then drops every event from devices that
+            // cannot run in the background, which includes these virtual ones, so scripted walks silently stall.
+            _previousBackgroundBehavior = InputSystem.settings.backgroundBehavior;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             _kb = InputSystem.AddDevice<Keyboard>("DevKeyboard");
             _mouse = InputSystem.AddDevice<Mouse>("DevMouse");
             _pad = InputSystem.AddDevice<Gamepad>("DevGamepad");
@@ -44,6 +52,7 @@ namespace GeodeEmpire.Core
             if (_kb != null) InputSystem.RemoveDevice(_kb);
             if (_mouse != null) InputSystem.RemoveDevice(_mouse);
             if (_pad != null) InputSystem.RemoveDevice(_pad);
+            if (InputSystem.settings != null) InputSystem.settings.backgroundBehavior = _previousBackgroundBehavior;
         }
 
         public PlayerInteractor Player => FindAnyObjectByType<PlayerInteractor>();
@@ -140,6 +149,7 @@ namespace GeodeEmpire.Core
             }
             if (UseGamepad) PadState(Vector2.zero, Vector2.zero, 0f, 0f); else KeyUp();
             yield return null;
+            if (c != null) { var rem = target - c.transform.position; rem.y = 0f; LastWalkRemaining = rem.magnitude; }
             Status = "idle";
             Busy = false;
         }

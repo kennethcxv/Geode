@@ -243,24 +243,25 @@ namespace GeodeEmpire.EditorTools
             Directory.CreateDirectory(Path.GetDirectoryName(CratePrefabPath));
             AssetDatabase.Refresh();
             var root = new GameObject("Crate");
-            var body = Prop("prop_crate_body", root.transform, Vector3.zero, 0f, "M_Wood", collider: true);
+            var body = Prop("prop_crate_body", root.transform, Vector3.zero, 0f, "M_Wood", collider: true, scale: new Vector3(1.35f, 1.15f, 1.35f));
             // straw bed material on the straw disc: the prop is one mesh, so whole crate is wood; add a straw disc
             var straw = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             straw.name = "Straw";
             straw.transform.SetParent(root.transform, false);
-            straw.transform.localPosition = new Vector3(0f, 0.05f, 0f);
-            straw.transform.localScale = new Vector3(0.5f, 0.02f, 0.36f);
+            straw.transform.localPosition = new Vector3(0f, 0.055f, 0f);
+            straw.transform.localScale = new Vector3(0.7f, 0.02f, 0.5f);
             straw.GetComponent<MeshRenderer>().sharedMaterial = WorkshopMaterials.Get("M_Straw");
             Object.DestroyImmediate(straw.GetComponent<Collider>());
-            var lid = Prop("prop_crate_lid", root.transform, new Vector3(0f, 0.34f, 0f), 0f, "M_Wood", collider: false);
+            var lid = Prop("prop_crate_lid", root.transform, new Vector3(0f, 0.39f, 0f), 0f, "M_Wood", collider: false, scale: new Vector3(1.35f, 1f, 1.35f));
             lid.name = "Lid";
             var bed = new GameObject("Bed");
             bed.transform.SetParent(root.transform, false);
-            bed.transform.localPosition = new Vector3(0f, 0.07f, 0f);
+            bed.transform.localPosition = new Vector3(0f, 0.075f, 0f);
             var box = root.AddComponent<BoxCollider>();
-            box.center = new Vector3(0f, 0.18f, 0f);
-            box.size = new Vector3(0.64f, 0.36f, 0.48f);
+            box.center = new Vector3(0f, 0.2f, 0f);
+            box.size = new Vector3(0.86f, 0.4f, 0.64f);
             var ce = root.AddComponent<CrateEntity>();
+            ce.BedSize = new Vector2(0.72f, 0.5f);
             ce.Lid = lid.transform;
             ce.Bed = bed.transform;
             PrefabUtility.SaveAsPrefabAsset(root, CratePrefabPath);
@@ -388,7 +389,7 @@ namespace GeodeEmpire.EditorTools
             var sun = MakeLight(lights, "WindowLight", new Vector3(0f, 2.5f, 0f), new Vector3(28f, -68f, 0f), LightType.Directional, new Color(0.78f, 0.86f, 1f), 0.55f, 10f, 0f, true);
             sun.shadowStrength = 0.6f;
             // warm ceiling pendants (with visible fixtures)
-            MakeLight(lights, "CeilingLamp", new Vector3(0f, 2.2f, -0.2f), Vector3.zero, LightType.Point, new Color(1f, 0.88f, 0.72f), 3.6f, 10f, 0f, true);
+            MakeLight(lights, "CeilingLamp", new Vector3(0f, 2.2f, -0.2f), Vector3.zero, LightType.Point, new Color(1f, 0.88f, 0.72f), 3.6f, 10f, 0f, false);
             Pendant(parent, new Vector3(0f, RoomH, -0.2f));
             Pendant(parent, new Vector3(2.4f, RoomH, -1.4f));
             Pendant(parent, new Vector3(-2.4f, RoomH, -1.2f));
@@ -609,7 +610,7 @@ namespace GeodeEmpire.EditorTools
             Prop("prop_jar", wallShelf.transform, new Vector3(-0.18f, 0.03f, -0.03f), 0f, "M_JarGlass", collider: false);
             Prop("prop_jar", wallShelf.transform, new Vector3(0.05f, 0.03f, 0.0f), 0f, "M_JarGlass", collider: false);
             Prop("prop_cardboard_box", wallShelf.transform, new Vector3(0.28f, 0.03f, 0.0f), 8f, "M_Cardboard", collider: false, scale: new Vector3(0.35f, 0.35f, 0.35f));
-            Prop("prop_rock_bin", parent, new Vector3(1.25f, 0f, -2.3f), 12f, "M_WoodDark");
+            Prop("prop_rock_bin", parent, new Vector3(3.0f, 0f, -2.2f), 8f, "M_WoodDark");
             Prop("prop_extinguisher", parent, new Vector3(-1.55f, 0f, -2.52f), 0f, "M_Red");
             Prop("prop_broom", parent, new Vector3(-3.35f, 0f, -2.35f), 20f, "M_Wood", collider: false).transform.localRotation = Quaternion.Euler(-6f, 20f, 8f);
             Prop("prop_wall_clock", parent, new Vector3(-2.3f, 2.5f, -RoomD / 2f + 0.02f), 180f, "M_Cream", collider: false);

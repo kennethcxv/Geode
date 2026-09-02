@@ -118,6 +118,9 @@ namespace GeodeEmpire.Player
                 var h = _hits[i];
                 var inter = h.collider.GetComponentInParent<IInteractable>();
                 if (inter is SpecimenEntity se && se == Held) inter = null;
+                // something interactable that currently refuses interaction (an opened crate still holding rocks, a
+                // full tray) is just geometry: it must not shadow the rock lying right behind its rim
+                if (inter != null && !inter.CanInteract(this)) inter = null;
                 if (inter != null)
                 {
                     if (h.distance <= firstSolid + 0.4f && h.distance < bestDist) { best = inter; bestDist = h.distance; }

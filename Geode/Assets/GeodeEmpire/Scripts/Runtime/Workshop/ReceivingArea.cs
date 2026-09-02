@@ -20,7 +20,7 @@ namespace GeodeEmpire.Workshop
         {
             int n = GameSession.Instance != null ? GameSession.Instance.Crates.Count : 0;
             int col = n % 2, row = (n / 2) % 2, stack = n / 4;
-            var local = new Vector3((col - 0.5f) * 0.66f, 0.12f + stack * 0.38f, (row - 0.5f) * 0.5f);
+            var local = new Vector3((col - 0.5f) * 0.9f, 0.12f + stack * 0.42f, (row - 0.5f) * 0.66f);
             return transform.TransformPoint(local);
         }
 

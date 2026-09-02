@@ -59,7 +59,7 @@ namespace GeodeEmpire.Workshop
 
         private void LayLidOnFloor()
         {
-            Lid.localPosition = new Vector3(-0.66f, 0.0f, 0.06f);
+            Lid.localPosition = new Vector3(-0.86f, 0.0f, 0.06f);
             Lid.localRotation = Quaternion.Euler(0f, 14f, 0f);
         }
 
@@ -104,7 +104,7 @@ namespace GeodeEmpire.Workshop
                 // lid drops flat on the floor beside the crate
                 float t2 = 0f;
                 Vector3 pa = Lid.localPosition; Quaternion ra = Lid.localRotation;
-                Vector3 pb = new Vector3(-0.66f, 0.0f, 0.06f); Quaternion rb = Quaternion.Euler(0f, 14f, 0f);
+                Vector3 pb = new Vector3(-0.86f, 0.0f, 0.06f); Quaternion rb = Quaternion.Euler(0f, 14f, 0f);
                 while (t2 < 1f)
                 {
                     t2 += Time.deltaTime * 3.2f;
@@ -137,8 +137,8 @@ namespace GeodeEmpire.Workshop
                 var rec = _session.State.FindSpecimen(ids[i]);
                 if (rec == null || rec.Location != SpecimenLocation.InCrate) continue;
                 int cx = i % cols, cz = i / cols;
-                float x = (cx - (cols - 1) * 0.5f) / Mathf.Max(1, cols - 1) * (BedSize.x - 0.12f) * 0.9f;
-                float z = (cz - (rows - 1) * 0.5f) / Mathf.Max(1, rows - 1) * (BedSize.y - 0.1f) * 0.9f;
+                float x = (cx - (cols - 1) * 0.5f) / Mathf.Max(1, cols - 1) * (BedSize.x - 0.16f);
+                float z = (cz - (rows - 1) * 0.5f) / Mathf.Max(1, rows - 1) * (BedSize.y - 0.16f);
                 if (cols == 1) x = 0f;
                 if (rows == 1) z = 0f;
                 x += rng.Range(-0.02f, 0.02f);

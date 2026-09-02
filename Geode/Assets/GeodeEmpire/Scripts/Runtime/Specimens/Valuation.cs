@@ -108,8 +108,10 @@ namespace GeodeEmpire.Specimens
             var fam = g.Family;
             var sb = new StringBuilder();
             string colorWord = ColorWord(g);
+            string famName = fam.Name;
+            if (fam.Id == MineralId.ClearQuartz && !string.IsNullOrEmpty(colorWord)) famName = "Quartz";
             if (!string.IsNullOrEmpty(colorWord)) sb.Append(colorWord).Append(' ');
-            sb.Append(fam.Name);
+            sb.Append(famName);
             sb.Append(' ').Append(FormWord(g));
             return sb.ToString();
         }
@@ -124,7 +126,7 @@ namespace GeodeEmpire.Specimens
                 case MineralId.Amethyst: return strong ? "Deep Violet" : pale ? "Pale Lilac" : "Violet";
                 case MineralId.Citrine: return strong ? "Golden" : pale ? "Pale Lemon" : "Honey";
                 case MineralId.SmokyQuartz: return palette == "Morion" ? "Black" : strong ? "Dark Smoky" : "Smoky";
-                case MineralId.ClearQuartz: return g.Clarity > 0.8f ? "Water-Clear" : palette == "Milky" ? "Milky" : "Clear";
+                case MineralId.ClearQuartz: return g.Clarity > 0.8f ? "Water-Clear" : palette == "Milky" ? "Milky" : "";
                 case MineralId.Fluorite: return palette;
                 case MineralId.Agate: return palette == "Cream & Brown" ? "Banded" : palette == "Blue Lace" ? "Blue Lace" : palette == "Carnelian" ? "Carnelian" : "Rose";
                 case MineralId.Calcite: return palette == "Iceland" ? "Iceland" : palette == "Peach" ? "Peach" : "Honey";

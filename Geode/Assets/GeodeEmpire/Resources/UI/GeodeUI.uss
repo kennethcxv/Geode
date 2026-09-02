@@ -23,7 +23,7 @@
 .crosshair { position: absolute; width: 6px; height: 6px; border-radius: 3px; background-color: rgba(255, 255, 255, 0.85); }
 .crosshair-ring { position: absolute; width: 22px; height: 22px; border-radius: 11px; border-width: 2px; border-color: rgba(226, 178, 96, 0.9); background-color: rgba(0,0,0,0); }
 
-.prompt { position: absolute; left: 50%; top: 56%; translate: -50% 0; font-size: 22px; -unity-text-align: middle-center; }
+.prompt { position: absolute; left: 50%; top: 56%; translate: -50% 0; font-size: 24px; -unity-text-align: middle-center; }
 .prompt-hint { position: absolute; left: 50%; top: 84%; translate: -50% 0; font-size: 16px; color: rgba(242, 238, 230, 0.7); -unity-text-align: middle-center; padding: 4px 12px; background-color: rgba(18, 16, 14, 0.45); border-radius: 4px; }
 
 .cash-card { position: absolute; left: 28px; top: 24px; flex-direction: row; align-items: center; }
@@ -31,7 +31,7 @@
 .cash-value { font-size: 30px; color: rgb(226, 178, 96); }
 .cash-delta { font-size: 18px; margin-left: 12px; }
 
-.tutorial { position: absolute; left: 50%; bottom: 40px; translate: -50% 0; max-width: 760px; -unity-text-align: middle-center; font-size: 19px; border-left-width: 3px; border-left-color: rgb(226, 178, 96); }
+.tutorial { position: absolute; left: 50%; bottom: 40px; translate: -50% 0; max-width: 820px; -unity-text-align: middle-center; font-size: 20px; border-left-width: 3px; border-left-color: rgb(226, 178, 96); }
 
 .notify-stack { position: absolute; right: 28px; top: 24px; align-items: flex-end; }
 .notify { margin-bottom: 8px; font-size: 18px; max-width: 460px; }

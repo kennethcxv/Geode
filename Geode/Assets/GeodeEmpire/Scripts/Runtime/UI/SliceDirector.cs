@@ -19,6 +19,8 @@ namespace GeodeEmpire.UI
         private Label _title, _body;
         private Button _ok;
         private bool _open;
+        public bool IsOpen => _open;
+        public string CurrentTitle => _title != null ? _title.text : "";
 
         private void Start()
         {

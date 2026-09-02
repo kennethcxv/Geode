@@ -19,7 +19,7 @@ namespace GeodeEmpire.Workshop
 
         public static readonly Step[] Steps =
         {
-            new Step { Id = "order", Text = "This is your workshop. Money is tight. Order a crate of mystery rocks from the tablet.", DoneBy = "crate_bought" },
+            new Step { Id = "order", Text = "This is your workshop. Money is tight. Order a crate of mystery rocks from the tablet on the side bench ({Tablet} opens it anywhere).", DoneBy = "crate_bought" },
             new Step { Id = "open", Text = "Your crate arrived on the pallet. Open it.", DoneBy = "crate_opened" },
             new Step { Id = "pickup", Text = "Pick up a rock. Hold {Inspect} to turn it over; heavy rocks are usually solid, light ones hollow.", DoneBy = "rock_picked" },
             new Step { Id = "bench", Text = "Set the rock on the cradle at the cracking bench.", DoneBy = "rock_on_bench" },
@@ -78,7 +78,7 @@ namespace GeodeEmpire.Workshop
         {
             return text.Replace("{Interact}", GameInput.Glyph("Interact")).Replace("{Strike}", GameInput.Glyph("Strike"))
                 .Replace("{Inspect}", GameInput.Glyph("Inspect")).Replace("{Rotate}", GameInput.Glyph("Rotate"))
-                .Replace("{Drop}", GameInput.Glyph("Drop")).Replace("{Back}", GameInput.Glyph("Back"));
+                .Replace("{Drop}", GameInput.Glyph("Drop")).Replace("{Back}", GameInput.Glyph("Back")).Replace("{Tablet}", GameInput.Glyph("Tablet"));
         }
     }
 }

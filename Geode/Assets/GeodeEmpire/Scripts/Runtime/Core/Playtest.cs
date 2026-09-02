@@ -58,6 +58,7 @@ namespace GeodeEmpire.Core
 
         private IEnumerator LookAndInteract(Vector3 point, string expectPromptContains, float settle = 0.25f)
         {
+            if (D.LastWalkRemaining > 0.6f) L($"  walk ended {D.LastWalkRemaining:F2} m short of its target (player at {D.Controller.transform.position:F2})");
             D.LookAt(point);
             yield return new WaitForSeconds(settle);
             string prompt = P != null ? P.Prompt : "";
@@ -307,6 +308,13 @@ namespace GeodeEmpire.Core
         private IEnumerator DisplayKeep()
         {
             Running = true;
+            yield return DisplayKeepCore();
+            Phase = "done";
+            Running = false;
+        }
+
+        private IEnumerator DisplayKeepCore()
+        {
             Phase = "display";
             SpecimenEntity best = null;
             foreach (var e in S.Entities.Values)
@@ -324,8 +332,6 @@ namespace GeodeEmpire.Core
             yield return new WaitForSeconds(0.4f);
             var st = S.State;
             L($"displayed={st.DisplayedCount()} collectionValue={st.CollectionValue()} prestige={st.Prestige} suppliers={string.Join(",", st.UnlockedSuppliers)} kept={st.Stats.SpecimensKept}");
-            Phase = "done";
-            Running = false;
         }
 
         /// <summary>Crack every remaining rock on the bench quickly (for economy/pacing checks).</summary>
@@ -334,6 +340,94 @@ namespace GeodeEmpire.Core
         private IEnumerator CrackAll(string style)
         {
             Running = true;
+            yield return CrackAllCore(style);
+            Phase = "done";
+            Running = false;
+        }
+
+        /// <summary>Dealer letters (tease, premium invite) block gameplay input until dismissed, exactly as for a player.</summary>
+        private IEnumerator DismissLetters()
+        {
+            var sd = Find<UI.SliceDirector>();
+            for (int i = 0; i < 3 && sd != null && sd.IsOpen; i++)
+            {
+                L("  letter shown: '" + sd.CurrentTitle + "' (dismissing)");
+                if (UseGamepad) yield return D.PadTap(GamepadButton.South, 0.1f); else yield return D.Tap(Key.Enter, 0.1f);
+                yield return new WaitForSeconds(0.35f);
+            }
+        }
+
+        /// <summary>
+        /// Approach a loose rock from the outside of whatever holds it (crate or floor) so it is the nearest thing under
+        /// the crosshair; if that side is blocked, try from the opposite side, the way a player would step around.
+        /// </summary>
+        private IEnumerator FetchRock(SpecimenEntity rock)
+        {
+            Vector3 rp = rock.transform.position;
+            Vector3 center = rp;
+            foreach (var c in S.Crates.Values) if (c.IsOpened && (c.transform.position - rp).sqrMagnitude < 1.2f) { center = c.transform.position; break; }
+            Vector3 dir = rp - center; dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0004f) dir = new Vector3(-0.2f, 0f, 0.7f);
+            dir.Normalize();
+            for (int attempt = 0; attempt < 2 && P.Held == null; attempt++)
+            {
+                Vector3 stand = rp + dir * 0.8f; stand.y = 0f;
+                stand.x = Mathf.Clamp(stand.x, -3.1f, 3.1f); stand.z = Mathf.Clamp(stand.z, -2.25f, 2.25f);
+                yield return D.WalkTo(stand, 0.25f);
+                yield return LookAndInteract(rp, "Pick up");
+                dir = -dir;
+            }
+        }
+
+        private IEnumerator SellCore()
+        {
+            Phase = "sell";
+            var outbox = Find<SellOutbox>();
+            if (outbox.Count == 0) { L("outbox empty, nothing to sell"); yield break; }
+            var intercom = Find<DealerIntercom>();
+            yield return D.WalkTo(StandNear(new Vector3(intercom.transform.position.x, 0f, intercom.transform.position.z), 1.7f), 0.3f);
+            yield return LookAndInteract(intercom.transform.position, "Call dealer");
+            yield return new WaitForSeconds(0.6f);
+            L("sold: cash=" + S.State.Cash + " outbox=" + outbox.Count);
+        }
+
+        /// <summary>Buy a crate from a supplier, open it, crack everything, optionally keep the best piece, sell the rest.</summary>
+        public void RunSupplierCycle(string supplier, string style = "careful", bool keepBest = false) { if (!Running) StartCoroutine(SupplierCycle(supplier, style, keepBest)); }
+
+        private IEnumerator SupplierCycle(string supplier, string style, bool keepBest)
+        {
+            Running = true;
+            Phase = "buy " + supplier;
+            L($"== SupplierCycle ({supplier}, {style}, keep={keepBest}) cash={S.State.Cash}");
+            yield return DismissLetters();
+            if (Find<SellOutbox>().Count > 0) yield return SellCore();   // cash in whatever the last crate left in the tray
+            var before = new HashSet<string>(S.Crates.Keys);
+            if (!S.BuyCrate(supplier, out string err)) { L("buy failed: " + err + " cash=" + S.State.Cash); Phase = "done"; Running = false; yield break; }
+            L("buy: ok cash=" + S.State.Cash);
+            yield return new WaitForSeconds(2.0f);
+            CrateEntity crate = null;
+            foreach (var kv in S.Crates) if (!before.Contains(kv.Key)) crate = kv.Value;
+            if (crate == null) { L("no new crate"); Phase = "done"; Running = false; yield break; }
+            Phase = "open-crate";
+            Vector3 cratePos = crate.transform.position;
+            Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
+            yield return D.WalkTo(stand, 0.3f);
+            yield return LookAndInteract(cratePos + Vector3.up * 0.25f, "Open crate");
+            yield return new WaitForSeconds(1.0f);
+            L("crate opened=" + crate.IsOpened + " remaining=" + crate.RemainingRocks);
+            if (!crate.IsOpened) { Phase = "done"; Running = false; yield break; }
+            yield return CrackAllCore(style);
+            if (keepBest) yield return DisplayKeepCore();
+            yield return SellCore();
+            yield return DismissLetters();
+            var st = S.State;
+            L($"cycle end: cash={st.Cash} sold={st.Stats.SpecimensSold} opened={st.Stats.SpecimensOpened} crates={st.Stats.CratesPurchased} displayed={st.DisplayedCount()} suppliers={string.Join(",", st.UnlockedSuppliers)} tease={st.SliceTeaseShown} premiumInvite={st.PremiumInviteShown}");
+            Phase = "done";
+            Running = false;
+        }
+
+        private IEnumerator CrackAllCore(string style)
+        {
             var bench = Find<CrackingBench>();
             Vector3 cradle = ZonePos(ZoneKind.Cradle);
             Vector3 benchStand = new Vector3(cradle.x, 0f, cradle.z - 0.95f);
@@ -344,11 +438,11 @@ namespace GeodeEmpire.Core
                 foreach (var e in S.Entities.Values) if (!e.IsOpened && (e.Record.Location == SpecimenLocation.InCrate || e.Record.Location == SpecimenLocation.World)) { rock = e; break; }
                 if (rock == null) break;
                 Phase = "fetch " + rock.Id;
-                Vector3 rp = rock.transform.position;
-                Vector3 stand = rp + (new Vector3(-0.2f, 0f, 0.7f)).normalized * 1.0f; stand.y = 0f;
-                yield return D.WalkTo(stand, 0.3f);
-                yield return LookAndInteract(rp, "Pick up");
+                yield return DismissLetters();
+                yield return FetchRock(rock);
                 if (P.Held == null) { L("could not pick " + rock.Id); break; }
+                if (P.Held != rock) L($"  aimed at {rock.Id} but picked up {P.Held.Id} (rocks too close together)");
+                rock = P.Held;
                 yield return D.WalkTo(benchStand, 0.25f);
                 yield return LookAndInteract(cradle, "Set on the cradle");
                 yield return new WaitForSeconds(1.0f);
@@ -369,15 +463,14 @@ namespace GeodeEmpire.Core
                 L($"{rock.Id} {g.Mineral} {g.Tier} strikes={strikes} dmgEvents={bench.DamageEventsThisRock} note='{bench.ResultNote}' base=${g.BaseValue} dmgFrac={rock.Visual.CrystalDamageFraction():F2}");
                 yield return Interact();
                 yield return new WaitForSeconds(0.3f);
+                yield return DismissLetters();
                 // drop it in the outbox
                 Vector3 tray = ZonePos(ZoneKind.SellTray);
                 yield return D.WalkTo(StandNear(tray), 0.3f);
                 yield return LookAndInteract(tray, "Place in the dealer outbox");
                 processed++;
             }
-            Phase = "done";
             L("crackall processed=" + processed);
-            Running = false;
         }
     }
 }
