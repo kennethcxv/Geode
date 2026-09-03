@@ -172,6 +172,7 @@ namespace GeodeEmpire.Interaction
             if (opened && !AcceptsOpened) return "Unopened rocks only";
             if (!opened && !AcceptsUnopened) return Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot ? "Crack it open first" : "Opened specimens only";
             if (Kind == ZoneKind.SaleSlot && !e.Record.Appraised) return "Appraise it first: the scale sets the price";
+            if ((Kind == ZoneKind.SaleSlot || Kind == ZoneKind.SellTray) && e.Record.Favorite) return "A favourite: take the star off it on the tablet before selling";
             if (Kind == ZoneKind.Wash && e.Visual != null && e.Visual.DirtRemaining < 0.04f && !(opened && !e.IsPiece && e.Record.Condition != null && !e.Record.Condition.Rinsed)) return "Already clean";
             if (ExtraRefusal != null) { string why = ExtraRefusal(e); if (why != null) return why; }
             string fit = FitRefusal(e);

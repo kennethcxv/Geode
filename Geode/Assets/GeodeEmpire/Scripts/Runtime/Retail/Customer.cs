@@ -120,6 +120,14 @@ namespace GeodeEmpire.Retail
             _agent.avoidancePriority = 40 + id % 20;
             _fidget = rng.Range(0f, 6.28f);
             _legL = Find("LegL"); _legR = Find("LegR"); _armL = Find("ArmL"); _armR = Find("ArmR"); _head = Find("Head"); _torso = Find("Torso");
+            // one hair shape, sometimes a hat, sometimes a longer coat: the crowd is not one figure
+            int hairPick = rng.Range(0, 3);        // short, long, none (under a hat)
+            bool hat = rng.Chance(0.3f) || hairPick == 2;
+            bool cap = hat && rng.Chance(0.55f);
+            bool coat = rng.Chance(0.3f);
+            void Show(string part, bool on) { var t = Find(part); if (t != null) t.gameObject.SetActive(on); }
+            Show("HairShort", hairPick == 0 && !cap); Show("HairLong", hairPick == 1 && !cap);
+            Show("Cap", cap); Show("Beanie", hat && !cap); Show("CoatTail", coat);
             transform.localScale = Vector3.one * Archetype.Height * rng.Range(0.97f, 1.03f);
             // colours per part and sub-mesh, with a little per-person variation. The figure's parts only carry the
             // slots they use (see gen_props.customer_parts): torso [jacket], hips [trousers], legs [trousers, shoes],
@@ -131,7 +139,9 @@ namespace GeodeEmpire.Retail
                 for (int i = 0; i < mats.Length; i++)
                 {
                     Color c;
-                    if (part.StartsWith("Head")) c = i == 0 ? Archetype.Skin : Archetype.Hair;
+                    if (part.StartsWith("Head") || part.StartsWith("Hair")) c = i == 0 && part.StartsWith("Head") ? Archetype.Skin : Archetype.Hair;
+                    else if (part == "Cap" || part == "Beanie") c = Color.Lerp(Archetype.Trousers, Archetype.Jacket, 0.4f) * 0.9f;
+                    else if (part == "CoatTail") c = Archetype.Jacket * 0.95f;
                     else if (part.StartsWith("Arm")) c = i == 0 ? Archetype.Jacket : Archetype.Skin;
                     else if (part.StartsWith("Leg")) c = i == 0 ? Archetype.Trousers : Archetype.Hair * 0.6f;
                     else if (part.StartsWith("Hips")) c = Archetype.Trousers;
@@ -441,6 +451,16 @@ namespace GeodeEmpire.Retail
                         {
                             float i = Interest(occ.Record) * Random.Range(0.85f, 1.15f);
                             if (i > _bestInterest) { _bestInterest = i; _best = occ; }
+                            // something rare, or a favourite family at a good grade, stops them in their tracks
+                            var g = occ.Geology;
+                            bool rare = g.Tier >= QualityTier.Exceptional || (g.Tier >= QualityTier.Good && System.Array.IndexOf(Archetype.Likes, g.Mineral) >= 0);
+                            if (rare && !_reacted)
+                            {
+                                _reacted = true;
+                                _timer = Random.Range(2.5f, 4f);   // linger on it
+                                Say(g.Tier >= QualityTier.Exceptional ? "Oh, look at that" : "Now that is nice");
+                                break;
+                            }
                         }
                         if (_shop.BrowseClaimedBy(_lookingAt) == this) _planIndex++;   // a loiter does not consume the plan entry
                         GoToBrowse();
@@ -502,7 +522,7 @@ namespace GeodeEmpire.Retail
             }
         }
 
-        private void Carry(SpecimenEntity e)
+        private void Carry(SpecimenEntity e, bool sold = false)
         {
             if (e.Zone != null) e.Zone.Take(e, true);
             e.SetPhysics(false);
@@ -511,7 +531,7 @@ namespace GeodeEmpire.Retail
             e.transform.SetParent(_handPoint != null ? _handPoint : transform, true);
             e.transform.localPosition = Vector3.zero;
             e.transform.localRotation = Quaternion.Euler(-70f, 0f, 0f);
-            e.Record.Location = SpecimenLocation.SaleSlot;   // still stock until the money changes hands
+            if (!sold) e.Record.Location = SpecimenLocation.SaleSlot;   // still stock until the money changes hands
             _shop.RefreshLabels();
         }
 
@@ -553,14 +573,26 @@ namespace GeodeEmpire.Retail
         }
 
         /// <summary>Money taken: a beat of thanks at the counter, then out.</summary>
-        public void Paid()
+        public void Paid() => Paid(null);
+
+        /// <summary>Money taken: the piece is picked up off the counter and carried out; a beat of thanks, then the door.</summary>
+        public void Paid(SpecimenEntity bought)
         {
             Bought = true;
             Wanted = null;
+            if (bought != null)
+            {
+                _carriedOut = bought;
+                Carry(bought, true);
+                WorkshopAudio.Play("rock_pickup", transform.position, 0.4f, 1.05f);
+            }
             State = Phase.Thanking;
-            _timer = 1.1f;
+            _timer = 0.9f;
             Say("Thanks!");
         }
+
+        private SpecimenEntity _carriedOut;
+        private bool _reacted;
 
         private void Leave(bool happy)
         {
@@ -576,7 +608,14 @@ namespace GeodeEmpire.Retail
             State = Phase.Done;
             _shop.ReleaseBrowse(this);
             _shop.Remove(this);
+            if (_carriedOut != null) { GameSession.Instance?.Despawn(_carriedOut); _carriedOut = null; }
             Destroy(gameObject);
+        }
+
+        private void OnDestroy()
+        {
+            // never leave a sold piece behind if the figure is removed some other way
+            if (_carriedOut != null) { GameSession.Instance?.Despawn(_carriedOut); _carriedOut = null; }
         }
 
         // ---- presentation --------------------------------------------------------------------

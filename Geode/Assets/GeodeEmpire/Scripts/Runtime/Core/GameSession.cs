@@ -447,6 +447,8 @@ namespace GeodeEmpire.Core
         // ------------------------------------------------------------------------------------
         public bool BuyCrate(string supplierId, out string error)
         {
+            var supDef = Economy.SupplierCatalog.Get(supplierId);
+            if (supDef != null && supDef.Occasional && !State.OfferedLots.Contains(supplierId)) { error = "That lot is not on offer right now"; return false; }
             error = null;
             var sup = Economy.SupplierCatalog.Get(supplierId);
             if (sup == null) { error = "Unknown supplier"; return false; }
@@ -464,6 +466,13 @@ namespace GeodeEmpire.Core
             Tutorial.Notify("crate_bought");
             if (State.CrateCounter >= 2) Tutorial.Notify("upgrade_or_crate");
             StateChanged?.Invoke();
+            // sources gated on crates bought unlock here too, not only after a sale
+            foreach (var id in Economy.SupplierCatalog.EvaluateUnlocks(State))
+                Notify($"New supplier available: {Economy.SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
+            // occasional lots come and go with the crates; an occasional lot bought leaves the offer list
+            Economy.Market.ConsumeOffer(State, supplierId);
+            string offer = Economy.Market.RefreshOffers(State);
+            if (offer != null) Notify($"On offer now: {Economy.SupplierCatalog.Get(offer).Name}", NotificationKind.Discovery);
             FlushSave("crate-bought");
             return true;
         }

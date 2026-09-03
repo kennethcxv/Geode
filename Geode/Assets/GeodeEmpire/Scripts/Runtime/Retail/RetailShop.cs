@@ -49,7 +49,8 @@ namespace GeodeEmpire.Retail
         private readonly Dictionary<PlacementZone, Customer> _browseClaims = new Dictionary<PlacementZone, Customer>();
 
         /// <summary>Navigation health counters, read by the retail stress test.</summary>
-        public sealed class NavMetrics { public int StuckRecoveries, Repositions, PathFailures; }
+        public sealed class NavMetrics { public int StuckRecoveries, Repositions, PathFailures; public float LastSaleSeconds, SaleSecondsTotal; public int SalesTimed; }
+        private float _counterSince;
         [System.NonSerialized] public NavMetrics Metrics = new NavMetrics();
         private float _nextSpawnIn = 25f;
         private int _customerCounter;
@@ -313,6 +314,7 @@ namespace GeodeEmpire.Retail
 
         public void ArrivedAtCounter(Customer c)
         {
+            _counterSince = Time.time;
             if (AtCounter == c) return;
             AtCounter = c;
             // the bell and the HUD chip carry this; a toast on top of the chip said the same thing twice
@@ -341,15 +343,18 @@ namespace GeodeEmpire.Retail
             if (price > st.BiggestRetailSale) { st.BiggestRetailSale = price; st.BiggestRetailSaleName = rec.DisplayName; }
             if (price > st.BiggestSale) { st.BiggestSale = price; st.BiggestSaleName = rec.DisplayName; }
             session.AddCash(price, "retail");
-            session.Despawn(e);
             LeaveQueue(c);
-            c.Paid();
+            c.Paid(e);   // the piece leaves with the buyer; it is despawned at the door
+            Metrics.LastSaleSeconds = Time.time - _counterSince;
+            Metrics.SaleSecondsTotal += Metrics.LastSaleSeconds; Metrics.SalesTimed++;
             WorkshopAudio.Play2D("register", 0.8f);
             WorkshopAudio.Play2D("crystal_chime", 0.3f, 1.25f);
             session.Notify($"Sold {rec.DisplayName} for {UI.UiKit.Money(price)}", NotificationKind.Success);
             Tutorial.Notify("checkout");
             foreach (var id in SupplierCatalog.EvaluateUnlocks(session.State))
                 session.Notify($"New supplier available: {SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
+            var ask = Market.RefreshCommissions(session.State);
+            if (ask != null) session.Notify("A buyer wrote in: " + Market.Describe(ask), NotificationKind.Discovery);
             session.RaiseStateChanged();
             session.CheckSolvency();
             session.FlushSave("retail-sold");

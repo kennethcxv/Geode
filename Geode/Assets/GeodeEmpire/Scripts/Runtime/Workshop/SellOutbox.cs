@@ -35,6 +35,14 @@ namespace GeodeEmpire.Workshop
             return total;
         }
 
+        /// <summary>What the dealer pays, or what a buyer with a standing request pays for a piece that answers it.</summary>
+        public static float SaleValueWithCommissions(GameState state, SpecimenEntity e, out Commission filled)
+        {
+            filled = Market.Find(state, e.Record);
+            float v = SaleValue(e);
+            return filled != null ? Mathf.Round(v * filled.Premium) : v;
+        }
+
         public static float SaleValue(SpecimenEntity e)
         {
             var s = GameSession.Instance;
@@ -54,10 +62,18 @@ namespace GeodeEmpire.Workshop
             foreach (var e in items)
             {
                 if (e.Record.Location == SpecimenLocation.Sold) continue; // no double sales
-                float v = SaleValue(e);
+                float v = SaleValueWithCommissions(session.State, e, out var filled);
                 total += v;
                 e.Record.Location = SpecimenLocation.Sold;
-                GameState.Log(e.Record, "dealer", v, "sold to the dealer");
+                if (filled != null)
+                {
+                    filled.Fulfilled = true;
+                    session.State.Stats.CommissionsFilled++;
+                    session.State.Stats.CommissionRevenue += v;
+                    GameState.Log(e.Record, "commission", v, "to " + filled.Buyer);
+                    session.Notify($"{char.ToUpper(filled.Buyer[0]) + filled.Buyer.Substring(1)} took {e.Record.DisplayName} for {UI.UiKit.Money(v)}", NotificationKind.Discovery);
+                }
+                else GameState.Log(e.Record, "dealer", v, "sold to the dealer");
                 session.State.Stats.SpecimensSold++;
                 if (v > session.State.Stats.BiggestSale) { session.State.Stats.BiggestSale = v; session.State.Stats.BiggestSaleName = e.Record.DisplayName; }
                 session.Despawn(e);
@@ -69,6 +85,8 @@ namespace GeodeEmpire.Workshop
             Tutorial.Notify("shipped");
             foreach (var id in SupplierCatalog.EvaluateUnlocks(session.State))
                 session.Notify($"New supplier available: {SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
+            var ask = Market.RefreshCommissions(session.State);
+            if (ask != null) session.Notify("A buyer wrote in: " + Market.Describe(ask), NotificationKind.Discovery);
             session.RaiseStateChanged();
             session.CheckSolvency();
             session.FlushSave("sold");

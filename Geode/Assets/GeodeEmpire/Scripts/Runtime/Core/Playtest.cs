@@ -462,6 +462,112 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        /// <summary>Test fixture: every rock still in a crate is opened and appraised on paper, put in the outbox and shipped.</summary>
+        private IEnumerator SellCrateDirect()
+        {
+            var outbox = Find<SellOutbox>();
+            int placed = 0;
+            foreach (var e in new List<SpecimenEntity>(S.Entities.Values))
+            {
+                if (e.IsOpened || e.Record.Location != SpecimenLocation.InCrate) continue;
+                var r = e.Record;
+                r.Condition.Opened = true; r.OpenedAtTicks = System.DateTime.UtcNow.Ticks; r.ProcessedBy = "hammer";
+                r.DamageFraction = 0.02f; r.Appraised = true; r.AppraisedValue = r.PristineForSale();
+                S.RecordDiscovery(r, 0.02f);
+                e.ApplyOpenPose();
+                if (outbox.Tray.RefusalReason(e) == null) { outbox.Tray.Place(e, true); placed++; }
+                if (placed >= 12) break;
+            }
+            yield return null;
+            if (placed > 0) outbox.Ship();
+            L($"  sold {placed} direct: cash={S.State.Cash} sold={S.State.Stats.SpecimensSold}");
+            yield return BreakDownEmptyCrates();
+        }
+
+        /// <summary>V5 market: crates until an occasional lot is offered, sales until a buyer writes in, a favourite refused by the outbox, a commission filled through it.</summary>
+        public void RunMarket() { if (!Running) StartCoroutine(MarketRun()); }
+
+        private IEnumerator MarketRun()
+        {
+            Running = true;
+            Phase = "market";
+            L($"== Market cash={S.State.Cash}");
+            S.AddCash(6000f, "test");
+            var st = S.State;
+            // crates until an offer appears (occasional lots need prestige 2 / three crates); prestige via test stock on display
+            SpawnTestStock(6, 0f);
+            yield return DisplayKeepCore();
+            L($"prestige={st.Prestige} displayed={st.DisplayedCount()} collection={st.CollectionValue()}");
+            int bought = 0; string offer = null;
+            for (int i = 0; i < 12 && offer == null; i++)
+            {
+                string sup = st.HasSupplier(Economy.SupplierCatalog.Regional) ? Economy.SupplierCatalog.Regional : Economy.SupplierCatalog.Local;
+                if (!S.BuyCrate(sup, out string err)) { L($"buy {sup} failed: {err}"); break; }
+                bought++;
+                yield return new WaitForSeconds(0.6f);
+                if (st.OfferedLots.Count > 0) offer = st.OfferedLots[0];
+                yield return BreakDownEmptyCrates();
+                // open the newest crate and sell its rocks to the dealer (opened and appraised directly: this run is about the market, not the bench)
+                yield return OpenNewestCrate();
+                yield return SellCrateDirect();
+                L($"  crate {bought}: sold={st.Stats.SpecimensSold} offers=[{string.Join(",", st.OfferedLots)}] commissions={st.Commissions.Count} unlocked=[{string.Join(",", st.UnlockedSuppliers)}]");
+            }
+            L($"offer after {bought} crates: {offer ?? "none"} (eligible occasional: {string.Join(",", st.UnlockedSuppliers.FindAll(id => Economy.SupplierCatalog.Get(id).Occasional))})");
+            if (offer != null)
+            {
+                bool ok = S.BuyCrate(offer, out string err2);
+                L($"bought offered lot {offer}: {(ok ? "ok" : err2)} offers now=[{string.Join(",", st.OfferedLots)}] locality='{(ok ? st.Crates[st.Crates.Count - 1].Locality : "")}'");
+                bool again = S.BuyCrate(offer, out string err3);
+                L($"buying it again: {(again ? "allowed (!)" : "refused: " + err3)}");
+                yield return new WaitForSeconds(0.6f);
+                yield return OpenNewestCrate();
+                int chipped = 0; foreach (var r in st.Specimens) if (r.SupplierId == offer && r.ShellDamage > 0.01f) chipped++;
+                L($"offered lot rocks: {st.Crates[st.Crates.Count - 1].SpecimenIds.Count}, pre-chipped={chipped}");
+            }
+            // commissions
+            Commission ask = null; foreach (var c in st.Commissions) if (!c.Fulfilled) { ask = c; break; }
+            L($"open commission: {(ask != null ? Economy.Market.Describe(ask) : "none")}");
+            if (ask != null)
+            {
+                SpecimenRecord match = null;
+                foreach (var r in st.Specimens) if (r.Location == SpecimenLocation.DisplaySlot && Economy.Market.Matches(ask, r)) { match = r; break; }
+                if (match == null) foreach (var r in st.Specimens) if ((r.Location == SpecimenLocation.World || r.Location == SpecimenLocation.DisplaySlot) && r.IsOpened && Economy.Market.Matches(ask, r)) { match = r; break; }
+                L($"matching piece on hand: {(match != null ? match.DisplayName + " (" + match.Location + ")" : "none")}");
+                if (match != null)
+                {
+                    var ent = S.GetEntity(match.Id);
+                    if (ent != null)
+                    {
+                        if (ent.Zone != null) ent.Zone.Take(ent, true);
+                        var outbox = Find<SellOutbox>();
+                        match.Favorite = true;
+                        L($"favourite refusal: '{outbox.Tray.RefusalReason(ent)}'");
+                        match.Favorite = false;
+                        outbox.Tray.Place(ent, true);
+                        float before = st.Cash;
+                        outbox.Ship();
+                        L($"shipped with the commission: cash {before} -> {st.Cash} filled={ask.Fulfilled} commissionsFilled={st.Stats.CommissionsFilled} revenue={st.Stats.CommissionRevenue}");
+                    }
+                }
+            }
+            L($"goals done: {Economy.CollectionGoals.DoneCount(st)}/{Economy.CollectionGoals.All.Length} nearest gap: {Economy.CollectionGoals.NearestGap(st)}");
+            // a favourite is never sold by mistake: the outbox and the sales shelves refuse it
+            foreach (var r in st.Specimens)
+            {
+                if (r.Location != SpecimenLocation.DisplaySlot) continue;
+                var ent = S.GetEntity(r.Id); if (ent == null) continue;
+                var outbox = Find<SellOutbox>();
+                r.Favorite = true;
+                L($"favourite {r.DisplayName}: outbox says '{outbox.Tray.RefusalReason(ent)}'");
+                r.Favorite = false;
+                break;
+            }
+            L(RunSaveReloadCheck());
+            L($"after reload: offers=[{string.Join(",", S.State.OfferedLots)}] commissions={S.State.Commissions.Count} filled={S.State.Stats.CommissionsFilled}");
+            Phase = "done";
+            Running = false;
+        }
+
         /// <summary>V5 verification: call a rock in the hand (drop key while inspecting), crack it, read the call on the result and the card, check the history.</summary>
         public void RunCallTest() { if (!Running) StartCoroutine(CallTest()); }
 

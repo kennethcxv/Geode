@@ -204,9 +204,24 @@ namespace GeodeEmpire.UI
             var st = _s.State;
             int pallet = _s.Crates.Count;
             if (pallet >= 3) UiKit.Label(_content, $"The receiving pallet is getting full ({pallet} crates). Open or break down a crate before ordering more.", "muted");
+            var openAsks = new List<Commission>();
+            foreach (var c in st.Commissions) if (!c.Fulfilled) openAsks.Add(c);
+            if (openAsks.Count > 0)
+            {
+                UiKit.Label(_content, "BUYERS ASKING", "section");
+                foreach (var c in openAsks)
+                {
+                    var ask = UiKit.Box(_content, "item-card");
+                    ask.style.borderLeftWidth = 4; ask.style.borderLeftColor = new Color(0.85f, 0.7f, 0.35f);
+                    UiKit.Label(ask, Market.Describe(c), "item-title", "medium");
+                    UiKit.Label(ask, "Put a piece that fits in the dealer outbox: the intercom sends it to them at their price. No hurry; the request stands.", "item-sub");
+                }
+            }
             foreach (var sup in SupplierCatalog.All)
             {
                 bool unlocked = st.HasSupplier(sup.Id);
+                if (sup.Occasional && !unlocked) continue;                      // occasional lots are not advertised before they exist
+                if (sup.Occasional && !Market.Available(st, sup)) continue;     // ... and only show while on offer
                 bool premiumTease = sup.Id == SupplierCatalog.Premium && !unlocked;
                 var card = UiKit.Box(_content, "item-card");
                 card.style.borderLeftWidth = 4;
@@ -220,6 +235,7 @@ namespace GeodeEmpire.UI
                 tags.style.marginTop = 8;
                 UiKit.Label(tags, sup.RockCountLabel.ToUpper(), "tag");
                 UiKit.Label(tags, VarianceTag(sup), "tag");
+                if (sup.Occasional) UiKit.Label(tags, "ON OFFER", "tag");
                 if (!unlocked) UiKit.Label(tags, "LOCKED", "tag", "tag-locked");
                 var desc = UiKit.Label(text, unlocked ? sup.Description : sup.UnlockHint, "item-desc");
                 if (unlocked)
@@ -256,6 +272,13 @@ namespace GeodeEmpire.UI
                 SupplierCatalog.Regional => "RELIABLE",
                 SupplierCatalog.AmethystLot => "FOCUSED",
                 SupplierCatalog.Estate => "GAMBLE",
+                SupplierCatalog.CuttingRough => "SAW MATERIAL",
+                SupplierCatalog.DesertPocket => "DELICATE",
+                SupplierCatalog.OversizedLot => "HEAVY",
+                SupplierCatalog.Network => "TRADED",
+                SupplierCatalog.Showcase => "ONE LOCALITY",
+                SupplierCatalog.Damaged => "CHIPPED, CHEAP",
+                SupplierCatalog.Specialty => "RARE FAMILIES",
                 _ => "DISPLAY GRADE",
             };
         }
@@ -357,18 +380,50 @@ namespace GeodeEmpire.UI
             }
             UiKit.Label(_content, $"{known} of {MineralCatalog.All.Count} mineral families discovered", "muted");
 
-            // the pieces on display, with their short histories
+            // collection goals: what the cabinet is working toward
+            UiKit.Label(_content, $"COLLECTION GOALS  •  {CollectionGoals.DoneCount(st)} of {CollectionGoals.All.Length}", "section");
+            foreach (var g in CollectionGoals.All)
+            {
+                var p = g.Progress(st);
+                bool done = p.have >= p.need;
+                var row = UiKit.Box(_content, "stat-row");
+                var kl = UiKit.Label(row, (done ? "✓  " : "○  ") + g.Title, done ? "item-sub" : "item-title");
+                kl.style.flexGrow = 1;
+                UiKit.Label(row, done ? "done" : (p.need > 1 ? $"{p.have} / {p.need}" : ""), "muted");
+                if (!done) UiKit.Label(_content, g.Detail, "muted").style.marginLeft = 24;
+            }
+
+            // the pieces on display, grouped by kind, with their short histories; a star marks a favourite (never sold by mistake)
             var kept = new List<SpecimenRecord>();
             foreach (var r in st.Specimens) if (r.Location == SpecimenLocation.DisplaySlot) kept.Add(r);
             if (kept.Count > 0)
             {
-                UiKit.Label(_content, "ON DISPLAY", "section");
-                kept.Sort((a, b) => a.LocationIndex.CompareTo(b.LocationIndex));
-                foreach (var r in kept)
+                kept.Sort((a, b) => b.EstimatedValue().CompareTo(a.EstimatedValue()));
+                var groups = new (string title, System.Func<SpecimenRecord, bool> pick)[]
                 {
-                    var card = UiKit.Box(_content, "item-card");
-                    UiKit.Label(card, $"{r.LocationIndex + 1}.  {r.DisplayName}", "item-title", "medium");
-                    UiKit.Label(card, Provenance(r), "item-sub");
+                    ("NATURAL SPLITS", r => !r.IsPiece), ("SAWN", r => r.IsPiece && r.Polish < 0.9f), ("POLISHED", r => r.IsPiece && r.Polish >= 0.9f),
+                };
+                foreach (var (title, pick) in groups)
+                {
+                    bool any = false;
+                    foreach (var r in kept) if (pick(r)) { any = true; break; }
+                    if (!any) continue;
+                    UiKit.Label(_content, "ON DISPLAY  •  " + title, "section");
+                    foreach (var r in kept)
+                    {
+                        if (!pick(r)) continue;
+                        var card = UiKit.Box(_content, "item-card");
+                        var row = UiKit.Box(card, "row"); row.style.alignItems = Align.Center;
+                        var text = UiKit.Box(row, "grow");
+                        UiKit.Label(text, $"{(r.Favorite ? "★ " : "")}{r.LocationIndex + 1}.  {r.DisplayName}", "item-title", "medium");
+                        UiKit.Label(text, Provenance(r), "item-sub");
+                        string hist = HistoryText(r, 5);
+                        if (hist.Length > 0) { var hl = UiKit.Label(text, hist, "muted"); hl.style.whiteSpace = WhiteSpace.Normal; }
+                        var side = UiKit.Box(row); side.style.alignItems = Align.FlexEnd; side.style.minWidth = 150;
+                        var rec = r;
+                        var fav = UiKit.Button(side, rec.Favorite ? "Unstar" : "★ Favourite", () => { rec.Favorite = !rec.Favorite; _s.QueueSave("favorite"); _s.RaiseStateChanged(); Refresh(); }, "");
+                        fav.style.marginTop = 4;
+                    }
                 }
             }
         }

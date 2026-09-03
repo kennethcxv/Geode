@@ -1051,8 +1051,11 @@ namespace GeodeEmpire.EditorTools
             // counter set into the partition: cashier on the workshop side, customers on the shop side
             var counter = Prop("prop_counter", shop, new Vector3(PartitionX, 0f, -1.0f), -90f, "M_WoodDark,M_CounterPaint");
             var register = Prop("prop_register", shop, new Vector3(PartitionX - 0.1f, 0.95f, -1.42f), 90f, "M_Register,M_Screen,M_PlasticDark", collider: true);
+            var drawer = Prop("prop_register_drawer", register.transform, new Vector3(0f, 0.012f, 0.16f), 0f, "M_MetalDark,M_PlasticDark,M_PlasticDark", collider: false);
             var reg = register.AddComponent<CheckoutRegister>();
             reg.Shop = rs;
+            reg.Drawer = drawer.transform;
+            foreach (var mr in register.GetComponentsInChildren<MeshRenderer>()) if (mr.gameObject == register) reg.Screen = mr;
             reg.SetHighlightRenderers(register.GetComponentsInChildren<Renderer>());
             var itemPoint = new GameObject("CounterItemPoint").transform; itemPoint.SetParent(shop, false); itemPoint.localPosition = new Vector3(PartitionX + 0.04f, 0.95f, -0.72f); rs.CounterItemPoint = itemPoint;
             var custPoint = new GameObject("CounterCustomerPoint").transform; custPoint.SetParent(shop, false); custPoint.localPosition = new Vector3(3.35f, 0f, -0.85f); rs.CounterCustomerPoint = custPoint;

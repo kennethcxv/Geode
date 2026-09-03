@@ -44,6 +44,7 @@ namespace GeodeEmpire.Save
         public long AcquiredAtTicks;
         public float AcquisitionCost;
         public float OriginalMassKg;
+        public bool Favorite;
         public bool Predicted;
         public bool PredictedHollow;
         public int PredictedTier = -1;
@@ -127,6 +128,23 @@ namespace GeodeEmpire.Save
         public string Locality = "";
     }
 
+    /// <summary>A buyer's standing request: a kind of piece they will pay a premium for, delivered through the dealer outbox.</summary>
+    [Serializable]
+    public sealed class Commission
+    {
+        public string Id;
+        public string Buyer;
+        public int Mineral = -1;          // MineralId, or -1 for any family
+        public int MinTier;               // QualityTier the piece must appraise at or above
+        public float MinMassKg;
+        public bool WantPolished;
+        public bool WantWhole;            // a natural split (not a sawn piece)
+        public float Premium = 1.8f;      // over the dealer's price
+        public string Note;
+        public bool Fulfilled;
+        public long CreatedTicks;
+    }
+
     [Serializable]
     public sealed class EncyclopediaEntry
     {
@@ -188,6 +206,8 @@ namespace GeodeEmpire.Save
         // V5 mastery: calls made before opening, and how many were right
         public int PredictionsMade, HollowCallsRight, TierCallsRight;
         public int RocksCracked;
+        public int CommissionsFilled;
+        public float CommissionRevenue;
     }
 
     /// <summary>Whole career save. Versioned; new fields get sensible defaults on load.</summary>
@@ -210,6 +230,12 @@ namespace GeodeEmpire.Save
         public List<string> UnlockedSuppliers = new List<string>();
         public List<string> TutorialSteps = new List<string>();
         public List<EncyclopediaEntry> Encyclopedia = new List<EncyclopediaEntry>();
+        /// <summary>Occasional lots on offer right now (supplier ids); an offer stays until it is bought.</summary>
+        public List<string> OfferedLots = new List<string>();
+        public int LastOfferCrate;
+        public List<Commission> Commissions = new List<Commission>();
+        public int CommissionCounter;
+        public int LastCommissionMilestone;
         public Statistics Stats = new Statistics();
         public int DisplayCapacity = 8;
         public int SaleCapacity = 6;

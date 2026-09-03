@@ -45,6 +45,7 @@ namespace GeodeEmpire.Economy
                 SpecimenGeology chosenGeo = null;
                 // a focused source draws most of its rocks from its preferred families
                 bool wantPreferred = sup.PreferredMinerals != null && sup.PreferredMinerals.Length > 0 && rng.Chance(sup.PreferredShare);
+                bool wantCavity = sup.PreferredCavities != null && sup.PreferredCavities.Length > 0 && rng.Chance(sup.CavityShare);
                 for (int attempt = 0; attempt < MaxAttemptsPerRock; attempt++)
                 {
                     ulong seed = rng.NextULong();
@@ -52,6 +53,10 @@ namespace GeodeEmpire.Economy
                     if (g.Tier != target) continue;
                     if (g.SizeClass != sizeTarget && attempt < MaxAttemptsPerRock - 200) continue;
                     if (wantPreferred && attempt < MaxAttemptsPerRock - 40 && System.Array.IndexOf(sup.PreferredMinerals, g.Mineral) < 0) continue;
+                    // a source's formations and shell character: a locality of thick-shelled coconuts, a specialist's thin pockets
+                    if (wantCavity && attempt < MaxAttemptsPerRock - 60 && System.Array.IndexOf(sup.PreferredCavities, g.Cavity) < 0) continue;
+                    if (sup.ShellBias > 1.05f && attempt < MaxAttemptsPerRock - 80 && g.ShellThickness < 0.18f) continue;
+                    if (sup.ShellBias < 0.95f && attempt < MaxAttemptsPerRock - 80 && g.ShellThickness > 0.22f) continue;
                     // keep crates varied: at most 3 of one family, and the curated first crate avoids repeats
                     int have = mineralCounts.GetValueOrDefault(g.Mineral);
                     int limit = state.CrateCounter == 1 ? 2 : 3;
@@ -73,6 +78,16 @@ namespace GeodeEmpire.Economy
                 rec.AcquisitionCost = Mathf.Round(sup.Price / Mathf.Max(1, count) * 100f) / 100f;
                 rec.OriginalMassKg = chosenGeo.MassKg;
                 GameState.Log(rec, "acquired", rec.AcquisitionCost, sup.Name + ", " + crate.Locality);
+                if (sup.PreDamage > 0.001f && rng.Chance(0.8f))
+                {
+                    // knocked about in transit: bruised shell, and an open crack or two the chisel can start from
+                    rec.ShellDamage = Mathf.Clamp01(sup.PreDamage * rng.Range(0.4f, 1f));
+                    rec.SectorStress = new float[SpecimenGenerator.SeamSectors];
+                    int cracks = rng.Range(1, 3);
+                    for (int c = 0; c < cracks; c++) rec.SectorStress[rng.Range(0, SpecimenGenerator.SeamSectors)] = rng.Range(0.45f, 0.75f);
+                    rec.Impacts.Add(new Vector4(rng.NextFloat(), rng.Range(-0.3f, 0.3f), chosenGeo.Size * 0.15f, 0.7f));
+                    GameState.Log(rec, "damaged", 0f, "chipped in transit");
+                }
                 crate.SpecimenIds.Add(rec.Id);
             }
             state.Crates.Add(crate);

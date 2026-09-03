@@ -96,7 +96,13 @@ namespace GeodeEmpire.Workshop
                 _labels[z] = tm;
             }
             var occ = z.First;
-            if (occ != null) tm.Text = occ.Record.DisplayName + "\n" + (occ.Record.Appraised ? AppraisalStation.ValueLabel(occ.Record) : "unappraised");
+            if (occ != null)
+            {
+                var r = occ.Record;
+                string line2 = r.Geology.Family.Name + (!string.IsNullOrEmpty(r.Locality) ? "  •  " + r.Locality : "");
+                string line3 = (r.Appraised ? AppraisalStation.ValueLabel(r) : "unappraised") + (r.OpenedAtTicks > 0 ? "  •  " + new System.DateTime(r.OpenedAtTicks).ToString("MMM yyyy") : "");
+                tm.Text = (r.Favorite ? "★ " : "") + r.DisplayName + "\n" + line2 + "\n" + line3;
+            }
             else tm.Text = "";
         }
     }

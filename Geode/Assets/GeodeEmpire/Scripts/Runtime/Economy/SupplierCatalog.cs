@@ -19,6 +19,15 @@ namespace GeodeEmpire.Economy
         public string UnlockHint;
         /// <summary>Named localities this source draws from; a crate picks one (seeded) and its rocks carry it.</summary>
         public string[] Localities = System.Array.Empty<string>();
+        /// <summary>Formation bias: the cavity types this source favours (and the share of the crate that follows it).</summary>
+        public CavityArchetype[] PreferredCavities;
+        public float CavityShare = 0.7f;
+        /// <summary>Shell character: thin-shelled (below 1) or thick-shelled (above 1) sources filter their rough by shell thickness.</summary>
+        public float ShellBias = 1f;
+        /// <summary>Chipped rough: rocks arrive with some shell chipping and a few crystals already broken, at a discount.</summary>
+        public float PreDamage;
+        /// <summary>An occasional lot: offered now and then (see SpecialLots), not always on the tablet.</summary>
+        public bool Occasional;
         public Color Accent;
         /// <summary>Mineral families this source favours (null = the quarry's natural mix).</summary>
         public MineralId[] PreferredMinerals;
@@ -46,6 +55,10 @@ namespace GeodeEmpire.Economy
         public const string CuttingRough = "cutting";
         public const string DesertPocket = "desert";
         public const string OversizedLot = "oversized";
+        public const string Network = "network";          // collector network: traded pieces from other collectors, odd and good
+        public const string Showcase = "showcase";        // locality showcase: one famous locality, its signature look
+        public const string Damaged = "damaged";          // damaged-but-promising: chipped rough at a discount
+        public const string Specialty = "specialty";      // late-game specialty source: the rare families, the deep tail
 
         public static readonly SupplierDefinition[] All =
         {
@@ -158,6 +171,67 @@ namespace GeodeEmpire.Economy
                 Clue = "Head-sized rough, caked, seams you can read from across the room.",
                 SizeWeights = new[] { 0f, 0f, 0.25f, 0.75f }, DirtScale = 1.1f,
             },
+            new SupplierDefinition
+            {
+                Id = Network, Name = "Collector Network Trade", Tagline = "Other collectors' rough, swapped through the club. Odd, and often good.",
+                Description = "Pieces traded between collectors who know what they are letting go of. Unusual families, a decent floor, and now and then a piece somebody should never have parted with.",
+                Price = 340f, MinRocks = 5, MaxRocks = 7, CountHidden = false,
+                TierWeights = new[] { 0.18f, 0.32f, 0.32f, 0.13f, 0.04f, 0.01f },
+                UnlockHint = "Unlocks once the showroom has served 25 customers and something has sold for $200 or more.", Accent = new Color(0.5f, 0.6f, 0.8f),
+                PreferredMinerals = new[] { MineralId.Fluorite, MineralId.Celestite, MineralId.Wulfenite, MineralId.Rhodochrosite, MineralId.Apophyllite, MineralId.Azurite, MineralId.Stibnite, MineralId.Chalcopyrite }, PreferredShare = 0.6f,
+                Character = "Traded rough from people who know: unusual families and a good floor, priced accordingly.",
+                Risk = "Medium. You pay for provenance; the upside is the piece somebody else misjudged.",
+                Minerals = "The unusual end: fluorite, celestite, wulfenite, rhodochrosite, apophyllite, azurite.",
+                Clue = "Mixed sizes, brushed clean, old collection numbers inked on the shells.",
+                SizeWeights = new[] { 0.2f, 0.5f, 0.25f, 0.05f }, DirtScale = 0.3f,
+                Localities = new[] { "Rockhound Club swap, Tucson", "a trade from Denver", "a Munich show lot", "the county club auction" },
+            },
+            new SupplierDefinition
+            {
+                Id = Showcase, Name = "Locality Showcase: Las Choyas", Tagline = "One famous locality, its own look, offered now and then.",
+                Description = "Coconut geodes from the Las Choyas beds: thick grey shells, tight round form, quartz and calcite interiors with the odd surprise. When a pallet comes through, it comes through once.",
+                Price = 215f, MinRocks = 7, MaxRocks = 8, CountHidden = false, Occasional = true,
+                TierWeights = new[] { 0.28f, 0.34f, 0.25f, 0.1f, 0.025f, 0.005f },
+                UnlockHint = "Offered now and then once the collection reaches prestige tier 2.", Accent = new Color(0.72f, 0.58f, 0.4f),
+                PreferredMinerals = new[] { MineralId.ClearQuartz, MineralId.Calcite, MineralId.Amethyst, MineralId.Celestite }, PreferredShare = 0.85f,
+                PreferredCavities = new[] { CavityArchetype.Hollow, CavityArchetype.ThickWall, CavityArchetype.Cathedral }, CavityShare = 0.85f, ShellBias = 1.25f,
+                Character = "One locality's signature: thick shells, round form, hollow interiors. Learn its tells and you can read the crate.",
+                Risk = "Medium. Consistent shells, variable interiors; the cathedral ones are the prize.",
+                Minerals = "Quartz and calcite, some amethyst and celestite.",
+                Clue = "Grey, round, heavy for their size, thick-shelled: they thud, and the seam is faint until washed.",
+                SizeWeights = new[] { 0.15f, 0.6f, 0.25f, 0f }, DirtScale = 0.7f,
+                Localities = new[] { "Las Choyas, Chihuahua" },
+            },
+            new SupplierDefinition
+            {
+                Id = Damaged, Name = "Damaged Rough Lot", Tagline = "Chipped in transit, sold cheap. What is under the chips is anyone's guess.",
+                Description = "A pallet that had a bad journey: shells chipped, a few crystals already broken where the rocks banged together. The dealer wants it gone. The rough underneath is the regular grade, sometimes better.",
+                Price = 120f, MinRocks = 8, MaxRocks = 10, CountHidden = false, Occasional = true, PreDamage = 0.35f,
+                TierWeights = new[] { 0.4f, 0.3f, 0.19f, 0.08f, 0.025f, 0.005f },
+                UnlockHint = "Offered now and then after the third crate.", Accent = new Color(0.6f, 0.5f, 0.45f),
+                Character = "Regular rough at a third of the price, already knocked about. Damage on the way in, not your fault.",
+                Risk = "Medium-low. The damage caps the value of the best pieces; the price makes up for it on the rest.",
+                Minerals = "The quarry's own mix.",
+                Clue = "Chipped shoulders, bruised rims, a few open cracks you can start from.",
+                SizeWeights = new[] { 0.3f, 0.5f, 0.2f, 0f }, DirtScale = 0.9f,
+                Localities = new[] { "a pallet dropped at the depot", "the freight claim lot" },
+            },
+            new SupplierDefinition
+            {
+                Id = Specialty, Name = "Specialty Mineral Source", Tagline = "The families that do not turn up anywhere else. Priced like it.",
+                Description = "A specialist who sources by family, not by weight: stibnite sprays, rhodochrosite, apophyllite, vanadinite. Expensive, thin-shelled, fragile, and where the deep tail of the rarity curve lives.",
+                Price = 400f, MinRocks = 5, MaxRocks = 6, CountHidden = false,
+                TierWeights = new[] { 0.12f, 0.27f, 0.4f, 0.15f, 0.048f, 0.012f },   // rare families, but exceptional stays a find, not a staple
+                UnlockHint = "Unlocks at prestige tier 4 with the Stage 2 workshop.", Accent = new Color(0.8f, 0.45f, 0.6f),
+                PreferredMinerals = new[] { MineralId.Stibnite, MineralId.Rhodochrosite, MineralId.Apophyllite, MineralId.Vanadinite, MineralId.Stilbite, MineralId.Wulfenite, MineralId.Halite }, PreferredShare = 0.9f,
+                PreferredCavities = new[] { CavityArchetype.Pocket, CavityArchetype.Hollow, CavityArchetype.DoubleChamber }, CavityShare = 0.6f, ShellBias = 0.8f,
+                Character = "Rare families, thin shells, the deepest tail in the game. Every rock wants the loupe first.",
+                Risk = "High cost, high ceiling, fragile: a heavy hand wastes a $600 crate.",
+                Minerals = "Stibnite, rhodochrosite, apophyllite, vanadinite, stilbite, wulfenite, halite.",
+                Clue = "Small, light, thin-shelled; metallic or pink flecks at the seam; never wash the halite.",
+                SizeWeights = new[] { 0.45f, 0.45f, 0.1f, 0f }, DirtScale = 0.4f,
+                Localities = new[] { "Xikuangshan", "Sweet Home Mine", "Poona basalts", "Mibladen", "Searles Lake" },
+            },
         };
 
         public static SupplierDefinition Get(string id)
@@ -179,6 +253,11 @@ namespace GeodeEmpire.Economy
             if (!state.HasSupplier(CuttingRough) && state.HasUpgrade(UpgradeCatalog.TrimSaw)) { state.UnlockedSuppliers.Add(CuttingRough); newly.Add(CuttingRough); }
             if (!state.HasSupplier(DesertPocket) && state.Prestige >= 2) { state.UnlockedSuppliers.Add(DesertPocket); newly.Add(DesertPocket); }
             if (!state.HasSupplier(OversizedLot) && state.WorkshopStage >= 2) { state.UnlockedSuppliers.Add(OversizedLot); newly.Add(OversizedLot); }
+            if (!state.HasSupplier(Network) && state.Stats.CustomersServed >= 25 && state.Stats.BiggestSale >= 200f) { state.UnlockedSuppliers.Add(Network); newly.Add(Network); }
+            if (!state.HasSupplier(Specialty) && state.Prestige >= 4 && state.WorkshopStage >= 2) { state.UnlockedSuppliers.Add(Specialty); newly.Add(Specialty); }
+            // occasional lots: unlocked (eligible) by milestone, offered by SpecialLots
+            if (!state.HasSupplier(Showcase) && state.Prestige >= 2) { state.UnlockedSuppliers.Add(Showcase); newly.Add(Showcase); }
+            if (!state.HasSupplier(Damaged) && state.Stats.CratesPurchased >= 3) { state.UnlockedSuppliers.Add(Damaged); newly.Add(Damaged); }
             return newly;
         }
 
