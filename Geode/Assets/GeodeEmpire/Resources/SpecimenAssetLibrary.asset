@@ -27,6 +27,10 @@ MonoBehaviour:
   - {fileID: 1929222265862084636, guid: 1a4e6341f8082439aabe001886c90d47, type: 3}
   - {fileID: -5286583178923619919, guid: 23cf4644990964123aebf20a517b0882, type: 3}
   - {fileID: 7636588085031167743, guid: 64ad56ae15858420580137f37ba9b5da, type: 3}
+  - {fileID: -2750506886247690179, guid: f6a60490f480d40839302d785ec22aed, type: 3}
+  - {fileID: 596258152704051514, guid: e1356fdeb7b2646648e6e55fb14ebe50, type: 3}
+  - {fileID: -5084419375310569956, guid: 41102d8e466ac4fd8b605ea84169073c, type: 3}
+  - {fileID: 8427290918600355219, guid: c934ed5f33578489f8feb4aa492173fb, type: 3}
   CrystalMaterial: {fileID: 2100000, guid: 85019ccd04437431695f56d48360a086, type: 2}
   ShellMaterial: {fileID: 2100000, guid: 8ddfac2f3221b4431af85f3c03a5183f, type: 2}
   CrackMaterial: {fileID: 2100000, guid: 7145000c2d78a4027ae8a5a93dda3898, type: 2}

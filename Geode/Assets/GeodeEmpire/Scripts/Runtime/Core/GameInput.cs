@@ -89,6 +89,7 @@ namespace GeodeEmpire.Core
         public static Vector2 Scroll => _ready ? _scroll.ReadValue<Vector2>() : Vector2.zero;
         public static bool SprintHeld => _ready && _sprint.IsPressed();
         public static bool InteractPressed => _ready && _interact.WasPressedThisFrame();
+        public static bool InteractHeld => _ready && _interact.IsPressed();
         public static bool StrikePressed => _ready && _strike.WasPressedThisFrame();
         public static bool StrikeHeld => _ready && _strike.IsPressed();
         public static bool StrikeReleased => _ready && _strike.WasReleasedThisFrame();

@@ -45,12 +45,27 @@ namespace GeodeEmpire.Specimens
             return Mathf.Clamp01(0.30f * scale + 0.18f * g.CrystalDensity + 0.27f * g.Saturation + 0.15f * g.Clarity + 0.10f * g.Symmetry);
         }
 
+        /// <summary>Reference display radius (m): a medium hollow geode's cavity.</summary>
+        public const float ReferenceDisplayRadius = 0.052f;
+
+        /// <summary>
+        /// The size a buyer sees: the cavity (crystal field) of a geode, the banded face of a nodule. A heavy
+        /// thick-walled rock with a fist-sized pocket is worth a fist-sized pocket, however much it weighs.
+        /// </summary>
+        public static float DisplayRadius(SpecimenGeology g)
+        {
+            float cav = g.Cavity == CavityArchetype.Nodule ? Mathf.Max(g.CavityFraction, 0.55f) : g.CavityFraction;
+            return g.Size * cav;
+        }
+
         public static float PristineValue(SpecimenGeology g)
         {
             var fam = g.Family;
-            float sizeMult = Mathf.Pow(Mathf.Max(0.05f, g.MassKg) / ReferenceMassKg, 0.6f);
+            float sizeMult = Mathf.Pow(Mathf.Max(0.01f, DisplayRadius(g)) / ReferenceDisplayRadius, 1.6f);
             float visual = VisualScore(g);
-            float value = 0.45f * fam.ValueMult * sizeMult * Mathf.Exp(visual * 6.2f) * FormationFactor(g.Cavity);
+            // quality now sets most of every visible axis, so the curve is steeper than V3's: an ordinary common
+            // is a few dollars, a world-class piece a thousand or more
+            float value = 0.7f * fam.ValueMult * sizeMult * Mathf.Exp(visual * 6.5f) * FormationFactor(g.Cavity);
             foreach (var t in g.Traits) value *= TraitMultiplier(t);
             if (g.HasSecondary) value *= 1f + 0.25f * g.SecondaryAmount;
             return Mathf.Round(value);

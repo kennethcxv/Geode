@@ -51,7 +51,7 @@ namespace GeodeEmpire.UI
 
         private void Update()
         {
-            if (_shop == null) return;
+            if (_shop == null || _card == null) return;
             bool rung = _register != null && _register.RungUp && _shop.AtCounter != null && _shop.AtCounter.Wanted != null;
             if (rung)
             {

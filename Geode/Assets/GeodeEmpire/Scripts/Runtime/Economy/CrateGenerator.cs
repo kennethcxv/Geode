@@ -12,7 +12,7 @@ namespace GeodeEmpire.Economy
     /// </summary>
     public static class CrateGenerator
     {
-        public const int MaxAttemptsPerRock = 400;
+        public const int MaxAttemptsPerRock = 1600;
 
         public static CrateRecord Generate(GameState state, SupplierDefinition sup, System.Func<ulong, string, string, SpecimenRecord> createRecord)
         {
@@ -30,9 +30,14 @@ namespace GeodeEmpire.Economy
             var targets = BuildTierTargets(state, sup, count, ref rng);
 
             var mineralCounts = new Dictionary<MineralId, int>();
+            var sizeWeights = sup.SizeWeights ?? SpecimenGenerator.NeutralSizeWeights;
             for (int i = 0; i < count; i++)
             {
                 var target = targets[i];
+                // the source's physical size mix, and the teaching crate keeps its first rock hand-sized
+                var sizeTarget = (SizeClass)rng.PickWeighted(sizeWeights);
+                // the teaching crate keeps its first rock and its good pieces hand-sized: a fist-sized cavity to learn on
+                if (state.CrateCounter == 1 && (i == 0 || target >= QualityTier.Good)) sizeTarget = SizeClass.Medium;
                 ulong chosen = 0;
                 SpecimenGeology chosenGeo = null;
                 // a focused source draws most of its rocks from its preferred families
@@ -42,6 +47,7 @@ namespace GeodeEmpire.Economy
                     ulong seed = rng.NextULong();
                     var g = SpecimenGenerator.Generate(seed);
                     if (g.Tier != target) continue;
+                    if (g.SizeClass != sizeTarget && attempt < MaxAttemptsPerRock - 200) continue;
                     if (wantPreferred && attempt < MaxAttemptsPerRock - 40 && System.Array.IndexOf(sup.PreferredMinerals, g.Mineral) < 0) continue;
                     // keep crates varied: at most 3 of one family, and the curated first crate avoids repeats
                     int have = mineralCounts.GetValueOrDefault(g.Mineral);
@@ -71,9 +77,9 @@ namespace GeodeEmpire.Economy
             var t = new QualityTier[count];
             if (state.CrateCounter == 1 && sup.Id == SupplierCatalog.Local)
             {
-                // teaching crate: mostly ordinary, one clearly nicer piece, a couple of decent ones
+                // teaching crate: mostly ordinary, two clearly nicer pieces, a few decent ones: it always funds the next crate
                 var script = new List<QualityTier> { QualityTier.Common, QualityTier.Common, QualityTier.Decent, QualityTier.Common, QualityTier.Good,
-                    QualityTier.Common, QualityTier.Decent, QualityTier.Common, QualityTier.Common, QualityTier.Decent };
+                    QualityTier.Common, QualityTier.Decent, QualityTier.Good, QualityTier.Common, QualityTier.Decent };
                 for (int i = 0; i < count; i++) t[i] = script[i % script.Count];
                 // shuffle the middle so the good one is not always in the same slot, but never first
                 for (int i = count - 1; i > 1; i--) { int j = rng.Range(1, i + 1); (t[i], t[j]) = (t[j], t[i]); }

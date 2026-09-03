@@ -57,6 +57,16 @@ namespace GeodeEmpire.Specimens
         private static readonly int SeamVisibleId = Shader.PropertyToID("_SeamVisible");
         private static readonly int SurfRId = Shader.PropertyToID("_SurfR");
         private static readonly int CrackFadeId = Shader.PropertyToID("_CrackFade");
+        private static readonly int TexFamilyId = Shader.PropertyToID("_TexFamily");
+        private static readonly int DirtId = Shader.PropertyToID("_Dirt");
+        private static readonly int StainId = Shader.PropertyToID("_Stain");
+        private static readonly int ChipId = Shader.PropertyToID("_Chip");
+
+        /// <summary>Clay still on the shell, 0..1: the geology's coating less whatever has been scrubbed off.</summary>
+        public float DirtRemaining => Geology != null && Condition != null ? Mathf.Clamp01(Geology.Dirt * (1f - Condition.Cleaned)) : 0f;
+
+        /// <summary>Re-apply condition-driven shell properties (after scrubbing).</summary>
+        public void RefreshCondition() { if (Geology != null) ApplyShellProperties(); }
 
         public const int CrackSectors = 16;
         public const int MaxImpacts = 32;
@@ -241,7 +251,9 @@ namespace GeodeEmpire.Specimens
                         // it falls inward, toward the cavity floor, so it can never poke through the shell
                         Vector3 lobe = Geology.LobeCenters != null && Geology.LobeCenters.Length > 0 ? Geology.LobeCenters[0] : Vector3.zero;
                         Vector3 inward = lobe - c.Position; if (inward.sqrMagnitude < 1e-6f) inward = c.Rotation * Vector3.up; inward.Normalize();
-                        Vector3 at = c.Position + inward * (c.Footprint * 1.5f + tipLen * 0.35f);
+                        // tipLen is in the archetype's unit space; the offset has to be in metres or the tip flies out of the rock
+                        float tipLenM = tipLen / data.Height * c.Height;
+                        Vector3 at = c.Position + inward * (c.Footprint * 1.5f + tipLenM * 0.35f);
                         var fm = Matrix4x4.TRS(at, lie, c.Scale * 0.8f);
                         var fnm = fm.inverse.transpose;
                         int fBase = verts.Count;
@@ -315,6 +327,12 @@ namespace GeodeEmpire.Specimens
             _mpb.SetFloat(SeamVisibleId, _seamVisible);
             _mpb.SetFloat(SurfRId, Geometry != null ? Geometry.MeanEquatorRadius : 0.06f);
             _mpb.SetFloat(CrackFadeId, _crackFade);
+            // exterior character: texture family, clay coating less what has been scrubbed off, staining, natural chip
+            _mpb.SetFloat(TexFamilyId, (int)g.Texture);
+            _mpb.SetFloat(DirtId, DirtRemaining);
+            _mpb.SetFloat(StainId, g.Stain);
+            float chipR = (Geometry != null ? Geometry.MeanEquatorRadius : 0.06f) * 0.2f;
+            _mpb.SetVector(ChipId, new Vector4(g.ChipLongitude, g.ChipLatitude, chipR, g.HasNaturalChip ? 1f : 0f));
             if (TopShellRenderer != null) TopShellRenderer.SetPropertyBlock(_mpb);
             if (BottomShellRenderer != null) BottomShellRenderer.SetPropertyBlock(_mpb);
         }
@@ -345,17 +363,27 @@ namespace GeodeEmpire.Specimens
                 var pal = secondary ? fam.Palettes[0] : Geology.Palette;
                 float sat = secondary ? 0.7f : Geology.Saturation;
                 float clarity = Geology.Clarity;
+                // the stats have to be visible at arm's length: a pale specimen reads milky and light, a saturated one
+                // carries its colour deep into the body; a cloudy one is matte and full of inclusions, a clear one
+                // is glassy. Metallic families keep their lustre and only shift brightness.
+                var baseCol = ApplySaturation(pal.SurfaceA, sat);
+                float luma = 0.299f * baseCol.r + 0.587f * baseCol.g + 0.114f * baseCol.b;
+                var milk = new Color(Mathf.Lerp(luma, 1f, 0.55f), Mathf.Lerp(luma, 1f, 0.55f), Mathf.Lerp(luma, 1f, 0.55f), 1f);
+                if (fam.Metallic < 0.5f) baseCol = Color.Lerp(baseCol, milk, (1f - sat) * 0.4f);
+                var deepCol = ApplySaturation(Color.Lerp(pal.DeepA, pal.DeepB, 0.5f + Geology.HueShift * 0.5f), sat);
+                deepCol = Color.Lerp(deepCol, baseCol, (1f - sat) * 0.45f) * Mathf.Lerp(1.12f, 0.82f, sat);
+                deepCol.a = 1f;
                 _mpb.Clear();
-                _mpb.SetColor(BaseColorId, ApplySaturation(pal.SurfaceA, sat));
-                _mpb.SetColor(DeepColorId, ApplySaturation(Color.Lerp(pal.DeepA, pal.DeepB, 0.5f + Geology.HueShift * 0.5f), sat));
+                _mpb.SetColor(BaseColorId, baseCol);
+                _mpb.SetColor(DeepColorId, deepCol);
                 _mpb.SetColor(ZoneColorId, ApplySaturation(pal.Zone, sat));
-                _mpb.SetFloat(SmoothnessId, fam.Smoothness);
+                _mpb.SetFloat(SmoothnessId, fam.Smoothness * Mathf.Lerp(0.86f, 1f, clarity));
                 _mpb.SetFloat(MetallicId, fam.Metallic);
-                _mpb.SetFloat(TranslucencyId, fam.Translucency * Mathf.Lerp(0.55f, 1.1f, clarity));
-                _mpb.SetFloat(RimStrengthId, fam.Rim);
-                _mpb.SetFloat(SparkleId, fam.Sparkle * Mathf.Lerp(0.6f, 1.3f, clarity));
-                _mpb.SetFloat(ZoningId, secondary ? fam.ZoningBase : Geology.Zoning);
-                _mpb.SetFloat(InclusionsId, fam.Inclusions * (1f - clarity * 0.8f));
+                _mpb.SetFloat(TranslucencyId, fam.Translucency * Mathf.Lerp(0.35f, 1.15f, clarity));
+                _mpb.SetFloat(RimStrengthId, fam.Rim * Mathf.Lerp(0.7f, 1.1f, clarity));
+                _mpb.SetFloat(SparkleId, fam.Sparkle * Mathf.Lerp(0.45f, 1.4f, clarity));
+                _mpb.SetFloat(ZoningId, secondary ? fam.ZoningBase : Geology.Zoning * Mathf.Lerp(0.6f, 1.1f, sat));
+                _mpb.SetFloat(InclusionsId, Mathf.Clamp01(fam.Inclusions * (1f - clarity * 0.9f) + (1f - clarity) * 0.25f));
                 _mpb.SetFloat(HighlightId, _highlight);
                 r.SetPropertyBlock(_mpb);
             }

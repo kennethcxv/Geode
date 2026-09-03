@@ -75,6 +75,8 @@ namespace GeodeEmpire.Player
             if (Held != null && (GameInput.InspectHeld || LoupeActive))
             {
                 if (!Inspecting) BeginInspect();
+                // tap it: a hollow shell rings, a solid nodule thuds. Knowledge, not an answer.
+                if (GameInput.StrikePressed && !Held.IsOpened) TapHeld();
                 Vector2 look = GameInput.Look;
                 float k = GameInput.UsingGamepad ? 180f * Time.deltaTime : 0.35f;
                 if (LoupeActive) k *= 0.6f;   // finer control under magnification
@@ -158,7 +160,38 @@ namespace GeodeEmpire.Player
             Controller.MovementEnabled = false;
             _inspectRot = Quaternion.identity;
             _inspectZoom = 0f;
+            _tapNote = "";
             InspectStarted?.Invoke(Held);
+        }
+
+        private string _tapNote = "";
+        private float _tapKick;
+
+        /// <summary>Knock on the shell: the sound (and a small nudge of the rock) tells hollow from solid, and big from small.</summary>
+        private void TapHeld()
+        {
+            var g = Held.Geology;
+            float hollow = Mathf.InverseLerp(0.15f, 0.85f, g.CavityFraction);
+            int bank = hollow < 0.33f ? 0 : hollow < 0.66f ? 1 : 2;
+            float pitch = Mathf.Lerp(1.25f, 0.75f, Mathf.InverseLerp(0.035f, 0.165f, g.Size));
+            GeodeEmpire.Audio.WorkshopAudio.Play("knock_" + bank, Held.transform.position, 0.8f, pitch);
+            Haptics.Pulse(0.15f, 0.05f, 0.05f);
+            _tapKick = 1f;
+            _tapNote = bank == 2 ? "Rings hollow" : bank == 1 ? "Dull ring: some cavity" : "Thuds solid";
+            GeodeEmpire.Workshop.Tutorial.Notify("tapped");
+            RefreshPrompt();
+        }
+
+        /// <summary>What the hands can tell about an unopened rock: size class, weight for its size, coating.</summary>
+        public static string HandReading(SpecimenEntity e)
+        {
+            var g = e.Geology;
+            float r = g.Size;
+            float solidMass = 4f / 3f * Mathf.PI * r * r * r * g.Axes.x * g.Axes.y * g.Axes.z * 2650f * g.Family.ShellToughness;
+            float ratio = g.MassKg / Mathf.Max(0.01f, solidMass);
+            string weight = ratio < 0.55f ? "light for its size" : ratio < 0.8f ? "average weight" : "heavy for its size";
+            string dirt = e.Visual != null && e.Visual.DirtRemaining > 0.35f ? "caked in clay" : e.Visual != null && e.Visual.DirtRemaining > 0.08f ? "dusty" : "clean";
+            return $"{SpecimenGeology.SizeWord(g.SizeClass)} rock, {weight}, {dirt}";
         }
 
         private void EndInspect()
@@ -184,9 +217,10 @@ namespace GeodeEmpire.Player
             string p = "", h = "";
             if (Inspecting)
             {
-                p = "";
+                p = Held != null && !Held.IsOpened ? HandReading(Held) + (string.IsNullOrEmpty(_tapNote) ? "" : "  •  " + _tapNote) : "";
                 h = LoupeActive ? $"{GameInput.Glyph("Look")} turn   {GameInput.Glyph("Loupe")} lower loupe"
                                 : $"{GameInput.Glyph("Look")} rotate   {GameInput.Glyph("Inspect")} release" + (LoupeTool.Owned ? $"   {GameInput.Glyph("Loupe")} loupe" : "");
+                if (Held != null && !Held.IsOpened) h += $"   {GameInput.Glyph("Strike")} tap";
             }
             else if (Target != null)
             {
@@ -227,6 +261,7 @@ namespace GeodeEmpire.Player
             e.Record.Location = SpecimenLocation.Held;
             _heldLerp = 0f;
             _inspectRot = Quaternion.identity;
+            if (Controller != null) Controller.CarryMassKg = e.Geology.MassKg;
             PickedUp?.Invoke(e);
             GeodeEmpire.Audio.WorkshopAudio.Play("rock_pickup", e.transform.position, 0.6f);
             GeodeEmpire.Workshop.Tutorial.Notify(e.IsOpened ? "specimen_picked" : "rock_picked");
@@ -240,6 +275,7 @@ namespace GeodeEmpire.Player
             var e = Held;
             Held = null;
             LoupeActive = false;
+            if (Controller != null) Controller.CarryMassKg = 0f;
             if (Inspecting) EndInspect();
             e.SetCollidersEnabled(true);
             RefreshPrompt();
@@ -251,6 +287,7 @@ namespace GeodeEmpire.Player
             var e = Held;
             Held = null;
             LoupeActive = false;
+            if (Controller != null) Controller.CarryMassKg = 0f;
             if (Inspecting) EndInspect();
             e.transform.SetParent(null, true);
             e.SetCollidersEnabled(true);
@@ -273,9 +310,12 @@ namespace GeodeEmpire.Player
             // under the loupe the piece comes up to the lens (just past it, so the magnified view is of the rock)
             Vector3 targetPos = anchor.position + (Inspecting ? anchor.forward * _inspectZoom : Vector3.zero);
             if (LoupeActive) targetPos += anchor.right * LoupeTool.HeldOffset.x + anchor.up * LoupeTool.HeldOffset.y + anchor.forward * LoupeTool.HeldOffset.z;
-            // keep large rocks from clipping the camera
+            // keep large rocks from clipping the camera; a heavy one is carried lower, against the body
             float pushBack = Mathf.Max(0f, Held.Radius - 0.06f) * (Inspecting ? 1.6f : 0.9f);
             targetPos += anchor.forward * pushBack;
+            if (!Inspecting) targetPos += anchor.up * (-Mathf.Max(0f, Held.Radius - 0.07f) * 0.6f);
+            _tapKick = Mathf.MoveTowards(_tapKick, 0f, dt * 8f);
+            if (_tapKick > 0f) targetPos += anchor.forward * (-0.006f * Mathf.Sin(_tapKick * Mathf.PI));
             float k = 1f - Mathf.Exp(-dt * 16f);
             Held.transform.position = Vector3.Lerp(Held.transform.position, targetPos, k * _heldLerp + (1f - _heldLerp) * 0.5f);
             Held.transform.rotation = Quaternion.Slerp(Held.transform.rotation, targetRot, k);

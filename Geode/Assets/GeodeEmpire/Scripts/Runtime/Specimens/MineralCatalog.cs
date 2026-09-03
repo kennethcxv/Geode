@@ -15,6 +15,7 @@ namespace GeodeEmpire.Specimens
         QuartzPoint = 0, QuartzStubby = 1, QuartzCluster = 2, Cube = 3, Octahedron = 4, Rhomb = 5,
         Dogtooth = 6, Nailhead = 7, Blade = 8, Needle = 9, Pyritohedron = 10, DruzyTile = 11,
         Botryoidal = 12, AragoniteSpray = 13,
+        TabularPlate = 14, Dodecahedron = 15, TrigonalPrism = 16, Fishtail = 17,
     }
 
     public enum PlacementStyle { Carpet, Clustered, Scattered, Embedded, Sprays, Banded }

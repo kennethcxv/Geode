@@ -238,6 +238,9 @@ namespace GeodeEmpire.Core
         public SpecimenRecord CreateSpecimenRecord(ulong seed, string supplierId, string crateId)
         {
             State.SpecimenCounter++;
+            // a dealer who scrubs the rough before shipping sends it part-cleaned; quarry crates arrive caked
+            var sup = Economy.SupplierCatalog.Get(supplierId);
+            float cleaned = sup != null ? Mathf.Clamp01(1f - sup.DirtScale) : 0f;
             var r = new SpecimenRecord
             {
                 Id = $"S{State.SpecimenCounter:D4}-{(seed & 0xFFFF):X4}",
@@ -245,7 +248,7 @@ namespace GeodeEmpire.Core
                 SupplierId = supplierId,
                 CrateId = crateId,
                 Location = SpecimenLocation.InCrate,
-                Condition = new SpecimenCondition(),
+                Condition = new SpecimenCondition { Cleaned = cleaned },
                 DiscoveredAtTicks = DateTime.UtcNow.Ticks,
             };
             State.Specimens.Add(r);

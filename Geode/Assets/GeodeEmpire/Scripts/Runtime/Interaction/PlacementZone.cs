@@ -8,7 +8,7 @@ using GeodeEmpire.Specimens;
 
 namespace GeodeEmpire.Interaction
 {
-    public enum ZoneKind { Cradle, SellTray, Scale, DisplaySlot, Shelf, SaleSlot, Counter }
+    public enum ZoneKind { Cradle, SellTray, Scale, DisplaySlot, Shelf, SaleSlot, Counter, Wash }
 
     /// <summary>
     /// A physical spot specimens can be placed into (and taken from). Trays hold several, slots hold one.
@@ -44,6 +44,7 @@ namespace GeodeEmpire.Interaction
             ZoneKind.Scale => SpecimenLocation.AppraisalStation,
             ZoneKind.DisplaySlot => SpecimenLocation.DisplaySlot,
             ZoneKind.SaleSlot => SpecimenLocation.SaleSlot,
+            ZoneKind.Wash => SpecimenLocation.WashTub,
             _ => SpecimenLocation.World,
         };
 
@@ -64,6 +65,7 @@ namespace GeodeEmpire.Interaction
             if (opened && !AcceptsOpened) return "Unopened rocks only";
             if (!opened && !AcceptsUnopened) return Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot ? "Crack it open first" : "Opened specimens only";
             if (Kind == ZoneKind.SaleSlot && !e.Record.Appraised) return "Appraise it first: the scale sets the price";
+            if (Kind == ZoneKind.Wash && e.Visual != null && e.Visual.DirtRemaining < 0.04f) return "Already clean";
             return null;
         }
 
@@ -71,7 +73,10 @@ namespace GeodeEmpire.Interaction
         {
             if (player.Held != null) return true;          // accepted, or a refusal the prompt explains
             if (Locked) return false;
-            return Occupants.Count > 0 && !Occupants[Occupants.Count - 1].Locked;
+            if (Occupants.Count == 0 || Occupants[Occupants.Count - 1].Locked) return false;
+            // a dirty rock in the tub is scrubbed, not taken: the tub itself carries that prompt
+            if (Kind == ZoneKind.Wash && Occupants[0].Visual != null && Occupants[0].Visual.DirtRemaining > 0.02f) return false;
+            return true;
         }
 
         public override string GetPrompt(PlayerInteractor player)
@@ -80,7 +85,7 @@ namespace GeodeEmpire.Interaction
             {
                 string why = RefusalReason(player.Held);
                 if (why != null) return why;
-                string verb = Kind == ZoneKind.Cradle ? "Set on" : Kind == ZoneKind.Scale ? "Weigh on" : Kind == ZoneKind.SaleSlot ? "Put up for sale on" : "Place in";
+                string verb = Kind == ZoneKind.Cradle ? "Set on" : Kind == ZoneKind.Scale ? "Weigh on" : Kind == ZoneKind.SaleSlot ? "Put up for sale on" : Kind == ZoneKind.Wash ? "Dunk in" : "Place in";
                 return $"{verb} {DisplayLabel}";
             }
             var top = Occupants.Count > 0 ? Occupants[Occupants.Count - 1] : null;

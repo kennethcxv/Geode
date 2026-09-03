@@ -581,6 +581,208 @@ def price_card(rng):
     return bm, False
 
 
+# ---------------------------------------------------------------------------
+# V4: lapidary saw bay, polishing lap, wash tub, storage, heavy tools
+# ---------------------------------------------------------------------------
+def arc_hood(bm, r_in, r_out, width, center, a0_deg, a1_deg, segments=14):
+    """A curved guard: an arc profile (in XZ) extruded along Y. Open at both ends."""
+    a0, a1 = math.radians(a0_deg), math.radians(a1_deg)
+    verts, faces = [], []
+    hw = width / 2
+    for i in range(segments + 1):
+        a = a0 + (a1 - a0) * i / segments
+        ca, sa = math.cos(a), math.sin(a)
+        for y in (-hw, hw):
+            verts.append((center[0] + r_in * ca, center[1] + y, center[2] + r_in * sa))
+            verts.append((center[0] + r_out * ca, center[1] + y, center[2] + r_out * sa))
+    # per ring: 0 in/-y, 1 out/-y, 2 in/+y, 3 out/+y
+    for i in range(segments):
+        b, n = i * 4, (i + 1) * 4
+        faces.append((b + 1, n + 1, n + 3, b + 3))   # outer skin
+        faces.append((b + 0, b + 2, n + 2, n + 0))   # inner skin
+        faces.append((b + 0, n + 0, n + 1, b + 1))   # -y side
+        faces.append((b + 2, b + 3, n + 3, n + 2))   # +y side
+    faces.append((0, 1, 3, 2))
+    e = segments * 4
+    faces.append((e + 0, e + 2, e + 3, e + 1))
+    lib.bm_append(bm, lib.bm_from_pydata(verts, faces))
+
+
+def saw_station(rng):
+    """Small slab/trim saw: steel cabinet, coolant tray (slot 1 water), arbor housing, hood, carriage rail, motor,
+    switch box and a splash guard (slot 1). The blade (prop_saw_blade) and vise (prop_saw_vise) are separate so they
+    move. Blade plane is XZ at x=0, axle at z=1.12, y=+0.05; the vise rides the rail on the +X side and feeds toward -X.
+    The operator stands at -Y. 1.1 x 0.64 x 0.88 cabinet, origin at base centre."""
+    bm = bmesh.new()
+    box(bm, (1.1, 0.64, 0.82), (0, 0, 0.41), bevel=0.012)                    # cabinet
+    box(bm, (0.5, 0.02, 0.5), (0, -0.31, 0.3))                               # front door panel line
+    cyl(bm, 0.012, 0.09, (0.22, -0.33, 0.35), segments=8, matrix=Matrix.Rotation(math.radians(90), 4, "X"))  # door handle
+    box(bm, (1.12, 0.66, 0.06), (0, 0, 0.85), bevel=0.006)                   # tray body
+    inner = lib.bm_box((1.0, 0.54, 0.05), (0, 0, 0.865))
+    for f in inner.faces:
+        f.material_index = 1                                                  # coolant surface
+    lib.bm_append(bm, inner)
+    box(bm, (0.2, 0.2, 0.34), (0.0, 0.14, 1.05), bevel=0.01)                  # arbor housing behind the blade
+    cyl(bm, 0.035, 0.12, (0.0, 0.03, 1.12), segments=12, matrix=Matrix.Rotation(math.radians(90), 4, "X"))    # arbor
+    arc_hood(bm, 0.14, 0.158, 0.05, (0.0, 0.05, 1.12), 10, 170)              # blade hood
+    box(bm, (0.04, 0.05, 0.16), (0.0, 0.05, 1.32))                            # hood bracket
+    box(bm, (0.9, 0.05, 0.03), (0.1, -0.16, 0.9))                             # carriage rail
+    box(bm, (0.9, 0.05, 0.03), (0.1, 0.16, 0.9))                              # second rail
+    box(bm, (0.34, 0.28, 0.26), (-0.36, 0.16, 1.01), bevel=0.012)             # motor
+    cyl(bm, 0.05, 0.06, (-0.36, -0.01, 1.01), segments=12, matrix=Matrix.Rotation(math.radians(90), 4, "X"))  # pulley
+    box(bm, (0.12, 0.06, 0.14), (-0.5, -0.31, 0.95), bevel=0.005)             # switch box
+    cyl(bm, 0.02, 0.02, (-0.5, -0.35, 0.98), segments=10, matrix=Matrix.Rotation(math.radians(90), 4, "X"))   # start button
+    guard = lib.bm_box((0.6, 0.008, 0.42), (0.0, 0.26, 1.09))
+    for f in guard.faces:
+        f.material_index = 1
+    lib.bm_append(bm, guard)
+    return bm, False
+
+
+def saw_blade(rng):
+    """Diamond blade, 250 mm, thin, with a hub. Origin at the axle so it spins about its own Y (Unity Z)."""
+    bm = bmesh.new()
+    disc = lib.bm_cylinder(0.125, 0.003, segments=48)
+    lib.bm_transform(disc, Matrix.Rotation(math.radians(90), 4, "X"))
+    lib.bm_append(bm, disc)
+    hub = lib.bm_cylinder(0.028, 0.022, segments=16)
+    lib.bm_transform(hub, Matrix.Rotation(math.radians(90), 4, "X"))
+    for f in hub.faces:
+        f.material_index = 1
+    lib.bm_append(bm, hub)
+    return bm, False
+
+
+def saw_vise(rng):
+    """Carriage vise: sled plate, fixed jaw at -Y with a rubber pad (slot 1), lead screw and a hand wheel at +Y.
+    The moving jaw is prop_saw_jaw. 0.26 (X) x 0.34 (Y) x 0.15 tall, origin at base centre."""
+    bm = bmesh.new()
+    box(bm, (0.26, 0.34, 0.02), (0, 0, 0.01), bevel=0.003)                    # sled
+    box(bm, (0.26, 0.05, 0.03), (0, -0.145, 0.035))                           # rail shoe
+    box(bm, (0.26, 0.05, 0.03), (0, 0.145, 0.035))
+    box(bm, (0.2, 0.024, 0.13), (0, -0.11, 0.085), bevel=0.003)               # fixed jaw
+    pad = lib.bm_box((0.18, 0.008, 0.11), (0, -0.094, 0.085))
+    for f in pad.faces:
+        f.material_index = 1
+    lib.bm_append(bm, pad)
+    box(bm, (0.06, 0.03, 0.14), (0, 0.155, 0.09), bevel=0.003)                # screw bracket
+    cyl(bm, 0.008, 0.26, (0, 0.06, 0.1), segments=10, matrix=Matrix.Rotation(math.radians(90), 4, "X"))   # lead screw
+    cyl(bm, 0.035, 0.012, (0, 0.2, 0.1), segments=14, matrix=Matrix.Rotation(math.radians(90), 4, "X"))   # hand wheel
+    return bm, False
+
+
+def saw_jaw(rng):
+    """Moving vise jaw with a rubber pad (slot 1) on its -Y face. Origin at base centre; slides along Y."""
+    bm = bmesh.new()
+    box(bm, (0.2, 0.024, 0.13), (0, 0.012, 0.085), bevel=0.003)
+    pad = lib.bm_box((0.18, 0.008, 0.11), (0, -0.004, 0.085))
+    for f in pad.faces:
+        f.material_index = 1
+    lib.bm_append(bm, pad)
+    box(bm, (0.08, 0.04, 0.02), (0, 0.02, 0.01))
+    return bm, False
+
+
+def polish_lap(rng):
+    """Flat lap machine: cabinet, splash ring around the platen well, drip bottle, switch. The platen is
+    prop_polish_disc. Platen centre at (0, 0, 0.78). 0.52 x 0.46 x 0.75, origin at base centre."""
+    bm = bmesh.new()
+    box(bm, (0.52, 0.46, 0.7), (0, 0, 0.35), bevel=0.01)
+    box(bm, (0.54, 0.48, 0.05), (0, 0, 0.725), bevel=0.006)
+    torus(bm, 0.19, 0.018, (0, 0, 0.77), seg_major=30, seg_minor=8)          # splash ring
+    cyl(bm, 0.16, 0.02, (0, 0, 0.755), segments=32)                            # platen well floor
+    cyl(bm, 0.03, 0.14, (-0.19, 0.16, 0.82), segments=10)                      # drip bottle
+    cyl(bm, 0.008, 0.08, (-0.15, 0.13, 0.86), segments=6, matrix=Matrix.Rotation(math.radians(-50), 4, "Y"))  # spout
+    box(bm, (0.1, 0.05, 0.1), (0.19, -0.2, 0.66), bevel=0.004)                # switch box
+    cyl(bm, 0.015, 0.02, (0.19, -0.23, 0.68), segments=10, matrix=Matrix.Rotation(math.radians(90), 4, "X"))
+    return bm, False
+
+
+def polish_disc(rng):
+    """Lap platen: steel disc with a felt/diamond pad on top (slot 1). Origin at base centre; spins about Z."""
+    bm = bmesh.new()
+    cyl(bm, 0.15, 0.016, (0, 0, 0.008), segments=36)
+    pad = lib.bm_cylinder(0.148, 0.006, segments=36, center=(0, 0, 0.019))
+    for f in pad.faces:
+        f.material_index = 1
+    lib.bm_append(bm, pad)
+    return bm, True
+
+
+def wash_tub(rng):
+    """Cleaning station: steel stand with a plastic tub of water (slot 1 water surface). Tub rim at 0.82.
+    0.64 x 0.5 x 0.82, origin at base centre."""
+    bm = bmesh.new()
+    for x in (-0.28, 0.28):
+        for y in (-0.2, 0.2):
+            box(bm, (0.035, 0.035, 0.58), (x, y, 0.29))
+    box(bm, (0.64, 0.5, 0.03), (0, 0, 0.595), bevel=0.004)
+    box(bm, (0.56, 0.44, 0.04), (0, 0, 0.14))                                 # lower shelf
+    tub = lib.bm_box((0.58, 0.44, 0.22), (0, 0, 0.72))
+    lib.bm_bevel(tub, 0.02, segments=2)
+    lib.bm_append(bm, tub)
+    water = lib.bm_box((0.5, 0.36, 0.01), (0, 0, 0.8))
+    for f in water.faces:
+        f.material_index = 1
+    lib.bm_append(bm, water)
+    box(bm, (0.5, 0.36, 0.005), (0, 0, 0.815), bevel=0.0)                      # tub lip inner rim
+    return bm, False
+
+
+def brush(rng):
+    """Scrub brush: wooden back (slot 0) and a bristle block (slot 1). Origin at base centre, bristles down."""
+    bm = bmesh.new()
+    back = lib.bm_box((0.16, 0.06, 0.028), (0, 0, 0.034))
+    lib.bm_bevel(back, 0.008, segments=2)
+    lib.bm_append(bm, back)
+    bristles = lib.bm_box((0.15, 0.052, 0.022), (0, 0, 0.011))
+    for f in bristles.faces:
+        f.material_index = 1
+    lib.bm_append(bm, bristles)
+    return bm, False
+
+
+def rock_rack(rng):
+    """Material storage rack: steel frame, three lipped shelves. 1.2 x 0.45 x 1.5, origin at base centre."""
+    bm = bmesh.new()
+    for x in (-0.58, 0.58):
+        for y in (-0.21, 0.21):
+            box(bm, (0.04, 0.04, 1.5), (x, y, 0.75))
+    for z in (0.12, 0.6, 1.08):
+        box(bm, (1.2, 0.45, 0.03), (0, 0, z), bevel=0.003)
+        box(bm, (1.2, 0.02, 0.06), (0, -0.215, z + 0.03))
+    box(bm, (1.2, 0.02, 0.5), (0, 0.215, 1.25))                               # back panel top
+    return bm, False
+
+
+def heavy_cradle(rng):
+    """Heavy cracking cradle for large rough: steel plate, three padded posts and a wide sandbag ring (slot 1).
+    Origin at base centre; ring inner radius ~0.12."""
+    bm = bmesh.new()
+    box(bm, (0.42, 0.42, 0.02), (0, 0, 0.01), bevel=0.004)
+    for i in range(3):
+        a = math.radians(90 + 120 * i)
+        cyl(bm, 0.02, 0.09, (0.17 * math.cos(a), 0.17 * math.sin(a), 0.065), segments=10)
+        cyl(bm, 0.03, 0.02, (0.17 * math.cos(a), 0.17 * math.sin(a), 0.12), segments=10, bevel=0.004)
+    ring = bmesh.new()
+    torus(ring, 0.15, 0.05, (0, 0, 0.055), squash=0.8)
+    for f in ring.faces:
+        f.material_index = 1
+    lib.bm_append(bm, ring)
+    return bm, True
+
+
+def wedge(rng):
+    """Splitting wedge: a hardened steel wedge, tip at the origin, 0.17 long up +Z, with a mushroomed head."""
+    bm = bmesh.new()
+    verts = [(-0.004, -0.02, 0.0), (0.004, -0.02, 0.0), (0.004, 0.02, 0.0), (-0.004, 0.02, 0.0),
+             (-0.017, -0.024, 0.13), (0.017, -0.024, 0.13), (0.017, 0.024, 0.13), (-0.017, 0.024, 0.13)]
+    faces = [(0, 3, 2, 1), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7)]
+    lib.bm_append(bm, lib.bm_from_pydata(verts, faces))
+    box(bm, (0.04, 0.052, 0.04), (0, 0, 0.15), bevel=0.006)
+    return bm, False
+
+
 CUSTOMER_PARTS = None
 
 
@@ -712,6 +914,17 @@ PROPS = [
     ("prop_wall_clock", wall_clock, 229),
     ("prop_broom", broom, 230),
     ("prop_sign_board", sign_board, 231),
+    ("prop_saw_station", saw_station, 241),
+    ("prop_saw_blade", saw_blade, 242),
+    ("prop_saw_vise", saw_vise, 243),
+    ("prop_saw_jaw", saw_jaw, 244),
+    ("prop_polish_lap", polish_lap, 245),
+    ("prop_polish_disc", polish_disc, 246),
+    ("prop_wash_tub", wash_tub, 247),
+    ("prop_brush", brush, 248),
+    ("prop_rock_rack", rock_rack, 249),
+    ("prop_heavy_cradle", heavy_cradle, 250),
+    ("prop_wedge", wedge, 251),
 ]
 
 
@@ -724,9 +937,9 @@ def build_all():
         bm, smooth = builder(rng)
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
         lib.bm_box_uv(bm, scale=UV_SCALE)
-        if name == "prop_pendant_lamp":
-            pass  # origin stays at the ceiling attachment point
-        elif name not in ("prop_chisel", "prop_chisel_fine", "prop_tablet", "prop_loupe", "prop_price_card"):
+        if name in ("prop_pendant_lamp", "prop_saw_blade"):
+            pass  # origin stays where built (ceiling attachment point / blade axle)
+        elif name not in ("prop_chisel", "prop_chisel_fine", "prop_tablet", "prop_loupe", "prop_price_card", "prop_wedge"):
             lib.bm_origin_to_base(bm, center_xy=(name not in ("prop_hammer",)))
         else:
             lib.bm_origin_to_base(bm, center_xy=True)

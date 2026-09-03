@@ -23,6 +23,9 @@ namespace GeodeEmpire.Player
         public float SpawnYaw;
         /// <summary>Lens used while working at a station: tighter than free roam so the rock fills the view.</summary>
         public float StationFov = 46f;
+        /// <summary>Mass in the player's hands: a big rock slows the walk and steadies the bob.</summary>
+        [System.NonSerialized] public float CarryMassKg;
+        public float CarryFactor => CarryMassKg <= 3f ? 1f : Mathf.Lerp(1f, 0.55f, Mathf.InverseLerp(3f, 22f, CarryMassKg));
 
         private CharacterController _cc;
         private float _yaw, _pitch;
@@ -135,7 +138,7 @@ namespace GeodeEmpire.Player
 
             Vector2 move = MovementEnabled && GameInput.GameplayEnabled ? GameInput.Move : Vector2.zero;
             if (move.sqrMagnitude > 1f) move.Normalize();
-            float speed = GameInput.SprintHeld ? SprintSpeed : WalkSpeed;
+            float speed = (GameInput.SprintHeld ? SprintSpeed : WalkSpeed) * CarryFactor;
             Vector3 wish = (transform.forward * move.y + transform.right * move.x) * speed;
             _velocity = Vector3.MoveTowards(_velocity, wish, Acceleration * dt);
 
@@ -153,7 +156,7 @@ namespace GeodeEmpire.Player
             {
                 _bobTime += dt * (4.5f + planar * 1.2f);
             }
-            float bobAmp = Mathf.Clamp01(planar / WalkSpeed) * 0.02f * bobScale;
+            float bobAmp = Mathf.Clamp01(planar / WalkSpeed) * 0.02f * bobScale * Mathf.Lerp(1f, 1.6f, 1f - CarryFactor);
             Vector3 bob = new Vector3(Mathf.Sin(_bobTime * 0.5f) * bobAmp * 0.5f, Mathf.Abs(Mathf.Sin(_bobTime)) * bobAmp, 0f);
             CameraPivot.localPosition = Vector3.Lerp(CameraPivot.localPosition, new Vector3(0f, 1.62f, 0f) + bob, 10f * dt);
         }

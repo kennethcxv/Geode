@@ -10,6 +10,8 @@ namespace GeodeEmpire.Save
         InCrate = 0, World = 1, Held = 2, Bench = 3, SellTray = 4, AppraisalStation = 5, DisplaySlot = 6, Sold = 7, Discarded = 8,
         /// <summary>On a retail sales fixture; customers may buy it. LocationIndex is the sale slot.</summary>
         SaleSlot = 9,
+        /// <summary>In the wash tub being scrubbed.</summary>
+        WashTub = 10,
     }
 
     /// <summary>Career state of one specimen. Geology is regenerated from Seed; nothing here rerolls it.</summary>

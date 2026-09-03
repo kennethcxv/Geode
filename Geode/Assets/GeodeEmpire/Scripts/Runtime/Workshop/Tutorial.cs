@@ -21,7 +21,8 @@ namespace GeodeEmpire.Workshop
         {
             new Step { Id = "order", Text = "This is your workshop. Money is tight. Order a crate of mystery rocks from the tablet on the side bench ({Tablet} opens it anywhere).", DoneBy = "crate_bought" },
             new Step { Id = "open", Text = "Your crate arrived on the pallet. Open it.", DoneBy = "crate_opened" },
-            new Step { Id = "pickup", Text = "Pick up a rock. Hold {Inspect} to turn it over; heavy rocks are usually solid, light ones hollow.", DoneBy = "rock_picked" },
+            new Step { Id = "pickup", Text = "Pick up a rock. Hold {Inspect} to turn it over and {Strike} to tap it: light rocks ring hollow, heavy ones thud solid.", DoneBy = "rock_picked" },
+            new Step { Id = "wash", Text = "Quarry rock comes caked in clay. Dunk it in the wash tub by the bench and hold {Interact} to scrub: a clean shell shows its seam and any mineral showing through.", DoneBy = "washed" },
             new Step { Id = "bench", Text = "Set the rock on the cradle at the cracking bench.", DoneBy = "rock_on_bench" },
             new Step { Id = "strike", Text = "Set the chisel on the seam that runs around the middle of the rock (it snaps on when you are close). Hold {Strike} to wind up, release to strike.", DoneBy = "first_strike" },
             new Step { Id = "open_rock", Text = "Each strike chips the shell where the chisel stood. Turn the rock with {Rotate} and work around the whole ring: a careful tap is safe, a heavy blow is fast but can break the crystals inside.", DoneBy = "rock_opened" },

@@ -64,6 +64,7 @@ namespace GeodeEmpire.EditorTools
             Lit("M_PlasterWarm", "T_Plaster", new Color(0.84f, 0.81f, 0.74f), 0.12f, 0f, 2f);
             Lit("M_Wainscot", "T_WoodDark", new Color(0.7f, 0.66f, 0.6f), 0.35f, 0f, 1f);
             var glass = Lit("M_Glass", null, new Color(0.7f, 0.85f, 0.95f, 0.18f), 0.95f, 0f, 1f);
+            SetTransparent(Lit("M_Water", null, new Color(0.4f, 0.58f, 0.66f, 0.6f), 0.96f, 0f, 1f));
             SetTransparent(glass);
             // loupe lens: magnifies the opaque scene behind it
             string lensPath = Folder + "/M_LoupeLens.mat";
@@ -622,11 +623,15 @@ namespace GeodeEmpire.EditorTools
             var lampProp = Prop("prop_task_lamp", bench, new Vector3(1.05f, 0.9f, 0.36f), 220f, "M_MetalDark", collider: false);
             var taskLight = MakeLight(bench, "TaskLight", new Vector3(0.62f, 1.32f, 0.05f), new Vector3(58f, -110f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 2.2f, 2.6f, 62f, true);   // neutral daylight lamp: crystal colour stays honest
             Prop("prop_pegboard", bench, new Vector3(0f, 1.35f, 0.5f), 0f, "M_Wood", collider: false);
-            Prop("prop_bucket", bench, new Vector3(-1.2f, 0f, -0.1f), 0f, "M_PlasticBlue");
             Prop("prop_stool", bench, new Vector3(0.95f, 0f, -0.75f), 25f, "M_WoodDark");
+            // the heavy cradle sits on the same spot, hidden until bought
+            var heavyCradle = Prop("prop_heavy_cradle", bench, new Vector3(0.25f, 0.9f, -0.05f), 0f, "M_MetalDark,M_Rubber", collider: true);
+            heavyCradle.SetActive(false);
             var cb = bench.gameObject.AddComponent<CrackingBench>();
             cb.Cradle = cradleZone;
             cb.CradleCenter = cradleAnchor;
+            cb.CradleVisual = cradleProp;
+            cb.HeavyCradleVisual = heavyCradle;
             cb.CameraAnchor = camAnchor;
             cb.ChiselVisual = chisel.transform;
             cb.ChiselLength = 0.17f;
@@ -634,6 +639,23 @@ namespace GeodeEmpire.EditorTools
             cb.HammerHeadHalf = 0.066f;
             cb.HammerVisual = hammer.transform;
             cb.TaskLight = taskLight;
+
+            // ---- Wash tub (west of the bench): scrub the quarry clay off before deciding how to open a rock ----
+            var wash = new GameObject("WashStation").transform;
+            wash.SetParent(parent, false);
+            wash.localPosition = new Vector3(-1.4f, 0f, 2.05f);
+            var tubProp = Prop("prop_wash_tub", wash, Vector3.zero, 0f, "M_PlasticBlue,M_Water", collider: true);
+            var tubZone = Zone(wash, "WashZone", new Vector3(0f, 0.74f, 0f), ZoneKind.Wash, "the wash tub", 1, false, true, new Vector3(0.46f, 0.26f, 0.34f));
+            tubZone.SetHighlightRenderers(tubProp.GetComponentsInChildren<Renderer>());
+            var tubAnchor = new GameObject("Anchor").transform;
+            tubAnchor.SetParent(tubZone.transform, false);
+            tubZone.Anchor = tubAnchor;
+            var brush = Prop("prop_brush", wash, new Vector3(0.21f, 0.83f, -0.14f), 25f, "M_WoodDark,M_Straw", collider: false);
+            var ws = tubProp.AddComponent<WashStation>();
+            ws.Tub = tubZone;
+            ws.Brush = brush.transform;
+            ws.SetHighlightRenderers(tubProp.GetComponentsInChildren<Renderer>());
+            Prop("prop_bucket", parent, new Vector3(-2.05f, 0f, 2.3f), 0f, "M_PlasticBlue");
 
             // ---- Appraisal bench (west wall) --------------------------------------------------
             var appraisal = new GameObject("AppraisalStation").transform;

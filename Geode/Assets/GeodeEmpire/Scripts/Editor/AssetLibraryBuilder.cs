@@ -17,6 +17,7 @@ namespace GeodeEmpire.EditorTools
             "crystal_quartz_point", "crystal_quartz_stubby", "crystal_quartz_cluster", "crystal_cube", "crystal_octahedron",
             "crystal_rhomb", "crystal_dogtooth", "crystal_nailhead", "crystal_blade", "crystal_needle", "crystal_pyritohedron",
             "crystal_druzy_tile", "crystal_botryoidal", "crystal_aragonite_spray",
+            "crystal_tabular_plate", "crystal_dodecahedron", "crystal_trigonal_prism", "crystal_fishtail",
         };
 
         [MenuItem("GeodeEmpire/Assets/Build Specimen Assets")]

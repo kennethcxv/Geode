@@ -115,7 +115,80 @@ namespace GeodeEmpire.Audio
             _bank["register_beep"] = Variants(1, i => Chime(1760f, 0.09f, seed: 240, noise: 0.05f));
             _bank["register"] = Variants(1, i => Register(seed: 250));
             _bank["loupe_down"] = Variants(1, i => Impact(0.08f, 700f, 0.3f, 0.05f, 0.5f, 6f, seed: 211));
+            // tapping a rock in the hand: a solid nodule thuds, a hollow shell rings (knock_0 solid .. knock_2 hollow)
+            _bank["knock_0"] = Variants(2, i => Knock(0f, seed: 260 + (ulong)i));
+            _bank["knock_1"] = Variants(2, i => Knock(0.5f, seed: 264 + (ulong)i));
+            _bank["knock_2"] = Variants(2, i => Knock(1f, seed: 268 + (ulong)i));
+            _bank["scrub"] = Variants(3, i => Scrub(0.32f + i * 0.04f, seed: 270 + (ulong)i));
+            _bank["splash"] = Variants(2, i => Splash(seed: 280 + (ulong)i));
             _bank["ambience"] = new[] { Ambience(seed: 300) };
+        }
+
+        /// <summary>Knuckle on stone. A hollow shell has a ringing body mode and a slow decay; a solid one is a dull, short thud.</summary>
+        private static float[] Knock(float hollow, ulong seed)
+        {
+            float duration = Mathf.Lerp(0.16f, 0.42f, hollow);
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float f1 = Mathf.Lerp(420f, 980f, hollow), f2 = f1 * Mathf.Lerp(1.9f, 2.4f, hollow);
+            float decay = Mathf.Lerp(38f, 9f, hollow);
+            float lp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.4f;
+                float click = lp * Mathf.Exp(-t * 120f) * 0.9f;
+                float body = Mathf.Sin(2f * Mathf.PI * f1 * t) * Mathf.Exp(-t * decay) * Mathf.Lerp(0.5f, 0.75f, hollow);
+                float ring = Mathf.Sin(2f * Mathf.PI * f2 * t) * Mathf.Exp(-t * decay * 1.6f) * 0.25f * hollow;
+                float thump = Mathf.Sin(2f * Mathf.PI * 110f * t) * Mathf.Exp(-t * 30f) * Mathf.Lerp(0.45f, 0.1f, hollow);
+                d[i] = Mathf.Clamp((click + body + ring + thump) * 0.8f, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>One stroke of a stiff brush over wet stone.</summary>
+        private static float[] Scrub(float duration, ulong seed)
+        {
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f, lp2 = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float x = t / duration;
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.45f;
+                lp2 += (lp - lp2) * 0.6f;
+                float env = Mathf.Pow(Mathf.Sin(x * Mathf.PI), 1.4f);
+                float bristles = rng.NextFloat() < 0.06f ? noise * 0.5f : 0f;
+                d[i] = Mathf.Clamp((lp2 * 1.6f + bristles) * env * 0.5f, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>A small splash and drip.</summary>
+        private static float[] Splash(ulong seed)
+        {
+            float duration = 0.5f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.2f;
+                float burst = lp * Mathf.Exp(-t * 14f) * 1.4f;
+                float drips = 0f;
+                if (t > 0.12f && rng.NextFloat() < 0.0025f) drips = 0.7f;
+                float dripTone = drips * Mathf.Sin(2f * Mathf.PI * rng.Range(1200f, 2400f) * t);
+                d[i] = Mathf.Clamp((burst + dripTone) * 0.6f, -1f, 1f);
+            }
+            return d;
         }
 
         private static AudioClip[] Variants(int n, System.Func<int, float[]> gen)

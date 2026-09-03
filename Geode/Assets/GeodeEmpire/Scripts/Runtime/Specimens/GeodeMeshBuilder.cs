@@ -164,7 +164,13 @@ namespace GeodeEmpire.Specimens
                 }
                 float wall = _wall.Fbm(d * 2.5f + _off3, 2) * _wallAmp * 1.6f;
                 float rIn = best * (1f + wall);
-                float maxIn = outerR * (1f - _g.ShellThickness);
+                // the shell is thicker in some sectors than others: the cut face shows it, and the hammer feels it
+                float lon = Mathf.Atan2(d.z, d.x); if (lon < 0f) lon += Mathf.PI * 2f;
+                float sectorF = lon / (Mathf.PI * 2f) * SpecimenGenerator.SeamSectors;
+                int s0 = Mathf.FloorToInt(sectorF) % SpecimenGenerator.SeamSectors, s1 = (s0 + 1) % SpecimenGenerator.SeamSectors;
+                float tf = sectorF - Mathf.Floor(sectorF);
+                float thick = Mathf.Lerp(_g.SectorThicknessAt(s0), _g.SectorThicknessAt(s1), tf);
+                float maxIn = outerR * (1f - _g.ShellThickness * thick);
                 if (rIn > maxIn) rIn = maxIn;
                 float minIn = 0.05f * outerR;
                 if (rIn < minIn) rIn = minIn;

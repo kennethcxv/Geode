@@ -347,6 +347,77 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        /// <summary>V4: take a caked rock from a crate, dunk it, scrub it clean holding the button, then tap-test it in the hand.</summary>
+        public void RunWashRock() { if (!Running) StartCoroutine(WashRock()); }
+
+        private IEnumerator WashRock()
+        {
+            Running = true;
+            Phase = "wash";
+            L($"== WashRock cash={S.State.Cash}");
+            if (S.Crates.Count == 0) { S.BuyCrate("local", out string err); L("buy: " + (err ?? "ok")); yield return new WaitForSeconds(1.4f); }
+            CrateEntity crate = null;
+            foreach (var c in S.Crates.Values) if (!c.IsOpened || c.RemainingRocks > 0) { crate = c; break; }
+            if (crate == null) { L("no crate"); Running = false; yield break; }
+            if (!crate.IsOpened)
+            {
+                Vector3 cratePos = crate.transform.position;
+                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
+                yield return D.WalkTo(stand, 0.3f);
+                yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
+                yield return new WaitForSeconds(0.9f);
+            }
+            // the dirtiest rock in the crate
+            SpecimenEntity rock = null; float dirtiest = -1f;
+            foreach (var e in S.Entities.Values) if (!e.IsOpened && e.Record.Location == SpecimenLocation.InCrate && e.Visual.DirtRemaining > dirtiest) { dirtiest = e.Visual.DirtRemaining; rock = e; }
+            if (rock == null) { L("no rock"); Running = false; yield break; }
+            L($"rock {rock.Id} {rock.Geology.Mineral} size={rock.Geology.SizeClass} tex={rock.Geology.Texture} dirt={rock.Visual.DirtRemaining:F2} stain={rock.Geology.Stain:F2} chip={rock.Geology.HasNaturalChip} seamQ={rock.Geology.SeamQuality:F2} mass={rock.Geology.MassKg:F1}");
+            yield return FetchRock(rock);
+            if (P.Held == null) { L("could not pick up the rock"); Running = false; yield break; }
+            if (P.Held != rock) { rock = P.Held; L($"picked a neighbour instead: {rock.Id} dirt={rock.Visual.DirtRemaining:F2}"); }
+            // tap it in the hand
+            D.SetMouseButton(1, true);
+            yield return new WaitForSeconds(0.4f);
+            yield return D.ClickHold(0, 0.08f);
+            yield return new WaitForSeconds(0.3f);
+            L($"inspect prompt='{P.Prompt}' hint='{P.Hint}'");
+            Snap("hand_dirty");
+            D.SetMouseButton(1, false);
+            yield return new WaitForSeconds(0.3f);
+            Vector3 tub = ZonePos(ZoneKind.Wash);
+            yield return RouteTo(new Vector3(tub.x, 0f, tub.z - 0.9f), 0.25f);
+            yield return LookAndInteract(tub, "Dunk in");
+            yield return new WaitForSeconds(0.5f);
+            L($"in tub: loc={rock.Record.Location} held={(P.Held != null)}");
+            Snap("tub_before");
+            var ws = Find<WashStation>();
+            D.LookAt(tub + Vector3.up * 0.05f);
+            yield return new WaitForSeconds(0.3f);
+            L($"tub prompt='{P.Prompt}'");
+            D.KeyDown(Key.E);
+            float t0 = Time.time;
+            while (rock.Visual.DirtRemaining > 0.02f && Time.time - t0 < 8f)
+            {
+                if (Time.time - t0 > 1.5f && Time.time - t0 < 1.6f) Snap("tub_scrubbing");
+                yield return null;
+            }
+            D.KeyUp();
+            L($"scrubbed in {Time.time - t0:F1}s: dirt={rock.Visual.DirtRemaining:F2} cleaned={rock.Record.Condition.Cleaned:F2} scrubbing={ws.Scrubbing}");
+            yield return new WaitForSeconds(0.4f);
+            Snap("tub_after");
+            yield return LookAndInteract(tub, "Take");
+            L($"held after wash={(P.Held != null ? P.Held.Id : "none")} loc={rock.Record.Location}");
+            D.SetMouseButton(1, true);
+            yield return new WaitForSeconds(0.5f);
+            L($"inspect clean prompt='{P.Prompt}'");
+            Snap("hand_clean");
+            D.SetMouseButton(1, false);
+            yield return new WaitForSeconds(0.2f);
+            L(Core.CollisionAudit.Report("wash end"));
+            Phase = "done";
+            Running = false;
+        }
+
         /// <summary>Run C step: take the nicest opened specimen we can find to display slot 0 and verify it stuck.</summary>
         public void RunDisplayKeep() { if (!Running) StartCoroutine(DisplayKeep()); }
 
@@ -566,8 +637,12 @@ namespace GeodeEmpire.Core
                 r.Condition.Opened = true;
                 r.Appraised = true;
                 r.AppraisedValue = Valuation.DamagedValue(r.Geology, 0f, 0f);
-                var pos = new Vector3(-0.2f + (i % 3) * 0.45f, 0.12f, -1.2f + (i / 3) * 0.5f);
-                S.Spawn(r, pos, Quaternion.identity, true);
+                // open floor in the middle of the workshop, clear of the pallets, the outbox and the benches
+                var pos = new Vector3(-1.5f + (i % 3) * 0.5f, 0.12f, -0.55f + (i / 3) * 0.55f);
+                var e = S.Spawn(r, pos, Quaternion.identity, false);
+                pos.y = e.RestHeightOffset(false) + 0.004f;   // resting on the floor, whatever its size
+                e.SetPose(pos, Quaternion.identity);
+                e.SetPhysics(true);
                 n++;
             }
             if (cash > 0f) S.AddCash(cash, "test");

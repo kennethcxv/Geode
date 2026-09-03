@@ -143,8 +143,11 @@ namespace GeodeEmpire.UI
             }
             // the hint only changes with state, never per frame: build the string when the state does
             int state;
-            if (_bench.LastResult.Slipped && _flash > 0.5f) state = 5;
+            if (_bench.LastResult.Slipped && _flash > 0.5f) state = _bench.LastResult.Wobbled ? 10 : 5;
+            else if (_bench.LastResult.SurfaceChip && _flash > 0.5f) state = 8;
+            else if (_bench.LastResult.Lucky && _flash > 0.5f) state = 9;
             else if (_bench.LastResult.Overstrike && _flash > 0.5f) state = 6;
+            else if (_bench.Model != null && _bench.Model.Unstable && _flash > 0.5f && _bench.LastResult.Wobbled) state = 10;
             else if (!_bench.AimValid) state = 1;
             else if (_bench.Charge >= CrackingBench.ForceFirm) state = 2;
             else if (_bench.Charge > 0.02f) state = 3;
@@ -161,6 +164,9 @@ namespace GeodeEmpire.UI
                     5 => "Slipped! Aim squarely at the shell.",
                     6 => "That segment is already cracked. Work around the ring.",
                     7 => $"Off the seam: the shell only splits along its natural ring  •  {GameInput.Glyph("Rotate")} rotate",
+                    8 => "The chisel skated and took a flake off. Set it squarely and strike again.",
+                    9 => "The crack ran along a weak line: that segment gave more than the blow deserved.",
+                    10 => "Too big for this cradle: it rocks under every blow. A heavy cradle would hold it.",
                     _ => $"Hold {GameInput.Glyph("Strike")} to wind up  •  {GameInput.Glyph("Rotate")} rotate  •  {GameInput.Glyph("Back")} leave",
                 };
             }

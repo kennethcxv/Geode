@@ -201,6 +201,76 @@ def calcite_nailhead(rng):
     return quartz_point(rng, radius=0.3, prism_h=0.4, term_h=0.18, ditrigonal=0.05, term_alt=0.09, jitter_deg=3)
 
 
+def tabular_plate(rng, width=0.9, thick=0.12, height=0.9, chamfer=0.12):
+    """Wulfenite: a thin square tabular crystal standing on one edge, bevelled square outline."""
+    hw, ht = width / 2, thick / 2
+    c = chamfer
+    verts = []
+    # outline of the square face in the XZ plane (Y is the thin axis), corners chamfered
+    outline = [(-hw + c, 0.0), (hw - c, 0.0), (hw, c), (hw, height - c), (hw - c, height), (-hw + c, height), (-hw, height - c), (-hw, c)]
+    for y in (-ht, ht):
+        for (x, z) in outline:
+            verts.append((x, y, z))
+    n = len(outline)
+    faces = [tuple(range(n))[::-1], tuple(range(n, 2 * n))]
+    for i in range(n):
+        j = (i + 1) % n
+        faces.append((i, j, n + j, n + i))
+    bm = lib.bm_from_pydata(verts, faces)
+    # slight pyramidal doming of the two flat faces so they catch light as facets
+    for v in bm.verts:
+        d = 1.0 - min(1.0, (abs(v.co.x) / hw) * 0.5 + (abs(v.co.z - height / 2) / (height / 2)) * 0.5)
+        v.co.y += math.copysign(ht * 0.35 * d, v.co.y)
+    return bm
+
+
+def dodecahedron(rng, size=0.5):
+    """Garnet: rhombic dodecahedron (12 rhombic faces), resting on one face."""
+    pts = []
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            for sz in (-1, 1):
+                pts.append((sx, sy, sz))
+    for s in (-2, 2):
+        pts.append((s, 0, 0)); pts.append((0, s, 0)); pts.append((0, 0, s))
+    k = size / 2.0
+    pts = [(p[0] * k * rng.uniform(0.97, 1.03), p[1] * k * rng.uniform(0.97, 1.03), p[2] * k) for p in pts]
+    bm = lib.bm_convex_hull(pts)
+    bm.faces.ensure_lookup_table()
+    lib.bm_orient_face_down(bm, bm.faces[0])
+    return bm
+
+
+def trigonal_prism(rng, radius=0.14, height=1.0, sides=12, bulge=0.22, term=0.08):
+    """Tourmaline: a striated prism with a rounded-triangular section and a flat, slightly pyramidal termination."""
+    verts = []
+    for i in range(sides):
+        a = 2 * math.pi * i / sides
+        r = radius * (1.0 + bulge * math.cos(3 * a)) * (1.0 + 0.06 * (i % 2))   # striation ridges
+        verts.append((r * math.cos(a), r * math.sin(a), 0.0))
+    for i in range(sides):
+        a = 2 * math.pi * i / sides
+        r = radius * (1.0 + bulge * math.cos(3 * a)) * (1.0 + 0.06 * (i % 2))
+        verts.append((r * math.cos(a), r * math.sin(a), height - term))
+    verts.append((0.0, 0.0, height))
+    faces = [tuple(reversed(range(sides)))]
+    for i in range(sides):
+        j = (i + 1) % sides
+        faces.append((i, j, sides + j, sides + i))
+        faces.append((sides + i, sides + j, 2 * sides))
+    return lib.bm_from_pydata(verts, faces)
+
+
+def fishtail(rng):
+    """Selenite: a swallowtail twin, two blades leaning apart from a shared base."""
+    bm = lib.bm_cylinder(0.16, 0.03, segments=8)
+    for sgn in (-1, 1):
+        b = blade(rng, width=0.3, thick=0.08, body_h=0.8, tip_h=1.0)
+        m = Matrix.Translation((sgn * 0.05, 0.0, 0.02)) @ Matrix.Rotation(math.radians(sgn * 22), 4, "Y")
+        lib.bm_append(bm, b, m)
+    return bm
+
+
 ARCHETYPES = [
     # (name, builder, bevel width, seed, smooth)
     ("crystal_quartz_point", quartz_point, 0.012, 101, False),
@@ -217,6 +287,10 @@ ARCHETYPES = [
     ("crystal_druzy_tile", druzy_tile, 0.0, 112, False),
     ("crystal_botryoidal", botryoidal, 0.0, 113, True),
     ("crystal_aragonite_spray", aragonite_spray, 0.0, 114, False),
+    ("crystal_tabular_plate", tabular_plate, 0.01, 115, False),
+    ("crystal_dodecahedron", dodecahedron, 0.012, 116, False),
+    ("crystal_trigonal_prism", trigonal_prism, 0.006, 117, False),
+    ("crystal_fishtail", fishtail, 0.006, 118, False),
 ]
 
 
@@ -233,7 +307,7 @@ def build_all():
         lib.bm_origin_to_base(bm)
         # compound tiles are intentionally overlapping (non-manifold) - skip that check for them
         lib.validate_bmesh(TAG, name, bm, require_manifold=name not in (
-            "crystal_druzy_tile", "crystal_botryoidal", "crystal_aragonite_spray", "crystal_quartz_cluster"))
+            "crystal_druzy_tile", "crystal_botryoidal", "crystal_aragonite_spray", "crystal_quartz_cluster", "crystal_fishtail"))
         obj = lib.object_from_bmesh(name, bm, smooth=smooth)
         lib.apply_transforms(obj)
         mesh = obj.data

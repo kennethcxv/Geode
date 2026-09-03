@@ -23,6 +23,8 @@ namespace GeodeEmpire.Economy
         public const string CalibratedScale = "calibrated_scale";
         public const string Loupe = "loupe";
         public const string SalesTable = "sales_table";
+        public const string HeavyCradle = "heavy_cradle";
+        public const string Wedge = "wedge";
 
         public static readonly UpgradeDefinition[] All =
         {
@@ -47,6 +49,12 @@ namespace GeodeEmpire.Economy
             new UpgradeDefinition { Id = SalesTable, Name = "Showroom Island Table", Price = 160f, Order = 3,
                 Description = "A felt-topped island table in the middle of the shop.",
                 Effect = "Four more sales slots (6 → 10), where browsing customers see them first." },
+            new UpgradeDefinition { Id = Wedge, Name = "Splitting Wedge & Lump Hammer", Price = 130f, Order = 2,
+                Description = "A hardened wedge and a heavier hammer for big rough.",
+                Effect = "Drives a far stronger crack into large and oversized rocks. Too much for thin shells: it goes straight through into the crystals." },
+            new UpgradeDefinition { Id = HeavyCradle, Name = "Heavy Cradle", Price = 240f, Order = 2,
+                Description = "A wide sandbag ring on a steel plate with three padded posts.",
+                Effect = "Oversized rough sits dead still instead of rocking under every blow: no more skidded strikes, full force into the seam." },
         };
 
         public static UpgradeDefinition Get(string id)

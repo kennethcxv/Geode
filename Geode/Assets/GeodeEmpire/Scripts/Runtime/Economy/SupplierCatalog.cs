@@ -24,6 +24,12 @@ namespace GeodeEmpire.Economy
         public float PreferredShare;
         /// <summary>Plain-language expectations shown on the tablet: character, risk, likely minerals, exterior clue.</summary>
         public string Character, Risk, Minerals, Clue;
+        /// <summary>Physical size mix of the rough (Small, Medium, Large, Oversized); null = the quarry's natural mix.</summary>
+        public float[] SizeWeights;
+        /// <summary>Multiplier on the clay coating the rough arrives with (a dealer who pre-cleans ships at 0.2).</summary>
+        public float DirtScale = 1f;
+        /// <summary>Whether the rough already arrives scrubbed and inspectable.</summary>
+        public bool Prepared => DirtScale < 0.35f;
 
         public string RockCountLabel => CountHidden ? "6–12 rocks (unsorted)" : MinRocks == MaxRocks ? $"{MinRocks} rocks" : $"{MinRocks}–{MaxRocks} rocks";
     }
@@ -48,7 +54,8 @@ namespace GeodeEmpire.Economy
                 Character = "Broad common material with a low floor. Volume for the outbox and hammer practice.",
                 Risk = "Cheap gamble: most of the crate is ordinary, one piece now and then is not.",
                 Minerals = "Quartz, agate and calcite mostly; anything can turn up.",
-                Clue = "Mixed sizes, dusty exteriors, few surface hints.",
+                Clue = "Small and medium rough, caked in quarry clay. Few surface hints until it is washed.",
+                SizeWeights = new[] { 0.42f, 0.5f, 0.08f, 0f }, DirtScale = 1.15f,
             },
             new SupplierDefinition
             {
@@ -60,7 +67,8 @@ namespace GeodeEmpire.Economy
                 Character = "Pre-sorted by weight and sound: a reliable floor, steady value, no miracles.",
                 Risk = "Low. The duds and the jackpots were both skimmed off before you saw the crate.",
                 Minerals = "The full range, weighted toward hollow quartz-family geodes.",
-                Clue = "Uniform sizes, clean exteriors; the dealer's chalk marks the heavier ones.",
+                Clue = "Consistent medium rough, lightly brushed; the dealer's chalk marks the heavier ones.",
+                SizeWeights = new[] { 0.1f, 0.78f, 0.12f, 0f }, DirtScale = 0.6f,
             },
             new SupplierDefinition
             {
@@ -73,7 +81,8 @@ namespace GeodeEmpire.Economy
                 Character = "Little variety, strong colour odds: this is where the cathedrals come from.",
                 Risk = "Medium. A pale lot is disappointing; a saturated one pays for the next three crates.",
                 Minerals = "Amethyst, with a little clear quartz and calcite from the same seams.",
-                Clue = "Round, heavy, purple staining in the pits of the shell.",
+                Clue = "Round, heavy medium and large rough; purple staining in the pits once the clay is off.",
+                SizeWeights = new[] { 0.1f, 0.55f, 0.3f, 0.05f }, DirtScale = 0.9f,
             },
             new SupplierDefinition
             {
@@ -86,7 +95,8 @@ namespace GeodeEmpire.Economy
                 Character = "Somebody's unsorted collection. Odd families, odd combinations, unknown count.",
                 Risk = "High. Half a box of gravel is normal; so is the best piece of your month.",
                 Minerals = "Skews to the unusual: celestite, fluorite, pyrite, aragonite, smoky quartz.",
-                Clue = "Old labels, mixed matrix colours, some already chipped.",
+                Clue = "Every size from a fist to a head; old labels, mixed matrix colours, some already chipped.",
+                SizeWeights = new[] { 0.3f, 0.35f, 0.25f, 0.1f }, DirtScale = 0.8f,
             },
             new SupplierDefinition
             {
@@ -98,7 +108,8 @@ namespace GeodeEmpire.Economy
                 Character = "Display-grade material with a high floor. Beautiful, expensive, rarely the biggest upside.",
                 Risk = "Low on junk, capped on jackpots. You pay for certainty.",
                 Minerals = "Whatever is showing best that month: saturated quartz family, fluorite, celestite.",
-                Clue = "Numbered, wrapped, pre-inspected. The dealer already knows what you are getting.",
+                Clue = "Numbered, wrapped, scrubbed clean and pre-inspected: medium and large rough you can read in the hand.",
+                SizeWeights = new[] { 0f, 0.55f, 0.4f, 0.05f }, DirtScale = 0.15f,
             },
         };
 

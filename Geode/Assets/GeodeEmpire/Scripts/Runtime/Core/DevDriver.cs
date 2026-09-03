@@ -74,10 +74,15 @@ namespace GeodeEmpire.Core
             Busy = false;
         }
 
+        private bool _leftDown, _rightDown;
+
+        /// <summary>Press or release one button without releasing the other (a tap while inspecting keeps the inspect button held).</summary>
         public void SetMouseButton(int button, bool down)
         {
+            if (button == 0) _leftDown = down; else _rightDown = down;
             var st = new MouseState();
-            st = st.WithButton(button == 0 ? MouseButton.Left : MouseButton.Right, down);
+            st = st.WithButton(MouseButton.Left, _leftDown);
+            st = st.WithButton(MouseButton.Right, _rightDown);
             InputSystem.QueueStateEvent(_mouse, st);
         }
 

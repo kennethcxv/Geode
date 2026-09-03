@@ -13,7 +13,7 @@ namespace GeodeEmpire.Specimens
     {
         public const string ResourcePath = "SpecimenAssetLibrary";
 
-        public Mesh[] CrystalMeshes = new Mesh[14];
+        public Mesh[] CrystalMeshes = new Mesh[18];
         public Material CrystalMaterial;
         public Material ShellMaterial;
         public Material CrackMaterial;

@@ -28,6 +28,26 @@ namespace GeodeEmpire.Cracking
         public Transform ChiselVisual;
         public Transform HammerVisual;
         public Light TaskLight;
+        /// <summary>The basic sandbag ring and the heavy cradle that replaces it once bought.</summary>
+        public GameObject CradleVisual, HeavyCradleVisual;
+        public float CradleAnchorHeight = 0.055f, HeavyCradleAnchorHeight = 0.075f;
+
+        public bool HasHeavyCradle => GameSession.Instance != null && GameSession.Instance.State != null && UpgradeCatalog.Has(GameSession.Instance.State, UpgradeCatalog.HeavyCradle);
+
+        /// <summary>Show whichever cradle the career owns; the rock on it is re-seated at the right height.</summary>
+        public void RefreshCradle()
+        {
+            bool heavy = HasHeavyCradle;
+            if (CradleVisual != null) CradleVisual.SetActive(!heavy);
+            if (HeavyCradleVisual != null) HeavyCradleVisual.SetActive(heavy);
+            if (CradleCenter != null)
+            {
+                var p = CradleCenter.localPosition; p.y = heavy ? HeavyCradleAnchorHeight : CradleAnchorHeight; CradleCenter.localPosition = p;
+                var occ = Cradle != null ? Cradle.First : null;
+                if (occ != null && !Active) Cradle.Place(occ, true);
+            }
+            if (_model != null) _model.Unstable = _rock != null && _rock.Geology.SizeClass == SizeClass.Oversized && !heavy;
+        }
 
         // tool geometry (metres). Chisel: tip at its origin, cap at +Y ChiselLength. Hammer: origin at the handle
         // bottom, head centre at +Y HammerLen, head is a bar of half-length HammerHeadHalf along local X.
@@ -40,7 +60,7 @@ namespace GeodeEmpire.Cracking
         // bench view tuning (live-editable, code-owned so the scene never pins stale values): where the camera sits
         // around the rock and how the chisel and hammer are held
         [NonSerialized] public float CamToPlayer = 0.68f, CamRight = -0.18f, CamUp = 0.55f;
-        [NonSerialized] public float CamDistPerRadius = 3.6f, CamDistBase = 0.17f, CamDistMin = 0.34f, CamDistMax = 0.72f;
+        [NonSerialized] public float CamDistPerRadius = 3.6f, CamDistBase = 0.17f, CamDistMin = 0.34f, CamDistMax = 0.98f;
         [NonSerialized] public float LookAhead = 0.03f, LookRight = 0.06f, LookUpPerRadius = 0.2f, LookUpBase = 0.03f;
         [NonSerialized] public float ChiselAlongRadial = 0.7f, ChiselLeanRight = 0.4f, ChiselLeanUp = 0.5f, ChiselMinCos = 0.75f;
         [NonSerialized] public float HandleRight = 0.35f, HandleToPlayer = 0.55f;
@@ -187,6 +207,19 @@ namespace GeodeEmpire.Cracking
             _controller = FindAnyObjectByType<FirstPersonController>();
             _player = FindAnyObjectByType<PlayerInteractor>();
             _cam = _controller != null ? _controller.Camera : Camera.main;
+            var session = GameSession.Instance;
+            if (session != null)
+            {
+                session.Loaded += RefreshCradle;
+                session.StateChanged += RefreshCradle;
+                if (session.State != null) RefreshCradle();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            var session = GameSession.Instance;
+            if (session != null) { session.Loaded -= RefreshCradle; session.StateChanged -= RefreshCradle; }
         }
 
         private void OnPlaced(PlacementZone zone, SpecimenEntity e)
@@ -231,6 +264,11 @@ namespace GeodeEmpire.Cracking
                 Fragility = fam.Fragility,
                 FineChisel = UpgradeCatalog.Has(session.State, UpgradeCatalog.FineChisel),
                 Clamped = UpgradeCatalog.Has(session.State, UpgradeCatalog.BenchClamp),
+                Wedge = UpgradeCatalog.Has(session.State, UpgradeCatalog.Wedge),
+                Radius = e.Visual != null && e.Visual.Geometry != null ? e.Visual.Geometry.MeanEquatorRadius : g.Size,
+                SeamQuality = g.SeamQuality,
+                SectorThickness = g.SectorThickness,
+                Unstable = g.SizeClass == SizeClass.Oversized && !UpgradeCatalog.Has(session.State, UpgradeCatalog.HeavyCradle),
             };
             _model.CopyFrom(e.Record.SectorStress);
             _model.StrikeCount = e.Record.StrikeCount;
@@ -545,15 +583,24 @@ namespace GeodeEmpire.Cracking
             session.State.Stats.TotalStrikes++;
 
             _jolt = Mathf.Clamp01(0.4f + force);
-            _rockKick = Mathf.Clamp01(0.3f + force * 0.8f);
+            _rockKick = Mathf.Clamp01(0.3f + force * 0.8f * (result.Wobbled ? 2.2f : 1f));
 
             // feedback
             float ringFrac = result.CracksTotal / (float)StressModel.Sectors;
             string clip = force < ForceTap ? "tap_light" : force < ForceFirm ? "tap_medium" : "tap_heavy";
+            if (result.Wobbled) WorkshopAudio.Play("wood_knock", _rock.transform.position, 0.35f + 0.4f * force, 0.7f);
             if (result.Slipped)
             {
                 WorkshopAudio.Play("slip", _toolPoint, 0.8f);
                 _controller?.Impulse(0.15f * force);
+            }
+            else if (result.SurfaceChip)
+            {
+                // the chisel skated: a scrape, a flake, no ring from the shell
+                WorkshopAudio.Play("slip", _toolPoint, 0.45f, 1.25f);
+                WorkshopAudio.Play(clip, _toolPoint, 0.35f, 1.15f);
+                _controller?.Impulse(0.12f * force);
+                EffectsFactory.Instance?.Impact(_toolPoint, _toolNormal, 0.35f);
             }
             else
             {
@@ -563,6 +610,8 @@ namespace GeodeEmpire.Cracking
                 WorkshopAudio.Play("chisel_ring", _toolPoint, 0.16f + 0.4f * force, Mathf.Lerp(1.08f, 0.94f, force));
                 if (result.NewCrack) { WorkshopAudio.Play("tick", _toolPoint, 0.9f, 0.9f); WorkshopAudio.Play("creak", _toolPoint, 0.35f + 0.4f * ringFrac, 1.1f - 0.25f * ringFrac); }
                 else if (result.StressAdded > 0.4f && _rng.Chance(0.35f)) WorkshopAudio.Play("tick", _toolPoint, 0.4f, 1.2f);
+                // the crack ran along a weak line: a longer, sharper tick and a second seam burst further round
+                if (result.Lucky) { WorkshopAudio.Play("tick", _toolPoint, 0.7f, 0.75f); SeamBurst((result.Sector + (_rng.Chance(0.5f) ? 1 : StressModel.Sectors - 1)) % StressModel.Sectors, geo); }
                 // a shell with most of its ring cracked groans under every blow
                 if (ringFrac >= 0.5f && !result.NewCrack) WorkshopAudio.Play("creak", _rock.transform.position, 0.25f + 0.35f * ringFrac, 0.8f);
                 // near the break the whole shell grinds: a low layer the player learns to listen for
@@ -573,7 +622,7 @@ namespace GeodeEmpire.Cracking
             }
 
             // the chip where the chisel stood, persisted so the rock still shows its history after a reload
-            AddImpactMark(local, geo, geo.MaxRadius * (0.075f + force * 0.085f), result.Slipped ? 0.3f : 0.5f + force * 0.5f);
+            AddImpactMark(local, geo, geo.MaxRadius * (0.075f + force * 0.085f), result.Slipped ? 0.3f : result.SurfaceChip ? 0.45f : 0.5f + force * 0.5f);
             RefreshCrackVisual();
 
             if (result.Damaged && !result.Opened)

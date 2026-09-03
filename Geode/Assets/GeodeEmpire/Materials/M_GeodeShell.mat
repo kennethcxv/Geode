@@ -39,11 +39,14 @@ Material:
     - _CavityDruzy: 0
     - _CavitySmoothness: 0.35
     - _CrackFade: 1
+    - _Dirt: 0
     - _Highlight: 0
     - _HintAmount: 0
     - _ImpactCount: 0
     - _SeamVisible: 0.4
+    - _Stain: 0
     - _SurfR: 0.06
+    - _TexFamily: 0
     - _TexScale: 14
     - _Weathering: 0.5
     m_Colors:
@@ -51,6 +54,7 @@ Material:
     - _BandB: {r: 0.5, g: 0.41999996, b: 0.35999998, a: 1}
     - _CavityColor: {r: 0.7, g: 0.68, b: 0.6399999, a: 1}
     - _CavityCrystalColor: {r: 0.9, g: 0.85, b: 0.95, a: 1}
+    - _Chip: {r: 0, g: 0, b: 0, a: 0}
     - _HintColor: {r: 0.7, g: 0.5, b: 0.9, a: 1}
     - _RimColor: {r: 0.6, g: 0.56999993, b: 0.53, a: 1}
     - _RockColor: {r: 0.5, g: 0.45999992, b: 0.41999996, a: 1}

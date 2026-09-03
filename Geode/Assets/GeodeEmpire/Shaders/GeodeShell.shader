@@ -26,6 +26,11 @@ Shader "GeodeEmpire/GeodeShell"
         _SeamVisible("Seam Guide", Float) = 0.4
         _SurfR("Surface Radius", Float) = 0.06
         _CrackFade("Crack Fade", Float) = 1
+        // exterior character (per specimen through a property block)
+        _TexFamily("Texture Family", Float) = 0
+        _Dirt("Clay Coating", Range(0, 1)) = 0
+        _Stain("Iron Staining", Range(0, 1)) = 0
+        _Chip("Natural Chip (lon, lat, radius m, amount)", Vector) = (0, 0, 0, 0)
     }
     SubShader
     {
@@ -42,6 +47,10 @@ Shader "GeodeEmpire/GeodeShell"
             float _SeamVisible;         // faint natural seam guide, stronger under the inspection lamp
             float _SurfR;               // mean equator radius (m), for metric distances on the surface
             float _CrackFade;           // 1 on a closed rock, lower once opened
+            float _TexFamily;           // 0 coarse matrix, 1 weathered rind, 2 layered skin, 3 volcanic crust
+            float _Dirt;                // clay coating still on the rock (washing lowers it)
+            float _Stain;               // iron-oxide streaking
+            float4 _Chip;               // natural chip: longitude fraction, signed latitude fraction, radius (m), amount
         CBUFFER_END
         // fracture overlay arrays: kept outside the per-material block so property-block arrays reach them
         float _SectorCrack[16];         // seam stress per sector, >= 1 is an open crack
@@ -211,13 +220,46 @@ Shader "GeodeEmpire/GeodeShell"
                     float lx = max(1e-5, dot(tx, tx)), ly = max(1e-5, dot(ty, ty));
                     float3 grad = tx * (dhx / lx) + ty * (dhy / ly);
                     float bump = 0.0035 * (1.0 - 0.5 * _Weathering);
+                    int texFamB = (int)(_TexFamily + 0.5);
+                    bump *= texFamB == 1 ? 0.45 : texFamB == 3 ? 1.6 : texFamB == 0 ? 1.25 : 1.0;
                     N = normalize(N - grad * bump);
                 }
                 float noise = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 2.7 + IN.positionOS.y * 1.3).b;
 
                 // exterior: two-tone rock with dirt in crevices + optional exposed mineral hint
-                float3 ext = lerp(_RockColor2.rgb, _RockColor.rgb, grain);
+                int texFam = (int)(_TexFamily + 0.5);
+                float grainX = grain;
+                if (texFam == 0) grainX = saturate((grain - 0.5) * 1.35 + 0.5);            // coarse matrix: harder grain contrast
+                else if (texFam == 1) grainX = saturate((grain - 0.5) * 0.55 + 0.55);      // weathered rind: soft, even, a little pale
+                float3 ext = lerp(_RockColor2.rgb, _RockColor.rgb, grainX);
                 ext = lerp(ext, ext * 0.55, _Weathering * (1.0 - grain) * 0.6);
+                if (texFam == 1)
+                {
+                    // weathered rind: bleached skin with fine pitting
+                    ext = lerp(ext, ext * float3(1.12, 1.08, 1.0) + 0.05, 0.5);
+                    float pit = smoothstep(0.66, 0.74, SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 33.0 + IN.positionOS.y * 21.0).g);
+                    ext = lerp(ext, ext * 0.6, pit * 0.7);
+                }
+                else if (texFam == 2)
+                {
+                    // layered skin: faint growth layers wrapping the rock along its latitude, broken up by the grain
+                    float layer = sin(IN.uv2.y * 34.0 + (noise - 0.5) * 4.0 + IN.uv2.x * 3.0) * 0.5 + 0.5;
+                    float lay = smoothstep(0.3, 0.7, layer) * smoothstep(0.25, 0.6, grain + noise * 0.3);
+                    ext = lerp(ext * 0.9, ext * 1.08 + 0.015, lay);
+                }
+                else if (texFam == 3)
+                {
+                    // volcanic crust: dark, with vesicles (gas holes) and the odd pale mineral fleck
+                    ext = lerp(ext, ext * float3(0.5, 0.48, 0.5), 0.7);
+                    float ves = smoothstep(0.6, 0.7, SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.yz * 41.0 + IN.positionOS.x * 27.0).b);
+                    ext = lerp(ext, ext * 0.35, ves);
+                }
+                // iron staining: soft rust patches seeping out of the pits, darker in the low grain
+                float stainN = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 4.2 + IN.positionOS.y * 3.1 + 0.37).r;
+                float stainN2 = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.zy * 9.0 + IN.positionOS.x * 5.0).g;
+                float stainMask = _Stain * smoothstep(0.48, 0.78, stainN * 0.7 + stainN2 * 0.3 + (1.0 - grain) * 0.12);
+                float3 rust = lerp(float3(0.5, 0.3, 0.16), float3(0.36, 0.2, 0.1), 1.0 - grain);
+                ext = lerp(ext, lerp(ext, rust, 0.75), stainMask);
                 // exposed mineral: a faint hint at arm's length; under the loupe the veins and a speckle of tiny
                 // exposed crystals in the mineral's colour come up (still only what is on the outside)
                 float hintAmt = _HintAmount * (1.0 + 1.6 * _LoupeBoost);
@@ -225,12 +267,41 @@ Shader "GeodeEmpire/GeodeShell"
                 ext = lerp(ext, _HintColor.rgb * lerp(0.8, 1.0, grain), hintMask);
                 float speck = pow(saturate(SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xy * 61.0 + IN.positionOS.z * 37.0).g), 9.0);
                 ext = lerp(ext, _HintColor.rgb * 1.15, speck * _HintAmount * 2.5 * _LoupeBoost);
+                // a natural chip: a ragged little window where the rind broke away and the interior shows through
+                float chipAmt = 0.0;
+                if (_Chip.w > 0.001)
+                {
+                    float R = max(0.01, _SurfR);
+                    float cdu = frac(IN.uv2.x - _Chip.x + 0.5) - 0.5;
+                    float cdx = cdu * 6.2832 * R * max(0.2, cos(IN.uv2.y * 1.5708));
+                    float cdy = (IN.uv2.y - _Chip.y) * 1.5708 * R;
+                    float cdist = sqrt(cdx * cdx + cdy * cdy);
+                    float cang = atan2(cdy, cdx);
+                    float crn = _Chip.z * (0.6 + 0.4 * Noise1(cang * 0.6 + 2.1, 0.5) + 0.25 * (Noise1(cang * 2.3, 0.85) - 0.5));
+                    float cin = 1.0 - smoothstep(crn * 0.7, crn, cdist);
+                    float cring = smoothstep(crn * 0.8, crn * 1.05, cdist) * (1.0 - smoothstep(crn * 1.05, crn * 1.3, cdist));
+                    chipAmt = cin * _Chip.w;
+                    float3 window = lerp(_CavityColor.rgb, _CavityCrystalColor.rgb, 0.65 + 0.3 * grain) * lerp(0.7, 1.05, grain);
+                    ext = lerp(ext, window, chipAmt);
+                    ext = lerp(ext, ext * 0.45, cring * _Chip.w);
+                }
 
                 // fracture overlay: only the exterior carries it
                 float crackDark = 0.0, crackFrost = 0.0, seamGuide = 0.0;
                 if (c.r > 0.5 || c.b > 0.5) FractureOverlay(IN.uv2, grain, crackDark, crackFrost, seamGuide);
                 float3 frostCol = lerp(ext, float3(0.86, 0.84, 0.79) * lerp(0.85, 1.0, grain), 0.62);
                 ext = lerp(ext, frostCol, crackFrost * 0.85);
+                // clay coating: sits in the low grain first and leaves the high points as it is scrubbed away; while
+                // it is on, it hides the seam, the staining and the mineral hints the shell would otherwise give away
+                float dirtN = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 6.5 + IN.positionOS.y * 4.0).r;
+                float dirtFine = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xy * 23.0 + IN.positionOS.z * 17.0).b;
+                float dirtMask = _Dirt > 0.001 ? smoothstep(0.05, 0.4, _Dirt * 1.2 - (grain * 0.6 + dirtN * 0.35 + dirtFine * 0.15) + 0.3) : 0.0;
+                // dried quarry clay: ochre-brown, caked thick in the hollows and thin and dusty over the high points
+                float3 clay = lerp(float3(0.3, 0.23, 0.15), float3(0.42, 0.34, 0.23), grain) * lerp(0.82, 1.1, dirtN) * lerp(0.88, 1.06, dirtFine);
+                clay = lerp(clay, clay * 0.7, smoothstep(0.62, 0.72, dirtFine));       // cracked, crumbly patches
+                float3 dust = lerp(ext, float3(0.5, 0.43, 0.33), 0.45);
+                ext = lerp(ext, lerp(dust, clay, dirtMask), saturate(dirtMask * 1.6));
+                seamGuide *= 1.0 - dirtMask * 0.9;
                 ext = lerp(ext, ext * 0.55, seamGuide);
                 ext = lerp(ext, ext * 0.2, crackDark);
 
@@ -255,7 +326,9 @@ Shader "GeodeEmpire/GeodeShell"
                 cav = lerp(cav, druzyCol, _CavityDruzy * c.g);
 
                 float3 albedo = ext * c.r + cav * c.g + rim * c.b;
-                float smooth = 0.18 * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * c.g + 0.16 * c.b;
+                float extSmooth = texFam == 1 ? 0.24 : texFam == 3 ? 0.1 : 0.18;
+                extSmooth = lerp(extSmooth, 0.06, dirtMask) + chipAmt * 0.3;
+                float smooth = extSmooth * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * c.g + 0.16 * c.b;
                 smooth += (grain - 0.5) * 0.1 + crackFrost * 0.06 * c.r;
 
                 InputData inputData = (InputData)0;
