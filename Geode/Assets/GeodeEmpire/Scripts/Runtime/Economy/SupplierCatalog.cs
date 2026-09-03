@@ -17,6 +17,8 @@ namespace GeodeEmpire.Economy
         public bool CountHidden;
         public float[] TierWeights;       // Common, Decent, Good, Exceptional, Museum, WorldClass
         public string UnlockHint;
+        /// <summary>Named localities this source draws from; a crate picks one (seeded) and its rocks carry it.</summary>
+        public string[] Localities = System.Array.Empty<string>();
         public Color Accent;
         /// <summary>Mineral families this source favours (null = the quarry's natural mix).</summary>
         public MineralId[] PreferredMinerals;
@@ -59,6 +61,7 @@ namespace GeodeEmpire.Economy
                 Minerals = "Quartz, agate and calcite mostly; anything can turn up.",
                 Clue = "Small and medium rough, caked in quarry clay. Few surface hints until it is washed.",
                 SizeWeights = new[] { 0.42f, 0.5f, 0.08f, 0f }, DirtScale = 1.15f,
+                Localities = new[] { "Keokuk beds", "Dugway flats", "Pinnacle Ridge quarry", "the old Marsh pit" },
             },
             new SupplierDefinition
             {

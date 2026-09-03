@@ -277,6 +277,7 @@ namespace GeodeEmpire.Lapidary
             if (rec.Appraised) rec.AppraisedValue = rec.PristineForSale();   // the price card follows the finish
             var st = session.State.Stats;
             st.PiecesPolished++;
+            GameState.Log(rec, "polished", rec.PristineForSale());
             float v = rec.PristineForSale();
             if (v > st.BestPolishedValue) { st.BestPolishedValue = v; st.BestPolishedName = rec.DisplayName; }
             StopPolishing();

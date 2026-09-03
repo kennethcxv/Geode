@@ -374,9 +374,18 @@ namespace GeodeEmpire.UI
         }
 
         /// <summary>One line of history: where it came from, what opened it, what was done to it, what it is worth.</summary>
-        public static string Provenance(SpecimenRecord r)
+        public static string Provenance(SpecimenRecord r, bool brief = false)
         {
             var parts = new List<string>();
+            if (brief)
+            {
+                // the card's footer: where it came from and when; the tablet has the rest
+                if (!string.IsNullOrEmpty(r.Locality)) parts.Add(r.Locality);
+                var supB = !string.IsNullOrEmpty(r.SupplierId) ? SupplierCatalog.Get(r.SupplierId) : null;
+                if (supB != null) parts.Add(supB.Name + (!string.IsNullOrEmpty(r.CrateId) ? $" (lot {r.CrateId})" : ""));
+                if (r.DiscoveredAtTicks > 0) parts.Add("found " + new System.DateTime(r.DiscoveredAtTicks).ToString("d MMM yyyy"));
+                return string.Join("  •  ", parts);
+            }
             var sup = !string.IsNullOrEmpty(r.SupplierId) ? SupplierCatalog.Get(r.SupplierId) : null;
             if (sup != null) parts.Add(sup.Name + (!string.IsNullOrEmpty(r.CrateId) ? $" (lot {r.CrateId})" : ""));
             string tool = r.IsPiece ? "trim saw" : r.ProcessedBy == "hammer" ? "hammer and chisel" : r.ProcessedBy;
@@ -384,9 +393,29 @@ namespace GeodeEmpire.UI
             if (r.DamageFraction > 0.005f) parts.Add($"{r.DamageFraction * 100f:F0}% crystal damage"); else if (r.IsOpened) parts.Add("no damage");
             if (r.Polish > 0.5f) parts.Add("polished");
             parts.Add(r.Appraised ? "appraised " + UiKit.Money(r.AppraisedValue) : "unappraised");
+            if (!string.IsNullOrEmpty(r.Locality)) parts.Insert(0, r.Locality);
+            if (r.OriginalMassKg > 0.01f && r.IsPiece) parts.Add($"from a {r.OriginalMassKg:F1} kg rock");
+            if (r.AcquisitionCost > 0.001f) parts.Add($"cost {UiKit.Money(r.AcquisitionCost)} in the crate");
+            if (r.Predicted) parts.Add("called " + Player.PlayerInteractor.CallWord(r));
             if (r.DiscoveredAtTicks > 0) parts.Add("found " + new System.DateTime(r.DiscoveredAtTicks).ToString("d MMM yyyy"));
             else if (r.OpenedAtTicks > 0) parts.Add("opened " + new System.DateTime(r.OpenedAtTicks).ToString("d MMM yyyy"));
             return string.Join("  •  ", parts);
+        }
+
+        /// <summary>The specimen's life, newest last, as short dated lines.</summary>
+        public static string HistoryText(SpecimenRecord r, int max = 8)
+        {
+            if (r == null || r.History == null || r.History.Count == 0) return "";
+            var lines = new List<string>();
+            int start = Mathf.Max(0, r.History.Count - max);
+            for (int i = start; i < r.History.Count; i++)
+            {
+                var ev = r.History[i];
+                string when = new System.DateTime(ev.Ticks).ToString("d MMM");
+                string val = ev.Value > 0.001f ? " " + UiKit.Money(ev.Value) : "";
+                lines.Add($"{when}  {ev.Kind}{val}{(string.IsNullOrEmpty(ev.Note) ? "" : "  •  " + ev.Note)}");
+            }
+            return string.Join("\n", lines);
         }
 
         // ---- Stats ----------------------------------------------------------------------------
@@ -414,6 +443,10 @@ namespace GeodeEmpire.UI
             Row("Largest specimen", st.LargestSpecimenKg > 0 ? $"{st.LargestSpecimenKg:F2} kg  ({st.LargestSpecimenName})" : "—");
             Row("Most damaged", st.MostDamagedFraction > 0 ? $"{st.MostDamagedFraction * 100f:F0}%  ({st.MostDamagedName})" : "—");
             Row("Rocks washed", st.RocksWashed.ToString());
+            Row("Rocks split on the cracker", st.RocksCracked.ToString());
+            Row("Calls made in the hand", st.PredictionsMade.ToString());
+            if (st.PredictionsMade > 0) Row("Hollow or solid called right", $"{st.HollowCallsRight} of {st.PredictionsMade} ({Mathf.RoundToInt(100f * st.HollowCallsRight / st.PredictionsMade)}%)");
+            if (st.PredictionsMade > 0) Row("Grade called within one tier", $"{st.TierCallsRight} of {st.PredictionsMade}");
             Row("Saw cuts / slabs", $"{st.SawCuts} / {st.SlabsCut}");
             Row("Best saw result", st.HighestValueSawResult > 0 ? $"{UiKit.Money(st.HighestValueSawResult)}  ({st.HighestValueSawResultName})" : "—");
             Row("Best hammer result", st.HighestValueHammerResult > 0 ? $"{UiKit.Money(st.HighestValueHammerResult)}  ({st.HighestValueHammerResultName})" : "—");

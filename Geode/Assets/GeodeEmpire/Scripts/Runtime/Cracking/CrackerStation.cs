@@ -560,6 +560,9 @@ namespace GeodeEmpire.Cracking
             string tier = Valuation.TierLabel(Valuation.TierFromValue(Valuation.DamagedValue(g, damage, 0f)));
             string dmg = shattered ? "Shattered: forced past what the shell would take" : damage <= 0.001f ? "Clean split" : damage < 0.12f ? "Minor chipping" : damage < 0.35f ? "Noticeable damage" : "Heavy damage";
             ResultNote = $"{tier}  •  {dmg}  •  {_pressure / _splitPressure * 100f:F0}% of the shell's limit" + (Slips > 0 ? $"  •  slipped {Slips}x" : "");
+            string call = session.ScoreCall(rec);
+            if (!string.IsNullOrEmpty(call)) ResultNote += "  •  " + call;
+            session.State.Stats.RocksCracked++;
             if (rare) WorkshopAudio.Play2D("discovery", 0.55f);
             State = Phase.Done;
             Tutorial.Notify("rock_opened");

@@ -77,6 +77,8 @@ namespace GeodeEmpire.Player
                 if (!Inspecting) BeginInspect();
                 // tap it: a hollow shell rings, a solid nodule thuds. Knowledge, not an answer.
                 if (GameInput.StrikePressed && !Held.IsOpened) TapHeld();
+                // call it: what the hands and the ear say it is, written down before the rock is opened
+                if (GameInput.DropPressed && !Held.IsOpened) CycleCall();
                 Vector2 look = GameInput.Look;
                 float k = GameInput.UsingGamepad ? 180f * Time.deltaTime : 0.35f;
                 if (LoupeActive) k *= 0.6f;   // finer control under magnification
@@ -99,7 +101,7 @@ namespace GeodeEmpire.Player
             }
             else SetTarget(null);
 
-            if (Held != null && GameInput.DropPressed) Drop();
+            if (Held != null && GameInput.DropPressed && !(Inspecting && !Held.IsOpened)) Drop();
             // prompts are rebuilt when what they describe changes, and every few frames for text that ticks on its own
             bool changed = !ReferenceEquals(Target, _promptTarget) || Held != _promptHeld || Inspecting != _promptInspecting || GameInput.Scheme != _promptScheme;
             if (changed || (Time.frameCount + _promptPhase) % 8 == 0) RefreshPrompt();
@@ -182,6 +184,37 @@ namespace GeodeEmpire.Player
             RefreshPrompt();
         }
 
+        /// <summary>The calls a player can make in the hand, in the order the drop key cycles them.</summary>
+        private static readonly (bool hollow, int tier, string word)[] Calls =
+        {
+            (true, 0, "hollow, ordinary"), (true, 2, "hollow, a rare one"), (true, 3, "hollow, exceptional"), (false, -1, "solid nodule"),
+        };
+
+        private void CycleCall()
+        {
+            var r = Held.Record;
+            int idx = -1;
+            if (r.Predicted) for (int i = 0; i < Calls.Length; i++) if (Calls[i].hollow == r.PredictedHollow && Calls[i].tier == r.PredictedTier) { idx = i; break; }
+            idx = (idx + 1) % (Calls.Length + 1);
+            if (idx == Calls.Length) { r.Predicted = false; r.PredictedTier = -1; }
+            else
+            {
+                var c = Calls[idx];
+                if (!r.Predicted) { GameSession.Instance.State.Stats.PredictionsMade++; GameState.Log(r, "predicted", 0f, c.word); }
+                r.Predicted = true; r.PredictedHollow = c.hollow; r.PredictedTier = c.tier;
+            }
+            GeodeEmpire.Audio.WorkshopAudio.Play("ui_click", Held.transform.position, 0.3f, 1.2f);
+            GameSession.Instance.QueueSave("call");
+            RefreshPrompt();
+        }
+
+        public static string CallWord(SpecimenRecord r)
+        {
+            if (r == null || !r.Predicted) return "";
+            foreach (var c in Calls) if (c.hollow == r.PredictedHollow && c.tier == r.PredictedTier) return c.word;
+            return r.PredictedHollow ? "hollow" : "solid";
+        }
+
         /// <summary>What the hands can tell about an unopened rock: size class, weight for its size, coating.</summary>
         public static string HandReading(SpecimenEntity e)
         {
@@ -225,10 +258,10 @@ namespace GeodeEmpire.Player
             string p = "", h = "";
             if (Inspecting)
             {
-                p = Held != null && !Held.IsOpened ? HandReading(Held) + (string.IsNullOrEmpty(_tapNote) ? "" : "  •  " + _tapNote) : "";
+                p = Held != null && !Held.IsOpened ? HandReading(Held) + (string.IsNullOrEmpty(_tapNote) ? "" : "  •  " + _tapNote) + (Held.Record.Predicted ? "  •  your call: " + CallWord(Held.Record) : "") : "";
                 h = LoupeActive ? $"{GameInput.Glyph("Look")} turn   {GameInput.Glyph("Loupe")} lower loupe"
                                 : $"{GameInput.Glyph("Look")} rotate   {GameInput.Glyph("Inspect")} release" + (LoupeTool.Owned ? $"   {GameInput.Glyph("Loupe")} loupe" : "");
-                if (Held != null && !Held.IsOpened) h += $"   {GameInput.Glyph("Strike")} tap";
+                if (Held != null && !Held.IsOpened) h += $"   {GameInput.Glyph("Strike")} tap   {GameInput.Glyph("Drop")} call it";
             }
             else if (Target != null)
             {

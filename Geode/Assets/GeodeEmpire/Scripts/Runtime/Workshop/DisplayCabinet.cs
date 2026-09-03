@@ -59,6 +59,7 @@ namespace GeodeEmpire.Workshop
             session.State.Stats.SpecimensKept = session.State.DisplayedCount();
             float v = e.Record.EstimatedValue();
             if (v > session.State.Stats.HighestValueKept) { session.State.Stats.HighestValueKept = v; session.State.Stats.HighestValueKeptName = e.Record.DisplayName; }
+            GameState.Log(e.Record, "displayed", v, z.DisplayLabel);
             RecomputePrestige(session.State);
             Tutorial.Notify("specimen_sorted");
             foreach (var id in SupplierCatalog.EvaluateUnlocks(session.State))

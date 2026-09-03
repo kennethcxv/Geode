@@ -882,6 +882,7 @@ namespace GeodeEmpire.Cracking
             var g = _rock.Geology;
             rec.Condition.Opened = true;
             rec.OpenedAtTicks = DateTime.UtcNow.Ticks;
+            rec.ProcessedBy = "hammer";
             rec.Location = SpecimenLocation.Bench;
             session.State.Stats.RocksProcessed++;
             // the discovery is part of the same commit as the open: quitting during the animation cannot lose it
@@ -989,6 +990,8 @@ namespace GeodeEmpire.Cracking
             StartCoroutine(FadeLight(light, 1.2f));
 
             ResultNote = BuildResultNote(g, damage, result);
+            string call = session.ScoreCall(rec);
+            if (!string.IsNullOrEmpty(call)) ResultNote += "  •  " + call;
             Opened = true;
             Revealing = false;
             Tutorial.Notify("rock_opened");

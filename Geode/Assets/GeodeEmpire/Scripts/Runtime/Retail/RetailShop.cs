@@ -332,6 +332,7 @@ namespace GeodeEmpire.Retail
             float price = rec.AskingPrice > 0f ? rec.AskingPrice : AskingPrice(rec);
             rec.Location = SpecimenLocation.Sold;
             rec.AskingPrice = 0f;
+            GameState.Log(rec, "sold", price, "to " + c.Archetype.Name + " at the counter");
             var st = session.State.Stats;
             st.RetailSales++;
             st.RetailRevenue += price;

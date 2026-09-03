@@ -921,6 +921,10 @@ namespace GeodeEmpire.Lapidary
                 while (tt < 1f) { tt += Time.deltaTime / 0.9f; float e = Mathf.SmoothStep(0f, 1f, tt); CameraAnchor.SetPositionAndRotation(Vector3.Lerp(from, to, e), Quaternion.Slerp(fromRot, toRot, e)); yield return null; }
             }
             ResultNote = BuildNote(ra, rb, parent);
+            GameState.Log(parent, "cut", 0f, ResultNote);
+            GameState.Log(ra, "cut", 0f, "from " + parent.Id); GameState.Log(rb, "cut", 0f, "from " + parent.Id);
+            string call = session.ScoreCall(parent);
+            if (!string.IsNullOrEmpty(call)) ResultNote += "  •  " + call;
             var stats = session.State.Stats;
             bool rare = ra.Geology.Tier >= QualityTier.Exceptional && !parent.IsPiece && ra.PieceOpening > 0.3f;
             if (rare) WorkshopAudio.Play2D("discovery", 0.5f);

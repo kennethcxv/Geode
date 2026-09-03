@@ -52,6 +52,7 @@ namespace GeodeEmpire.Workshop
             bool first = !e.Record.Appraised;
             e.Record.Appraised = true;
             e.Record.AppraisedValue = value;
+            if (first) GameState.Log(e.Record, "appraised", value);
             WorkshopAudio.Play("ui_click", e.transform.position, 0.5f, 1.2f);
             if (first) Tutorial.Notify("appraised");
             session.RaiseStateChanged();

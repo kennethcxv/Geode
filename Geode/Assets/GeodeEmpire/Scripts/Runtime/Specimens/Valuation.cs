@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using GeodeEmpire.Save;
 
 namespace GeodeEmpire.Specimens
 {
@@ -70,6 +71,66 @@ namespace GeodeEmpire.Specimens
             if (g.HasSecondary) value *= 1f + 0.25f * g.SecondaryAmount;
             return Mathf.Round(value);
         }
+
+        /// <summary>Words for the 0..1 visible axes, as the appraiser would put them.</summary>
+        public static string SaturationWord(float v) => v > 0.8f ? "intense colour" : v > 0.6f ? "strong colour" : v > 0.4f ? "moderate colour" : v > 0.22f ? "pale" : "washed out";
+        public static string ClarityWord(float v) => v > 0.8f ? "glassy" : v > 0.6f ? "clear" : v > 0.4f ? "slightly cloudy" : v > 0.22f ? "milky" : "opaque";
+        public static string ZoningWord(float v) => v > 0.65f ? "strong colour zoning" : v > 0.35f ? "some zoning" : "even colour";
+        public static string HabitWord(SpecimenGeology g)
+        {
+            float mm = g.Family.Placement == PlacementStyle.Carpet && g.IsDruzy ? 1f : Mathf.Lerp(g.Family.ScaleMin, g.Family.ScaleMax, g.CrystalScale) * g.Size * g.CavityFraction * 1000f;
+            string size = g.IsDruzy ? "druzy, a sugar of points" : mm < 5f ? "fine points" : mm < 14f ? "points a finger-width" : mm < 26f ? "large points" : "very large points";
+            return $"{ArchetypeWord(g.Family.Archetypes[0])}, {size}";
+        }
+        private static string ArchetypeWord(CrystalArchetype a)
+        {
+            // CamelCase enum names read as words: QuartzPoint -> quartz point
+            var sb = new StringBuilder();
+            foreach (char ch in a.ToString().Replace("Crystal", "")) { if (char.IsUpper(ch) && sb.Length > 0) sb.Append(' '); sb.Append(char.ToLowerInvariant(ch)); }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// The appraisal, line by line: every factor that moved the value from the family's baseline, with its
+        /// multiplier, so the price on the card is explained by what can be seen on the piece.
+        /// </summary>
+        public static List<string> Explain(SpecimenRecord r)
+        {
+            var g = r.Geology;
+            var fam = g.Family;
+            var lines = new List<string>();
+            if (r.IsPiece)
+            {
+                lines.Add($"Sawn piece of a {fam.Name.ToLowerInvariant()} worth {UiMoney(g.BaseValue)} whole");
+                if (g.Cavity == CavityArchetype.Nodule) lines.Add($"Banded face: {Mathf.RoundToInt(r.PieceFaceArea * 100f)}% of the full section" + (r.Piece.IsSlab ? "  •  slab, patterned both sides ×1.15" : ""));
+                else if (r.PieceOpening <= 0.02f) lines.Add("Missed the cavity: a lump of rind");
+                else lines.Add($"Kept {Mathf.RoundToInt(r.PieceRetained * 100f)}% of the crystal field  •  cavity opened {Mathf.RoundToInt(r.PieceOpening * 100f)}%  •  symmetry {Mathf.RoundToInt(r.PieceSymmetry * 100f)}%");
+                if (r.Polish > 0.02f) lines.Add($"Polish {Mathf.RoundToInt(r.Polish * 100f)}%: ×{(g.Cavity == CavityArchetype.Nodule ? 1f + 0.85f * r.Polish : 1f + 0.12f * r.Polish):F2}");
+                if (r.CutFaceStep > 0.0008f) lines.Add($"Stepped face ({r.CutFaceStep * 1000f:F0} mm)");
+            }
+            else
+            {
+                lines.Add($"{fam.Name}: family baseline ×{fam.ValueMult:F2}");
+                float sizeMult = Mathf.Pow(Mathf.Max(0.01f, DisplayRadius(g)) / ReferenceDisplayRadius, 1.6f);
+                lines.Add($"{(g.Cavity == CavityArchetype.Nodule ? "Banded section" : "Crystal field")} {DisplayRadius(g) * 200f:F0} cm across: ×{sizeMult:F2}");
+                lines.Add($"Quality (points, fill, colour, clarity, symmetry) {Mathf.RoundToInt(VisualScore(g) * 100f)}/100: ×{Mathf.Exp(VisualScore(g) * 6.5f):F1}");
+                float f = FormationFactor(g.Cavity);
+                if (Mathf.Abs(f - 1f) > 0.01f) lines.Add($"{FormationName(g.Cavity)}: ×{f:F2}");
+                foreach (var t in g.Traits) lines.Add($"{TraitName(t)}: ×{TraitMultiplier(t):F2}");
+                if (g.HasSecondary) lines.Add($"{g.SecondaryFamily.Name} on {fam.Name.ToLowerInvariant()}: ×{1f + 0.25f * g.SecondaryAmount:F2}");
+            }
+            float d = Mathf.Clamp01(r.DamageFraction);
+            if (d > 0.005f) lines.Add($"Crystal damage {Mathf.RoundToInt(d * 100f)}%: −{Mathf.RoundToInt(d * 85f)}%");
+            if (r.ShellDamage > 0.02f) lines.Add($"Shell chipping: −{Mathf.RoundToInt(Mathf.Clamp01(r.ShellDamage) * 25f)}%");
+            return lines;
+        }
+
+        private static string UiMoney(float v) => "$" + Mathf.RoundToInt(v).ToString("N0");
+        public static string FormationName(CavityArchetype c) => c switch
+        {
+            CavityArchetype.Hollow => "Open cavity", CavityArchetype.ThickWall => "Thick-walled cavity", CavityArchetype.Cathedral => "Cathedral cavity",
+            CavityArchetype.Pocket => "Small pocket", CavityArchetype.DoubleChamber => "Double chamber", _ => "Solid nodule",
+        };
 
         /// <summary>Value after damage: damage is a fraction 0..1 of crystal mass lost/broken, plus shell chips.</summary>
         public static float DamagedValue(SpecimenGeology g, float crystalDamageFraction, float shellDamage)

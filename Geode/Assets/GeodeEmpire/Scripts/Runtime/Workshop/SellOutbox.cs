@@ -57,6 +57,7 @@ namespace GeodeEmpire.Workshop
                 float v = SaleValue(e);
                 total += v;
                 e.Record.Location = SpecimenLocation.Sold;
+                GameState.Log(e.Record, "dealer", v, "sold to the dealer");
                 session.State.Stats.SpecimensSold++;
                 if (v > session.State.Stats.BiggestSale) { session.State.Stats.BiggestSale = v; session.State.Stats.BiggestSaleName = e.Record.DisplayName; }
                 session.Despawn(e);

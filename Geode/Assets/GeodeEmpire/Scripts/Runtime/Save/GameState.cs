@@ -25,10 +25,29 @@ namespace GeodeEmpire.Save
     }
 
     /// <summary>Career state of one specimen. Geology is regenerated from Seed; nothing here rerolls it.</summary>
+    /// <summary>One line of a specimen's life: what happened, when, and a number where one applies (a price, a value).</summary>
+    [Serializable]
+    public sealed class SpecimenEvent
+    {
+        public string Kind;      // acquired, washed, opened, cut, polished, appraised, displayed, listed, sold, dealer, rinsed, predicted
+        public long Ticks;
+        public float Value;
+        public string Note;
+    }
+
     [Serializable]
     public sealed class SpecimenRecord
     {
         public string Id;
+        // V5 provenance: where and when it came in, what it weighed whole, what the player called before opening it
+        public string Locality = "";
+        public long AcquiredAtTicks;
+        public float AcquisitionCost;
+        public float OriginalMassKg;
+        public bool Predicted;
+        public bool PredictedHollow;
+        public int PredictedTier = -1;
+        public List<SpecimenEvent> History = new List<SpecimenEvent>();
         public ulong Seed;
         public string SupplierId;
         public string CrateId;
@@ -105,6 +124,7 @@ namespace GeodeEmpire.Save
         public Quaternion Rotation = Quaternion.identity;
         public List<string> SpecimenIds = new List<string>();
         public float PricePaid;
+        public string Locality = "";
     }
 
     [Serializable]
@@ -165,6 +185,9 @@ namespace GeodeEmpire.Save
         public float LargestSlabFaceCm2;
         public string LargestSlabName;
         public int RocksWashed;
+        // V5 mastery: calls made before opening, and how many were right
+        public int PredictionsMade, HollowCallsRight, TierCallsRight;
+        public int RocksCracked;
     }
 
     /// <summary>Whole career save. Versioned; new fields get sensible defaults on load.</summary>
@@ -211,6 +234,15 @@ namespace GeodeEmpire.Save
         }
 
         public bool HasUpgrade(string id) => Upgrades.Contains(id);
+
+        /// <summary>Append a line to a specimen's history (kept short: the last 40 events).</summary>
+        public static void Log(SpecimenRecord r, string kind, float value = 0f, string note = null)
+        {
+            if (r == null) return;
+            r.History ??= new List<SpecimenEvent>();
+            r.History.Add(new SpecimenEvent { Kind = kind, Ticks = DateTime.UtcNow.Ticks, Value = value, Note = note ?? "" });
+            while (r.History.Count > 40) r.History.RemoveAt(0);
+        }
         public bool HasSupplier(string id) => UnlockedSuppliers.Contains(id);
         public bool TutorialDone(string step) => TutorialSteps.Contains(step);
 

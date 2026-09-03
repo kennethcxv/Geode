@@ -3,6 +3,7 @@ using GeodeEmpire.Audio;
 using GeodeEmpire.Core;
 using GeodeEmpire.Interaction;
 using GeodeEmpire.Player;
+using GeodeEmpire.Save;
 using GeodeEmpire.Specimens;
 
 namespace GeodeEmpire.Workshop
@@ -64,6 +65,7 @@ namespace GeodeEmpire.Workshop
             if (e.IsOpened && !e.IsPiece && e.Record.Condition != null && !e.Record.Condition.Rinsed)
             {
                 e.Record.Condition.Rinsed = true;
+                GameState.Log(e.Record, "rinsed");
                 if (e.Visual != null) e.Visual.RefreshCondition();
                 WorkshopAudio.Play("splash", e.transform.position, 0.5f, 1.25f);
                 VFX.EffectsFactory.Instance?.Glints(e.transform.position + Vector3.up * (e.Radius * 0.5f), e.Radius * 0.9f, 14, Color.white);
@@ -154,7 +156,7 @@ namespace GeodeEmpire.Workshop
                 RestBrush();
                 WorkshopAudio.Play("splash", e.transform.position, 0.5f, 1.15f);
                 WorkshopAudio.Play("ui_click", e.transform.position, 0.4f, 1.3f);
-                if (GameSession.Instance != null) GameSession.Instance.State.Stats.RocksWashed++;
+                if (GameSession.Instance != null) { GameSession.Instance.State.Stats.RocksWashed++; GameState.Log(e.Record, "washed"); }
                 GameSession.Instance?.Notify("Clean. Turn it over and read the shell before you decide how to open it.", NotificationKind.Info);
                 Tutorial.Notify("washed");
                 GameSession.Instance?.QueueSave("washed");

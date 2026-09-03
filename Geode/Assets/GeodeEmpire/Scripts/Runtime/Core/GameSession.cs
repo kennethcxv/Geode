@@ -395,8 +395,24 @@ namespace GeodeEmpire.Core
         public void RaiseStateChanged() => StateChanged?.Invoke();
 
         /// <summary>Encyclopedia + statistics + callouts when a specimen is opened.</summary>
+        /// <summary>The call made in the hand meets the rock: mastery counters, a line in the history, a note for the reveal.</summary>
+        public string ScoreCall(SpecimenRecord r)
+        {
+            if (r == null || !r.Predicted) return "";
+            var g = r.Geology;
+            bool hollow = g.Cavity != CavityArchetype.Nodule;
+            bool hollowRight = r.PredictedHollow == hollow;
+            bool tierRight = r.PredictedTier >= 0 && Mathf.Abs(r.PredictedTier - (int)g.Tier) <= 1;
+            if (hollowRight) State.Stats.HollowCallsRight++;
+            if (tierRight) State.Stats.TierCallsRight++;
+            string line = UI.AppraisalUI.PredictionLine(r);
+            GameState.Log(r, "called", 0f, line);
+            return line;
+        }
+
         public void RecordDiscovery(SpecimenRecord r, float damageFraction)
         {
+            GameState.Log(r, "opened", 0f, (r.ProcessedBy == "cracker" ? "geode cracker" : r.ProcessedBy == "saw" ? "trim saw" : "hammer and chisel") + (damageFraction > 0.005f ? $", {damageFraction * 100f:F0}% crystal damage" : ", clean"));
             var g = r.Geology;
             var fam = g.Family;
             var entry = State.GetOrCreateEntry(g.Mineral);

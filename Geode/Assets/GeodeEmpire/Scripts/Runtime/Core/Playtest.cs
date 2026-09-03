@@ -462,6 +462,85 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        /// <summary>V5 verification: call a rock in the hand (drop key while inspecting), crack it, read the call on the result and the card, check the history.</summary>
+        public void RunCallTest() { if (!Running) StartCoroutine(CallTest()); }
+
+        private IEnumerator CallTest()
+        {
+            Running = true;
+            Phase = "call";
+            L($"== CallTest cash={S.State.Cash}");
+            if (S.Crates.Count == 0) { S.BuyCrate("local", out string err); L("buy: " + (err ?? "ok")); yield return new WaitForSeconds(1.4f); }
+            CrateEntity crate = null;
+            foreach (var c in S.Crates.Values) if (!c.IsOpened || c.RemainingRocks > 0) { crate = c; break; }
+            if (crate == null) { L("no crate"); Running = false; yield break; }
+            L($"crate {crate.Record.Id} locality='{crate.Record.Locality}'");
+            if (!crate.IsOpened)
+            {
+                Vector3 cratePos = crate.transform.position;
+                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
+                yield return Walk(stand, 0.3f);
+                yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
+                yield return new WaitForSeconds(0.9f);
+            }
+            SpecimenEntity rock = null; float best = -1f;
+            foreach (var e in S.Entities.Values) { if (e.IsOpened || e.Record.Location != SpecimenLocation.InCrate) continue; float sc = e.Geology.CavityFraction; if (sc > best) { best = sc; rock = e; } }
+            if (rock == null) { L("no rock"); Running = false; yield break; }
+            yield return FetchRock(rock);
+            if (P.Held == null) { L("could not pick up"); Running = false; yield break; }
+            rock = P.Held;
+            var r = rock.Record;
+            L($"rock {r.Id} {rock.Geology.Mineral} {rock.Geology.Cavity} tier={rock.Geology.Tier} locality='{r.Locality}' acquired={r.AcquiredAtTicks > 0} cost={r.AcquisitionCost} origMass={r.OriginalMassKg:F2} history={r.History.Count}");
+            // inspect and call it: two presses of the drop key while inspecting = "hollow, good"
+            D.SetMouseButton(1, true); yield return new WaitForSeconds(0.4f);
+            yield return D.Tap(Key.G, 0.08f); yield return new WaitForSeconds(0.25f);
+            yield return D.Tap(Key.G, 0.08f); yield return new WaitForSeconds(0.25f);
+            L($"called: predicted={r.Predicted} hollow={r.PredictedHollow} tier={r.PredictedTier} prompt='{P.Prompt}' held={(P.Held != null)}");
+            Snap("call_inspect");
+            D.SetMouseButton(1, false); yield return new WaitForSeconds(0.3f);
+            if (P.Held == null) { L("the call dropped the rock!"); Running = false; yield break; }
+            // crack it
+            Vector3 cradle = ZonePos(ZoneKind.Cradle);
+            yield return RouteTo(new Vector3(cradle.x, 0f, cradle.z - 0.95f), 0.25f);
+            yield return LookAndInteract(cradle, "Set on the cradle");
+            yield return new WaitForSeconds(1.0f);
+            var bench = Find<CrackingBench>();
+            if (!bench.Active) { L("bench not active"); Running = false; yield break; }
+            int strikes = 0;
+            while (bench.Active && !bench.Opened && !bench.Revealing && strikes < 60)
+            {
+                yield return AimCursor(bench, bench.SeamCursorHint() + new Vector2(0f, Random.Range(-0.015f, 0.015f)));
+                yield return Strike(0.5f);
+                strikes++;
+                var res = bench.LastResult;
+                if (res.WeakBite || res.Damaged) L($"  strike {strikes}: weakBite={res.WeakBite} cause={res.BiteCause} damaged={res.Damaged} dmgCause={res.DamageCause} internal={res.InternalDamage}");
+                yield return Rotate(0.42f, 1);
+                while (bench.Revealing) yield return null;
+            }
+            yield return new WaitForSeconds(2.0f);
+            L($"opened={bench.Opened} strikes={strikes} note='{bench.ResultNote}' processedBy={r.ProcessedBy}");
+            Snap("call_result");
+            if (!bench.Opened) { Running = false; yield break; }
+            yield return Interact();
+            yield return new WaitForSeconds(0.3f);
+            Vector3 scale = ZonePos(ZoneKind.Scale);
+            yield return RouteTo(StandNear(scale), 0.3f);
+            yield return LookAndInteract(scale, "Weigh on the scale");
+            yield return new WaitForSeconds(1.8f);
+            L($"appraised={r.Appraised} value={r.AppraisedValue} explain=[{string.Join(" | ", Valuation.Explain(r))}]");
+            L($"card call: '{UI.AppraisalUI.PredictionLine(r)}'");
+            L($"provenance: {UI.TabletUI.Provenance(r)}");
+            L($"history:\n{UI.TabletUI.HistoryText(r)}");
+            var st = S.State.Stats;
+            L($"stats: predictions={st.PredictionsMade} hollowRight={st.HollowCallsRight} tierRight={st.TierCallsRight}");
+            Snap("call_appraisal");
+            L(RunSaveReloadCheck());
+            var r2 = S.State.FindSpecimen(r.Id);
+            L($"after reload: predicted={r2.Predicted} locality='{r2.Locality}' history={r2.History.Count}");
+            Phase = "done";
+            Running = false;
+        }
+
         /// <summary>V5 cracker: buy Stage 2 + the cracker if needed, set a rock on it (tilted first, so it slips), level it, tighten, squeeze until it splits.</summary>
         public void RunCracker(float tiltDeg = 22f) { if (!Running) StartCoroutine(Cracker(tiltDeg)); }
 

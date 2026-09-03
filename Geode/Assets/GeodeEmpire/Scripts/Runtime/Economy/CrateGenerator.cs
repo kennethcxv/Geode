@@ -28,6 +28,9 @@ namespace GeodeEmpire.Economy
             };
             int count = rng.Range(sup.MinRocks, sup.MaxRocks + 1);
             var targets = BuildTierTargets(state, sup, count, ref rng);
+            // the lot comes from one place: a named locality the rocks carry for the rest of their lives
+            var locs = sup.Localities != null && sup.Localities.Length > 0 ? sup.Localities : DefaultLocalities(sup.Id);
+            crate.Locality = locs[rng.Range(0, locs.Length)];
 
             var mineralCounts = new Dictionary<MineralId, int>();
             var sizeWeights = sup.SizeWeights ?? SpecimenGenerator.NeutralSizeWeights;
@@ -65,11 +68,29 @@ namespace GeodeEmpire.Economy
                 }
                 mineralCounts[chosenGeo.Mineral] = mineralCounts.GetValueOrDefault(chosenGeo.Mineral) + 1;
                 var rec = createRecord(chosen, sup.Id, crate.Id);
+                rec.Locality = crate.Locality;
+                rec.AcquiredAtTicks = System.DateTime.UtcNow.Ticks;
+                rec.AcquisitionCost = Mathf.Round(sup.Price / Mathf.Max(1, count) * 100f) / 100f;
+                rec.OriginalMassKg = chosenGeo.MassKg;
+                GameState.Log(rec, "acquired", rec.AcquisitionCost, sup.Name + ", " + crate.Locality);
                 crate.SpecimenIds.Add(rec.Id);
             }
             state.Crates.Add(crate);
             return crate;
         }
+
+        /// <summary>Localities for sources that do not name their own.</summary>
+        public static string[] DefaultLocalities(string supplierId) => supplierId switch
+        {
+            SupplierCatalog.Regional => new[] { "Brazilian import lot", "Chihuahua nodule beds", "Tabasco Mine", "Rio Grande do Sul" },
+            SupplierCatalog.AmethystLot => new[] { "Artigas, Uruguay", "Ametista do Sul", "Thunder Bay" },
+            SupplierCatalog.Estate => new[] { "an estate in Tucson", "a rockhound's garage, Quartzsite", "a retired cutter's shop, Franklin", "a club collection, Boise" },
+            SupplierCatalog.Premium => new[] { "Dugway, Utah", "Coyamito Ranch", "Las Choyas", "Keokuk, Iowa" },
+            SupplierCatalog.CuttingRough => new[] { "Botswana nodule lot", "Condor agate field", "Brazilian rough" },
+            SupplierCatalog.DesertPocket => new[] { "Erongo pockets", "Thomas Range", "Las Choyas vugs" },
+            SupplierCatalog.OversizedLot => new[] { "Rio Grande do Sul cathedral field", "Uruguayan basalt flow" },
+            _ => new[] { "the local quarry" },
+        };
 
         /// <summary>Tier per rock. The first local crate is deliberately paced; later crates follow the supplier table with light new-player safeguards.</summary>
         public static QualityTier[] BuildTierTargets(GameState state, SupplierDefinition sup, int count, ref SeededRandom rng)
