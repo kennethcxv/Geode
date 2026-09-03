@@ -56,7 +56,7 @@ namespace GeodeEmpire.Workshop
             var session = GameSession.Instance;
             WorkshopAudio.Play("crystal_chime", e.transform.position, 0.5f);
             session.State.Stats.SpecimensKept = session.State.DisplayedCount();
-            float v = e.Record.Appraised ? e.Record.AppraisedValue : e.Geology.BaseValue;
+            float v = e.Record.EstimatedValue();
             if (v > session.State.Stats.HighestValueKept) { session.State.Stats.HighestValueKept = v; session.State.Stats.HighestValueKeptName = e.Record.DisplayName; }
             RecomputePrestige(session.State);
             Tutorial.Notify("specimen_sorted");
@@ -70,7 +70,8 @@ namespace GeodeEmpire.Workshop
         private void OnTaken(PlacementZone z, SpecimenEntity e)
         {
             var session = GameSession.Instance;
-            session.State.Stats.SpecimensKept = Mathf.Max(0, session.State.DisplayedCount() - 1);
+            e.Record.Location = SpecimenLocation.World;   // it is leaving the cabinet; the pickup that follows sets Held
+            session.State.Stats.SpecimensKept = session.State.DisplayedCount();
             RecomputePrestige(session.State);
             UpdateLabel(z);
             session.RaiseStateChanged();

@@ -15,6 +15,8 @@ namespace GeodeEmpire.UI
     {
         public static TabletUI Instance { get; private set; }
         public bool IsOpen { get; private set; }
+        public int CurrentTab => _tab;
+        public string FocusedText => UiKit.FocusedText(_panel);
 
         private VisualElement _root, _dim, _panel, _content;
         private Label _cash, _subtitle;
@@ -50,13 +52,17 @@ namespace GeodeEmpire.UI
                 int idx = i;
                 var b = new Button(() => SelectTab(idx)) { text = names[i] };
                 b.AddToClassList("tab");
+                b.RegisterCallback<FocusInEvent>(_ => { if (_tab != idx) SelectTab(idx); });   // d-pad left/right switches tabs directly
                 tabRow.Add(b);
                 _tabs.Add(b);
             }
-            var scroll = new ScrollView(ScrollViewMode.Vertical);
-            scroll.AddToClassList("grow");
-            _panel.Add(scroll);
-            _content = scroll.contentContainer;
+            _scroll = new ScrollView(ScrollViewMode.Vertical);
+            _scroll.AddToClassList("grow");
+            _panel.Add(_scroll);
+            _content = _scroll.contentContainer;
+            // Controller navigation: spatial navigation never steps from the tab row into the scroll view, so route
+            // it explicitly. Down enters the list, Up/Down walk the buttons, Left/Right in the list switch tabs.
+            _panel.RegisterCallback<NavigationMoveEvent>(OnNavigationMove, TrickleDown.TrickleDown);
 
             OrderTablet.Opened += Open;
             _s.StateChanged += Refresh;
@@ -68,6 +74,7 @@ namespace GeodeEmpire.UI
         {
             OrderTablet.Opened -= Open;
             if (_s != null) _s.StateChanged -= Refresh;
+            if (Instance == this) Instance = null;
         }
 
         private void Update()
@@ -104,6 +111,52 @@ namespace GeodeEmpire.UI
             WorkshopAudio.Play2D("ui_click", 0.3f, 0.9f);
         }
 
+        private ScrollView _scroll;
+
+        private List<Button> ContentButtons()
+        {
+            var list = new List<Button>();
+            _content.Query<Button>().ForEach(b => { if (b.enabledInHierarchy && b.resolvedStyle.display != DisplayStyle.None) list.Add(b); });
+            return list;
+        }
+
+        private void OnNavigationMove(NavigationMoveEvent e)
+        {
+            if (!IsOpen) return;
+            var focused = _root.panel?.focusController?.focusedElement as VisualElement;
+            var buttons = ContentButtons();
+            int idx = focused is Button fb ? buttons.IndexOf(fb) : -1;
+            bool onTab = focused is Button tb && _tabs.Contains(tb);
+            Button target = null;
+            switch (e.direction)
+            {
+                case NavigationMoveEvent.Direction.Down:
+                    if (onTab || focused == null) { if (buttons.Count > 0) target = buttons[0]; }
+                    else if (idx >= 0 && idx < buttons.Count - 1) target = buttons[idx + 1];
+                    else return;
+                    break;
+                case NavigationMoveEvent.Direction.Up:
+                    if (idx > 0) target = buttons[idx - 1];
+                    else if (idx == 0) target = _tabs[_tab];
+                    else return;
+                    break;
+                case NavigationMoveEvent.Direction.Left:
+                case NavigationMoveEvent.Direction.Right:
+                    if (idx < 0) return;                    // on the tab row the default ring already moves between tabs
+                    SelectTab((_tab + (e.direction == NavigationMoveEvent.Direction.Right ? 1 : _tabs.Count - 1)) % _tabs.Count);
+                    e.StopPropagation();
+                    _root.panel.focusController.IgnoreEvent(e);
+                    return;
+                default:
+                    return;
+            }
+            if (target == null) return;
+            target.Focus();
+            if (buttons.Contains(target)) _scroll.ScrollTo(target);
+            e.StopPropagation();
+            _root.panel.focusController.IgnoreEvent(e);
+        }
+
         private void SelectTab(int i)
         {
             _tab = i;
@@ -119,6 +172,9 @@ namespace GeodeEmpire.UI
         {
             if (!IsOpen || _s.State == null) return;
             _cash.text = UiKit.Money(_s.State.Cash);
+            // a purchase rebuilds the list; keep a controller user's place instead of dropping focus
+            var focused = _root.panel?.focusController?.focusedElement as Button;
+            int keep = focused != null ? ContentButtons().IndexOf(focused) : -1;
             _content.Clear();
             switch (_tab)
             {
@@ -126,6 +182,18 @@ namespace GeodeEmpire.UI
                 case 1: BuildUpgrades(); break;
                 case 2: BuildCollection(); break;
                 default: BuildStats(); break;
+            }
+            if (keep >= 0)
+            {
+                // the new buttons are not laid out yet, so focusing them now is a no-op: do it on the next panel update
+                int idx = keep;
+                _panel.schedule.Execute(() =>
+                {
+                    if (!IsOpen) return;
+                    var buttons = ContentButtons();
+                    if (buttons.Count > 0) { var b = buttons[Mathf.Min(idx, buttons.Count - 1)]; b.Focus(); _scroll.ScrollTo(b); }
+                    else _tabs[_tab].Focus();
+                });
             }
         }
 
@@ -220,10 +288,10 @@ namespace GeodeEmpire.UI
                 else
                 {
                     UiKit.Label(side, UiKit.Money(up.Price), "price", "bold");
-                    bool afford = _s.CanAfford(up.Price);
-                    var buy = UiKit.Button(side, afford ? "Buy" : "Not enough cash", () => BuyUpgrade(up), afford ? "btn-primary" : "");
+                    bool can = _s.CanBuyUpgrade(up.Id, out string why);
+                    var buy = UiKit.Button(side, can ? "Buy" : why, () => BuyUpgrade(up), can ? "btn-primary" : "");
                     buy.style.marginTop = 8;
-                    buy.SetEnabled(afford);
+                    buy.SetEnabled(can);
                 }
             }
         }

@@ -14,9 +14,22 @@ namespace GeodeEmpire.UI
     {
         private VisualElement _root, _menu, _confirm;
         private Button _continue, _newGame, _settings, _quit;
+        private static TitleScreen _instance;
+
+        /// <summary>Put controller focus back on the title menu after the settings panel closes.</summary>
+        public static void RefocusMenu()
+        {
+            if (_instance != null && _instance._settings != null) _instance._settings.Focus();
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this) _instance = null;
+        }
 
         private void Start()
         {
+            _instance = this;
             GameInput.Ensure();
             GameSettings.Current.Apply();
             CursorController.Reset();

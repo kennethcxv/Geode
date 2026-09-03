@@ -95,8 +95,16 @@ namespace GeodeEmpire.Player
             else SetTarget(null);
 
             if (Held != null && GameInput.DropPressed) Drop();
-            RefreshPrompt();
+            // prompts are rebuilt when what they describe changes, and every few frames for text that ticks on its own
+            bool changed = !ReferenceEquals(Target, _promptTarget) || Held != _promptHeld || Inspecting != _promptInspecting || GameInput.Scheme != _promptScheme;
+            if (changed || (Time.frameCount + _promptPhase) % 8 == 0) RefreshPrompt();
         }
+
+        private IInteractable _promptTarget;
+        private SpecimenEntity _promptHeld;
+        private bool _promptInspecting;
+        private ControlScheme _promptScheme;
+        private readonly int _promptPhase = 3;
 
         private readonly RaycastHit[] _hits = new RaycastHit[16];
 
@@ -169,6 +177,7 @@ namespace GeodeEmpire.Player
 
         private void RefreshPrompt()
         {
+            _promptTarget = Target; _promptHeld = Held; _promptInspecting = Inspecting; _promptScheme = GameInput.Scheme;
             string p = "", h = "";
             if (Inspecting)
             {
@@ -197,6 +206,7 @@ namespace GeodeEmpire.Player
         {
             if (e == null || Held != null) return;
             if (e.Zone != null) e.Zone.Take(e);
+            if (e.IsOpened && !e.Record.HasOpenPose) e.CommitOpenPose();   // leaving the bench: freeze the opened layout on the rock's own base plane
             Held = e;
             e.Locked = false;
             e.SetPhysics(false);

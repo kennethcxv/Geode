@@ -38,7 +38,7 @@ namespace GeodeEmpire.Workshop
         public static float SaleValue(SpecimenEntity e)
         {
             var s = GameSession.Instance;
-            float v = e.Record.Appraised ? e.Record.AppraisedValue : Valuation.DamagedValue(e.Geology, e.Visual.CrystalDamageFraction(), e.Record.ShellDamage);
+            float v = e.Record.EstimatedValue();
             if (e.Record.Appraised && UpgradeCatalog.Has(s.State, UpgradeCatalog.CalibratedScale)) v *= 1.05f;
             int prestige = s.State.Prestige;
             v *= 1f + 0.02f * prestige;
@@ -69,6 +69,7 @@ namespace GeodeEmpire.Workshop
             foreach (var id in SupplierCatalog.EvaluateUnlocks(session.State))
                 session.Notify($"New supplier available: {SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
             session.RaiseStateChanged();
+            session.CheckSolvency();
             session.FlushSave("sold");
             Shipped?.Invoke(total, items.Count);
         }

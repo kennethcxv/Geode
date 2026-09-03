@@ -53,11 +53,21 @@ namespace GeodeEmpire.Save
 
         public static GameState Load()
         {
-            var s = TryLoad(MainPath);
-            if (s != null) return s;
-            s = TryLoad(BackupPath);
-            if (s != null) Debug.LogWarning("[SaveSystem] main save unreadable, restored from backup");
-            return s;
+            // The swap is two renames; a crash between them leaves a verified, newer .tmp beside an older .bak.
+            // Take whichever readable file is newest, and promote it if it is not the main file.
+            var main = TryLoad(MainPath);
+            var temp = TryLoad(TempPath);
+            var back = TryLoad(BackupPath);
+            GameState best = main; string bestPath = MainPath;
+            if (temp != null && (best == null || temp.LastSavedTicks > best.LastSavedTicks)) { best = temp; bestPath = TempPath; }
+            if (back != null && (best == null || back.LastSavedTicks > best.LastSavedTicks)) { best = back; bestPath = BackupPath; }
+            if (best == null) return null;
+            if (bestPath != MainPath)
+            {
+                Debug.LogWarning($"[SaveSystem] main save {(main == null ? "unreadable" : "older")}, restored from {Path.GetFileName(bestPath)}");
+                try { File.Copy(bestPath, MainPath, true); } catch (Exception e) { Debug.LogWarning("[SaveSystem] could not promote recovered save: " + e.Message); }
+            }
+            return best;
         }
 
         private static GameState TryLoad(string path)

@@ -334,6 +334,162 @@ namespace GeodeEmpire.Core
             L($"displayed={st.DisplayedCount()} collectionValue={st.CollectionValue()} prestige={st.Prestige} suppliers={string.Join(",", st.UnlockedSuppliers)} kept={st.Stats.SpecimensKept}");
         }
 
+        /// <summary>Run G (menus): drive the tablet and pause/settings purely with the virtual gamepad and log what has focus.</summary>
+        public void RunControllerMenus() { if (!Running) StartCoroutine(ControllerMenus()); }
+
+        private IEnumerator Pad(GamepadButton b)
+        {
+            yield return D.PadTap(b, 0.09f);
+            yield return new WaitForSecondsRealtime(0.25f);   // the pause menu freezes scaled time
+        }
+
+        private IEnumerator ControllerMenus()
+        {
+            Running = true;
+            UseGamepad = true;
+            var d = D;
+            var tablet = UI.TabletUI.Instance;
+            var pause = UI.PauseMenu.Instance;
+            L($"== ControllerMenus cash={S.State.Cash}");
+            Phase = "tablet";
+            yield return Pad(GamepadButton.Select);
+            L($"tablet open={tablet.IsOpen} tab={tablet.CurrentTab} focus={tablet.FocusedText}");
+            yield return Pad(GamepadButton.DpadDown);
+            L($"down: focus={tablet.FocusedText}");
+            yield return Pad(GamepadButton.DpadDown);
+            L($"down: focus={tablet.FocusedText}");
+            yield return Pad(GamepadButton.DpadRight);
+            L($"right: tab={tablet.CurrentTab} focus={tablet.FocusedText}");
+            yield return Pad(GamepadButton.DpadDown);
+            L($"down: tab={tablet.CurrentTab} focus={tablet.FocusedText}");
+            yield return Pad(GamepadButton.DpadDown);
+            L($"down: focus={tablet.FocusedText}");
+            yield return Pad(GamepadButton.DpadUp);
+            L($"up: focus={tablet.FocusedText}");
+            yield return Pad(GamepadButton.DpadUp);
+            L($"up: focus={tablet.FocusedText}");
+            yield return Pad(GamepadButton.DpadLeft);
+            L($"left(on tab row): tab={tablet.CurrentTab} focus={tablet.FocusedText}");
+            // buy the first affordable thing on the suppliers tab, then check focus survived the rebuild
+            yield return Pad(GamepadButton.DpadDown);
+            float cashBefore = S.State.Cash;
+            string before = tablet.FocusedText;
+            yield return Pad(GamepadButton.South);
+            L($"A on '{before}': cash {cashBefore}->{S.State.Cash} crates={S.Crates.Count} focus={tablet.FocusedText} open={tablet.IsOpen}");
+            yield return Pad(GamepadButton.East);
+            L($"B: tablet open={tablet.IsOpen} pause open={pause.IsOpen}");
+
+            Phase = "pause";
+            yield return Pad(GamepadButton.Start);
+            L($"start: pause open={pause.IsOpen} settings={pause.SettingsVisible} focus={pause.FocusedText} timeScale={Time.timeScale}");
+            yield return Pad(GamepadButton.DpadDown);
+            L($"down: focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.South);
+            L($"A: settings={pause.SettingsVisible} focus={pause.FocusedText}");
+            string sBefore = pause.FocusedText;
+            yield return Pad(GamepadButton.DpadRight);
+            L($"right on slider: {sBefore} -> {pause.FocusedText}");
+            yield return Pad(GamepadButton.DpadLeft);
+            L($"left on slider: -> {pause.FocusedText}");
+            yield return Pad(GamepadButton.DpadDown);
+            L($"down: focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.East);
+            L($"B in settings: pause open={pause.IsOpen} settings={pause.SettingsVisible} focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.East);
+            L($"B on pause page: pause open={pause.IsOpen} timeScale={Time.timeScale} gameplay={GameInput.GameplayEnabled} inMenu={CursorController.InMenu}");
+            yield return Pad(GamepadButton.Start);
+            yield return Pad(GamepadButton.Start);
+            L($"start twice: pause open={pause.IsOpen} timeScale={Time.timeScale}");
+            Phase = "done";
+            Running = false;
+        }
+
+        /// <summary>
+        /// Run F (edge cases): save/reload with a crate still closed, mid-lid-animation, freshly opened, and with a rock in hand.
+        /// Uses the real save path (FlushSave + ContinueGame) and reports what came back where.
+        /// </summary>
+        public void RunSaveScenarios() { if (!Running) StartCoroutine(SaveScenarios()); }
+
+        private string WorldSummary()
+        {
+            var s = S;
+            int origin = 0, inCrate = 0, held = 0, world = 0;
+            foreach (var e in s.Entities.Values)
+            {
+                if (e.transform.position.sqrMagnitude < 0.01f) origin++;
+                if (e.Record.Location == SpecimenLocation.InCrate) inCrate++;
+                if (e.Record.Location == SpecimenLocation.Held) held++;
+                if (e.Record.Location == SpecimenLocation.World) world++;
+            }
+            var sb = new StringBuilder($"entities={s.Entities.Count} atOrigin={origin} inCrate={inCrate} held={held} world={world} crates=[");
+            foreach (var c in s.Crates.Values) sb.Append($"{c.Record.Id}:{(c.IsOpened ? "open" : "closed")}/{c.RemainingRocks} ");
+            sb.Append("]");
+            return sb.ToString();
+        }
+
+        private IEnumerator SaveScenarios()
+        {
+            Running = true;
+            var s = S;
+            L($"== SaveScenarios cash={s.State.Cash} {WorldSummary()}");
+            // 1. closed crate survives a reload closed, with its rocks unspawned
+            Phase = "closed-crate";
+            var before = new HashSet<string>(s.Crates.Keys);
+            if (!s.BuyCrate("local", out string err)) { L("buy failed: " + err); Running = false; yield break; }
+            yield return new WaitForSeconds(1.6f);
+            CrateEntity crate = null;
+            foreach (var kv in s.Crates) if (!before.Contains(kv.Key)) crate = kv.Value;
+            string crateId = crate.Record.Id;
+            L($"bought {crateId}: {WorldSummary()}");
+            s.FlushSave("test");
+            s.ContinueGame();
+            yield return null;
+            crate = s.Crates[crateId];
+            L($"reload with closed crate: {WorldSummary()}");
+            // 2. save during the lid animation: comes back closed, then opens normally
+            Phase = "mid-open";
+            crate.Interact(P);
+            yield return new WaitForSeconds(0.25f);
+            L($"mid-animation: opened={crate.IsOpened} {WorldSummary()}");
+            s.FlushSave("test");
+            s.ContinueGame();
+            yield return null;
+            crate = s.Crates[crateId];
+            L($"reload mid-animation: {WorldSummary()}");
+            // 3. open fully, reload, positions must match
+            Phase = "opened";
+            crate.Interact(P);
+            yield return new WaitForSeconds(1.6f);
+            var poses = new Dictionary<string, Vector3>();
+            foreach (var e in s.Entities.Values) if (e.Record.CrateId == crateId) poses[e.Id] = e.transform.position;
+            L($"opened: opened={crate.IsOpened} {WorldSummary()}");
+            s.FlushSave("test");
+            s.ContinueGame();
+            yield return null;
+            crate = s.Crates[crateId];
+            float maxMove = 0f; int missing = 0;
+            foreach (var kv in poses) { var e = s.GetEntity(kv.Key); if (e == null) missing++; else maxMove = Mathf.Max(maxMove, (e.transform.position - kv.Value).magnitude); }
+            L($"reload opened: {WorldSummary()} maxMove={maxMove:F3} missing={missing}");
+            // 4. a rock in hand comes back as a loose rock in front of the player, not stuck to nothing
+            Phase = "held";
+            SpecimenEntity rock = null;
+            foreach (var e in s.Entities.Values) if (e.Record.CrateId == crateId && e.Record.Location == SpecimenLocation.InCrate) { rock = e; break; }
+            if (rock != null)
+            {
+                if (rock.Zone != null) rock.Zone.Take(rock);
+                P.PickUp(rock);
+                yield return new WaitForSeconds(0.4f);
+                L($"held {rock.Id}: loc={rock.Record.Location} {WorldSummary()}");
+                s.FlushSave("test");
+                s.ContinueGame();
+                yield return new WaitForSeconds(0.6f);
+                var back = s.GetEntity(rock.Id);
+                L($"reload held: loc={back.Record.Location} pos={back.transform.position:F2} playerHeld={(P.Held != null)} {WorldSummary()}");
+            }
+            Phase = "done";
+            Running = false;
+        }
+
         /// <summary>Crack every remaining rock on the bench quickly (for economy/pacing checks).</summary>
         public void RunCrackAll(string style = "careful") { if (!Running) StartCoroutine(CrackAll(style)); }
 

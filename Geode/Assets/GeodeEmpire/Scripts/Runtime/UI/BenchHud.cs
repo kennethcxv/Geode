@@ -13,6 +13,9 @@ namespace GeodeEmpire.UI
         private VisualElement _root, _reticle, _panel, _forceFill, _progressFill, _progressRow, _result;
         private Label _title, _cracks, _hint, _resultName, _resultNote, _resultPrompt;
         private float _flash;
+        private int _lastCracks = -1;
+        private int _lastHintState = -1;
+        private ControlScheme _lastScheme;
 
         private void Start()
         {
@@ -68,6 +71,7 @@ namespace GeodeEmpire.UI
 
         private void OnEntered()
         {
+            _lastCracks = -1; _lastHintState = -1;
             HudController.Instance.SetFreeRoamVisible(false);
             _panel.style.display = DisplayStyle.Flex;
             _reticle.style.display = DisplayStyle.Flex;
@@ -115,15 +119,32 @@ namespace GeodeEmpire.UI
             _progressRow.style.display = lamp ? DisplayStyle.Flex : DisplayStyle.None;
             if (lamp) _progressFill.style.width = Length.Percent(_bench.Model.Progress() * 100f);
             int cracks = _bench.Model.CrackedCount();
-            _cracks.text = cracks == 0 ? "No cracks yet" : $"{cracks} of {StressModel.Sectors} seam segments cracked";
-            string hint;
-            if (!_bench.AimValid) hint = "Aim on the rock";
-            else if (_bench.Charge > 0.75f) hint = "Heavy blow: fast, but crystals near the seam may break";
-            else if (_bench.Charge > 0.02f) hint = "Release to strike";
-            else hint = $"Hold {GameInput.Glyph("Strike")} to wind up  •  {GameInput.Glyph("Rotate")} rotate  •  {GameInput.Glyph("Back")} leave";
-            if (_bench.LastResult.Slipped && _flash > 0.5f) hint = "Slipped! Aim squarely at the shell.";
-            else if (_bench.LastResult.Overstrike && _flash > 0.5f) hint = "That segment is already cracked. Work around the ring.";
-            _hint.text = hint;
+            if (cracks != _lastCracks)
+            {
+                _lastCracks = cracks;
+                _cracks.text = cracks == 0 ? "No cracks yet" : $"{cracks} of {StressModel.Sectors} seam segments cracked";
+            }
+            // the hint only changes with state, never per frame: build the string when the state does
+            int state;
+            if (_bench.LastResult.Slipped && _flash > 0.5f) state = 5;
+            else if (_bench.LastResult.Overstrike && _flash > 0.5f) state = 6;
+            else if (!_bench.AimValid) state = 1;
+            else if (_bench.Charge > 0.75f) state = 2;
+            else if (_bench.Charge > 0.02f) state = 3;
+            else state = 4;
+            if (state != _lastHintState || (state == 4 && GameInput.Scheme != _lastScheme))
+            {
+                _lastHintState = state; _lastScheme = GameInput.Scheme;
+                _hint.text = state switch
+                {
+                    1 => "Aim on the rock",
+                    2 => "Heavy blow: fast, but crystals near the seam may break",
+                    3 => "Release to strike",
+                    5 => "Slipped! Aim squarely at the shell.",
+                    6 => "That segment is already cracked. Work around the ring.",
+                    _ => $"Hold {GameInput.Glyph("Strike")} to wind up  •  {GameInput.Glyph("Rotate")} rotate  •  {GameInput.Glyph("Back")} leave",
+                };
+            }
         }
     }
 }

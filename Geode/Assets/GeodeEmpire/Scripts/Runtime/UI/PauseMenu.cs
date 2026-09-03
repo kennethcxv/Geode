@@ -12,11 +12,18 @@ namespace GeodeEmpire.UI
         public static PauseMenu Instance { get; private set; }
         public bool IsOpen { get; private set; }
         public bool ShowSettingsOnly;   // used by the title screen
+        public bool SettingsVisible => _settingsPage != null && _settingsPage.style.display == DisplayStyle.Flex;
+        public string FocusedText => UiKit.FocusedText(_panel);
 
         private VisualElement _dim, _panel, _mainPage, _settingsPage;
         private Button _resume, _settingsBtn, _quitBtn;
 
         private void Awake() => Instance = this;
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
 
         private void Start()
         {
@@ -36,8 +43,17 @@ namespace GeodeEmpire.UI
             _settingsPage = UiKit.Box(_panel);
             BuildSettings(_settingsPage);
             _settingsPage.style.display = DisplayStyle.None;
-            _dim.RegisterCallback<NavigationCancelEvent>(e => { if (_settingsPage.style.display == DisplayStyle.Flex) ShowSettings(false); else Close(); e.StopPropagation(); });
+            _dim.RegisterCallback<NavigationCancelEvent>(e =>
+            {
+                e.StopPropagation();
+                if (_cancelHandledFrame == Time.frameCount) return;      // Update() already consumed this press
+                _cancelHandledFrame = Time.frameCount;
+                if (_settingsPage.style.display == DisplayStyle.Flex) LeaveSettings(); else Close();
+            });
         }
+
+        // One physical press can arrive twice: as the UI Cancel navigation event and as the raw device poll below.
+        private int _cancelHandledFrame = -1;
 
         private void Update()
         {
@@ -47,14 +63,22 @@ namespace GeodeEmpire.UI
             bool backPressed = gp != null && gp.buttonEast.wasPressedThisFrame;
             if (!IsOpen)
             {
-                if (pausePressed && !CursorController.InMenu && !BenchActive()) Open();
+                // the same Escape/B that just closed the tablet, a letter or the bench must not also open the pause menu
+                if (pausePressed && !CursorController.InMenu && !CursorController.InputConsumedThisFrame && !BenchActive()) Open();
                 return;
             }
-            if (pausePressed || backPressed)
+            if ((pausePressed || backPressed) && _cancelHandledFrame != Time.frameCount)
             {
-                if (_settingsPage.style.display == DisplayStyle.Flex) ShowSettings(false);
+                _cancelHandledFrame = Time.frameCount;
+                if (_settingsPage.style.display == DisplayStyle.Flex) LeaveSettings();
                 else Close();
             }
+        }
+
+        /// <summary>Back out of the settings page: to the pause page in the workshop, all the way out on the title screen.</summary>
+        private void LeaveSettings()
+        {
+            if (ShowSettingsOnly) Close(); else ShowSettings(false);
         }
 
         private static bool BenchActive()
@@ -68,7 +92,8 @@ namespace GeodeEmpire.UI
             if (IsOpen) return;
             IsOpen = true;
             CursorController.EnterMenu();
-            HudController.Instance?.SetFreeRoamVisible(false);
+            var hud = HudController.Instance;
+            if (hud != null) hud.SetFreeRoamVisible(false);
             _dim.style.display = DisplayStyle.Flex;
             ShowSettings(ShowSettingsOnly);
             Time.timeScale = 0f;
@@ -82,23 +107,31 @@ namespace GeodeEmpire.UI
             Time.timeScale = 1f;
             _dim.style.display = DisplayStyle.None;
             CursorController.ExitMenu();
-            HudController.Instance?.SetFreeRoamVisible(true);
+            var hud = HudController.Instance;
+            if (hud != null) hud.SetFreeRoamVisible(true);
             GameSettings.Current.Save();
-            GameSession.Instance?.FlushSave("pause-close");
+            var session = GameSession.Instance;
+            if (session != null) session.FlushSave("pause-close");
+            if (ShowSettingsOnly) TitleScreen.RefocusMenu();
         }
 
         private void ShowSettings(bool show)
         {
             _mainPage.style.display = show ? DisplayStyle.None : DisplayStyle.Flex;
             _settingsPage.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
-            if (show) _settingsPage.Q<Button>()?.Focus(); else _resume.Focus();
+            // controller users land on the first control, not on the Back button at the bottom; the page was
+            // display:none a moment ago, so focus it once the panel has laid it out
+            var target = show ? ((VisualElement)_settingsPage.Q<Slider>() ?? _settingsPage.Q<Button>()) : _resume;
+            target?.Focus();
+            _panel.schedule.Execute(() => { if (IsOpen) target?.Focus(); });
             if (!show) GameSettings.Current.Save();
         }
 
         private void QuitToTitle()
         {
             Time.timeScale = 1f;
-            GameSession.Instance?.FlushSave("quit-to-title");
+            var session = GameSession.Instance;
+            if (session != null) session.FlushSave("quit-to-title");
             GameSettings.Current.Save();
             CursorController.Reset();
             CursorController.EnterMenu();
@@ -130,7 +163,7 @@ namespace GeodeEmpire.UI
             page.Add(fps);
             Toggle(page, "Fullscreen", s.Fullscreen, v => { s.Fullscreen = v; s.Apply(); });
             Toggle(page, "Show tutorial hints", s.ShowTutorial, v => { s.ShowTutorial = v; s.Apply(); });
-            var back = UiKit.Button(page, "Back", () => ShowSettings(false), "btn-ghost");
+            var back = UiKit.Button(page, "Back", LeaveSettings, "btn-ghost");
             back.style.marginTop = 16;
         }
 
@@ -140,6 +173,15 @@ namespace GeodeEmpire.UI
             UiKit.Label(row, label, "slider-label");
             var sl = new Slider(min, max) { value = value };
             sl.RegisterValueChangedCallback(e => onChange(e.newValue));
+            // controller / arrow keys: 5% of the range per press (UI Toolkit's default is 1% rounded to a power of ten)
+            float step = (max - min) / 20f;
+            sl.RegisterCallback<NavigationMoveEvent>(e =>
+            {
+                if (e.direction != NavigationMoveEvent.Direction.Left && e.direction != NavigationMoveEvent.Direction.Right) return;
+                sl.value = Mathf.Clamp(sl.value + (e.direction == NavigationMoveEvent.Direction.Right ? step : -step), min, max);
+                e.StopPropagation();
+                sl.panel?.focusController?.IgnoreEvent(e);
+            });
             row.Add(sl);
             var val = UiKit.Label(row, value.ToString("F2"), "muted");
             val.style.width = 60;

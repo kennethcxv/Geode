@@ -80,6 +80,11 @@ namespace GeodeEmpire.UI
             GameSettings.Changed += RefreshTutorial;
         }
 
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
         private void OnDisable()
         {
             if (_player != null) _player.PromptChanged -= RefreshPrompt;

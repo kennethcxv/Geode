@@ -90,8 +90,11 @@ namespace GeodeEmpire.Workshop
         private IEnumerator OpenRoutine()
         {
             _opening = true;
-            Record.Opened = true;
             WorkshopAudio.Play("crate_open", transform.position, 1f);
+            // Building a rock (shell meshes, hull colliders) is the expensive part of opening, so the rocks are created
+            // one per frame behind the lid animation, hidden, and only laid out once the lid has landed.
+            var pending = new List<SpecimenEntity>();
+            int next = 0;
             if (Lid != null)
             {
                 Vector3 p0 = Lid.localPosition; Quaternion r0 = Lid.localRotation;
@@ -104,6 +107,7 @@ namespace GeodeEmpire.Workshop
                     float s = Mathf.SmoothStep(0f, 1f, t);
                     Lid.localPosition = Vector3.Lerp(p0, p1, s) + Vector3.up * Mathf.Sin(s * Mathf.PI) * 0.18f;
                     Lid.localRotation = Quaternion.Slerp(r0, r1, s);
+                    SpawnHiddenRock(ref next, pending);
                     yield return null;
                 }
                 // lid settles standing up against the back of the crate (never under a neighbouring crate)
@@ -116,13 +120,17 @@ namespace GeodeEmpire.Workshop
                     float s2 = t2 * t2;
                     Lid.localPosition = Vector3.Lerp(pa, pb, s2);
                     Lid.localRotation = Quaternion.Slerp(ra, rb, s2);
+                    SpawnHiddenRock(ref next, pending);
                     yield return null;
                 }
                 LayLidOnFloor();
                 WorkshopAudio.Play("wood_knock", transform.TransformPoint(Lid.localPosition), 0.7f);
             }
+            while (SpawnHiddenRock(ref next, pending)) yield return null;
             SetOpenColliders();
-            SpawnRocks();
+            PackRocks(pending);
+            // only now is the crate committed as opened: every rock has a real pose, so a save at any moment restores it
+            Record.Opened = true;
             _session.State.Stats.CratesPurchased = Mathf.Max(_session.State.Stats.CratesPurchased, _session.State.CrateCounter);
             _session.QueueSave("crate-open");
             _session.RaiseStateChanged();
@@ -130,18 +138,51 @@ namespace GeodeEmpire.Workshop
             _opening = false;
         }
 
-        private void SpawnRocks()
+        /// <summary>Create the next rock of this crate, inactive, so its geometry is built off the critical frame. False when done.</summary>
+        private bool SpawnHiddenRock(ref int index, List<SpecimenEntity> into)
+        {
+            while (index < Record.SpecimenIds.Count)
+            {
+                var rec = _session.State.FindSpecimen(Record.SpecimenIds[index++]);
+                if (rec == null || rec.Location != SpecimenLocation.InCrate) continue;
+                var e = _session.Spawn(rec, Bed.position, Quaternion.identity, false);
+                e.gameObject.SetActive(false);
+                into.Add(e);
+                return index < Record.SpecimenIds.Count;
+            }
+            return false;
+        }
+
+        private bool _needsRepack;
+
+        /// <summary>Reload path: a rock of an opened crate goes back to its saved spot; a rock without one is re-packed afterwards.</summary>
+        public void RestoreRock(SpecimenRecord rec)
+        {
+            var e = _session.Spawn(rec, rec.WorldPosition, rec.WorldRotation, false);
+            e.SetStaticCollidable();
+            _rocks.Add(e);
+            if (rec.WorldPosition.sqrMagnitude < 1e-6f) _needsRepack = true;
+        }
+
+        /// <summary>After every rock of a reloaded crate is back: lay them out again if any had no saved pose.</summary>
+        public void FinishRestore()
+        {
+            if (!_needsRepack) return;
+            _needsRepack = false;
+            var list = new List<SpecimenEntity>(_rocks);
+            _rocks.Clear();
+            PackRocks(list);
+            _session.QueueSave("crate-repack");
+        }
+
+        /// <summary>
+        /// Shelf-pack the rocks largest-first: rows along the bed depth, a second layer on top when a big estate load
+        /// does not fit, exactly like a straw-packed crate. Every rock ends up active, kinematic and collidable.
+        /// </summary>
+        private void PackRocks(List<SpecimenEntity> rocks)
         {
             var rng = new SeededRandom(Record.Seed ^ 0xABCDUL);
-            // spawn first so every rock knows its real footprint, then shelf-pack them largest-first: rows along the
-            // bed depth, a second layer on top when a big estate load does not fit, exactly like a straw-packed crate
-            var rocks = new List<SpecimenEntity>();
-            foreach (var id in Record.SpecimenIds)
-            {
-                var rec = _session.State.FindSpecimen(id);
-                if (rec == null || rec.Location != SpecimenLocation.InCrate) continue;
-                rocks.Add(_session.Spawn(rec, Vector3.zero, Quaternion.identity, false));
-            }
+            foreach (var e in rocks) if (!e.gameObject.activeSelf) e.gameObject.SetActive(true);
             rocks.Sort((a, b) => Footprint(b).CompareTo(Footprint(a)));
 
             const float gap = 0.018f, margin = 0.03f;
@@ -210,14 +251,6 @@ namespace GeodeEmpire.Workshop
         {
             if (e.Visual != null && e.Visual.Geometry != null) return Mathf.Max(0.03f, e.Visual.Geometry.MaxRadius);
             return Mathf.Max(0.03f, e.Geology != null ? e.Geology.Size * 1.3f : 0.06f);
-        }
-
-        /// <summary>Reload path: put a still-in-crate rock back at its saved spot.</summary>
-        public void RestoreRock(SpecimenRecord rec)
-        {
-            var e = _session.Spawn(rec, rec.WorldPosition, rec.WorldRotation, false);
-            e.SetStaticCollidable();
-            _rocks.Add(e);
         }
 
         private void BreakDown()

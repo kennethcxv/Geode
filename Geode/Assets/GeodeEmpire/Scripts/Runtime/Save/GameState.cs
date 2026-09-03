@@ -34,12 +34,21 @@ namespace GeodeEmpire.Save
         public int StrikeCount;
         public int DamageEvents;
         public float ShellDamage;
+        /// <summary>Crystal damage fraction as the appraisal sees it, kept current by the bench so value can be estimated without geometry.</summary>
+        public float DamageFraction;
+        // opened layout: where the flipped top half rests relative to the bottom half (set when the specimen leaves the bench)
+        public bool HasOpenPose;
+        public Vector3 OpenTopLocalPos;
+        public Quaternion OpenTopLocalRot = Quaternion.identity;
 
         [NonSerialized] private SpecimenGeology _geology;
         public SpecimenGeology Geology => _geology ??= SpecimenGenerator.Generate(Seed);
 
         public string DisplayName => !string.IsNullOrEmpty(CustomName) ? CustomName : Valuation.DescriptiveName(Geology);
         public bool IsOpened => Condition != null && Condition.Opened;
+
+        /// <summary>Appraised value when known, otherwise the damaged value the dealer would see (never the pristine base value).</summary>
+        public float EstimatedValue() => Appraised && AppraisedValue > 0f ? AppraisedValue : Valuation.DamagedValue(Geology, DamageFraction, ShellDamage);
     }
 
     [Serializable]
@@ -92,6 +101,7 @@ namespace GeodeEmpire.Save
         public int TotalStrikes;
         public int CleanOpens;
         public float PlayTimeSeconds;
+        public int DealerAdvances;
     }
 
     /// <summary>Whole career save. Versioned; new fields get sensible defaults on load.</summary>
@@ -154,7 +164,7 @@ namespace GeodeEmpire.Save
         public float CollectionValue()
         {
             float v = 0f;
-            foreach (var s in Specimens) if (s.Location == SpecimenLocation.DisplaySlot) v += s.AppraisedValue > 0 ? s.AppraisedValue : s.Geology.BaseValue;
+            foreach (var s in Specimens) if (s.Location == SpecimenLocation.DisplaySlot) v += s.EstimatedValue();
             return v;
         }
     }

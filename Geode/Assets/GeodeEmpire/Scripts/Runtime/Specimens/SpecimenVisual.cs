@@ -78,14 +78,18 @@ namespace GeodeEmpire.Specimens
             _ownedMeshes.Add(TopColliderMesh);
             BottomShellRenderer = bottomRenderer;
             TopShellRenderer = topRenderer;
-            RebuildCrystals();
+            // crystal meshes are built lazily: a closed rock shows none, and the reveal rebuilds them with damage anyway
+            if (Condition.Opened) RebuildCrystals();
             ApplyShellProperties();
             SetCrystalsVisible(Condition.Opened);
         }
 
+        private bool _crystalsBuilt;
+
         /// <summary>Crystals are hidden while the rock is closed (nothing inside is visible anyway).</summary>
         public void SetCrystalsVisible(bool visible)
         {
+            if (visible && !_crystalsBuilt) RebuildCrystals();
             foreach (var r in _crystalRenderers) if (r != null) r.enabled = visible;
         }
 
@@ -94,6 +98,7 @@ namespace GeodeEmpire.Specimens
             foreach (var m in _ownedMeshes) if (m != null) DestroyObj(m);
             _ownedMeshes.Clear();
             _crystalRenderers.Clear();
+            _crystalsBuilt = false;
             for (int i = transform.childCount - 1; i >= 0; i--) DestroyObj(transform.GetChild(i).gameObject);
             TopHalf = BottomHalf = null;
         }
@@ -130,6 +135,7 @@ namespace GeodeEmpire.Specimens
             CreateCrystalObject(TopHalf, true, false);
             CreateCrystalObject(TopHalf, true, true);
             ApplyCrystalProperties();
+            _crystalsBuilt = true;
         }
 
         private void CreateCrystalObject(Transform parent, bool top, bool secondary)
@@ -149,11 +155,21 @@ namespace GeodeEmpire.Specimens
 
         private Mesh CombineCrystals(bool top, bool secondary)
         {
-            var verts = new List<Vector3>();
-            var norms = new List<Vector3>();
-            var cols = new List<Color>();
-            var uvs = new List<Vector2>();
-            var tris = new List<int>();
+            // size the buffers first so the combine never grows (a dense druzy carpet is ~600 crystals)
+            int vCount = 0, iCount = 0;
+            foreach (var c in Geometry.Crystals)
+            {
+                if (c.TopHalf != top || c.Secondary != secondary) continue;
+                var d = _lib.GetMeshData(c.Archetype);
+                if (d == null) continue;
+                vCount += d.Vertices.Length; iCount += d.Triangles.Length;
+            }
+            if (vCount == 0) return null;
+            var verts = new List<Vector3>(vCount);
+            var norms = new List<Vector3>(vCount);
+            var cols = new List<Color>(vCount);
+            var uvs = new List<Vector2>(vCount);
+            var tris = new List<int>(iCount);
             foreach (var c in Geometry.Crystals)
             {
                 if (c.TopHalf != top || c.Secondary != secondary) continue;

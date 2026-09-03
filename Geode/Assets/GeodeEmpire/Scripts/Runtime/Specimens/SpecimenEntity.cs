@@ -129,11 +129,17 @@ namespace GeodeEmpire.Specimens
             {
                 Visual.SetCrystalsVisible(true);
                 var geo = Visual.Geometry;
+                if (Record.HasOpenPose)
+                {
+                    // exactly how it lay when it left the bench
+                    Visual.TopHalf.localRotation = Record.OpenTopLocalRot;
+                    Visual.TopHalf.localPosition = Record.OpenTopLocalPos;
+                    return;
+                }
                 float r = geo.MeanEquatorRadius;
-                // lie the top half next to the bottom half, cavity up (rotated 180 around Z, shifted along -X)
-                Visual.TopHalf.localRotation = Quaternion.Euler(0f, 0f, 180f);
-                Visual.TopHalf.localPosition = new Vector3(-r * 2.15f, geo.TopY * 0f + (-geo.BottomY + geo.TopY) * 0f, 0f);
+                // lie the top half next to the bottom half, cavity up (rotated 180 around Z, shifted along -X);
                 // its lowest point must touch the same surface: after flipping, its pole (TopY) is lowest
+                Visual.TopHalf.localRotation = Quaternion.Euler(0f, 0f, 180f);
                 Visual.TopHalf.localPosition = new Vector3(-r * 2.15f, geo.BottomY + geo.TopY, 0f);
             }
             else
@@ -142,6 +148,22 @@ namespace GeodeEmpire.Specimens
                 Visual.TopHalf.localRotation = Quaternion.identity;
                 Visual.TopHalf.localPosition = Vector3.zero;
             }
+        }
+
+        /// <summary>
+        /// Freeze the flipped top half where the reveal left it, but resting on the bottom half's own base plane, so the
+        /// pose is right on every surface the specimen is later set on (the bench drops it onto the bench top instead).
+        /// </summary>
+        public void CommitOpenPose()
+        {
+            if (Visual == null || Visual.TopHalf == null || !IsOpened) return;
+            var geo = Visual.Geometry;
+            var p = Visual.TopHalf.localPosition;
+            p.y = geo.BottomY + geo.TopY;
+            Visual.TopHalf.localPosition = p;
+            Record.OpenTopLocalPos = p;
+            Record.OpenTopLocalRot = Visual.TopHalf.localRotation;
+            Record.HasOpenPose = true;
         }
 
         public void SetHighlight(bool on) => Visual?.SetHighlight(on ? 1f : 0f);

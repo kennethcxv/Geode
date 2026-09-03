@@ -32,6 +32,18 @@ namespace GeodeEmpire.UI
             return b;
         }
 
+        /// <summary>Dev/test: describe the element that currently has keyboard/controller focus on a panel.</summary>
+        public static string FocusedText(VisualElement anyElementOnPanel)
+        {
+            var f = anyElementOnPanel?.panel?.focusController?.focusedElement as VisualElement;
+            if (f == null) return "<none>";
+            if (f is Button b) return "Button:" + b.text;
+            if (f is Slider s) return "Slider:" + s.value.ToString("F2");
+            if (f is Toggle t) return "Toggle:" + t.value;
+            if (f is DropdownField d) return "Dropdown:" + d.value;
+            return f.GetType().Name + (string.IsNullOrEmpty(f.name) ? "" : ":" + f.name);
+        }
+
         public static string Money(float v)
         {
             return v < 0 ? "-$" + Mathf.Abs(v).ToString("N0") : "$" + v.ToString("N0");

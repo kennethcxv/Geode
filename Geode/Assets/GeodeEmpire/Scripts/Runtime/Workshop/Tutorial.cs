@@ -54,18 +54,27 @@ namespace GeodeEmpire.Workshop
             var s = GameSession.Instance != null ? GameSession.Instance.State : null;
             if (s == null) return;
             bool changed = false;
-            foreach (var st in Steps)
+            int currentIndex = Steps.Length;
+            for (int i = 0; i < Steps.Length; i++) if (!s.TutorialDone(Steps[i].Id)) { currentIndex = i; break; }
+            for (int i = 0; i < Steps.Length; i++)
             {
-                if (st.DoneBy == doneBy && !s.TutorialDone(st.Id))
+                var st = Steps[i];
+                if (st.DoneBy != doneBy || s.TutorialDone(st.Id)) continue;
+                if (i - currentIndex <= 2)
                 {
-                    // completing a later step implicitly completes earlier ones
+                    // completing the next step or the one after implicitly completes the ones before it
                     foreach (var prev in Steps)
                     {
                         if (!s.TutorialDone(prev.Id)) s.TutorialSteps.Add(prev.Id);
                         if (prev == st) break;
                     }
-                    changed = true;
                 }
+                else
+                {
+                    // a far jump (buying an upgrade before the first crate) only ticks that step; the hints keep teaching
+                    s.TutorialSteps.Add(st.Id);
+                }
+                changed = true;
             }
             if (changed)
             {

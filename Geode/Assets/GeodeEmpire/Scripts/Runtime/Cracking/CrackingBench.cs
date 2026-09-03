@@ -87,6 +87,7 @@ namespace GeodeEmpire.Cracking
         public event Action<StressModel.StrikeResult> Struck;
         public event Action<SpecimenEntity> Revealed;
 
+        private readonly RaycastHit[] _aimHits = new RaycastHit[12];
         private SpecimenEntity _rock;
         private StressModel _model;
         private CrackRibbon _ribbon;
@@ -203,8 +204,8 @@ namespace GeodeEmpire.Cracking
         public void Exit()
         {
             if (!Active || Revealing) return;
-            LastExitReason = new System.Diagnostics.StackTrace(1, false).ToString();
-            if (TraceExits) Debug.Log("[CrackingBench] Exit\n" + LastExitReason);
+            if (TraceExits) { LastExitReason = new System.Diagnostics.StackTrace(1, false).ToString(); Debug.Log("[CrackingBench] Exit\n" + LastExitReason); }
+            CursorController.MarkInputConsumed();   // the Back press that leaves the bench must not also pause
             Active = false;
             if (_controller != null) _controller.ExitStationView();
             if (_player != null) _player.InputLocked = false;
@@ -263,12 +264,12 @@ namespace GeodeEmpire.Cracking
             // aim on the rock surface
             _aimValid = false;
             var ray = _cam.ViewportPointToRay(new Vector3(_cursor.x, _cursor.y, 0f));
-            var hits = Physics.RaycastAll(ray, 3f, ~0, QueryTriggerInteraction.Ignore);
+            int n = Physics.RaycastNonAlloc(ray, _aimHits, 3f, ~0, QueryTriggerInteraction.Ignore);
             float best = float.MaxValue;
-            foreach (var h in hits)
+            for (int i = 0; i < n; i++)
             {
-                var se = h.collider.GetComponentInParent<SpecimenEntity>();
-                if (se != _rock) continue;
+                var h = _aimHits[i];
+                if (h.collider.attachedRigidbody != _rock.Body) continue;
                 if (h.distance < best) { best = h.distance; _aimPoint = h.point; _aimNormal = h.normal; _aimValid = true; }
             }
             UpdateToolVisuals(dt);
@@ -395,7 +396,8 @@ namespace GeodeEmpire.Cracking
             }
             else
             {
-                session.FlushSave("strike");
+                // committed within the coalescing window; bench-enter already flushed the anti-reroll state
+                session.QueueSave("strike");
             }
         }
 
@@ -428,8 +430,9 @@ namespace GeodeEmpire.Cracking
             }
             _rock.Record.DamageEvents++;
             _rock.Record.ShellDamage = Mathf.Clamp01(_rock.Record.ShellDamage + severity * 0.12f);
+            _rock.Record.DamageFraction = _rock.Visual.CrystalDamageFraction();
             _damageThisRock++;
-            GameSession.Instance.State.Stats.SpecimensDamaged += _damageThisRock == 1 ? 1 : 0;
+            if (_rock.Record.DamageEvents == 1) GameSession.Instance.State.Stats.SpecimensDamaged++;   // persisted counter: no double count after re-entering
         }
 
         private IEnumerator RevealRoutine(StressModel.StrikeResult result)
@@ -444,6 +447,10 @@ namespace GeodeEmpire.Cracking
             rec.OpenedAtTicks = DateTime.UtcNow.Ticks;
             rec.Location = SpecimenLocation.Bench;
             session.State.Stats.RocksProcessed++;
+            // the discovery is part of the same commit as the open: quitting during the animation cannot lose it
+            float damage = vis.CrystalDamageFraction();
+            rec.DamageFraction = damage;
+            session.RecordDiscovery(rec, damage);
             session.FlushSave("opened");
 
             bool rare = g.Tier >= QualityTier.Exceptional;
@@ -535,8 +542,6 @@ namespace GeodeEmpire.Cracking
             if (_ribbon != null) StartCoroutine(FadeRibbon(_ribbon, 0.8f));
             _ribbon = null;
 
-            float damage = vis.CrystalDamageFraction();
-            session.RecordDiscovery(rec, damage);
             ResultNote = BuildResultNote(g, damage, result);
             Opened = true;
             Revealing = false;

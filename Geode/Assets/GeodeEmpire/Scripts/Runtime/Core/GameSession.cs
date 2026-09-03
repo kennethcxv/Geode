@@ -82,6 +82,11 @@ namespace GeodeEmpire.Core
             if (State != null) FlushSave("quit");
         }
 
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
         // ------------------------------------------------------------------------------------
         // Lifecycle
         // ------------------------------------------------------------------------------------
@@ -116,10 +121,12 @@ namespace GeodeEmpire.Core
             }
             IsLoaded = true;
             RebuildWorld();
+            DisplayCabinet.RecomputePrestige(State);
             PlacePlayerAtStart();
             CursorController.Reset();
             Loaded?.Invoke();
             StateChanged?.Invoke();
+            CheckSolvency();
         }
 
         private void PlacePlayerAtStart()
@@ -146,14 +153,13 @@ namespace GeodeEmpire.Core
         private void RebuildWorld()
         {
             var zones = FindObjectsByType<PlacementZone>(FindObjectsInactive.Include);
+            // every delivered crate comes back, opened or not; an emptied crate stays until the player breaks it down
+            State.Crates.RemoveAll(cr => !cr.Delivered);
             foreach (var cr in State.Crates)
             {
-                if (cr.Delivered && !cr.Opened || (cr.Opened && HasRemainingRocks(cr)))
-                {
-                    var ce = CrateEntity.Create(cr, this);
-                    ce.transform.SetPositionAndRotation(cr.Position, cr.Rotation);
-                    _crates[cr.Id] = ce;
-                }
+                var ce = CrateEntity.Create(cr, this);
+                ce.transform.SetPositionAndRotation(cr.Position, cr.Rotation);
+                _crates[cr.Id] = ce;
             }
             foreach (var r in State.Specimens)
             {
@@ -164,15 +170,22 @@ namespace GeodeEmpire.Core
                         continue;
                     case SpecimenLocation.InCrate:
                     {
-                        if (_crates.TryGetValue(r.CrateId ?? "", out var ce)) ce.RestoreRock(r);
-                        else Spawn(r, r.WorldPosition, r.WorldRotation, true);
+                        // rocks of a closed crate have no pose yet: they are laid out when the crate is opened
+                        if (_crates.TryGetValue(r.CrateId ?? "", out var ce)) { if (ce.IsOpened) ce.RestoreRock(r); }
+                        else { r.Location = SpecimenLocation.World; Spawn(r, r.WorldPosition, r.WorldRotation, true); }
                         break;
                     }
                     case SpecimenLocation.Held:
                     case SpecimenLocation.World:
                     {
                         var pos = r.WorldPosition;
-                        if (r.Location == SpecimenLocation.Held && Controller != null) pos = Controller.transform.position + Controller.transform.forward * 0.6f + Vector3.up * 1.0f;
+                        if (r.Location == SpecimenLocation.Held)
+                        {
+                            // it was in the player's hands: set it down in front of them as a normal loose rock
+                            if (Controller != null) pos = Controller.transform.position + Controller.transform.forward * 0.6f + Vector3.up * 1.0f;
+                            r.Location = SpecimenLocation.World;
+                            r.WorldPosition = pos;
+                        }
                         Spawn(r, pos, r.WorldRotation, true);
                         break;
                     }
@@ -186,6 +199,7 @@ namespace GeodeEmpire.Core
                     }
                 }
             }
+            foreach (var ce in _crates.Values) ce.FinishRestore();
         }
 
         private static bool HasRemainingRocks(CrateRecord cr)
@@ -342,13 +356,57 @@ namespace GeodeEmpire.Core
             return true;
         }
 
+        /// <summary>Anything left to turn into cash: unopened rocks anywhere, or opened pieces not yet sold or displayed.</summary>
+        public bool HasProcessableMaterial()
+        {
+            if (State == null) return false;
+            foreach (var s in State.Specimens)
+            {
+                if (s.Location == SpecimenLocation.Sold || s.Location == SpecimenLocation.Discarded || s.Location == SpecimenLocation.DisplaySlot) continue;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// An upgrade must never strand the career: with nothing left to process, the player keeps enough cash for the
+        /// cheapest crate. Explains why in a short label the tablet can put on the button.
+        /// </summary>
+        public bool CanBuyUpgrade(string upgradeId, out string reason)
+        {
+            reason = null;
+            var up = Economy.UpgradeCatalog.Get(upgradeId);
+            if (up == null) { reason = "Unknown upgrade"; return false; }
+            if (State.HasUpgrade(upgradeId)) { reason = "Installed"; return false; }
+            if (!CanAfford(up.Price)) { reason = "Not enough cash"; return false; }
+            float cheapest = Economy.SupplierCatalog.Get(Economy.SupplierCatalog.Local).Price;
+            if (State.Cash - up.Price < cheapest && !HasProcessableMaterial()) { reason = $"Keep {UI.UiKit.Money(cheapest)} for a crate"; return false; }
+            return true;
+        }
+
+        /// <summary>
+        /// Bad luck cannot brick a career either: broke, with nothing left to crack or sell, the dealer fronts the
+        /// price of a Local crate. Rare by design (early crates are tuned to pay for themselves) and recorded in the stats.
+        /// </summary>
+        public void CheckSolvency()
+        {
+            if (State == null) return;
+            float cheapest = Economy.SupplierCatalog.Get(Economy.SupplierCatalog.Local).Price;
+            if (State.Cash + 0.001f >= cheapest || HasProcessableMaterial()) return;
+            float advance = Mathf.Ceil(cheapest - State.Cash);
+            State.Stats.DealerAdvances++;
+            AddCash(advance, "advance");
+            Notify($"The dealer fronts you {UI.UiKit.Money(advance)} against your next crate. Rough week.", NotificationKind.Warning);
+            StateChanged?.Invoke();
+        }
+
         public bool BuyUpgrade(string upgradeId, out string error)
         {
             error = null;
             var up = Economy.UpgradeCatalog.Get(upgradeId);
             if (up == null) { error = "Unknown upgrade"; return false; }
             if (State.HasUpgrade(upgradeId)) { error = "Already owned"; return false; }
-            if (!CanAfford(up.Price)) { error = "Not enough cash"; return false; }
+            if (!CanBuyUpgrade(upgradeId, out string why)) { error = why; return false; }
             TrySpend(up.Price, "upgrade");
             State.Upgrades.Add(upgradeId);
             if (upgradeId == Economy.UpgradeCatalog.DisplayExpansion) State.DisplayCapacity = 12;

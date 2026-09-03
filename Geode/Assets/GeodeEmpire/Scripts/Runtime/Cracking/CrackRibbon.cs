@@ -43,10 +43,13 @@ namespace GeodeEmpire.Cracking
             float width = geo.MeanEquatorRadius * 0.11f;
             for (int i = 0; i <= total; i++)
             {
-                int li = i % N;
+                // ribbon step -> mesh longitude (the ribbon has Sectors*segs steps, the shell has N longitudes)
+                float lonT = (i % total) / (float)total * N;
+                int l0 = Mathf.FloorToInt(lonT) % N, l1 = (l0 + 1) % N;
+                float f = lonT - Mathf.Floor(lonT);
                 float lon = i / (float)total * Mathf.PI * 2f;
-                float r = geo.Bottom.EquatorOuterRadius[li] + 0.0015f;
-                float y = geo.Bottom.EquatorY[li];
+                float r = Mathf.Lerp(geo.Bottom.EquatorOuterRadius[l0], geo.Bottom.EquatorOuterRadius[l1], f) + 0.0015f;
+                float y = Mathf.Lerp(geo.Bottom.EquatorY[l0], geo.Bottom.EquatorY[l1], f);
                 var dir = new Vector3(Mathf.Cos(lon), 0f, Mathf.Sin(lon));
                 float jag = Mathf.Sin(lon * 23f) * width * 0.35f + Mathf.Sin(lon * 41f + 1.3f) * width * 0.2f;
                 verts[i * 2] = dir * r + Vector3.up * (y + width + jag);

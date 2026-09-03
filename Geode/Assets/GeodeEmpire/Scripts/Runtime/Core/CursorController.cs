@@ -7,8 +7,14 @@ namespace GeodeEmpire.Core
     {
         private static int _menuDepth;
 
+        /// <summary>Frame on which a menu/station consumed a Back/Escape press, so no other consumer re-reads the same press.</summary>
+        public static int LastConsumedFrame { get; private set; } = -1;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() { _menuDepth = 0; }
+        private static void ResetStatics() { _menuDepth = 0; LastConsumedFrame = -1; }
+
+        public static void MarkInputConsumed() => LastConsumedFrame = Time.frameCount;
+        public static bool InputConsumedThisFrame => LastConsumedFrame == Time.frameCount;
 
         public static bool InMenu => _menuDepth > 0;
 
@@ -21,6 +27,7 @@ namespace GeodeEmpire.Core
         public static void ExitMenu()
         {
             _menuDepth = Mathf.Max(0, _menuDepth - 1);
+            MarkInputConsumed();
             Apply();
         }
 

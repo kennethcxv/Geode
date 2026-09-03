@@ -51,10 +51,22 @@ namespace GeodeEmpire.Interaction
             return opened ? AcceptsOpened : AcceptsUnopened;
         }
 
+        /// <summary>Why a held specimen cannot go here (null when it can); shown as the prompt so a full or locked spot is never silent.</summary>
+        public string RefusalReason(SpecimenEntity e)
+        {
+            if (e == null) return null;
+            if (Locked) return Kind == ZoneKind.DisplaySlot ? "Locked shelf: buy the Cabinet Shelf Expansion" : $"{DisplayLabel} is locked";
+            if (IsFull) return Kind == ZoneKind.DisplaySlot ? "Slot taken: pick a free slot or swap it out" : $"{DisplayLabel} is full";
+            bool opened = e.Record.IsOpened;
+            if (opened && !AcceptsOpened) return "Unopened rocks only";
+            if (!opened && !AcceptsUnopened) return Kind == ZoneKind.DisplaySlot ? "Crack it open first" : "Opened specimens only";
+            return null;
+        }
+
         public override bool CanInteract(PlayerInteractor player)
         {
+            if (player.Held != null) return true;          // accepted, or a refusal the prompt explains
             if (Locked) return false;
-            if (player.Held != null) return Accepts(player.Held);
             return Occupants.Count > 0 && !Occupants[Occupants.Count - 1].Locked;
         }
 
@@ -62,6 +74,8 @@ namespace GeodeEmpire.Interaction
         {
             if (player.Held != null)
             {
+                string why = RefusalReason(player.Held);
+                if (why != null) return why;
                 string verb = Kind == ZoneKind.Cradle ? "Set on" : Kind == ZoneKind.Scale ? "Weigh on" : "Place in";
                 return $"{verb} {DisplayLabel}";
             }
@@ -74,7 +88,13 @@ namespace GeodeEmpire.Interaction
             if (player.Held != null)
             {
                 var e = player.Held;
-                if (!Accepts(e)) return;
+                string why = RefusalReason(e);
+                if (why != null)
+                {
+                    GameSession.Instance?.Notify(why, NotificationKind.Warning);
+                    Audio.WorkshopAudio.Play2D("ui_error", 0.4f);
+                    return;
+                }
                 player.ReleaseHeld();
                 Place(e);
             }
