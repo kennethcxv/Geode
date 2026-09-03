@@ -784,8 +784,26 @@ namespace GeodeEmpire.EditorTools
             saw.SetHighlightRenderers(vise.GetComponentsInChildren<Renderer>());
             machine.gameObject.SetActive(false);
             var ts = teaser.AddComponent<TeaserSign>();
-            Prop("prop_cardboard_box", parent, new Vector3(-2.9f, 0f, -1.4f), 30f, "M_Cardboard");
-            Prop("prop_cardboard_box", parent, new Vector3(-2.7f, 0f, -0.9f), -10f, "M_Cardboard", scale: new Vector3(0.8f, 0.9f, 0.8f));
+            // ---- Polishing corner (south-west): boxes until the Flat Lap is bought, the lap after ----
+            var lapRoot = new GameObject("PolishStation").transform;
+            lapRoot.SetParent(parent, false);
+            lapRoot.localPosition = new Vector3(-2.75f, 0f, -1.15f);
+            lapRoot.localRotation = Quaternion.Euler(0f, -90f, 0f);   // operator side toward the room (+X)
+            var before = new GameObject("Before").transform;
+            before.SetParent(lapRoot, false);
+            Prop("prop_cardboard_box", before, new Vector3(0.25f, 0f, -0.15f), 30f, "M_Cardboard");
+            Prop("prop_cardboard_box", before, new Vector3(-0.25f, 0f, 0.05f), -10f, "M_Cardboard", scale: new Vector3(0.8f, 0.9f, 0.8f));
+            var lapMachine = new GameObject("Machine").transform;
+            lapMachine.SetParent(lapRoot, false);
+            var lapBody = Prop("prop_polish_lap", lapMachine, Vector3.zero, 0f, "M_MachinePaint,M_PlasticBlue", collider: true);
+            var platen = Prop("prop_polish_disc", lapMachine, new Vector3(0f, 0.76f, 0f), 0f, "M_Metal,M_Felt", collider: false);
+            var lapZone = Zone(lapRoot, "LapZone", new Vector3(0f, 0.782f, 0f), ZoneKind.Lap, "the flat lap", 1, true, false, new Vector3(0.34f, 0.2f, 0.34f));
+            lapZone.SetHighlightRenderers(platen.GetComponentsInChildren<Renderer>());
+            var lapAnchor = new GameObject("Anchor").transform; lapAnchor.SetParent(lapZone.transform, false); lapZone.Anchor = lapAnchor;
+            var lap = lapRoot.gameObject.AddComponent<Lapidary.PolishStation>();
+            lap.Lap = lapZone; lap.Platen = platen.transform; lap.Machine = lapMachine.gameObject; lap.Before = before.gameObject;
+            lap.SetHighlightRenderers(lapBody.GetComponentsInChildren<Renderer>());
+            lapMachine.gameObject.SetActive(false);
             Prop("prop_bucket", parent, new Vector3(-1.45f, 0f, 2.5f), 0f, "M_Plastic");
 
             // ---- dressing: shelves, signs, posters, clutter ----------------------------------------

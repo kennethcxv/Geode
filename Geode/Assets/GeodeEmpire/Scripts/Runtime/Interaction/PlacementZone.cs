@@ -86,8 +86,8 @@ namespace GeodeEmpire.Interaction
             // a rock with a committed cut stays in the clamp (locked): the press resumes the cut instead
             if (Kind == ZoneKind.Saw && Occupants[0].Record.CutCommitted) return ResumePrompt != null && ResumePrompt(Occupants[0]) != null;
             if (Occupants[Occupants.Count - 1].Locked) return false;
-            // a dirty rock in the tub is scrubbed, not taken: the tub itself carries that prompt
-            if (Kind == ZoneKind.Wash && Occupants[0].Visual != null && Occupants[0].Visual.DirtRemaining > 0.02f) return false;
+            // a station may claim the press on its occupant (scrub, polish): hold works it, a tap takes it
+            if (ResumePrompt != null && ResumePrompt(Occupants[Occupants.Count - 1]) != null) return true;
             return true;
         }
 

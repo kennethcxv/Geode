@@ -35,7 +35,22 @@ namespace GeodeEmpire.Workshop
             {
                 Tub.Placed += OnPlaced;
                 Tub.Taken += (z, e) => { Scrubbing = false; RestBrush(); };
+                // the press on a dirty rock in the tub scrubs it (hold); a tap takes it back out
+                Tub.ResumePrompt = occ => occ != null && Dirt(occ) > 0.02f && !Scrubbing ? "Scrub the rock  (hold  •  tap to take)" : null;
+                Tub.ResumeAction = occ => { if (occ != null && Dirt(occ) > 0.02f) BeginScrub(); };
             }
+        }
+
+        private float _pressTime;
+        private float _progressSincePress;
+
+        private void BeginScrub()
+        {
+            _player = FindAnyObjectByType<PlayerInteractor>();
+            Scrubbing = true;
+            _nextScrubSound = 0f;
+            _pressTime = Time.time;
+            _progressSincePress = 0f;
         }
 
         private void OnPlaced(PlacementZone z, SpecimenEntity e)
@@ -67,8 +82,7 @@ namespace GeodeEmpire.Workshop
         {
             if (Current == null) return;
             _player = player;
-            Scrubbing = true;
-            _nextScrubSound = 0f;
+            BeginScrub();
         }
 
         private void Update()
@@ -79,12 +93,19 @@ namespace GeodeEmpire.Workshop
             {
                 Scrubbing = false;
                 RestBrush();
+                // a quick tap was a "take", not a scrub
+                if (Time.time - _pressTime < 0.28f && _progressSincePress < 0.02f && _player != null && _player.Held == null)
+                {
+                    Tub.Take(e);
+                    _player.PickUp(e);
+                }
                 return;
             }
             float dt = Time.deltaTime;
             var cond = e.Record.Condition;
             float before = e.Visual.DirtRemaining;
             cond.Cleaned = Mathf.Clamp01(cond.Cleaned + dt / ScrubSeconds);
+            _progressSincePress += dt / ScrubSeconds;
             e.Visual.RefreshCondition();
             // the rock turns under the brush so the whole shell gets done
             _rockYaw += dt * 70f;

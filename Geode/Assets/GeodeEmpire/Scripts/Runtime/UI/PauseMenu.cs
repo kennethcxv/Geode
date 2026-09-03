@@ -97,7 +97,9 @@ namespace GeodeEmpire.UI
             var b = FindAnyObjectByType<Cracking.CrackingBench>();
             if (b != null && b.Active) return true;
             var s = FindAnyObjectByType<Lapidary.SawStation>();
-            return s != null && s.Active;
+            if (s != null && s.Active) return true;
+            var l = FindAnyObjectByType<Lapidary.PolishStation>();
+            return l != null && l.Polishing;
         }
 
         public void Open()

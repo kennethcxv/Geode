@@ -647,6 +647,85 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        /// <summary>
+        /// V4 polish: take the best sawn piece in the workshop (cut one first with RunSawCut), buy the lap, set the piece
+        /// face-down, hold the button and sweep it about until it is polished; log the value before and after, appraise,
+        /// then save/reload and check the finish stuck.
+        /// </summary>
+        public void RunPolish() { if (!Running) StartCoroutine(Polish()); }
+
+        private IEnumerator Polish()
+        {
+            Running = true;
+            Phase = "polish";
+            var lap = Find<Lapidary.PolishStation>();
+            if (lap == null) { L("no lap"); Running = false; yield break; }
+            if (!lap.Owned)
+            {
+                if (S.State.Cash < 500f) S.AddCash(500f, "test");
+                S.BuyUpgrade(Economy.UpgradeCatalog.PolishLap, out string err);
+                L("bought lap: " + (err ?? "ok") + " owned=" + lap.Owned);
+                yield return null;
+            }
+            SpecimenEntity piece = null; float best = -1f;
+            foreach (var e in S.Entities.Values)
+                if (e.IsPiece && e.Record.Polish < 0.5f && (e.Record.Location == SpecimenLocation.World || e.Record.Location == SpecimenLocation.SellTray || e.Record.Location == SpecimenLocation.AppraisalStation) && e.Record.PristineForSale() > best) { best = e.Record.PristineForSale(); piece = e; }
+            if (piece == null) { L("no unpolished piece around"); Running = false; yield break; }
+            float valueBefore = piece.Record.PristineForSale();
+            L($"== Polish {piece.Id} {piece.Record.DisplayName} value=${valueBefore} polish={piece.Record.Polish:F2} loc={piece.Record.Location}");
+            if (piece.Zone != null)
+            {
+                yield return RouteTo(StandNear(piece.transform.position), 0.3f);
+                yield return LookAndInteract(piece.transform.position, "Take");
+            }
+            else yield return FetchRock(piece);
+            if (P.Held == null) { L("could not pick up the piece"); Running = false; yield break; }
+            piece = P.Held;
+            Vector3 lapPos = ZonePos(ZoneKind.Lap);
+            yield return RouteTo(new Vector3(lapPos.x + 0.9f, 0f, lapPos.z), 0.3f);
+            yield return LookAndInteract(lapPos, "Set face-down on");
+            yield return new WaitForSeconds(0.6f);
+            L($"on lap: loc={piece.Record.Location} held={(P.Held != null)} pos={piece.transform.position:F2}");
+            Snap("lap_before");
+            D.LookAt(lapPos + Vector3.up * 0.02f);
+            yield return new WaitForSeconds(0.3f);
+            L($"lap prompt='{P.Prompt}'");
+            D.KeyDown(Key.E);
+            float t0 = Time.time; int frames = 0; bool midSnap = false;
+            while (piece.Record.Polish < 0.98f && Time.time - t0 < 20f)
+            {
+                // sweep in a circle with the mouse
+                float a = frames * 0.25f;
+                D.MouseDelta(Mathf.Cos(a) * 18f, Mathf.Sin(a) * 18f);
+                frames++;
+                if (!midSnap && piece.Record.Polish > 0.5f) { midSnap = true; L($"  halfway at {Time.time - t0:F1}s polishing={lap.Polishing} rpm={lap.Rpm:F2} sweep={lap.LastSweep:F2}"); Snap("lap_mid"); }
+                yield return null;
+            }
+            D.KeyUp();
+            yield return new WaitForSeconds(0.6f);
+            float valueAfter = piece.Record.PristineForSale();
+            L($"polished in {Time.time - t0:F1}s: polish={piece.Record.Polish:F2} name={piece.Record.DisplayName} value ${valueBefore} -> ${valueAfter}");
+            Snap("lap_after");
+            yield return LookAndInteract(lapPos, "Take");
+            L($"held={(P.Held != null ? P.Held.Record.DisplayName : "none")}");
+            if (P.Held != null)
+            {
+                D.SetMouseButton(1, true); yield return new WaitForSeconds(0.5f); Snap("lap_piece_inspect"); D.SetMouseButton(1, false); yield return new WaitForSeconds(0.2f);
+                Vector3 scale = ZonePos(ZoneKind.Scale);
+                yield return RouteTo(StandNear(scale), 0.3f);
+                yield return LookAndInteract(scale, "Weigh on the scale");
+                yield return new WaitForSeconds(1.6f);
+                var ap = Find<AppraisalStation>();
+                L("appraised=" + (ap.Current != null && ap.Current.Record.Appraised) + " value=" + (ap.Current != null ? ap.Current.Record.AppraisedValue.ToString() : ""));
+                Snap("lap_appraisal");
+            }
+            L(RunSaveReloadCheck());
+            var back = S.State.FindSpecimen(piece.Id);
+            L($"after reload polish={(back != null ? back.Polish : -1f):F2}");
+            Phase = "done";
+            Running = false;
+        }
+
         /// <summary>Run C step: take the nicest opened specimen we can find to display slot 0 and verify it stuck.</summary>
         public void RunDisplayKeep() { if (!Running) StartCoroutine(DisplayKeep()); }
 
