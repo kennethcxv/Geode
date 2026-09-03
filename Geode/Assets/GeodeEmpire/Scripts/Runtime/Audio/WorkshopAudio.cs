@@ -18,6 +18,8 @@ namespace GeodeEmpire.Audio
         private const int SampleRate = 44100;
 
         public static float SfxVolume => GameSettings.Current.SfxVolume;
+        public static float UiVolume => GameSettings.Current.UiVolume;
+        private static float VolumeFor(string name) => name.StartsWith("ui") ? UiVolume : SfxVolume;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
@@ -73,7 +75,7 @@ namespace GeodeEmpire.Audio
             var src = _pool[_poolIndex++ % _pool.Count];
             if (src == null) { _root = null; EnsureBuilt(); src = _pool[_poolIndex++ % _pool.Count]; }
             src.pitch = pitch;
-            src.volume = volume * SfxVolume;
+            src.volume = volume * VolumeFor(name);
             src.spatialBlend = 0f;
             src.clip = clip;
             src.Play();
@@ -105,6 +107,10 @@ namespace GeodeEmpire.Audio
             _bank["slip"] = Variants(2, i => Slip(seed: 190 + (ulong)i));
             _bank["thud"] = Variants(2, i => Impact(0.4f, 120f + i * 20f, 1.0f, 0.5f, 0.6f, 1.2f, seed: 200 + (ulong)i));
             _bank["loupe_up"] = Variants(1, i => Chime(2600f, 0.12f, seed: 210, noise: 0.15f));
+            _bank["shop_bell"] = Variants(2, i => Chime(1975f + i * 120f, 0.9f, seed: 220 + (ulong)i, second: 2637f));
+            _bank["counter_bell"] = Variants(1, i => Chime(2350f, 0.7f, seed: 230, second: 3100f));
+            _bank["register_beep"] = Variants(1, i => Chime(1760f, 0.09f, seed: 240, noise: 0.05f));
+            _bank["register"] = Variants(1, i => Register(seed: 250));
             _bank["loupe_down"] = Variants(1, i => Impact(0.08f, 700f, 0.3f, 0.05f, 0.5f, 6f, seed: 211));
             _bank["ambience"] = new[] { Ambience(seed: 300) };
         }
@@ -224,6 +230,28 @@ namespace GeodeEmpire.Audio
                 if (second > 0f && t > duration * 0.35f) v += Mathf.Sin(2f * Mathf.PI * second * (t - duration * 0.35f)) * 0.45f * Mathf.Exp(-(t - duration * 0.35f) * 7f);
                 v += (rng.NextFloat() * 2f - 1f) * noise;
                 d[i] = Mathf.Clamp(v * env * 0.6f, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>Cash register: a mechanical clack, the drawer sliding open on its rails, a bell.</summary>
+        private static float[] Register(ulong seed)
+        {
+            float duration = 0.75f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.3f;
+                float clack = Mathf.Exp(-t * 90f) * noise * 0.9f + Mathf.Sin(2f * Mathf.PI * 520f * t) * Mathf.Exp(-t * 40f) * 0.5f;
+                float slide = t > 0.08f && t < 0.32f ? lp * 0.25f * Mathf.Sin((t - 0.08f) / 0.24f * Mathf.PI) : 0f;
+                float stop = t > 0.3f ? Mathf.Exp(-(t - 0.3f) * 60f) * noise * 0.5f : 0f;
+                float bell = t > 0.34f ? (Mathf.Sin(2f * Mathf.PI * 2093f * (t - 0.34f)) * 0.35f + Mathf.Sin(2f * Mathf.PI * 3136f * (t - 0.34f)) * 0.15f) * Mathf.Exp(-(t - 0.34f) * 7f) : 0f;
+                d[i] = Mathf.Clamp(clack + slide + stop + bell, -1f, 1f);
             }
             return d;
         }

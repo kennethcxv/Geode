@@ -77,7 +77,7 @@ namespace GeodeEmpire.UI
                 if (s.State != null) OnLoaded();
             }
             Tutorial.Changed += RefreshTutorial;
-            GameSettings.Changed += RefreshTutorial;
+            GameSettings.Changed += OnSettingsChanged;
         }
 
         private void OnDestroy()
@@ -97,7 +97,7 @@ namespace GeodeEmpire.UI
                 s.StateChanged -= RefreshTutorial;
             }
             Tutorial.Changed -= RefreshTutorial;
-            GameSettings.Changed -= RefreshTutorial;
+            GameSettings.Changed -= OnSettingsChanged;
         }
 
         private void OnLoaded()
@@ -122,11 +122,19 @@ namespace GeodeEmpire.UI
             _root.style.display = hidden ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
+        public bool CrosshairShown => _crosshair != null && _crosshair.style.display == DisplayStyle.Flex;
+
+        private void OnSettingsChanged()
+        {
+            RefreshTutorial();
+            if (_freeRoam) SetFreeRoamVisible(true);
+        }
+
         /// <summary>Hide crosshair/prompt while a station or menu owns the screen.</summary>
         public void SetFreeRoamVisible(bool visible)
         {
             _freeRoam = visible;
-            var d = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            var d = visible && GameSettings.Current.CrosshairVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _crosshair.style.display = d;
             if (!visible) { _ring.style.display = DisplayStyle.None; _prompt.style.display = DisplayStyle.None; _hint.style.display = DisplayStyle.None; _tutorialCard.style.display = DisplayStyle.None; }
             else { RefreshPrompt(); RefreshTutorial(); }
@@ -149,7 +157,7 @@ namespace GeodeEmpire.UI
             _hint.text = _player.Hint;
             _hint.style.display = string.IsNullOrEmpty(_player.Hint) ? DisplayStyle.None : DisplayStyle.Flex;
             _ring.style.display = hasTarget && !_player.Inspecting ? DisplayStyle.Flex : DisplayStyle.None;
-            _crosshair.style.display = _player.Inspecting ? DisplayStyle.None : DisplayStyle.Flex;
+            _crosshair.style.display = _player.Inspecting || !GameSettings.Current.CrosshairVisible ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         private void RefreshTutorial()

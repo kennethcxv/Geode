@@ -30,6 +30,8 @@ namespace GeodeEmpire.Workshop
             new Step { Id = "appraise", Text = "The scale explains what makes a piece valuable. Keep favourites in the display cabinet, or sell them.", DoneBy = "appraised" },
             new Step { Id = "ship", Text = "When the outbox has a few pieces, press the dealer intercom to sell them.", DoneBy = "shipped" },
             new Step { Id = "upgrade", Text = "Profit. Check the tablet: a new supplier and bench upgrades change how you play.", DoneBy = "upgrade_or_crate" },
+            new Step { Id = "retail", Text = "The showroom next door pays more than the dealer, if a customer wants the piece: put an appraised specimen on a sales shelf and keep working.", DoneBy = "for_sale" },
+            new Step { Id = "checkout", Text = "When a customer waits at the counter, ring them up at the register (twice: once to read the tag, once to take the money).", DoneBy = "checkout" },
         };
 
         public static event Action Changed;

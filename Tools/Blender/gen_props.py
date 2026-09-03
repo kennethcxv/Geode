@@ -497,11 +497,193 @@ def sign_board(rng):
     return bm, False
 
 
+
+
+# ---------------------------------------------------------------------------
+# Retail shop fixtures
+# ---------------------------------------------------------------------------
+def shop_case(rng):
+    """Wall display case: dark frame, two lit shelves, low plinth. 1.8 m wide, 0.42 deep, 1.55 tall.
+    Origin at base centre, front is -Y. Shelf tops at z=0.55 and z=1.05 (ledges 0.36 deep)."""
+    bm = bmesh.new()
+    w, d, h = 1.8, 0.42, 1.55
+    t = 0.03
+    box(bm, (w, d, 0.1), (0, 0, 0.05), bevel=0.004)                       # plinth
+    box(bm, (t, d, h), (-w / 2 + t / 2, 0, h / 2), bevel=0.003)           # sides
+    box(bm, (t, d, h), (w / 2 - t / 2, 0, h / 2), bevel=0.003)
+    box(bm, (w, 0.025, h), (0, d / 2 - 0.0125, h / 2))                     # back panel
+    box(bm, (w, d, t), (0, 0, h - t / 2), bevel=0.003)                     # top
+    for z in (0.55, 1.05):
+        box(bm, (w - 2 * t, d - 0.06, 0.025), (0, 0.03, z - 0.0125), bevel=0.002)   # shelves
+        lip = lib.bm_box((w - 2 * t, 0.012, 0.03), (0, -d / 2 + 0.03, z + 0.015))
+        lib.bm_append(bm, lip)
+    # light strip under the top and under the upper shelf (slot 1: emissive)
+    for z in (h - t - 0.012, 1.05 - 0.025 - 0.012):
+        strip = lib.bm_box((w - 2 * t - 0.1, 0.03, 0.01), (0, -0.05, z))
+        for f in strip.faces:
+            f.material_index = 1
+        lib.bm_append(bm, strip)
+    return bm, False
+
+
+def shop_table(rng):
+    """Island display table with a felt top and a low riser. 1.2 x 0.7, top at 0.86. Origin at base centre."""
+    bm = bmesh.new()
+    box(bm, (1.2, 0.7, 0.05), (0, 0, 0.835), bevel=0.005)                  # top
+    box(bm, (1.14, 0.64, 0.012), (0, 0, 0.866))                            # felt inlay (slot 1)
+    for f in list(bm.faces)[-6:]:
+        f.material_index = 1
+    box(bm, (0.9, 0.5, 0.75), (0, 0, 0.405), bevel=0.004)                  # plinth
+    box(bm, (1.16, 0.66, 0.03), (0, 0, 0.075))                             # kick
+    return bm, False
+
+
+def counter(rng):
+    """Checkout counter: 1.3 long (X), 0.55 deep (Y), 0.95 high; the customer side is -Y. Origin at base centre."""
+    bm = bmesh.new()
+    box(bm, (1.3, 0.55, 0.06), (0, 0, 0.92), bevel=0.006)                  # worktop
+    box(bm, (1.26, 0.5, 0.86), (0, 0, 0.43), bevel=0.004)                  # body
+    box(bm, (1.3, 0.04, 0.12), (0, -0.275, 0.86))                          # customer-side rail
+    box(bm, (1.2, 0.02, 0.5), (0, -0.265, 0.45))                           # front panel inset (slot 1: painted)
+    for f in list(bm.faces)[-6:]:
+        f.material_index = 1
+    return bm, False
+
+
+def register(rng):
+    """Small POS register: sloped body, a screen (slot 1), key block, cash drawer with a lip. Origin at base centre."""
+    bm = bmesh.new()
+    box(bm, (0.32, 0.36, 0.09), (0, 0, 0.045), bevel=0.004)                # drawer base
+    box(bm, (0.30, 0.02, 0.06), (0, -0.19, 0.045))                          # drawer front lip
+    body = lib.bm_box((0.28, 0.22, 0.12), (0, 0.04, 0.15))
+    for v in body.verts:
+        if v.co.z > 0.16 and v.co.y < 0.04:
+            v.co.z -= 0.05 * (0.04 - v.co.y) / 0.11                         # slope toward the cashier
+    lib.bm_bevel(body, 0.004, segments=1)
+    lib.bm_append(bm, body)
+    box(bm, (0.16, 0.08, 0.015), (-0.05, -0.02, 0.185))                     # key block
+    screen = lib.bm_box((0.2, 0.012, 0.11), (0.0, 0.11, 0.26))
+    for f in screen.faces:
+        f.material_index = 1
+    lib.bm_append(bm, screen)
+    box(bm, (0.16, 0.05, 0.05), (0, 0.1, 0.22), bevel=0.003)                # screen post
+    return bm, False
+
+
+def price_card(rng):
+    """Small easel price card: card (slot 1 for the printed face) on a folded stand. 9 x 6 cm. Origin at base."""
+    bm = bmesh.new()
+    card = lib.bm_box((0.09, 0.004, 0.06), (0, -0.01, 0.045))
+    for f in card.faces:
+        f.material_index = 1
+    lib.bm_append(bm, card, Matrix.Rotation(math.radians(-15), 4, "X"))
+    box(bm, (0.05, 0.03, 0.006), (0, 0.005, 0.003))
+    return bm, False
+
+
+CUSTOMER_PARTS = None
+
+
+def customer_parts(rng):
+    """Stylised shop customer, ~1.72 m, as jointed parts for procedural walking. Each part's origin is its joint.
+    Returns [(name, bmesh, location, material_index)]: slots 0 top/jacket, 1 trousers, 2 skin, 3 hair."""
+    parts = []
+    # torso: tapered box, origin at hips (z=0.95)
+    torso = lib.bm_box((0.36, 0.22, 0.58), (0, 0, 0.29))
+    for v in torso.verts:
+        t = v.co.z / 0.58
+        v.co.x *= 0.82 + 0.18 * t
+        v.co.y *= 0.85 + 0.15 * t
+    lib.bm_bevel(torso, 0.03, segments=2)
+    for f in torso.faces:
+        f.material_index = 0
+    parts.append(("Torso", torso, (0, 0, 0.95)))
+    # hips/trousers block
+    hips = lib.bm_box((0.34, 0.22, 0.16), (0, 0, -0.06))
+    lib.bm_bevel(hips, 0.03, segments=2)
+    for f in hips.faces:
+        f.material_index = 1
+    parts.append(("Hips", hips, (0, 0, 0.95)))
+    # legs: origin at the hip joint, mesh hangs down (-Z)
+    for name, x in (("LegL", -0.09), ("LegR", 0.09)):
+        leg = lib.bm_cylinder(0.075, 0.9, segments=10, radius_top=0.06)
+        lib.bm_transform(leg, Matrix.Translation((0, 0, -0.9)))
+        lib.bm_bevel(leg, 0.01, segments=1)
+        for f in leg.faces:
+            f.material_index = 1
+        shoe = lib.bm_box((0.11, 0.26, 0.07), (0, -0.05, -0.865))
+        lib.bm_bevel(shoe, 0.015, segments=1)
+        for f in shoe.faces:
+            f.material_index = 3
+        lib.bm_append(leg, shoe)
+        parts.append((name, leg, (x, 0, 0.9)))
+    # arms: origin at the shoulder, hanging down
+    for name, x in (("ArmL", -0.23), ("ArmR", 0.23)):
+        arm = lib.bm_cylinder(0.05, 0.62, segments=8, radius_top=0.04)
+        lib.bm_transform(arm, Matrix.Translation((0, 0, -0.62)))
+        for f in arm.faces:
+            f.material_index = 0
+        hand = lib.bm_icosphere(0.045, subdivisions=1, center=(0, 0, -0.64))
+        for f in hand.faces:
+            f.material_index = 2
+        lib.bm_append(arm, hand)
+        parts.append((name, arm, (x, 0, 1.45)))
+    # head: origin at the neck
+    head = lib.bm_icosphere(0.115, subdivisions=2, center=(0, 0, 0.14))
+    for v in head.verts:
+        v.co.z = 0.14 + (v.co.z - 0.14) * 1.15
+    for f in head.faces:
+        f.material_index = 2
+    neck = lib.bm_cylinder(0.05, 0.08, segments=8)
+    for f in neck.faces:
+        f.material_index = 2
+    lib.bm_append(head, neck)
+    hair = lib.bm_icosphere(0.12, subdivisions=2, center=(0, 0.01, 0.17))
+    hair_v = [v for v in hair.verts if v.co.z < 0.15 and v.co.y < 0.06]
+    bmesh.ops.delete(hair, geom=hair_v, context="VERTS")
+    for f in hair.faces:
+        f.material_index = 3
+    lib.bm_append(head, hair)
+    parts.append(("Head", head, (0, 0, 1.53)))
+    return parts
+
+
+def build_customer():
+    """Export the jointed customer as one FBX with a small hierarchy (root at the feet)."""
+    name = "prop_customer"
+    rng = random.Random(240)
+    root = bpy.data.objects.new(name, None)
+    bpy.context.scene.collection.objects.link(root)
+    objs = [root]
+    for part_name, bm, loc in customer_parts(rng):
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        lib.bm_box_uv(bm, scale=UV_SCALE)
+        lib.validate_bmesh(TAG, name + "/" + part_name, bm, require_manifold=False)
+        obj = lib.object_from_bmesh(part_name, bm, smooth=True)
+        mesh = obj.data
+        for slot in range(4):
+            mesh.materials.append(bpy.data.materials.new(f"customer_slot{slot}"))
+        obj.parent = root
+        obj.location = loc
+        objs.append(obj)
+    lib.export_fbx(objs, os.path.join(OUT_DIR, name + ".fbx"), tag=TAG)
+    for o in objs[1:]:
+        m = o.data
+        bpy.data.objects.remove(o)
+        bpy.data.meshes.remove(m)
+    bpy.data.objects.remove(root)
+    lib.log(TAG, f"{name}: jointed customer exported")
+
 PROPS = [
     ("prop_hammer", hammer, 201),
     ("prop_chisel", lambda r: chisel(r, False), 202),
     ("prop_chisel_fine", lambda r: chisel(r, True), 203),
     ("prop_loupe", loupe, 232),
+    ("prop_shop_case", shop_case, 233),
+    ("prop_shop_table", shop_table, 234),
+    ("prop_counter", counter, 235),
+    ("prop_register", register, 236),
+    ("prop_price_card", price_card, 237),
     ("prop_workbench", workbench, 204),
     ("prop_cradle", cradle, 205),
     ("prop_crate_body", crate_body, 206),
@@ -544,7 +726,7 @@ def build_all():
         lib.bm_box_uv(bm, scale=UV_SCALE)
         if name == "prop_pendant_lamp":
             pass  # origin stays at the ceiling attachment point
-        elif name not in ("prop_chisel", "prop_chisel_fine", "prop_tablet", "prop_loupe"):
+        elif name not in ("prop_chisel", "prop_chisel_fine", "prop_tablet", "prop_loupe", "prop_price_card"):
             lib.bm_origin_to_base(bm, center_xy=(name not in ("prop_hammer",)))
         else:
             lib.bm_origin_to_base(bm, center_xy=True)
@@ -566,6 +748,8 @@ def build_all():
         built.append(name)
         bpy.data.objects.remove(obj)
         bpy.data.meshes.remove(mesh)
+    build_customer()
+    built.append("prop_customer")
     return built
 
 

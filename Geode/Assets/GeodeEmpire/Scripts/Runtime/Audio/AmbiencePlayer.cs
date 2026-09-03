@@ -22,6 +22,8 @@ namespace GeodeEmpire.Audio
 
         private void OnDestroy() => GameSettings.Changed -= Apply;
 
+        public float SourceVolume => _src != null ? _src.volume : 0f;
+
         private void Apply()
         {
             if (_src != null) _src.volume = 0.5f * GameSettings.Current.AmbienceVolume;

@@ -9,13 +9,15 @@ namespace GeodeEmpire.Tests
     /// <summary>A one-in-a-million specimen must survive a bad write: atomic replace + backup recovery.</summary>
     public class SaveSystemTests
     {
-        private string _mainBackup, _bakBackup;
+        private string _scratch;
 
         [SetUp]
         public void Stash()
         {
-            _mainBackup = File.Exists(SaveSystem.MainPath) ? File.ReadAllText(SaveSystem.MainPath) : null;
-            _bakBackup = File.Exists(SaveSystem.BackupPath) ? File.ReadAllText(SaveSystem.BackupPath) : null;
+            // never the real career: every test runs against its own scratch folder
+            _scratch = Path.Combine(Path.GetTempPath(), "GeodeEmpireTests", System.Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(_scratch);
+            SaveSystem.DirectoryOverride = _scratch;
             SaveSystem.Delete();
         }
 
@@ -23,8 +25,8 @@ namespace GeodeEmpire.Tests
         public void Restore()
         {
             SaveSystem.Delete();
-            if (_mainBackup != null) File.WriteAllText(SaveSystem.MainPath, _mainBackup);
-            if (_bakBackup != null) File.WriteAllText(SaveSystem.BackupPath, _bakBackup);
+            SaveSystem.DirectoryOverride = null;
+            try { Directory.Delete(_scratch, true); } catch (System.Exception) { }
         }
 
         private static GameState Sample()

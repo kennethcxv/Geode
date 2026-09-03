@@ -8,6 +8,8 @@ namespace GeodeEmpire.Save
     public enum SpecimenLocation
     {
         InCrate = 0, World = 1, Held = 2, Bench = 3, SellTray = 4, AppraisalStation = 5, DisplaySlot = 6, Sold = 7, Discarded = 8,
+        /// <summary>On a retail sales fixture; customers may buy it. LocationIndex is the sale slot.</summary>
+        SaleSlot = 9,
     }
 
     /// <summary>Career state of one specimen. Geology is regenerated from Seed; nothing here rerolls it.</summary>
@@ -25,6 +27,8 @@ namespace GeodeEmpire.Save
         public Quaternion WorldRotation = Quaternion.identity;
         public bool Appraised;
         public float AppraisedValue;
+        /// <summary>Retail asking price while on a sale slot (0 = not for sale).</summary>
+        public float AskingPrice;
         public string CustomName;
         public long OpenedAtTicks;
         public long DiscoveredAtTicks;
@@ -104,6 +108,13 @@ namespace GeodeEmpire.Save
         public int CleanOpens;
         public float PlayTimeSeconds;
         public int DealerAdvances;
+        // retail
+        public int RetailSales;
+        public float RetailRevenue;
+        public float BiggestRetailSale;
+        public string BiggestRetailSaleName;
+        public int CustomersServed;
+        public int CustomersLeftEmptyHanded;
     }
 
     /// <summary>Whole career save. Versioned; new fields get sensible defaults on load.</summary>
@@ -128,6 +139,7 @@ namespace GeodeEmpire.Save
         public List<EncyclopediaEntry> Encyclopedia = new List<EncyclopediaEntry>();
         public Statistics Stats = new Statistics();
         public int DisplayCapacity = 8;
+        public int SaleCapacity = 6;
         public bool PremiumInviteShown;
         public bool SliceTeaseShown;
         public int Prestige;
@@ -160,6 +172,13 @@ namespace GeodeEmpire.Save
         {
             int c = 0;
             foreach (var s in Specimens) if (s.Location == SpecimenLocation.DisplaySlot) c++;
+            return c;
+        }
+
+        public int ForSaleCount()
+        {
+            int c = 0;
+            foreach (var s in Specimens) if (s.Location == SpecimenLocation.SaleSlot) c++;
             return c;
         }
 

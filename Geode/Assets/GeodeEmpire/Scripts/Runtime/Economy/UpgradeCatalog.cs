@@ -22,6 +22,7 @@ namespace GeodeEmpire.Economy
         public const string DisplayExpansion = "display_expansion";
         public const string CalibratedScale = "calibrated_scale";
         public const string Loupe = "loupe";
+        public const string SalesTable = "sales_table";
 
         public static readonly UpgradeDefinition[] All =
         {
@@ -43,6 +44,9 @@ namespace GeodeEmpire.Economy
             new UpgradeDefinition { Id = DisplayExpansion, Name = "Cabinet Shelf Expansion", Price = 260f, Order = 4,
                 Description = "Unlock the top shelf of the display cabinet.",
                 Effect = "Four more display slots (8 → 12)." },
+            new UpgradeDefinition { Id = SalesTable, Name = "Showroom Island Table", Price = 160f, Order = 3,
+                Description = "A felt-topped island table in the middle of the shop.",
+                Effect = "Four more sales slots (6 → 10), where browsing customers see them first." },
         };
 
         public static UpgradeDefinition Get(string id)

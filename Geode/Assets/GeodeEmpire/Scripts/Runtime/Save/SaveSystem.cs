@@ -12,7 +12,9 @@ namespace GeodeEmpire.Save
     {
         public const string FileName = "geode_career.json";
 
-        public static string Directory => Application.persistentDataPath;
+        /// <summary>Tests point this at a scratch folder so they never touch the player's real career.</summary>
+        public static string DirectoryOverride;
+        public static string Directory => string.IsNullOrEmpty(DirectoryOverride) ? Application.persistentDataPath : DirectoryOverride;
         public static string MainPath => Path.Combine(Directory, FileName);
         public static string BackupPath => MainPath + ".bak";
         public static string TempPath => MainPath + ".tmp";

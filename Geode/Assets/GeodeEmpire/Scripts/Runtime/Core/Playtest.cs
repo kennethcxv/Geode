@@ -1,9 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.Rendering.Universal;
 using GeodeEmpire.Cracking;
 using GeodeEmpire.Interaction;
 using GeodeEmpire.Player;
@@ -198,6 +200,23 @@ namespace GeodeEmpire.Core
 
         private static T Find<T>() where T : Object => FindAnyObjectByType<T>();
 
+        // the partition between workshop and showroom is only open by the north wall
+        private const float PartitionX = 2.55f;
+        private static readonly Vector3 OpeningWest = new Vector3(2.2f, 0f, 1.8f), OpeningEast = new Vector3(2.95f, 0f, 1.8f);
+
+        /// <summary>Walk to a point, going round through the partition opening when the target is in the other room.</summary>
+        private IEnumerator RouteTo(Vector3 target, float tolerance = 0.3f)
+        {
+            var c = D.Controller;
+            bool hereEast = c.transform.position.x > PartitionX, thereEast = target.x > PartitionX;
+            if (hereEast != thereEast)
+            {
+                yield return D.WalkTo(hereEast ? OpeningEast : OpeningWest, 0.3f, 14f);
+                yield return D.WalkTo(hereEast ? OpeningWest : OpeningEast, 0.3f, 8f);
+            }
+            yield return D.WalkTo(target, tolerance, 14f);
+        }
+
         /// <summary>A standing spot near a station point, offset toward the room centre so we never walk into walls.</summary>
         private static Vector3 StandNear(Vector3 point, float dist = 0.95f)
         {
@@ -385,14 +404,32 @@ namespace GeodeEmpire.Core
             yield return Pad(GamepadButton.DpadDown);
             L($"down: focus={pause.FocusedText}");
             yield return Pad(GamepadButton.South);
-            L($"A: settings={pause.SettingsVisible} focus={pause.FocusedText}");
+            L($"A: settings={pause.SettingsVisible} tab={pause.Settings.Tab} focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.DpadDown);
             string sBefore = pause.FocusedText;
+            L($"down: focus={sBefore}");
             yield return Pad(GamepadButton.DpadRight);
             L($"right on slider: {sBefore} -> {pause.FocusedText}");
             yield return Pad(GamepadButton.DpadLeft);
             L($"left on slider: -> {pause.FocusedText}");
+            yield return Pad(GamepadButton.RightShoulder);
+            L($"RB: tab={pause.Settings.Tab} focus={pause.FocusedText}");
             yield return Pad(GamepadButton.DpadDown);
-            L($"down: focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.DpadDown);
+            L($"down twice: focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.RightShoulder);
+            yield return Pad(GamepadButton.RightShoulder);
+            L($"RB twice: tab={pause.Settings.Tab} focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.DpadRight);
+            L($"right on choice: focus={pause.FocusedText} confirm={pause.Settings.ConfirmOpen} display={GameSettings.DisplayApplied}");
+            yield return Pad(GamepadButton.DpadLeft);
+            L($"left in confirm: focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.East);
+            L($"B in confirm: confirm={pause.Settings.ConfirmOpen} settings={pause.SettingsVisible} mode={GameSettings.Current.DisplayMode} focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.LeftShoulder);
+            yield return Pad(GamepadButton.LeftShoulder);
+            yield return Pad(GamepadButton.LeftShoulder);
+            L($"LB thrice: tab={pause.Settings.Tab} focus={pause.FocusedText}");
             yield return Pad(GamepadButton.East);
             L($"B in settings: pause open={pause.IsOpen} settings={pause.SettingsVisible} focus={pause.FocusedText}");
             yield return Pad(GamepadButton.East);
@@ -490,6 +527,279 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        /// <summary>Dev fixture: opened, appraised specimens on the workshop floor plus some cash, so retail can be exercised without an hour of cracking.</summary>
+        public string SpawnTestStock(int count = 5, float cash = 300f)
+        {
+            ulong[] seeds = { 0x7D1UL, 0xACCUL, 0xE53UL, 0x8BFUL, 0x3A7F1UL, 0xBCFUL, 0xF02UL, 0xB5FUL };
+            int n = 0;
+            for (int i = 0; i < Mathf.Min(count, seeds.Length); i++)
+            {
+                var r = S.CreateSpecimenRecord(seeds[i], "test", "");
+                r.Location = SpecimenLocation.World;
+                r.Condition.Opened = true;
+                r.Appraised = true;
+                r.AppraisedValue = Valuation.DamagedValue(r.Geology, 0f, 0f);
+                var pos = new Vector3(-0.2f + (i % 3) * 0.45f, 0.12f, -1.2f + (i / 3) * 0.5f);
+                S.Spawn(r, pos, Quaternion.identity, true);
+                n++;
+            }
+            if (cash > 0f) S.AddCash(cash, "test");
+            S.RaiseStateChanged();
+            return $"spawned {n} appraised test specimens";
+        }
+
+        /// <summary>
+        /// Run R (retail): put the best appraised specimens on the sales fixtures, bring customers in, and work the
+        /// register through the real prompts. Logs who bought what for how much and whether anything phased.
+        /// </summary>
+        public void RunRetailCycle(int customers = 3) { if (!Running) StartCoroutine(RetailCycle(customers)); }
+
+        public void RunRetailSaveScenarios() { if (!Running) StartCoroutine(RetailSaveScenarios()); }
+
+        private static string Chk(bool ok) => ok ? "ok" : "FAIL";
+
+        /// <summary>
+        /// Retail save integrity: stock survives a reload with its prices; a reserved (carried) piece goes back on the
+        /// shelf on reload; a sold piece never comes back and cannot be sold twice; stats persist.
+        /// </summary>
+        private IEnumerator RetailSaveScenarios()
+        {
+            Running = true;
+            Phase = "retail-save";
+            var s = S;
+            var shop = Retail.RetailShop.Instance;
+            if (shop == null) { L("no shop"); Running = false; yield break; }
+            // 1. stock three slots directly (the walking path is covered by RetailCycle)
+            var stock = new List<SpecimenEntity>();
+            foreach (var e in s.Entities.Values) if (e.IsOpened && e.Record.Appraised && e.Record.Location == SpecimenLocation.World) stock.Add(e);
+            int placed = 0;
+            foreach (var e in stock)
+            {
+                PlacementZone free = null;
+                foreach (var z in shop.SaleSlots) if (z.IsEmpty && !z.Locked) { free = z; break; }
+                if (free == null) break;
+                if (e.Zone != null) e.Zone.Take(e);
+                free.Place(e);          // the real path: the shop prices it and refreshes the card
+                placed++;
+                if (placed >= 3) break;
+            }
+            yield return null;
+            var ids = new List<string>(); var prices = new Dictionary<string, float>();
+            foreach (var z in shop.SaleSlots) { var e = z.First; if (e != null) { ids.Add(e.Id); prices[e.Id] = e.Record.AskingPrice; } }
+            L($"stocked {placed}: forSale={s.State.ForSaleCount()} prices=[{string.Join(",", prices.Values)}]");
+            L($"  prices set: {Chk(placed > 0 && prices.Values.All(p => p > 0f))}");
+            s.FlushSave("test");
+            s.ContinueGame();
+            yield return null;
+            yield return null;
+            int back = 0; bool pricesKept = true; bool onSlots = true;
+            foreach (var id in ids) { var e = s.GetEntity(id); if (e == null) continue; back++; if (!Mathf.Approximately(e.Record.AskingPrice, prices[id])) pricesKept = false; if (e.Record.Location != SpecimenLocation.SaleSlot || e.Zone == null) onSlots = false; }
+            L($"reload stocked: back={back}/{ids.Count} onSlots={Chk(onSlots)} pricesKept={Chk(pricesKept)} forSale={s.State.ForSaleCount()} customers={shop.Customers.Count} {Chk(shop.Customers.Count == 0)}");
+            L(Core.CollisionAudit.Report("reload stocked"));
+
+            // 2. a customer carrying a piece: reload puts it back on a shelf, nobody keeps it
+            Phase = "retail-reserved";
+            var c = shop.SpawnNow();
+            float t = 0f;
+            while (c != null && c.Wanted == null && c.State != Retail.Customer.Phase.Leaving && c.State != Retail.Customer.Phase.Done && t < 40f) { t += Time.deltaTime; yield return null; }
+            if (c == null || c.Wanted == null) { L($"  customer did not pick anything (state={(c != null ? c.State.ToString() : "gone")}), retrying"); c = shop.SpawnNow(); t = 0f; while (c != null && c.Wanted == null && c.State != Retail.Customer.Phase.Leaving && t < 40f) { t += Time.deltaTime; yield return null; } }
+            if (c != null && c.Wanted != null)
+            {
+                string wantedId = c.Wanted.Id;
+                yield return new WaitForSeconds(0.5f);
+                int forSaleBefore = s.State.ForSaleCount();
+                L($"reserved {wantedId} by {c.Archetype.Name} state={c.State} loc={c.Wanted.Record.Location} forSale={forSaleBefore}");
+                s.FlushSave("test");
+                s.ContinueGame();
+                yield return null;
+                yield return null;
+                var w = s.GetEntity(wantedId);
+                L($"reload reserved: entity={(w != null ? "present" : "MISSING")} loc={(w != null ? w.Record.Location.ToString() : "-")} onSlot={Chk(w != null && w.Zone != null && w.Record.Location == SpecimenLocation.SaleSlot)} parentIsWorld={Chk(w != null && w.transform.parent == null)} forSale={s.State.ForSaleCount()} {Chk(s.State.ForSaleCount() == forSaleBefore)} customers={shop.Customers.Count}");
+                L(Core.CollisionAudit.Report("reload reserved"));
+            }
+            else L("  no customer reserved anything; skipping reserved-reload check");
+
+            // 3. sell one at the register, then reload: gone for good, stats kept, no double sale
+            Phase = "retail-sold";
+            var reg = FindAnyObjectByType<Retail.CheckoutRegister>();
+            c = shop.SpawnNow();
+            t = 0f;
+            while (c != null && c.State != Retail.Customer.Phase.AtCounter && c.State != Retail.Customer.Phase.Leaving && c.State != Retail.Customer.Phase.Done && t < 90f) { t += Time.deltaTime; yield return null; }
+            if (c != null && c.State == Retail.Customer.Phase.AtCounter && c.Wanted != null)
+            {
+                string soldId = c.Wanted.Id;
+                float price = c.Wanted.Record.AskingPrice;
+                float cashBefore = s.State.Cash;
+                int salesBefore = s.State.Stats.RetailSales;
+                reg.Interact(P);
+                yield return null;
+                reg.Interact(P);
+                yield return null;
+                bool again = shop.CompleteSale(c);
+                var rec = s.State.FindSpecimen(soldId);
+                L($"sold {soldId} for {price}: cash {cashBefore}->{s.State.Cash} {Chk(Mathf.Approximately(s.State.Cash, cashBefore + price))} loc={rec.Location} {Chk(rec.Location == SpecimenLocation.Sold)} entityGone={Chk(s.GetEntity(soldId) == null)} secondSale={Chk(!again)} sales={s.State.Stats.RetailSales} {Chk(s.State.Stats.RetailSales == salesBefore + 1)}");
+                s.FlushSave("test");
+                s.ContinueGame();
+                yield return null;
+                yield return null;
+                rec = s.State.FindSpecimen(soldId);
+                L($"reload sold: entity={Chk(s.GetEntity(soldId) == null)} recordLoc={rec.Location} cash={s.State.Cash} {Chk(Mathf.Approximately(s.State.Cash, cashBefore + price))} sales={s.State.Stats.RetailSales} {Chk(s.State.Stats.RetailSales == salesBefore + 1)} forSale={s.State.ForSaleCount()}");
+            }
+            else L($"  no customer reached the counter (state={(c != null ? c.State.ToString() : "gone")}); sale-reload check skipped");
+            L(Core.CollisionAudit.Report("retail save end"));
+            Phase = "done";
+            Running = false;
+        }
+
+        public void RunSettingsMatrix() { if (!Running) StartCoroutine(SettingsMatrix()); }
+
+        /// <summary>
+        /// Every visible setting: change it, confirm the thing that reads it changed, then confirm the file round-trips.
+        /// Restores defaults at the end.
+        /// </summary>
+        private IEnumerator SettingsMatrix()
+        {
+            Running = true;
+            Phase = "settings";
+            var g = GameSettings.Current;
+            var fpc = FindAnyObjectByType<FirstPersonController>();
+            var hud = UI.HudController.Instance;
+            var cam = Camera.main;
+            g.ResetAll(); g.Apply();
+            yield return null;
+            int pass = 0, fail = 0;
+            void Row(string name, string from, string to, bool ok) { L($"  {name,-24} {from,-10} -> {to,-12} {Chk(ok)}"); if (ok) pass++; else fail++; }
+
+            // camera
+            g.FieldOfView = 85f; g.Apply(); yield return null; yield return null; yield return null;
+            Row("Field of view", "70", "85", Mathf.Abs(cam.fieldOfView - 85f) < 0.6f);
+            g.HeadBobAmount = 0f; g.Apply(); Row("Head bob", "100%", "0%", Mathf.Approximately(g.EffectiveHeadBob, 0f));
+            g.HeadBobAmount = 1f; g.ReducedMotion = true; g.Apply(); Row("Reduced motion", "off", "on", g.EffectiveHeadBob == 0f && g.EffectiveShake == 0f);
+            g.ReducedMotion = false; g.CameraShake = 0.3f; g.Apply(); Row("Camera shake", "100%", "30%", Mathf.Approximately(g.EffectiveShake, 0.3f));
+            g.UiScale = 1.2f; g.Apply(); Row("Interface scale", "1.00x", "1.20x", GameSettings.PanelReferenceResolution == new Vector2Int(1600, 900));
+            g.CrosshairVisible = false; g.Apply(); yield return null; Row("Show crosshair", "on", "off", hud == null || !hud.CrosshairShown);
+            g.CrosshairVisible = true; g.Apply(); yield return null; Row("Show crosshair back", "off", "on", hud == null || hud.CrosshairShown);
+
+            // controls: sensitivity feeds the look math directly; measure a real mouse delta
+            g.MouseSensitivity = 1f; g.InvertY = false; g.Apply();
+            float yaw0 = fpc.Yaw; D.MouseDelta(80f, 0f); yield return null; yield return null; float d1 = Mathf.DeltaAngle(yaw0, fpc.Yaw);
+            g.MouseSensitivity = 2f; g.Apply(); yaw0 = fpc.Yaw; D.MouseDelta(80f, 0f); yield return null; yield return null; float d2 = Mathf.DeltaAngle(yaw0, fpc.Yaw);
+            Row("Mouse sensitivity", $"{d1:F1}deg", $"{d2:F1}deg", d1 > 0.5f && Mathf.Abs(d2 / Mathf.Max(0.01f, d1) - 2f) < 0.25f);
+            float pitch0 = fpc.Pitch; D.MouseDelta(0f, 40f); yield return null; yield return null; float p1 = fpc.Pitch - pitch0;
+            g.InvertY = true; g.Apply(); pitch0 = fpc.Pitch; D.MouseDelta(0f, 40f); yield return null; yield return null; float p2 = fpc.Pitch - pitch0;
+            Row("Invert look Y", $"{p1:F1}", $"{p2:F1}", Mathf.Abs(p1) > 0.3f && Mathf.Sign(p1) != Mathf.Sign(p2));
+            g.InvertY = false; g.MouseSensitivity = 1f;
+            g.GamepadSensitivity = 2f; g.Apply(); Row("Controller sensitivity", "1.00x", "2.00x", Mathf.Approximately(GameSettings.Current.GamepadSensitivity, 2f));
+            g.StickDeadzone = 0.3f; g.Apply(); Row("Stick deadzone", "12%", "30%", Mathf.Approximately(UnityEngine.InputSystem.InputSystem.settings.defaultDeadzoneMin, 0.3f));
+            int pulses = Haptics.PulseCount; g.Vibration = 1f; g.Apply(); fpc.Impulse(0.5f); int after1 = Haptics.PulseCount;
+            g.Vibration = 0f; g.Apply(); fpc.Impulse(0.5f); int after2 = Haptics.PulseCount;
+            Row("Controller vibration", "100%", "0%", after1 == pulses + 1 && after2 == after1);
+            Haptics.Stop();
+
+            // gameplay
+            g.ShowTutorial = false; g.Apply(); Row("Tutorial hints", "on", "off", Tutorial.Current == null);
+            g.ShowTutorial = true; g.Apply();
+
+            // graphics
+            var rp = GameSettings.Pipeline;
+            g.ApplyPreset(0); g.Apply(); Row("Quality preset Low", "Medium", "Low", Mathf.Approximately(rp.renderScale, 0.8f) && rp.msaaSampleCount == 1);
+            g.ApplyPreset(2); g.Apply(); Row("Quality preset High", "Low", "High", rp.msaaSampleCount == 4 && rp.shadowDistance > 20f);
+            g.ShadowQuality = 0; g.RefreshPresetFromParts(); g.Apply(); Row("Shadows off", "High", "Off", rp.shadowDistance == 0f && g.QualityPreset == 3);
+            g.AntiAliasing = 3; g.Apply(); Row("Anti-aliasing 8x", "4x", "8x", rp.msaaSampleCount == 8);
+            g.RenderScale = 1.2f; g.Apply(); Row("Render scale", "100%", "120%", Mathf.Approximately(rp.renderScale, 1.2f));
+            g.PostProcessing = false; g.Apply(); Row("Post-processing", "on", "off", !cam.GetUniversalAdditionalCameraData().renderPostProcessing);
+            g.PostProcessing = true; g.Apply();
+            g.Brightness = 1.3f; g.Apply(); Row("Brightness", "100%", "130%", Mathf.Abs(GameSettings.CurrentExposure - (GameSettings.BaseExposure + 0.48f)) < 0.01f);
+            g.VSync = false; g.Apply(); Row("VSync", "on", "off", QualitySettings.vSyncCount == 0);
+            g.FrameRateLimit = 60; g.Apply(); Row("Frame-rate limit", "Uncapped", "60", Application.targetFrameRate == 60);
+            g.DisplayMode = 2; g.ResolutionWidth = 1280; g.ResolutionHeight = 720; g.ApplyDisplay(); Row("Display mode/resolution", "Fullscreen native", "Windowed 1280x720", GameSettings.DisplayApplied == "1280x720 Windowed");
+
+            // audio
+            g.MasterVolume = 0.4f; g.Apply(); Row("Master volume", "90%", "40%", Mathf.Approximately(AudioListener.volume, 0.4f));
+            g.SfxVolume = 0.5f; g.Apply(); Row("Effects volume", "100%", "50%", Mathf.Approximately(Audio.WorkshopAudio.SfxVolume, 0.5f));
+            g.UiVolume = 0.2f; g.Apply(); Row("Interface volume", "80%", "20%", Mathf.Approximately(Audio.WorkshopAudio.UiVolume, 0.2f));
+            var amb = FindAnyObjectByType<Audio.AmbiencePlayer>();
+            g.AmbienceVolume = 0.3f; g.Apply(); Row("Ambience volume", "80%", "30%", amb == null || Mathf.Approximately(amb.SourceVolume, 0.15f));
+
+            // persistence: every changed value must come back from disk
+            g.Save();
+            var back = GameSettings.Load();
+            bool persisted = back.FieldOfView == 85f && back.HeadBobAmount == 1f && back.CameraShake == 0.3f && back.UiScale == 1.2f && back.GamepadSensitivity == 2f && back.StickDeadzone == 0.3f
+                && back.Vibration == 0f && back.QualityPreset == 3 && back.ShadowQuality == 0 && back.AntiAliasing == 3 && back.RenderScale == 1.2f && back.Brightness == 1.3f && !back.VSync && back.FrameRateLimit == 60
+                && back.DisplayMode == 2 && back.ResolutionWidth == 1280 && back.MasterVolume == 0.4f && back.SfxVolume == 0.5f && back.UiVolume == 0.2f && back.AmbienceVolume == 0.3f;
+            Row("Persistence (all)", "changed", "reloaded", persisted);
+            // reset: defaults return and are written
+            g.ResetAll(); g.Apply(); g.ApplyDisplay(); g.Save();
+            var def = new GameSettings(); var again = GameSettings.Load();
+            Row("Reset all", "changed", "defaults", again.FieldOfView == def.FieldOfView && again.UiScale == 1f && again.QualityPreset == 1 && again.MasterVolume == def.MasterVolume && again.DisplayMode == 0);
+            L($"settings matrix: pass={pass} fail={fail}");
+            Phase = "done";
+            Running = false;
+        }
+
+        private IEnumerator RetailCycle(int customers)
+        {
+            Running = true;
+            Phase = "retail-stock";
+            var shop = Retail.RetailShop.Instance;
+            if (shop == null) { L("no shop"); Running = false; yield break; }
+            L($"== RetailCycle cash={S.State.Cash} forSale={S.State.ForSaleCount()}");
+            // stock: appraised opened specimens not yet displayed, best first
+            var stock = new List<SpecimenEntity>();
+            foreach (var e in S.Entities.Values) if (e.IsOpened && e.Record.Appraised && e.Record.Location != SpecimenLocation.DisplaySlot && e.Record.Location != SpecimenLocation.SaleSlot) stock.Add(e);
+            stock.Sort((a, b) => b.Record.EstimatedValue().CompareTo(a.Record.EstimatedValue()));
+            int placed = 0;
+            foreach (var e in stock)
+            {
+                PlacementZone free = null;
+                foreach (var z in shop.SaleSlots) if (z.IsEmpty && !z.Locked) { free = z; break; }
+                if (free == null) break;
+                yield return FetchRock(e);
+                if (P.Held != e) { L("could not fetch " + e.Id); continue; }
+                // stand in front of the fixture: its browse point is exactly that spot
+                var stand = shop.BrowsePointFor(free) != null ? shop.BrowsePointFor(free).position : StandNear(free.transform.position, 0.9f);
+                stand.y = 0f;
+                yield return RouteTo(stand, 0.3f);
+                yield return LookAndInteract(free.transform.position, "Put up for sale");
+                L($"stocked {e.Record.DisplayName} asking={e.Record.AskingPrice} value={e.Record.EstimatedValue()} slot={free.SlotIndex} loc={e.Record.Location}");
+                placed++;
+                if (placed >= 4) break;
+            }
+            L(Core.CollisionAudit.Report("stocked shelves"));
+            // step back behind the counter so nobody is standing on a browse point
+            if (shop.CounterCustomerPoint != null) { var behind = shop.CounterCustomerPoint.position + new Vector3(-1.2f, 0f, 0f); behind.y = 0f; yield return RouteTo(behind, 0.3f); }
+            // customers
+            for (int n = 0; n < customers; n++)
+            {
+                Phase = $"customer {n + 1}";
+                var c = shop.SpawnNow();
+                if (c == null) { L("spawn failed"); break; }
+                L($"customer {c.Id}: {c.Archetype.Name} budget={c.Budget}");
+                float t = 0f;
+                while (c != null && c.State != Retail.Customer.Phase.AtCounter && c.State != Retail.Customer.Phase.Leaving && c.State != Retail.Customer.Phase.Done && t < 90f) { t += Time.deltaTime; yield return null; }
+                if (c == null || c.State != Retail.Customer.Phase.AtCounter)
+                {
+                    L($"  left without buying (state={(c != null ? c.State.ToString() : "gone")}) after {t:F0}s");
+                    while (c != null && c.State != Retail.Customer.Phase.Done) yield return null;
+                    continue;
+                }
+                L($"  at counter after {t:F0}s wanting {c.Wanted.Record.DisplayName} for {c.Wanted.Record.AskingPrice}");
+                L(Core.CollisionAudit.Report("customer at counter"));
+                // walk to the register on the workshop side and ring it up twice
+                var reg = Find<Retail.CheckoutRegister>();
+                yield return RouteTo(new Vector3(reg.transform.position.x - 0.85f, 0f, reg.transform.position.z + 0.15f), 0.3f);
+                float cashBefore = S.State.Cash;
+                yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Ring up");
+                yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Take");
+                yield return new WaitForSeconds(0.5f);
+                L($"  sale: cash {cashBefore} -> {S.State.Cash} retailSales={S.State.Stats.RetailSales} forSale={S.State.ForSaleCount()}");
+                while (c != null && c.State != Retail.Customer.Phase.Done) yield return null;
+            }
+            L($"retail end: cash={S.State.Cash} revenue={S.State.Stats.RetailRevenue} served={S.State.Stats.CustomersServed} leftEmpty={S.State.Stats.CustomersLeftEmptyHanded} customersNow={shop.Customers.Count}");
+            Phase = "done";
+            Running = false;
+        }
+
         /// <summary>Crack every remaining rock on the bench quickly (for economy/pacing checks).</summary>
         public void RunCrackAll(string style = "careful") { if (!Running) StartCoroutine(CrackAll(style)); }
 
@@ -528,8 +838,8 @@ namespace GeodeEmpire.Core
             for (int attempt = 0; attempt < 2 && P.Held == null; attempt++)
             {
                 Vector3 stand = rp + dir * 0.8f; stand.y = 0f;
-                stand.x = Mathf.Clamp(stand.x, -3.1f, 3.1f); stand.z = Mathf.Clamp(stand.z, -2.25f, 2.25f);
-                yield return D.WalkTo(stand, 0.25f);
+                stand.x = Mathf.Clamp(stand.x, -3.1f, 6.6f); stand.z = Mathf.Clamp(stand.z, -2.25f, 2.25f);
+                yield return RouteTo(stand, 0.25f);
                 yield return LookAndInteract(rp, "Pick up");
                 dir = -dir;
             }

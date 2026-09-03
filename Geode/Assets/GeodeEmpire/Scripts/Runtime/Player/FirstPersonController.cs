@@ -42,11 +42,13 @@ namespace GeodeEmpire.Player
         {
             _shakeAmp = Mathf.Min(1.5f, _shakeAmp + strength);
             _shakeSeed = UnityEngine.Random.value * 100f;
+            Haptics.Pulse(strength * 0.5f, 0.2f + strength * 0.8f, 0.05f + strength * 0.12f);
         }
 
         public bool InStationView => _stationAnchor != null;
         public float StationBlend => _stationBlend;
         public float Yaw => _yaw;
+        public float Pitch => _pitch;
 
         private void Awake()
         {
@@ -146,11 +148,12 @@ namespace GeodeEmpire.Player
 
             // head bob
             float planar = new Vector2(_velocity.x, _velocity.z).magnitude;
-            if (settings.HeadBob && planar > 0.2f && _cc.isGrounded)
+            float bobScale = settings.EffectiveHeadBob;
+            if (bobScale > 0f && planar > 0.2f && _cc.isGrounded)
             {
                 _bobTime += dt * (4.5f + planar * 1.2f);
             }
-            float bobAmp = settings.HeadBob ? Mathf.Clamp01(planar / WalkSpeed) * 0.02f : 0f;
+            float bobAmp = Mathf.Clamp01(planar / WalkSpeed) * 0.02f * bobScale;
             Vector3 bob = new Vector3(Mathf.Sin(_bobTime * 0.5f) * bobAmp * 0.5f, Mathf.Abs(Mathf.Sin(_bobTime)) * bobAmp, 0f);
             CameraPivot.localPosition = Vector3.Lerp(CameraPivot.localPosition, new Vector3(0f, 1.62f, 0f) + bob, 10f * dt);
         }
@@ -175,7 +178,7 @@ namespace GeodeEmpire.Player
             }
             if (_shakeAmp > 0.001f)
             {
-                float amp = _shakeAmp * GameSettings.Current.CameraShake;
+                float amp = _shakeAmp * GameSettings.Current.EffectiveShake;
                 float tt = Time.unscaledTime * 38f + _shakeSeed;
                 var kick = new Vector3(Mathf.Sin(tt) * 0.9f, Mathf.Sin(tt * 1.3f + 1f) * 0.6f, Mathf.Sin(tt * 0.7f + 2f) * 0.35f) * amp * 0.9f;
                 Camera.transform.rotation = Camera.transform.rotation * Quaternion.Euler(kick);

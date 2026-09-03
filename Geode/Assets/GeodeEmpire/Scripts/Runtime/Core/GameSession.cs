@@ -194,7 +194,8 @@ namespace GeodeEmpire.Core
                         var e = Spawn(r, r.WorldPosition, r.WorldRotation, false);
                         var zone = FindZone(zones, r.Location, r.LocationIndex);
                         if (zone != null) zone.Place(e, true);
-                        else { e.SetPhysics(true); r.Location = SpecimenLocation.World; }
+                        else { e.SetPhysics(true); r.Location = SpecimenLocation.World; r.AskingPrice = 0f; }
+                        if (r.Location == SpecimenLocation.SaleSlot && r.AskingPrice <= 0f) r.AskingPrice = Retail.RetailShop.AskingPrice(r);
                         break;
                     }
                 }
@@ -216,13 +217,19 @@ namespace GeodeEmpire.Core
         private static PlacementZone FindZone(PlacementZone[] zones, SpecimenLocation loc, int index)
         {
             PlacementZone best = null;
+            PlacementZone spare = null;
             foreach (var z in zones)
             {
                 if (z.LocationFor() != loc) continue;
-                if (loc == SpecimenLocation.DisplaySlot) { if (z.SlotIndex == index) return z; continue; }
+                if (loc == SpecimenLocation.DisplaySlot || loc == SpecimenLocation.SaleSlot)
+                {
+                    if (z.SlotIndex == index && !z.IsFull) return z;
+                    if (spare == null && !z.IsFull && !z.Locked) spare = z;   // the slot is taken (older save): any free one of the same kind
+                    continue;
+                }
                 if (best == null || (!z.IsFull && best.IsFull)) best = z;
             }
-            return best;
+            return best ?? spare;
         }
 
         // ------------------------------------------------------------------------------------
@@ -363,7 +370,7 @@ namespace GeodeEmpire.Core
             foreach (var s in State.Specimens)
             {
                 if (s.Location == SpecimenLocation.Sold || s.Location == SpecimenLocation.Discarded || s.Location == SpecimenLocation.DisplaySlot) continue;
-                return true;
+                return true;   // includes stock on the sales fixtures: it can always be taken back to the dealer
             }
             return false;
         }
@@ -410,6 +417,7 @@ namespace GeodeEmpire.Core
             TrySpend(up.Price, "upgrade");
             State.Upgrades.Add(upgradeId);
             if (upgradeId == Economy.UpgradeCatalog.DisplayExpansion) State.DisplayCapacity = 12;
+            if (upgradeId == Economy.UpgradeCatalog.SalesTable) State.SaleCapacity = 10;
             Audio.WorkshopAudio.Play2D("ui_buy", 0.7f);
             Notify($"{up.Name} installed.", NotificationKind.Success);
             Tutorial.Notify("upgrade_or_crate");

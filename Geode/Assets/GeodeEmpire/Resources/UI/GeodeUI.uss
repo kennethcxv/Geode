@@ -123,3 +123,27 @@
 .unity-base-popup-field:focus .unity-base-popup-field__input { border-color: rgb(255,214,140); }
 .unity-base-popup-field__text { color: rgb(240,236,228); font-size: 17px; }
 .unity-base-popup-field__arrow { -unity-background-image-tint-color: rgb(226,178,96); }
+
+/* ---- retail --------------------------------------------------------------------- */
+.retail-chip { position: absolute; right: 28px; top: 96px; padding: 8px 14px; border-left-width: 3px; border-left-color: rgba(240,236,228,0.35); }
+.retail-chip-waiting { border-left-color: rgb(226, 178, 96); background-color: rgba(40, 32, 20, 0.9); }
+.checkout-card { position: absolute; left: 50%; top: 62%; translate: -50% 0; width: 520px; align-items: center; padding: 16px 24px; }
+
+/* ---- settings page ---- */
+.settings { width: 100%; }
+.settings-scroll { max-height: 430px; margin-top: 2px; }
+.settings-scroll .unity-scroll-view__content-container { padding-right: 6px; }
+.setting-text { width: 250px; flex-direction: column; flex-shrink: 0; }
+.setting-text .slider-label { width: auto; }
+.setting-desc { font-size: 12px; color: rgba(240, 236, 228, 0.5); margin-top: 1px; white-space: normal; }
+.setting-value { width: 64px; -unity-text-align: middle-right; color: rgba(240, 236, 228, 0.7); font-size: 15px; }
+.selector { flex-direction: row; align-items: center; flex-grow: 1; justify-content: flex-end; }
+.selector-arrow { width: 34px; min-width: 34px; padding: 6px 0; margin: 0 4px; font-size: 20px; }
+.selector-value { width: 190px; padding: 7px 10px; font-size: 16px; }
+.settings-footer { flex-direction: row; justify-content: space-between; margin-top: 14px; padding-top: 12px; border-top-width: 1px; border-top-color: rgba(255,244,220,0.1); }
+.bindings-card { margin: 6px 6px 4px 6px; padding: 12px 14px; }
+.binding-row { flex-direction: row; margin-top: 4px; }
+.binding-action { width: 250px; color: rgba(240, 236, 228, 0.85); font-size: 15px; }
+.binding-key { width: 150px; color: rgba(240, 236, 228, 0.6); font-size: 15px; }
+.confirm-card { position: absolute; left: 60px; right: 60px; top: 45%; background-color: rgb(30, 27, 24); border-width: 1px; border-color: rgba(226,178,96,0.65); border-radius: 6px; padding: 20px 24px; }
+.confirm-card .panel-subtitle { margin-bottom: 14px; }

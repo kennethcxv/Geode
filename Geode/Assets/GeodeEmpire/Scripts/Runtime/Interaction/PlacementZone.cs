@@ -8,7 +8,7 @@ using GeodeEmpire.Specimens;
 
 namespace GeodeEmpire.Interaction
 {
-    public enum ZoneKind { Cradle, SellTray, Scale, DisplaySlot, Shelf }
+    public enum ZoneKind { Cradle, SellTray, Scale, DisplaySlot, Shelf, SaleSlot, Counter }
 
     /// <summary>
     /// A physical spot specimens can be placed into (and taken from). Trays hold several, slots hold one.
@@ -19,6 +19,8 @@ namespace GeodeEmpire.Interaction
         public ZoneKind Kind;
         public string DisplayLabel = "Tray";
         public int SlotIndex;
+        /// <summary>Single-piece slots addressed by SlotIndex across a save (cabinet and sale fixtures).</summary>
+        public bool IsIndexedSlot => Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot;
         public int Capacity = 1;
         public bool AcceptsOpened = true;
         public bool AcceptsUnopened = true;
@@ -41,6 +43,7 @@ namespace GeodeEmpire.Interaction
             ZoneKind.SellTray => SpecimenLocation.SellTray,
             ZoneKind.Scale => SpecimenLocation.AppraisalStation,
             ZoneKind.DisplaySlot => SpecimenLocation.DisplaySlot,
+            ZoneKind.SaleSlot => SpecimenLocation.SaleSlot,
             _ => SpecimenLocation.World,
         };
 
@@ -55,11 +58,12 @@ namespace GeodeEmpire.Interaction
         public string RefusalReason(SpecimenEntity e)
         {
             if (e == null) return null;
-            if (Locked) return Kind == ZoneKind.DisplaySlot ? "Locked shelf: buy the Cabinet Shelf Expansion" : $"{DisplayLabel} is locked";
-            if (IsFull) return Kind == ZoneKind.DisplaySlot ? "Slot taken: pick a free slot or swap it out" : $"{DisplayLabel} is full";
+            if (Locked) return Kind == ZoneKind.DisplaySlot ? "Locked shelf: buy the Cabinet Shelf Expansion" : Kind == ZoneKind.SaleSlot ? "Locked: buy the Second Sales Case" : $"{DisplayLabel} is locked";
+            if (IsFull) return Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot ? "Slot taken: pick a free slot or swap it out" : $"{DisplayLabel} is full";
             bool opened = e.Record.IsOpened;
             if (opened && !AcceptsOpened) return "Unopened rocks only";
-            if (!opened && !AcceptsUnopened) return Kind == ZoneKind.DisplaySlot ? "Crack it open first" : "Opened specimens only";
+            if (!opened && !AcceptsUnopened) return Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot ? "Crack it open first" : "Opened specimens only";
+            if (Kind == ZoneKind.SaleSlot && !e.Record.Appraised) return "Appraise it first: the scale sets the price";
             return null;
         }
 
@@ -76,7 +80,7 @@ namespace GeodeEmpire.Interaction
             {
                 string why = RefusalReason(player.Held);
                 if (why != null) return why;
-                string verb = Kind == ZoneKind.Cradle ? "Set on" : Kind == ZoneKind.Scale ? "Weigh on" : "Place in";
+                string verb = Kind == ZoneKind.Cradle ? "Set on" : Kind == ZoneKind.Scale ? "Weigh on" : Kind == ZoneKind.SaleSlot ? "Put up for sale on" : "Place in";
                 return $"{verb} {DisplayLabel}";
             }
             var top = Occupants.Count > 0 ? Occupants[Occupants.Count - 1] : null;
@@ -131,10 +135,10 @@ namespace GeodeEmpire.Interaction
             e.Zone = this;
             e.Locked = false;
             var rot = anchor.rotation * Quaternion.Euler(0f, SeededYaw(e, idx), 0f);
-            var pos = anchor.TransformPoint(SlotLocalOffset(idx)) + Vector3.up * e.RestHeightOffset(Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.Scale || Kind == ZoneKind.Cradle);
+            var pos = anchor.TransformPoint(SlotLocalOffset(idx)) + Vector3.up * e.RestHeightOffset(Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.Scale || Kind == ZoneKind.Cradle || Kind == ZoneKind.SaleSlot);
             e.SetPose(pos, rot);
             e.Record.Location = LocationFor();
-            e.Record.LocationIndex = Kind == ZoneKind.DisplaySlot ? SlotIndex : idx;
+            e.Record.LocationIndex = IsIndexedSlot ? SlotIndex : idx;   // which slot, not which occupant: the reload looks it up by this
             e.Record.WorldPosition = pos;
             e.Record.WorldRotation = rot;
             if (!silent) Placed?.Invoke(this, e);
@@ -155,7 +159,7 @@ namespace GeodeEmpire.Interaction
                 var anchor = Anchor != null ? Anchor : transform;
                 var pos = anchor.TransformPoint(SlotLocalOffset(i)) + Vector3.up * o.RestHeightOffset(false);
                 o.SetPose(pos, o.transform.rotation);
-                o.Record.LocationIndex = Kind == ZoneKind.DisplaySlot ? SlotIndex : i;
+                o.Record.LocationIndex = IsIndexedSlot ? SlotIndex : i;
                 o.Record.WorldPosition = pos;
             }
         }
