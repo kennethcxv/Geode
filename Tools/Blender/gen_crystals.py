@@ -289,6 +289,118 @@ def fishtail(rng):
     return bm
 
 
+
+# ---------------------------------------------------------------------------
+# V5 habits: six more archetypes so the new families are new shapes, not recolours
+# ---------------------------------------------------------------------------
+def barrel_prism(rng, radius=0.32, height=0.62):
+    """Vanadinite / mimetite: short hexagonal prism with slightly convex (barrel) sides and a flat pinacoid top."""
+    n = 6
+    prof = [(0.0, 0.88), (0.12, 0.97), (0.5, 1.03), (0.88, 0.97), (1.0, 0.86)]
+    rings = []
+    angs = [math.radians(60 * i + rng.uniform(-3, 3)) for i in range(n)]
+    for (t, k) in prof:
+        rings.append([(radius * k * math.cos(a), radius * k * math.sin(a), height * t) for a in angs])
+    verts, faces = [], []
+    for ring in rings:
+        verts.extend(ring)
+    for r in range(len(rings) - 1):
+        for i in range(n):
+            j = (i + 1) % n
+            faces.append((r * n + i, r * n + j, (r + 1) * n + j, (r + 1) * n + i))
+    faces.append(tuple(reversed(range(n))))
+    top = (len(rings) - 1) * n
+    faces.append(tuple(range(top, top + n)))
+    return lib.bm_from_pydata(verts, faces)
+
+
+def rosette(rng, count=8):
+    """Azurite / barite rose: thin blades radiating from a centre, each leaning outward like petals."""
+    bm = lib.bm_icosphere(0.1, subdivisions=1, center=(0, 0, 0.08))
+    for i in range(count):
+        a = 2 * math.pi * i / count + rng.uniform(-0.15, 0.15)
+        b = blade(rng, width=rng.uniform(0.26, 0.36), thick=0.06, body_h=rng.uniform(0.6, 0.85), tip_h=rng.uniform(0.85, 1.0))
+        tilt = Matrix.Rotation(math.radians(rng.uniform(25, 55)), 4, "X")
+        m = Matrix.Rotation(a, 4, "Z") @ Matrix.Translation((0, 0.04, 0.02)) @ tilt
+        lib.bm_append(bm, b, m)
+    return bm
+
+
+def tetragonal_pyramid(rng, radius=0.27, prism_h=0.55, height=1.0):
+    """Apophyllite: square prism capped by a steep four-face pyramid, corners slightly truncated."""
+    n = 4
+    angs = [math.radians(45 + 90 * i) for i in range(n)]
+    verts = [(radius * math.cos(a), radius * math.sin(a), 0.0) for a in angs]
+    verts += [(radius * math.cos(a), radius * math.sin(a), prism_h) for a in angs]
+    verts.append((rng.uniform(-0.02, 0.02), rng.uniform(-0.02, 0.02), height))
+    faces = [tuple(reversed(range(n)))]
+    for i in range(n):
+        j = (i + 1) % n
+        faces.append((i, j, n + j, n + i))
+        faces.append((n + i, n + j, 2 * n))
+    bm = lib.bm_from_pydata(verts, faces)
+    return bm
+
+
+def tetrahedron(rng, size=0.4):
+    """Chalcopyrite sphenoid: a tetrahedron resting on one face, edges softened."""
+    s = size
+    pts = [(s, s, s), (s, -s, -s), (-s, s, -s), (-s, -s, s)]
+    bm = lib.bm_convex_hull(pts)
+    bm.faces.ensure_lookup_table()
+    lib.bm_orient_face_down(bm, bm.faces[0])
+    m = Matrix.Diagonal((rng.uniform(0.9, 1.1), rng.uniform(0.9, 1.1), 1.0, 1.0))
+    lib.bm_transform(bm, m)
+    return bm
+
+
+def sheaf(rng, blades=7):
+    """Stilbite bow-tie: two fans of thin blades diverging from a pinched waist."""
+    bm = lib.bm_cylinder(0.08, 0.04, segments=10)
+    for side in (-1, 1):
+        for i in range(blades):
+            b = blade(rng, width=0.14, thick=0.05, body_h=0.75, tip_h=0.9)
+            spread = math.radians(-32 + 64 * i / max(1, blades - 1))
+            m = Matrix.Translation((0, 0, 0.03)) @ Matrix.Rotation(math.radians(side * 12), 4, "Y") @ Matrix.Rotation(spread, 4, "X") @ Matrix.Translation((side * 0.03, 0, 0))
+            lib.bm_append(bm, b, m)
+    return bm
+
+
+def hopper_cube(rng, size=0.6, depth=0.2, inner=0.55):
+    """Halite / bismuth hopper: a cube whose five free faces are stepped recesses (the edges grew faster than the
+    face centres), built explicitly: outer rim square -> sloped step -> recessed inner square."""
+    h = size / 2
+    verts, faces = [], []
+    # the resting face (bottom) stays a flat square
+    base = [(-h, -h, 0), (h, -h, 0), (h, h, 0), (-h, h, 0)]
+    b0 = len(verts); verts += base
+    faces.append((b0, b0 + 3, b0 + 2, b0 + 1))
+    # five hopper faces: normal n, and two in-plane axes u, v; corners at z from 0..size
+    cz = h   # centre height
+    spec = [((0, 0, 1), (1, 0, 0), (0, 1, 0)), ((1, 0, 0), (0, 1, 0), (0, 0, 1)), ((-1, 0, 0), (0, -1, 0), (0, 0, 1)),
+            ((0, 1, 0), (-1, 0, 0), (0, 0, 1)), ((0, -1, 0), (1, 0, 0), (0, 0, 1))]
+    import mathutils
+    for (n, u, v) in spec:
+        n = mathutils.Vector(n); u = mathutils.Vector(u); v = mathutils.Vector(v)
+        c = mathutils.Vector((0, 0, cz)) + n * h
+        outer = [c + u * (-h) + v * (-h), c + u * h + v * (-h), c + u * h + v * h, c + u * (-h) + v * h]
+        ci = c - n * (size * depth)
+        k = h * inner
+        innerq = [ci + u * (-k) + v * (-k), ci + u * k + v * (-k), ci + u * k + v * k, ci + u * (-k) + v * k]
+        o0 = len(verts); verts += [tuple(p) for p in outer]
+        i0 = len(verts); verts += [tuple(p) for p in innerq]
+        for a in range(4):
+            b = (a + 1) % 4
+            faces.append((o0 + a, o0 + b, i0 + b, i0 + a))
+        faces.append((i0 + 0, i0 + 1, i0 + 2, i0 + 3))
+    bm = lib.bm_from_pydata(verts, faces)
+    bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=1e-5)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    m = Matrix.Diagonal((rng.uniform(0.94, 1.06), rng.uniform(0.94, 1.06), 1.0, 1.0))
+    lib.bm_transform(bm, m)
+    return bm
+
+
 ARCHETYPES = [
     # (name, builder, bevel width, seed, smooth)
     ("crystal_quartz_point", quartz_point, 0.012, 101, False),
@@ -309,6 +421,13 @@ ARCHETYPES = [
     ("crystal_dodecahedron", dodecahedron, 0.012, 116, False),
     ("crystal_trigonal_prism", trigonal_prism, 0.006, 117, False),
     ("crystal_fishtail", fishtail, 0.006, 118, False),
+    # V5 habits
+    ("crystal_barrel_prism", barrel_prism, 0.012, 119, False),
+    ("crystal_rosette", rosette, 0.004, 120, False),
+    ("crystal_tetragonal", tetragonal_pyramid, 0.012, 121, False),
+    ("crystal_tetrahedron", tetrahedron, 0.02, 122, False),
+    ("crystal_sheaf", sheaf, 0.003, 123, False),
+    ("crystal_hopper", hopper_cube, 0.008, 124, False),
 ]
 
 
@@ -325,7 +444,8 @@ def build_all():
         lib.bm_origin_to_base(bm)
         # compound tiles are intentionally overlapping (non-manifold) - skip that check for them
         lib.validate_bmesh(TAG, name, bm, require_manifold=name not in (
-            "crystal_druzy_tile", "crystal_botryoidal", "crystal_aragonite_spray", "crystal_quartz_cluster", "crystal_fishtail"))
+            "crystal_druzy_tile", "crystal_botryoidal", "crystal_aragonite_spray", "crystal_quartz_cluster", "crystal_fishtail",
+            "crystal_rosette", "crystal_sheaf"))
         obj = lib.object_from_bmesh(name, bm, smooth=smooth)
         lib.apply_transforms(obj)
         mesh = obj.data

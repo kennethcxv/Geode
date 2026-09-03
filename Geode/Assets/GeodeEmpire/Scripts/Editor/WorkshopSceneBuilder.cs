@@ -69,11 +69,11 @@ namespace GeodeEmpire.EditorTools
             Lit("M_MachinePaint", "T_Metal", new Color(0.56f, 0.62f, 0.58f), 0.55f, 0.15f, 1f);
             // V5 hero-asset materials: real material separation on the rebuilt props
             Lit("M_Leather", "T_Cardboard", new Color(0.34f, 0.23f, 0.16f), 0.38f, 0f, 2.5f);
-            Lit("M_Stainless", "T_Metal", new Color(0.86f, 0.87f, 0.89f), 0.82f, 0.95f, 1f);
+            Lit("M_Stainless", "T_Metal", new Color(0.8f, 0.81f, 0.83f), 0.7f, 0.6f, 1f);
             Lit("M_Aluminium", "T_Metal", new Color(0.74f, 0.75f, 0.77f), 0.5f, 0.9f, 1f);
             Lit("M_Hickory", "T_Wood", new Color(0.7f, 0.58f, 0.42f), 0.42f, 0f, 1.5f);
             Lit("M_Bristle", "T_Straw", new Color(0.7f, 0.62f, 0.45f), 0.15f, 0f, 3f);
-            Lit("M_PlasticDark", null, new Color(0.13f, 0.13f, 0.14f), 0.6f, 0f, 1f);
+            Lit("M_PlasticDark", null, new Color(0.2f, 0.2f, 0.21f), 0.5f, 0f, 1f);
             Lit("M_Tarp", null, new Color(0.22f, 0.3f, 0.24f), 0.2f, 0f, 1f);
             Lit("M_Rope", "T_Straw", new Color(0.72f, 0.64f, 0.5f), 0.1f, 0f, 4f);
             Lit("M_Enamel", null, new Color(0.9f, 0.9f, 0.86f), 0.7f, 0f, 1f);
@@ -206,20 +206,25 @@ namespace GeodeEmpire.EditorTools
         private static void EnsureAmbientOcclusion(UniversalRendererData rd)
         {
             if (rd == null) return;
-            foreach (var f in rd.rendererFeatures) if (f is ScreenSpaceAmbientOcclusion) return;
-            var ao = ScriptableObject.CreateInstance<ScreenSpaceAmbientOcclusion>();
-            ao.name = "ScreenSpaceAmbientOcclusion";
-            AssetDatabase.AddObjectToAsset(ao, rd);
-            AssetDatabase.SaveAssets();
-            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(ao, out _, out long localId);
-            var so = new SerializedObject(rd);
-            var feats = so.FindProperty("m_RendererFeatures");
-            var map = so.FindProperty("m_RendererFeatureMap");
-            feats.arraySize++;
-            feats.GetArrayElementAtIndex(feats.arraySize - 1).objectReferenceValue = ao;
-            map.arraySize++;
-            map.GetArrayElementAtIndex(map.arraySize - 1).longValue = localId;
-            so.ApplyModifiedPropertiesWithoutUndo();
+            ScreenSpaceAmbientOcclusion ao = null;
+            foreach (var f in rd.rendererFeatures) if (f is ScreenSpaceAmbientOcclusion existing) ao = existing;
+            if (ao == null)
+            {
+                ao = ScriptableObject.CreateInstance<ScreenSpaceAmbientOcclusion>();
+                ao.name = "ScreenSpaceAmbientOcclusion";
+                AssetDatabase.AddObjectToAsset(ao, rd);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(ao, out _, out long localId);
+                var so = new SerializedObject(rd);
+                var feats = so.FindProperty("m_RendererFeatures");
+                var map = so.FindProperty("m_RendererFeatureMap");
+                feats.arraySize++;
+                feats.GetArrayElementAtIndex(feats.arraySize - 1).objectReferenceValue = ao;
+                map.arraySize++;
+                map.GetArrayElementAtIndex(map.arraySize - 1).longValue = localId;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            ao.SetActive(true);
             var aso = new SerializedObject(ao);
             aso.FindProperty("m_Settings.Intensity").floatValue = 1.5f;
             aso.FindProperty("m_Settings.Radius").floatValue = 0.14f;
@@ -753,6 +758,8 @@ namespace GeodeEmpire.EditorTools
             scaleZone.Anchor = scaleAnchor;
             var ap = appraisal.gameObject.AddComponent<AppraisalStation>();
             ap.Scale = scaleZone;
+            Prop("prop_task_lamp", appraisal, new Vector3(0.62f, 0.9f, 0.22f), 235f, "M_MetalDark,M_Enamel,M_Bulb,M_PlasticDark", collider: true);
+            MakeLight(appraisal, "AppraisalLight", new Vector3(0.35f, 1.3f, -0.05f), new Vector3(62f, -100f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 0.5f, 2.4f, 60f, true);
             var tabletProp = Prop("prop_tablet", appraisal, new Vector3(-0.42f, 0.9f, 0.1f), 15f, "M_Plastic,M_PlasticDark", collider: true);
             var tablet = tabletProp.AddComponent<OrderTablet>();
             var screen = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -850,6 +857,7 @@ namespace GeodeEmpire.EditorTools
             var sawCam = new GameObject("SawCamera").transform;
             sawCam.SetParent(sawRoot, false);
             var sawLight = MakeLight(machine, "SawLight", new Vector3(0.1f, 1.75f, -0.35f), new Vector3(72f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 0.8f, 2.2f, 58f, false);
+            MakeLight(sawRoot, "SawBayLamp", new Vector3(-0.5f, 2.2f, -0.3f), Vector3.zero, LightType.Point, new Color(1f, 0.93f, 0.82f), 1.0f, 3.2f, 0f, false);
             sawLight.enabled = false;
             var clampZone = Support(Zone(sawRoot, "ClampZone", new Vector3(0.42f, 0.935f, 0.05f), ZoneKind.Saw, "the saw clamp", 1, true, true, new Vector3(0.3f, 0.26f, 0.34f)), 0.13f, 0.13f);
             clampZone.SetHighlightRenderers(vise.GetComponentsInChildren<Renderer>());
