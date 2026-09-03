@@ -62,6 +62,26 @@ namespace GeodeEmpire.Specimens
         private static readonly int StainId = Shader.PropertyToID("_Stain");
         private static readonly int ChipId = Shader.PropertyToID("_Chip");
         private static readonly int PolishId = Shader.PropertyToID("_Polish");
+        private static readonly int WetId = Shader.PropertyToID("_Wet");
+
+        /// <summary>Transient: 1 straight out of the wash tub or off the saw, drying back to 0 over ~45 s. Never saved, never valued.</summary>
+        public float Wetness { get; private set; }
+        private float _wetRefresh;
+        public const float DrySeconds = 45f;
+
+        public void SetWet(float amount)
+        {
+            Wetness = Mathf.Clamp01(Mathf.Max(Wetness, amount));
+            if (Geology != null) ApplyShellProperties();
+        }
+
+        private void Update()
+        {
+            if (Wetness <= 0f) return;
+            Wetness = Mathf.Max(0f, Wetness - Time.deltaTime / DrySeconds);
+            _wetRefresh -= Time.deltaTime;
+            if (_wetRefresh <= 0f || Wetness <= 0f) { _wetRefresh = 0.4f; if (Geology != null) ApplyShellProperties(); }
+        }
 
         /// <summary>Clay still on the shell, 0..1: the geology's coating less whatever has been scrubbed off.</summary>
         public float DirtRemaining => Geology != null && Condition != null ? Mathf.Clamp01(Geology.Dirt * (1f - Condition.Cleaned)) : 0f;
@@ -415,6 +435,7 @@ namespace GeodeEmpire.Specimens
             float chipR = (Geometry != null ? Geometry.MeanEquatorRadius : 0.06f) * 0.2f;
             _mpb.SetVector(ChipId, new Vector4(g.ChipLongitude, g.ChipLatitude, chipR, g.HasNaturalChip ? 1f : 0f));
             _mpb.SetFloat(PolishId, Polish);
+            _mpb.SetFloat(WetId, Wetness);
             _mpb.SetVector(CutPlaneId, _cutPlane);
             _mpb.SetVector(CutFeedId, _cutFeed);
             _mpb.SetFloat(CutShowId, _cutShow);

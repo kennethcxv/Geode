@@ -58,6 +58,7 @@ namespace GeodeEmpire.Workshop
         {
             WorkshopAudio.Play("splash", e.transform.position, 0.7f);
             VFX.EffectsFactory.Instance?.Impact(e.transform.position + Vector3.up * 0.02f, Vector3.up, 0.2f);
+            if (e.Visual != null) e.Visual.SetWet(1f);   // dunked: darker and glossy until it dries
             Tutorial.Notify("rock_in_tub");
         }
 
@@ -106,6 +107,7 @@ namespace GeodeEmpire.Workshop
             var cond = e.Record.Condition;
             float before = e.Visual.DirtRemaining;
             cond.Cleaned = Mathf.Clamp01(cond.Cleaned + dt / ScrubSeconds);
+            e.Visual.SetWet(1f);
             _progressSincePress += dt / ScrubSeconds;
             e.Visual.RefreshCondition();
             // the rock turns under the brush so the whole shell gets done

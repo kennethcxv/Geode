@@ -36,6 +36,7 @@ Shader "GeodeEmpire/GeodeShell"
         _CutPlane("Cut Plane", Vector) = (0, 1, 0, 0)
         _CutFeed("Cut Feed", Vector) = (1, 0, 0, -10)
         _CutShow("Cut Preview", Range(0, 1)) = 0
+        _Wet("Wetness", Range(0, 1)) = 0
     }
     SubShader
     {
@@ -60,6 +61,7 @@ Shader "GeodeEmpire/GeodeShell"
             float4 _CutPlane;           // object-space plane: normal xyz, height w
             float4 _CutFeed;            // object-space feed axis xyz; w = how far along it the kerf has reached
             float _CutShow;             // 0 hidden, 1 preview line drawn
+            float _Wet;                 // fresh from the tub or the saw: darker, richer, with a water sheen; dries off
         CBUFFER_END
         // fracture overlay arrays: kept outside the per-material block so property-block arrays reach them
         float _SectorCrack[16];         // seam stress per sector, >= 1 is an open crack
@@ -382,11 +384,17 @@ Shader "GeodeEmpire/GeodeShell"
                 float3 druzyCol = _CavityCrystalColor.rgb * lerp(0.55, 1.15, dzFacet);
                 cav = lerp(cav, druzyCol, _CavityDruzy * c.g);
 
+                // wet: water darkens and saturates the stone and lays a sheen over it; a fresh sawn face carries a film
+                // of grey coolant slurry until it dries
+                float wet = saturate(_Wet);
+                if (sawn) rim = lerp(rim, rim * 0.75 + float3(0.12, 0.12, 0.11), wet * 0.45);
                 float3 albedo = ext * c.r + cav * c.g + rim * c.b;
+                albedo = lerp(albedo, albedo * albedo * 1.35 + albedo * 0.15, wet * 0.6);
                 float extSmooth = texFam == 1 ? 0.24 : texFam == 3 ? 0.1 : 0.18;
                 extSmooth = lerp(extSmooth, 0.06, dirtMask) + chipAmt * 0.3;
                 float smooth = extSmooth * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * c.g + (sawn ? sawnSmooth : 0.16) * c.b;
                 smooth += (grain - 0.5) * (sawn ? 0.02 : 0.1) + crackFrost * 0.06 * c.r;
+                smooth = lerp(smooth, max(smooth, 0.72 + 0.1 * grain), wet);
 
                 if (_GeodeDebug > 0.5) return half4(albedo, 1.0);
                 InputData inputData = (InputData)0;

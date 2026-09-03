@@ -1053,6 +1053,12 @@ namespace GeodeEmpire.Specimens
             CrystalArchetype.DruzyTile => 2.8f,
             CrystalArchetype.Botryoidal => 1.9f,
             CrystalArchetype.AragoniteSpray => 1.4f,
+            CrystalArchetype.BarrelPrism => 1.05f,
+            CrystalArchetype.Rosette => 1.9f,
+            CrystalArchetype.Tetragonal => 0.4f,
+            CrystalArchetype.Tetrahedron => 1.2f,
+            CrystalArchetype.Sheaf => 1.0f,
+            CrystalArchetype.Hopper => 1.05f,
             _ => 0.5f,
         };
 

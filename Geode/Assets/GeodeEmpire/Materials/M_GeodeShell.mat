@@ -51,6 +51,7 @@ Material:
     - _TexFamily: 0
     - _TexScale: 14
     - _Weathering: 0.5
+    - _Wet: 0
     m_Colors:
     - _BandA: {r: 0.85, g: 0.8, b: 0.75, a: 1}
     - _BandB: {r: 0.5, g: 0.41999996, b: 0.35999998, a: 1}

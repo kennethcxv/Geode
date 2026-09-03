@@ -207,6 +207,14 @@ namespace GeodeEmpire.Specimens
                 case MineralId.Garnet: return palette == "Spessartine" ? "Orange" : strong ? "Deep Red" : "Red";
                 case MineralId.Hematite: return palette == "Specular" ? "Specular" : "Black";
                 case MineralId.Tourmaline: return palette == "Verdelite" ? "Green" : palette == "Rubellite" ? "Pink" : "Black";
+                case MineralId.Vanadinite: return palette == "Orange" ? "Orange" : strong ? "Blood-Red" : "Red";
+                case MineralId.Azurite: return palette == "Electric" || strong ? "Electric Blue" : "Deep Blue";
+                case MineralId.Stibnite: return "Steel";
+                case MineralId.Rhodochrosite: return palette == "Raspberry" ? "Raspberry" : "Rose";
+                case MineralId.Apophyllite: return palette == "Green" ? "Mint" : g.Clarity > 0.75f ? "Water-Clear" : "Pearly";
+                case MineralId.Chalcopyrite: return palette == "Peacock" ? "Peacock" : "Brassy";
+                case MineralId.Stilbite: return palette == "White" ? "White" : "Salmon";
+                case MineralId.Halite: return palette == "Blue" ? "Blue" : palette == "Clear" ? "Clear" : "Pink";
             }
             return "";
         }
@@ -226,6 +234,14 @@ namespace GeodeEmpire.Specimens
             if (g.Mineral == MineralId.Garnet) return "in Matrix";
             if (g.Mineral == MineralId.Hematite) return g.Palette.Name == "Specular" ? "Specularite" : "Kidney Ore";
             if (g.Mineral == MineralId.Tourmaline) return g.CrystalScale > 0.6f ? "Prisms" : "in Pegmatite";
+            if (g.Mineral == MineralId.Vanadinite) return "Barrels";
+            if (g.Mineral == MineralId.Azurite) return "Rosettes";
+            if (g.Mineral == MineralId.Stibnite) return "Sprays";
+            if (g.Mineral == MineralId.Rhodochrosite) return g.Cavity == CavityArchetype.Nodule ? "Banded Nodule" : "Crust";
+            if (g.Mineral == MineralId.Apophyllite) return "Cluster";
+            if (g.Mineral == MineralId.Chalcopyrite) return "in Matrix";
+            if (g.Mineral == MineralId.Stilbite) return "Sheaves";
+            if (g.Mineral == MineralId.Halite) return "Hoppers";
             if (g.Cavity == CavityArchetype.Pocket) return "Pocket";
             return "Geode";
         }

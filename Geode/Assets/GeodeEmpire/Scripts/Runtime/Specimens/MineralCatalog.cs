@@ -9,6 +9,8 @@ namespace GeodeEmpire.Specimens
         Calcite = 5, Celestite = 6, Fluorite = 7, Pyrite = 8, Aragonite = 9,
         // V4 families: each a different habit and material response, not a recolour
         Malachite = 10, Selenite = 11, Wulfenite = 12, Garnet = 13, Hematite = 14, Tourmaline = 15,
+        // V5 families: six new crystal habits between them
+        Vanadinite = 16, Azurite = 17, Stibnite = 18, Rhodochrosite = 19, Apophyllite = 20, Chalcopyrite = 21, Stilbite = 22, Halite = 23,
     }
 
     /// <summary>Indices match the FBX archetypes exported by Tools/Blender/gen_crystals.py.</summary>
@@ -18,6 +20,7 @@ namespace GeodeEmpire.Specimens
         Dogtooth = 6, Nailhead = 7, Blade = 8, Needle = 9, Pyritohedron = 10, DruzyTile = 11,
         Botryoidal = 12, AragoniteSpray = 13,
         TabularPlate = 14, Dodecahedron = 15, TrigonalPrism = 16, Fishtail = 17,
+        BarrelPrism = 18, Rosette = 19, Tetragonal = 20, Tetrahedron = 21, Sheaf = 22, Hopper = 23,
     }
 
     public enum PlacementStyle { Carpet, Clustered, Scattered, Embedded, Sprays, Banded }
@@ -455,6 +458,194 @@ namespace GeodeEmpire.Specimens
                     BaseFrequency = 4, DruzyCapable = false, CenterpieceChance = 0.5f,
                     CavityWeights = new[] { 0.3f, 0.3f, 0.05f, 0.3f, 0.05f, 0f },
                     MatrixToneBias = 2, StainBias = 0f, HintBias = 1.1f,
+                },
+
+                // ---- V5 families: new habits, new geology, new places to find them ----
+                new MineralFamily
+                {
+                    Id = MineralId.Vanadinite, Name = "Vanadinite",
+                    Description = "Blood-red to orange hexagonal barrels on a pale lead-ore crust. Short, stubby, glassy prisms that catch light on their flat tops.",
+                    FieldNote = "Desert lead country: light, crumbly tan rough with a rusty crust; a red glint in a pit is the tell.",
+                    Archetypes = new[] { CrystalArchetype.BarrelPrism },
+                    ArchetypeWeights = new[] { 1f },
+                    Placement = PlacementStyle.Clustered, ScaleMin = 0.12f, ScaleMax = 0.36f, DensityMin = 0.4f, DensityMax = 0.85f,
+                    TiltDeg = 25f, ElongationMin = 0.6f, ElongationMax = 1.0f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Red", C(0.85f, 0.25f, 0.1f), C(0.7f, 0.18f, 0.06f), C(0.5f, 0.1f, 0.03f), C(0.3f, 0.06f, 0.02f), C(0.6f, 0.15f, 0.05f)),
+                        new MineralPalette("Orange", C(0.9f, 0.45f, 0.12f), C(0.8f, 0.36f, 0.08f), C(0.6f, 0.22f, 0.04f), C(0.4f, 0.14f, 0.02f), C(0.7f, 0.3f, 0.06f)),
+                    },
+                    PaletteWeights = new[] { 0.6f, 0.4f },
+                    Translucency = 0.4f, Metallic = 0f, Smoothness = 0.9f, Sparkle = 0.5f, Rim = 0.6f, ZoningBase = 0.2f, Inclusions = 0.15f,
+                    CavityWall = C(0.55f, 0.45f, 0.35f), BandStrength = 0.15f, BandFrequency = 8f,
+                    ValueMult = 1.8f, Fragility = 0.55f, ShellToughness = 1.0f,
+                    SecondaryOptions = new[] { MineralId.Calcite }, SecondaryChance = 0.15f,
+                    BaseFrequency = 4, DruzyCapable = false, CenterpieceChance = 0.35f,
+                    CavityWeights = new[] { 0.3f, 0.3f, 0.05f, 0.3f, 0.05f, 0f },
+                    MatrixToneBias = 2, StainBias = 0.35f, HintBias = 1.2f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Azurite, Name = "Azurite",
+                    Description = "Deep blue bladed rosettes, often fringed with malachite green. Dark, saturated and velvety rather than glassy.",
+                    FieldNote = "Copper country. Green and blue staining on a brown crust; heavier than it looks.",
+                    Archetypes = new[] { CrystalArchetype.Rosette, CrystalArchetype.Blade },
+                    ArchetypeWeights = new[] { 0.6f, 0.4f },
+                    Placement = PlacementStyle.Clustered, ScaleMin = 0.15f, ScaleMax = 0.5f, DensityMin = 0.3f, DensityMax = 0.7f,
+                    TiltDeg = 30f, ElongationMin = 0.9f, ElongationMax = 1.2f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Deep Blue", C(0.15f, 0.25f, 0.75f), C(0.1f, 0.18f, 0.62f), C(0.05f, 0.08f, 0.4f), C(0.02f, 0.04f, 0.25f), C(0.08f, 0.12f, 0.5f)),
+                        new MineralPalette("Electric", C(0.2f, 0.4f, 0.95f), C(0.14f, 0.3f, 0.85f), C(0.06f, 0.15f, 0.6f), C(0.03f, 0.08f, 0.4f), C(0.1f, 0.2f, 0.7f)),
+                    },
+                    PaletteWeights = new[] { 0.65f, 0.35f },
+                    Translucency = 0.3f, Metallic = 0f, Smoothness = 0.88f, Sparkle = 0.45f, Rim = 0.5f, ZoningBase = 0.15f, Inclusions = 0.2f,
+                    CavityWall = C(0.35f, 0.5f, 0.4f), BandStrength = 0.2f, BandFrequency = 9f,
+                    ValueMult = 2.1f, Fragility = 0.65f, ShellToughness = 0.95f,
+                    SecondaryOptions = new[] { MineralId.Malachite }, SecondaryChance = 0.5f,
+                    BaseFrequency = 3, DruzyCapable = true, CenterpieceChance = 0.45f,
+                    CavityWeights = new[] { 0.3f, 0.3f, 0.05f, 0.25f, 0.1f, 0f },
+                    MatrixToneBias = 0, StainBias = 0.2f, HintBias = 1.3f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Stibnite, Name = "Stibnite",
+                    Description = "Steel-grey metallic blades and needles in radiating sprays, striated along their length. Soft and easily bent.",
+                    FieldNote = "Antimony veins: grey rough with a dull metallic sheen on a broken corner.",
+                    Archetypes = new[] { CrystalArchetype.TrigonalPrism, CrystalArchetype.Needle },
+                    ArchetypeWeights = new[] { 0.6f, 0.4f },
+                    Placement = PlacementStyle.Sprays, ScaleMin = 0.4f, ScaleMax = 1.0f, DensityMin = 0.25f, DensityMax = 0.6f,
+                    TiltDeg = 40f, ElongationMin = 1.2f, ElongationMax = 1.8f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Steel", C(0.6f, 0.6f, 0.62f), C(0.45f, 0.45f, 0.48f), C(0.25f, 0.25f, 0.28f), C(0.12f, 0.12f, 0.14f), C(0.3f, 0.3f, 0.33f)),
+                    },
+                    PaletteWeights = new[] { 1f },
+                    Translucency = 0f, Metallic = 0.9f, Smoothness = 0.82f, Sparkle = 0.5f, Rim = 0.3f, ZoningBase = 0f, Inclusions = 0.05f,
+                    CavityWall = C(0.5f, 0.48f, 0.46f), BandStrength = 0.1f, BandFrequency = 8f,
+                    ValueMult = 1.7f, Fragility = 0.75f, ShellToughness = 0.9f,
+                    SecondaryOptions = new[] { MineralId.Calcite, MineralId.ClearQuartz }, SecondaryChance = 0.25f,
+                    BaseFrequency = 3, DruzyCapable = false, CenterpieceChance = 0.55f,
+                    CavityWeights = new[] { 0.35f, 0.25f, 0.1f, 0.25f, 0.05f, 0f },
+                    MatrixToneBias = 1, StainBias = 0.1f, HintBias = 0.9f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Rhodochrosite, Name = "Rhodochrosite",
+                    Description = "Rose to raspberry pink in banded botryoidal crusts, now and then as rhombs. The bands show best on a sawn face.",
+                    FieldNote = "Silver-mine gangue: pink shows through a grey crust; heavy, and it takes a saw beautifully.",
+                    Archetypes = new[] { CrystalArchetype.Botryoidal, CrystalArchetype.Rhomb },
+                    ArchetypeWeights = new[] { 0.65f, 0.35f },
+                    Placement = PlacementStyle.Carpet, ScaleMin = 0.1f, ScaleMax = 0.35f, DensityMin = 0.6f, DensityMax = 1.0f,
+                    TiltDeg = 10f, ElongationMin = 0.9f, ElongationMax = 1.1f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Rose", C(0.92f, 0.5f, 0.6f), C(0.85f, 0.4f, 0.5f), C(0.7f, 0.25f, 0.35f), C(0.55f, 0.15f, 0.25f), C(0.8f, 0.3f, 0.4f),
+                            C(0.95f, 0.75f, 0.8f), C(0.75f, 0.35f, 0.45f)),
+                        new MineralPalette("Raspberry", C(0.85f, 0.3f, 0.45f), C(0.75f, 0.22f, 0.36f), C(0.6f, 0.12f, 0.25f), C(0.42f, 0.08f, 0.16f), C(0.7f, 0.18f, 0.3f),
+                            C(0.92f, 0.6f, 0.68f), C(0.65f, 0.2f, 0.32f)),
+                    },
+                    PaletteWeights = new[] { 0.6f, 0.4f },
+                    Translucency = 0.4f, Metallic = 0f, Smoothness = 0.85f, Sparkle = 0.3f, Rim = 0.5f, ZoningBase = 0.3f, Inclusions = 0.15f,
+                    CavityWall = C(0.75f, 0.55f, 0.58f), BandStrength = 0.9f, BandFrequency = 14f,
+                    ValueMult = 2.2f, Fragility = 0.4f, ShellToughness = 1.1f,
+                    SecondaryOptions = new[] { MineralId.ClearQuartz, MineralId.Pyrite }, SecondaryChance = 0.2f,
+                    BaseFrequency = 3, DruzyCapable = true, CenterpieceChance = 0.15f,
+                    CavityWeights = new[] { 0.15f, 0.3f, 0.05f, 0.1f, 0.05f, 0.35f },
+                    MatrixToneBias = 0, StainBias = 0.2f, HintBias = 1.1f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Apophyllite, Name = "Apophyllite",
+                    Description = "Colourless to mint-green pseudo-cubic prisms with steep pyramid tops and a pearly lustre, lining basalt vugs.",
+                    FieldNote = "Basalt trap: dark, heavy, vesicular rough; a glassy square corner in a hole gives it away.",
+                    Archetypes = new[] { CrystalArchetype.Tetragonal, CrystalArchetype.Cube },
+                    ArchetypeWeights = new[] { 0.8f, 0.2f },
+                    Placement = PlacementStyle.Clustered, ScaleMin = 0.2f, ScaleMax = 0.6f, DensityMin = 0.4f, DensityMax = 0.8f,
+                    TiltDeg = 20f, ElongationMin = 0.8f, ElongationMax = 1.2f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Colourless", C(0.9f, 0.92f, 0.94f), C(0.82f, 0.86f, 0.9f), C(0.6f, 0.7f, 0.75f), C(0.45f, 0.55f, 0.62f), C(0.55f, 0.7f, 0.7f)),
+                        new MineralPalette("Green", C(0.6f, 0.85f, 0.7f), C(0.5f, 0.78f, 0.62f), C(0.3f, 0.6f, 0.45f), C(0.18f, 0.45f, 0.32f), C(0.25f, 0.55f, 0.4f)),
+                    },
+                    PaletteWeights = new[] { 0.7f, 0.3f },
+                    Translucency = 0.8f, Metallic = 0f, Smoothness = 0.95f, Sparkle = 0.7f, Rim = 0.7f, ZoningBase = 0.2f, Inclusions = 0.15f,
+                    CavityWall = C(0.42f, 0.4f, 0.42f), BandStrength = 0.1f, BandFrequency = 8f,
+                    ValueMult = 1.6f, Fragility = 0.6f, ShellToughness = 0.95f,
+                    SecondaryOptions = new[] { MineralId.Stilbite, MineralId.Calcite }, SecondaryChance = 0.35f,
+                    BaseFrequency = 4, DruzyCapable = false, CenterpieceChance = 0.5f,
+                    CavityWeights = new[] { 0.35f, 0.2f, 0.1f, 0.3f, 0.05f, 0f },
+                    MatrixToneBias = 3, StainBias = 0.05f, HintBias = 1.0f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Chalcopyrite, Name = "Chalcopyrite",
+                    Description = "Brassy sphenoids embedded in dark matrix, sometimes tarnished peacock blue and purple. Reads metallic and heavy.",
+                    FieldNote = "Copper ore: dark heavy rough with green staining and a brassy fleck on a fresh chip.",
+                    Archetypes = new[] { CrystalArchetype.Tetrahedron, CrystalArchetype.Pyritohedron },
+                    ArchetypeWeights = new[] { 0.7f, 0.3f },
+                    Placement = PlacementStyle.Embedded, ScaleMin = 0.15f, ScaleMax = 0.45f, DensityMin = 0.3f, DensityMax = 0.7f,
+                    TiltDeg = 45f, ElongationMin = 0.9f, ElongationMax = 1.1f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Brassy", C(0.85f, 0.65f, 0.3f), C(0.7f, 0.5f, 0.2f), C(0.45f, 0.3f, 0.1f), C(0.3f, 0.2f, 0.06f), C(0.5f, 0.35f, 0.12f)),
+                        new MineralPalette("Peacock", C(0.5f, 0.4f, 0.7f), C(0.3f, 0.55f, 0.6f), C(0.25f, 0.15f, 0.45f), C(0.12f, 0.3f, 0.35f), C(0.35f, 0.2f, 0.5f)),
+                    },
+                    PaletteWeights = new[] { 0.7f, 0.3f },
+                    Translucency = 0f, Metallic = 0.95f, Smoothness = 0.75f, Sparkle = 0.6f, Rim = 0.3f, ZoningBase = 0.1f, Inclusions = 0.05f,
+                    CavityWall = C(0.32f, 0.3f, 0.28f), BandStrength = 0.2f, BandFrequency = 10f,
+                    ValueMult = 1.5f, Fragility = 0.3f, ShellToughness = 1.3f,
+                    SecondaryOptions = new[] { MineralId.ClearQuartz, MineralId.Calcite }, SecondaryChance = 0.35f,
+                    BaseFrequency = 5, DruzyCapable = true, CenterpieceChance = 0.2f,
+                    CavityWeights = new[] { 0.3f, 0.35f, 0.05f, 0.2f, 0.05f, 0.05f },
+                    MatrixToneBias = 3, StainBias = 0.5f, HintBias = 0.9f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Stilbite, Name = "Stilbite",
+                    Description = "Salmon-pink to white bow-tie sheaves: fans of thin pearly blades pinched at the waist. A zeolite, soft and light.",
+                    FieldNote = "Basalt trap, with apophyllite: dark vesicular rough; the sheaves show as pale fans in a cavity.",
+                    Archetypes = new[] { CrystalArchetype.Sheaf, CrystalArchetype.Blade },
+                    ArchetypeWeights = new[] { 0.75f, 0.25f },
+                    Placement = PlacementStyle.Clustered, ScaleMin = 0.2f, ScaleMax = 0.55f, DensityMin = 0.35f, DensityMax = 0.75f,
+                    TiltDeg = 30f, ElongationMin = 0.9f, ElongationMax = 1.2f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Salmon", C(0.95f, 0.75f, 0.6f), C(0.9f, 0.65f, 0.5f), C(0.75f, 0.5f, 0.35f), C(0.6f, 0.38f, 0.25f), C(0.8f, 0.55f, 0.4f)),
+                        new MineralPalette("White", C(0.94f, 0.92f, 0.88f), C(0.88f, 0.86f, 0.82f), C(0.7f, 0.68f, 0.64f), C(0.55f, 0.52f, 0.48f), C(0.75f, 0.72f, 0.66f)),
+                    },
+                    PaletteWeights = new[] { 0.6f, 0.4f },
+                    Translucency = 0.5f, Metallic = 0f, Smoothness = 0.8f, Sparkle = 0.35f, Rim = 0.5f, ZoningBase = 0.15f, Inclusions = 0.2f,
+                    CavityWall = C(0.4f, 0.38f, 0.4f), BandStrength = 0.1f, BandFrequency = 8f,
+                    ValueMult = 1.4f, Fragility = 0.55f, ShellToughness = 0.95f,
+                    SecondaryOptions = new[] { MineralId.Apophyllite, MineralId.Calcite }, SecondaryChance = 0.35f,
+                    BaseFrequency = 4, DruzyCapable = false, CenterpieceChance = 0.4f,
+                    CavityWeights = new[] { 0.35f, 0.2f, 0.1f, 0.3f, 0.05f, 0f },
+                    MatrixToneBias = 3, StainBias = 0.1f, HintBias = 1.0f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Halite, Name = "Halite",
+                    Description = "Rock salt: pink, clear or rarely blue hopper cubes, their faces stepped inward. Light, soft, and it will not take water.",
+                    FieldNote = "Evaporite beds: light, pale, crumbly rough that tastes of the sea. Never wash it.",
+                    Archetypes = new[] { CrystalArchetype.Hopper, CrystalArchetype.Cube },
+                    ArchetypeWeights = new[] { 0.7f, 0.3f },
+                    Placement = PlacementStyle.Clustered, ScaleMin = 0.25f, ScaleMax = 0.7f, DensityMin = 0.3f, DensityMax = 0.7f,
+                    TiltDeg = 10f, ElongationMin = 0.95f, ElongationMax = 1.05f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Pink", C(0.95f, 0.7f, 0.72f), C(0.9f, 0.6f, 0.62f), C(0.8f, 0.45f, 0.5f), C(0.65f, 0.3f, 0.35f), C(0.85f, 0.5f, 0.55f)),
+                        new MineralPalette("Clear", C(0.9f, 0.9f, 0.9f), C(0.84f, 0.85f, 0.86f), C(0.65f, 0.68f, 0.72f), C(0.5f, 0.54f, 0.6f), C(0.6f, 0.65f, 0.7f)),
+                        new MineralPalette("Blue", C(0.5f, 0.6f, 0.9f), C(0.4f, 0.5f, 0.85f), C(0.25f, 0.32f, 0.65f), C(0.15f, 0.2f, 0.5f), C(0.3f, 0.4f, 0.75f)),
+                    },
+                    PaletteWeights = new[] { 0.55f, 0.38f, 0.07f },
+                    Translucency = 0.7f, Metallic = 0f, Smoothness = 0.85f, Sparkle = 0.5f, Rim = 0.6f, ZoningBase = 0.2f, Inclusions = 0.3f,
+                    CavityWall = C(0.7f, 0.66f, 0.6f), BandStrength = 0.15f, BandFrequency = 8f,
+                    ValueMult = 1.2f, Fragility = 0.8f, ShellToughness = 0.7f,
+                    SecondaryOptions = System.Array.Empty<MineralId>(), SecondaryChance = 0f,
+                    BaseFrequency = 4, DruzyCapable = false, CenterpieceChance = 0.5f,
+                    CavityWeights = new[] { 0.4f, 0.2f, 0.05f, 0.3f, 0.05f, 0f },
+                    MatrixToneBias = 2, StainBias = 0.05f, HintBias = 1.1f,
                 },
             };
             _all = list.ToArray();

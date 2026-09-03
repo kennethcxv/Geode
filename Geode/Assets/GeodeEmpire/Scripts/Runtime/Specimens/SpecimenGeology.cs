@@ -111,7 +111,8 @@ namespace GeodeEmpire.Specimens
 
         // Tier bands over the quality roll (used both for generation and for supplier rejection sampling).
         public static readonly float[] TierUpper = { 0.35f, 0.58f, 0.78f, 0.90f, 0.97f, 1.0001f };
-        public static readonly float[] NeutralTierWeights = { 0.58f, 0.24f, 0.12f, 0.045f, 0.012f, 0.003f };
+        // V5 rarity targets: Common 55-70, Decent 20-30, Good 7-14, Exceptional 1-4, Museum 0.2-1, World-class 0.02-0.2 (%)
+        public static readonly float[] NeutralTierWeights = { 0.60f, 0.245f, 0.11f, 0.035f, 0.008f, 0.002f };
         /// <summary>Neutral size mix; suppliers reshape it by rejection sampling.</summary>
         public static readonly float[] NeutralSizeWeights = { 0.3f, 0.48f, 0.17f, 0.05f };
         /// <summary>Mean-radius bands per size class (metres).</summary>
@@ -309,7 +310,7 @@ namespace GeodeEmpire.Specimens
                 case RareTrait.ColorZoning: g.Zoning = 1f; g.Saturation = Mathf.Max(g.Saturation, 0.7f); break;
                 case RareTrait.HighClarity: g.Clarity = 1f; break;
                 case RareTrait.SecondaryContrast: g.SecondaryAmount = Mathf.Max(g.SecondaryAmount, 0.35f); break;
-                case RareTrait.CrystalOnCrystal: g.CrystalScale = Mathf.Max(g.CrystalScale, 0.5f); if (!g.HasSecondary) { g.HasSecondary = true; g.Secondary = g.Family.SecondaryOptions[0]; g.SecondaryAmount = 0.25f; } break;
+                case RareTrait.CrystalOnCrystal: g.CrystalScale = Mathf.Max(g.CrystalScale, 0.5f); if (!g.HasSecondary) { g.HasSecondary = true; g.Secondary = g.Family.SecondaryOptions != null && g.Family.SecondaryOptions.Length > 0 ? g.Family.SecondaryOptions[0] : MineralId.ClearQuartz; g.SecondaryAmount = 0.25f; } break;
                 case RareTrait.Phantom: g.Zoning = Mathf.Max(g.Zoning, 0.8f); g.Clarity = Mathf.Max(g.Clarity, 0.7f); break;
                 case RareTrait.PerfectSymmetry: g.Symmetry = 1f; g.CrystalDensity = Mathf.Max(g.CrystalDensity, 0.7f); break;
                 case RareTrait.MetallicContrast: if (g.Family.Metallic < 0.5f) { g.HasSecondary = true; g.Secondary = MineralId.Pyrite; g.SecondaryAmount = Mathf.Max(g.SecondaryAmount, 0.3f); } else if (!g.HasSecondary) { g.HasSecondary = true; g.Secondary = MineralId.ClearQuartz; g.SecondaryAmount = 0.3f; } break;

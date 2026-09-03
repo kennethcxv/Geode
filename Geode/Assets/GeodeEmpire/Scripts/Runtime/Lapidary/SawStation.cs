@@ -628,6 +628,7 @@ namespace GeodeEmpire.Lapidary
             var tray = OutTray;
             var ea = session.Spawn(ra, tray.transform.position, Quaternion.identity, false);
             var eb = session.Spawn(rb, tray.transform.position, Quaternion.identity, false);
+            ea.Visual.SetWet(1f); eb.Visual.SetWet(1f);   // straight off the blade: coolant on the cut faces
             tray.Place(ea, true);
             tray.Place(eb, true);
             PieceA = ea.Record.PristineForSale() >= eb.Record.PristineForSale() ? ea : eb;
