@@ -13,6 +13,11 @@ namespace GeodeEmpire.Interaction
     /// <summary>
     /// A physical spot specimens can be placed into (and taken from). Trays hold several, slots hold one.
     /// Placing is the game's sorting mechanic: no menus, just put the rock where it belongs.
+    ///
+    /// V5: every zone knows the real supporting surface it offers per slot (SupportHalfSize) and validates the
+    /// specimen's full footprint against it, not just its pivot: an opened geode is posed side by side when the shelf
+    /// is wide enough, propped clamshell-style when it is not, and refused with a reason when it physically does not
+    /// fit. Trays pack their occupants by real size along rows instead of a fixed grid.
     /// </summary>
     public sealed class PlacementZone : InteractableBehaviour
     {
@@ -28,6 +33,14 @@ namespace GeodeEmpire.Interaction
         public int GridColumns = 4;
         public Transform Anchor;
         public bool Locked;
+        /// <summary>Half-extents (local x, z) of the surface each slot really offers, measured from the slot centre.</summary>
+        public Vector2 SupportHalfSize = new Vector2(0.15f, 0.15f);
+        /// <summary>Trays that pack occupants by their real size in rows along local x (dealer outbox, rack shelves, saw tray).</summary>
+        public bool Packed;
+        /// <summary>Yaw (about the anchor) a displayed geode faces: 0 keeps the clamshell open toward local -Z, 180 toward +Z.</summary>
+        public float PoseYaw;
+        public const float PackGap = 0.02f;
+        public const float FitMargin = 0.008f;
 
         public readonly List<SpecimenEntity> Occupants = new List<SpecimenEntity>();
         public event Action<PlacementZone, SpecimenEntity> Placed;
@@ -36,6 +49,7 @@ namespace GeodeEmpire.Interaction
         public bool IsFull => Occupants.Count >= Capacity;
         public bool IsEmpty => Occupants.Count == 0;
         public SpecimenEntity First => Occupants.Count > 0 ? Occupants[0] : null;
+        public bool IsDisplayKind => Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot;
 
         public SpecimenLocation LocationFor() => Kind switch
         {
@@ -64,6 +78,86 @@ namespace GeodeEmpire.Interaction
             return opened ? AcceptsOpened : AcceptsUnopened;
         }
 
+        // ------------------------------------------------------------------------------------------------
+        // Footprint / pose
+        // ------------------------------------------------------------------------------------------------
+        /// <summary>The pose an opened geode takes here: closed up on storage trays, side by side where the shelf is wide enough, clamshell otherwise.</summary>
+        public DisplayPose PoseFor(SpecimenEntity e)
+        {
+            if (e == null || !e.IsOpened || e.IsPiece) return DisplayPose.Natural;
+            switch (Kind)
+            {
+                case ZoneKind.Rack:
+                case ZoneKind.SellTray:
+                case ZoneKind.SawTray:
+                    return DisplayPose.Closed;
+                case ZoneKind.DisplaySlot:
+                case ZoneKind.SaleSlot:
+                    return Fits(e, DisplayPose.Natural) ? DisplayPose.Natural : DisplayPose.Clamshell;
+                case ZoneKind.Scale:
+                    // the whole specimen is weighed: opened flat if the platform takes it, propped if not, closed up for the big ones
+                    return Fits(e, DisplayPose.Natural) ? DisplayPose.Natural : Fits(e, DisplayPose.Clamshell) ? DisplayPose.Clamshell : DisplayPose.Closed;
+                default:
+                    return DisplayPose.Natural;
+            }
+        }
+
+        /// <summary>Does the specimen's footprint in this pose fit inside one slot's support rectangle?</summary>
+        public bool Fits(SpecimenEntity e, DisplayPose pose)
+        {
+            var b = e.FootprintFor(pose);
+            return b.extents.x <= SupportHalfSize.x + FitMargin && b.extents.z <= SupportHalfSize.y + FitMargin;
+        }
+
+        /// <summary>Radius a closed-up rock (or piece) takes on a packed tray.</summary>
+        private static float PackRadius(SpecimenEntity e)
+        {
+            var b = e.FootprintFor(DisplayPose.Closed);
+            return Mathf.Max(Mathf.Abs(b.min.x), Mathf.Abs(b.max.x), Mathf.Abs(b.min.z), Mathf.Abs(b.max.z)) + 0.004f;
+        }
+
+        /// <summary>Row packing of closed rocks along local x within the support rectangle; false when they do not all fit.</summary>
+        private bool TryPack(List<SpecimenEntity> items, List<Vector3> outLocal)
+        {
+            float hx = SupportHalfSize.x, hz = SupportHalfSize.y;
+            float x = -hx, rowZ = -hz, rowH = 0f;
+            outLocal.Clear();
+            foreach (var e in items)
+            {
+                float r = PackRadius(e);
+                if (r > hx + FitMargin || r > hz + FitMargin) return false;
+                if (x > -hx + 1e-4f && x + 2f * r > hx + FitMargin) { rowZ += rowH + PackGap; x = -hx; rowH = 0f; }
+                if (rowZ + 2f * r > hz + FitMargin) return false;
+                outLocal.Add(new Vector3(x + r, 0f, rowZ + r));
+                x += 2f * r + PackGap;
+                rowH = Mathf.Max(rowH, 2f * r);
+            }
+            return true;
+        }
+
+        private readonly List<Vector3> _packScratch = new List<Vector3>();
+        private readonly List<SpecimenEntity> _packItems = new List<SpecimenEntity>();
+
+        /// <summary>Why a held specimen physically cannot go here (null when it fits).</summary>
+        public string FitRefusal(SpecimenEntity e)
+        {
+            if (e == null) return null;
+            if (Packed)
+            {
+                _packItems.Clear(); _packItems.AddRange(Occupants); _packItems.Add(e);
+                _packItems.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+                if (TryPack(_packItems, _packScratch)) return null;
+                return Occupants.Count == 0 ? $"Too big for {DisplayLabel}" : $"No room in {DisplayLabel} for a rock this size";
+            }
+            if (Fits(e, PoseFor(e))) return null;
+            return Kind switch
+            {
+                ZoneKind.DisplaySlot => "Too big for this shelf: the trophy wall takes the big pieces",
+                ZoneKind.SaleSlot => "Too big for this spot: try the island table",
+                _ => $"Too big for {DisplayLabel}",
+            };
+        }
+
         /// <summary>Why a held specimen cannot go here (null when it can); shown as the prompt so a full or locked spot is never silent.</summary>
         public string RefusalReason(SpecimenEntity e)
         {
@@ -76,6 +170,8 @@ namespace GeodeEmpire.Interaction
             if (Kind == ZoneKind.SaleSlot && !e.Record.Appraised) return "Appraise it first: the scale sets the price";
             if (Kind == ZoneKind.Wash && e.Visual != null && e.Visual.DirtRemaining < 0.04f) return "Already clean";
             if (ExtraRefusal != null) { string why = ExtraRefusal(e); if (why != null) return why; }
+            string fit = FitRefusal(e);
+            if (fit != null) return fit;
             return null;
         }
 
@@ -133,7 +229,7 @@ namespace GeodeEmpire.Interaction
 
         public Vector3 SlotLocalOffset(int index)
         {
-            if (Capacity <= 1) return Vector3.zero;
+            if (Capacity <= 1 || Packed) return Vector3.zero;
             int cols = Mathf.Max(1, GridColumns);
             int rows = Mathf.CeilToInt(Capacity / (float)cols);
             int cx = index % cols, cz = index / cols;
@@ -149,20 +245,53 @@ namespace GeodeEmpire.Interaction
             if (e.Zone != null && e.Zone != this) e.Zone.Take(e, true);
             if (!Occupants.Contains(e)) Occupants.Add(e);
             int idx = Occupants.IndexOf(e);
-            var anchor = Anchor != null ? Anchor : transform;
             e.SetPhysics(false);
             e.transform.SetParent(null, true);
             e.Zone = this;
             e.Locked = false;
-            var rot = anchor.rotation * Quaternion.Euler(0f, SeededYaw(e, idx), 0f);
-            var pos = anchor.TransformPoint(SlotLocalOffset(idx)) + Vector3.up * e.RestHeightOffset(Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.Scale || Kind == ZoneKind.Cradle || Kind == ZoneKind.SaleSlot);
-            e.SetPose(pos, rot);
-            if (Kind == ZoneKind.Rack) e.ApplyStoredPose();
+            var pose = PoseFor(e);
+            e.ApplyPose(pose);
+            if (Packed) Repack();
+            else Seat(e, idx, pose);
             e.Record.Location = LocationFor();
             e.Record.LocationIndex = IsIndexedSlot ? SlotIndex : idx;   // which slot, not which occupant: the reload looks it up by this
-            e.Record.WorldPosition = pos;
-            e.Record.WorldRotation = rot;
+            e.Record.WorldPosition = e.transform.position;
+            e.Record.WorldRotation = e.transform.rotation;
             if (!silent) Placed?.Invoke(this, e);
+        }
+
+        /// <summary>Stand one occupant on its slot: the footprint's centre lands on the slot centre, its lowest hull point on the surface.</summary>
+        private void Seat(SpecimenEntity e, int idx, DisplayPose pose)
+        {
+            var anchor = Anchor != null ? Anchor : transform;
+            float yaw = IsDisplayKind && e.IsOpened && !e.IsPiece ? PoseYaw : SeededYaw(e, idx);
+            var rot = anchor.rotation * Quaternion.Euler(0f, yaw, 0f);
+            var fp = e.FootprintFor(pose);
+            var shift = IsDisplayKind ? -new Vector3(fp.center.x, 0f, fp.center.z) : Vector3.zero;
+            var pos = anchor.TransformPoint(SlotLocalOffset(idx)) + rot * shift + Vector3.up * e.RestHeightOffset(Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.Scale || Kind == ZoneKind.Cradle || Kind == ZoneKind.SaleSlot);
+            e.SetPose(pos, rot);
+        }
+
+        /// <summary>Lay every occupant of a packed tray out again by real size (a tray never overlaps or overhangs).</summary>
+        private readonly List<SpecimenEntity> _packOrder = new List<SpecimenEntity>();
+
+        private void Repack()
+        {
+            var anchor = Anchor != null ? Anchor : transform;
+            _packOrder.Clear(); _packOrder.AddRange(Occupants);
+            _packOrder.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+            bool ok = TryPack(_packOrder, _packScratch);
+            for (int i = 0; i < _packOrder.Count; i++)
+            {
+                var o = _packOrder[i];
+                Vector3 local = ok ? _packScratch[i] : new Vector3((i % 4 - 1.5f) * 0.17f, 0f, (i / 4 - 1f) * 0.15f);   // overflow (restore of an old save): grid fallback
+                var rot = anchor.rotation * Quaternion.Euler(0f, SeededYaw(o, i), 0f);
+                var pos = anchor.TransformPoint(local) + Vector3.up * o.RestHeightOffset(false);
+                o.SetPose(pos, rot);
+                o.Record.WorldPosition = pos;
+                o.Record.WorldRotation = rot;
+                if (!IsIndexedSlot) o.Record.LocationIndex = Occupants.IndexOf(o);
+            }
         }
 
         private static float SeededYaw(SpecimenEntity e, int idx) => (float)((e.Record.Seed >> 8) % 360) + idx * 37f;
@@ -172,9 +301,10 @@ namespace GeodeEmpire.Interaction
             if (e == null || !Occupants.Contains(e)) return;
             Occupants.Remove(e);
             e.Zone = null;
-            if (Kind == ZoneKind.Rack) e.ApplyOpenPose();
+            if (PoseFor(e) != DisplayPose.Natural) e.ApplyPose(DisplayPose.Natural);
             if (!silent) Taken?.Invoke(this, e);
-            // re-pack remaining occupants
+            if (Packed) { Repack(); return; }
+            // re-pack remaining occupants of a grid tray
             for (int i = 0; i < Occupants.Count; i++)
             {
                 var o = Occupants[i];

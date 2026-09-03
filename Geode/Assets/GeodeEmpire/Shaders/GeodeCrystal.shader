@@ -99,8 +99,11 @@ Shader "GeodeEmpire/Crystal"
 
                 float3 surf = _BaseColor.rgb * IN.color.rgb;
                 float3 deep = _DeepColor.rgb * IN.color.rgb;
-                // the deep colour shows through at every angle, strongest looking straight into a face
-                float3 body = lerp(surf, deep, _Translucency * (0.4 + 0.6 * ndv));
+                // a crystal is a body, not a painted surface: looking into a face you see the deep colour, the paler
+                // surface tint only survives at grazing angles; non-metallic minerals sit darker so the specular
+                // highlights and the reflection probe carry the glassiness
+                float3 body = lerp(deep, surf, saturate(fres * 0.7 + 0.12 + (1.0 - _Translucency) * 0.22));
+                body *= lerp(0.62, 1.0, _Metallic);
                 float zone = smoothstep(0.4, 0.95, IN.color.a);
                 body = lerp(body, _ZoneColor.rgb * IN.color.rgb, _ZoningStrength * zone);
                 // bases sit in the crowd; tips catch the light (cheap contact shadow that grounds the carpet)

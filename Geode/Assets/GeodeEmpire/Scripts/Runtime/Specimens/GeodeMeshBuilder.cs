@@ -142,17 +142,25 @@ namespace GeodeEmpire.Specimens
     /// </summary>
     public static class GeodeMeshBuilder
     {
-        public const int Longitudes = 40;
-        public const int Latitudes = 14;
-        public const int RimRings = 4;
+        // V5: 64 x 20 shell rings per half so a fist-sized rock reads as a rounded lump, not a faceted blob, at
+        // arm's length. Crystal placement keeps its own coarser cell grid (PlaceLon/PlaceLat) so the crystal
+        // statistics do not change with the mesh resolution.
+        public const int Longitudes = 64;
+        public const int Latitudes = 20;
+        public const int RimRings = 8;
+        public const int PlaceLon = 40;
+        public const int PlaceLat = 14;
 
         private sealed class Shape
         {
             private readonly SpecimenGeology _g;
-            private readonly Noise3D _lump, _bump, _wall, _rim;
-            private readonly Vector3 _off1, _off2, _off3;
-            private readonly float _lumpFreq, _lumpAmp, _bumpFreq, _bumpAmp, _wallAmp;
+            private readonly Noise3D _lump, _bump, _wall, _rim, _billow, _fracture;
+            private readonly Vector3 _off1, _off2, _off3, _off4;
+            private readonly float _lumpFreq, _lumpAmp, _bumpFreq, _bumpAmp, _wallAmp, _billowFreq, _billowAmp;
             private readonly bool _angular;
+            // angular rough: a dozen random fracture planes clip the ellipsoid into flat faces with sharp arrises
+            private readonly Vector3[] _facetN;
+            private readonly float[] _facetH;
 
             public Shape(SpecimenGeology g)
             {
@@ -161,16 +169,37 @@ namespace GeodeEmpire.Specimens
                 _bump = new Noise3D(SeededRandom.Combine(g.Seed, 12));
                 _wall = new Noise3D(SeededRandom.Combine(g.Seed, 13));
                 _rim = new Noise3D(SeededRandom.Combine(g.Seed, 14));
+                _billow = new Noise3D(SeededRandom.Combine(g.Seed, 16));
+                _fracture = new Noise3D(SeededRandom.Combine(g.Seed, 17));
                 var rng = new SeededRandom(SeededRandom.Combine(g.Seed, 15));
                 _off1 = new Vector3(rng.Range(0f, 50f), rng.Range(0f, 50f), rng.Range(0f, 50f));
                 _off2 = new Vector3(rng.Range(0f, 50f), rng.Range(0f, 50f), rng.Range(0f, 50f));
                 _off3 = new Vector3(rng.Range(0f, 50f), rng.Range(0f, 50f), rng.Range(0f, 50f));
-                _lumpFreq = g.Exterior == ExteriorArchetype.Knobbly ? 3.4f : g.Exterior == ExteriorArchetype.Rounded ? 1.3f : 1.9f;
-                _lumpAmp = g.ExteriorRoughness * 2.2f;
+                _off4 = new Vector3(rng.Range(0f, 50f), rng.Range(0f, 50f), rng.Range(0f, 50f));
+                _lumpFreq = g.Exterior == ExteriorArchetype.Knobbly ? 3.4f : g.Exterior == ExteriorArchetype.Rounded ? 1.3f : 1.5f;
+                // lump amplitude per rind type: knobbly rinds get their relief from the billow domes, rounded and
+                // flattened rough stay broad and soft, angular rough is faceted by its fracture planes
+                _lumpAmp = g.ExteriorRoughness * (g.Exterior == ExteriorArchetype.Angular ? 0.7f : g.Exterior == ExteriorArchetype.Knobbly ? 1.2f : 1.4f);
                 _bumpFreq = g.Exterior == ExteriorArchetype.Knobbly ? 7f : 5f;
-                _bumpAmp = g.Exterior == ExteriorArchetype.Rounded ? 0.025f : 0.045f;
+                _bumpAmp = g.Exterior == ExteriorArchetype.Rounded ? 0.02f : 0.03f;
                 _wallAmp = g.Mineral == MineralId.Agate ? 0.02f : 0.05f;
                 _angular = g.Exterior == ExteriorArchetype.Angular;
+                // cauliflower knobs: rounded bulges packed over the rind (billow noise), strongest on knobbly rocks,
+                // a faint undulation on rounded ones, none on angular fracture-faced rough
+                _billowFreq = g.Exterior == ExteriorArchetype.Knobbly ? 6.5f : 3.2f;
+                _billowAmp = _angular ? 0f : (g.Exterior == ExteriorArchetype.Knobbly ? 0.08f : 0.035f) * Mathf.Lerp(0.6f, 1.4f, g.ExteriorRoughness);
+                if (_angular)
+                {
+                    var frng = new SeededRandom(SeededRandom.Combine(g.Seed, 18));
+                    int k = 9 + frng.Range(0, 5);
+                    _facetN = new Vector3[k];
+                    _facetH = new float[k];
+                    for (int i = 0; i < k; i++)
+                    {
+                        _facetN[i] = frng.OnUnitSphere();
+                        _facetH[i] = frng.Range(0.8f, 0.97f);   // fraction of the ellipsoid radius along the facet normal
+                    }
+                }
             }
 
             public float Outer(Vector3 d)
@@ -179,12 +208,46 @@ namespace GeodeEmpire.Specimens
                 float e = 1f / Mathf.Sqrt((d.x * d.x) / (a.x * a.x) + (d.y * d.y) / (a.y * a.y) + (d.z * d.z) / (a.z * a.z));
                 float lump;
                 if (_angular)
-                    lump = (_lump.Ridged(d * _lumpFreq + _off1, 2) * 2f - 1f) * 1.1f;
+                {
+                    lump = (_lump.Fbm(d * _lumpFreq + _off1, 2) - 0.5f) * 0.5f;
+                    // clip by the fracture planes: the surface along d is the nearest plane the ray meets
+                    float rLimit = float.MaxValue;
+                    for (int i = 0; i < _facetN.Length; i++)
+                    {
+                        float dn = Vector3.Dot(d, _facetN[i]);
+                        if (dn <= 0.05f) continue;
+                        var nn = _facetN[i];
+                        float en = 1f / Mathf.Sqrt((nn.x * nn.x) / (a.x * a.x) + (nn.y * nn.y) / (a.y * a.y) + (nn.z * nn.z) / (a.z * a.z));
+                        float planeR = _facetH[i] * en / dn;
+                        if (planeR < rLimit) rLimit = planeR;
+                    }
+                    e = Mathf.Min(e, rLimit);
+                }
                 else
                     lump = _lump.Fbm(d * _lumpFreq + _off1, 3) * 1.6f;
                 float bump = _bump.Sample(d * _bumpFreq + _off2);
                 float term = 1f + _lumpAmp * lump + _bumpAmp * bump;
+                if (_billowAmp > 0f)
+                {
+                    // |n| makes rounded domes with narrow creases between them (a botryoidal rind); 1 - |n| would give
+                    // sharp crests, which read as scales
+                    float b1 = Mathf.Abs(_billow.Fbm(d * _billowFreq + _off4, 2) * 2f - 1f);
+                    float b2 = Mathf.Abs(_billow.Sample(d * _billowFreq * 2.3f + _off1 * 0.5f) * 2f - 1f);
+                    term += _billowAmp * ((b1 - 0.5f) + 0.35f * (b2 - 0.5f));
+                }
                 return _g.Size * e * Mathf.Max(0.55f, term);
+            }
+
+            /// <summary>
+            /// The hammer break is not a plane: the fracture face rises and dips between the rind and the cavity
+            /// edge (conchoidal), the same surface on both halves so the closed rock still mates. Zero at both edges.
+            /// </summary>
+            public float FractureBulge(float lon, float t)
+            {
+                float env = Mathf.Sin(t * Mathf.PI);
+                float n = _fracture.Sample(Mathf.Cos(lon) * 2.4f + 11f, Mathf.Sin(lon) * 2.4f + 5f, t * 2.5f + 2.2f) * 2f - 1f;
+                float n2 = _fracture.Sample(Mathf.Cos(lon) * 7f + 3f, Mathf.Sin(lon) * 7f + 9f, t * 5f) * 2f - 1f;
+                return _g.Size * (0.02f * n + 0.006f * n2) * env;
             }
 
             public float Inner(Vector3 d, float outerR)
@@ -204,6 +267,9 @@ namespace GeodeEmpire.Specimens
                     if (t > best) best = t;
                 }
                 float wall = _wall.Fbm(d * 2.5f + _off3, 2) * _wallAmp * 1.6f;
+                // the chalcedony lining bulges in rounded lobes into the cavity (botryoidal wall), finer on agate
+                float lobes = Mathf.Abs(_wall.Sample(d * 5.5f + _off4) * 2f - 1f);
+                wall += (lobes - 0.5f) * (_g.Mineral == MineralId.Agate ? 0.03f : 0.06f);
                 float rIn = best * (1f + wall);
                 // the shell is thicker in some sectors than others: the cut face shows it, and the hammer feels it
                 float lon = Mathf.Atan2(d.z, d.x); if (lon < 0f) lon += Mathf.PI * 2f;
@@ -235,7 +301,7 @@ namespace GeodeEmpire.Specimens
         // ------------------------------------------------------------------------------------
         /// <summary>Sawn cut faces carry this in uv2.y so the shell shader draws a flat sawn face instead of a fracture.</summary>
         public const float SawnFlag = -2f;
-        public const int PieceRows = 16;
+        public const int PieceRows = 24;
 
         /// <summary>
         /// Build the part of the specimen between the piece's planes. The shell is walked in rings of constant height
@@ -674,7 +740,7 @@ namespace GeodeEmpire.Specimens
                     float ro = shape.Outer(d);
                     float ri = shape.Inner(d, ro);
                     float r = Mathf.Lerp(ro, ri, t);
-                    verts.Add(new Vector3(Mathf.Cos(lon) * r, jitter[i], Mathf.Sin(lon) * r));
+                    verts.Add(new Vector3(Mathf.Cos(lon) * r, jitter[i] + shape.FractureBulge(lon, t), Mathf.Sin(lon) * r));
                     uvs.Add(new Vector2(i / (float)N, t));
                     uv2.Add(new Vector2(i / (float)N, 0f));
                     cols.Add(new Color(0f, 0f, 1f, t));
@@ -754,7 +820,10 @@ namespace GeodeEmpire.Specimens
             var fam = g.Family;
             var rng = new SeededRandom(SeededRandom.Combine(g.Seed, 0xC7));
             var list = new List<CrystalInstance>(400);
-            int N = Longitudes, M = Latitudes;
+            int N = PlaceLon, M = PlaceLat;
+            // patches: a slow noise over the cavity makes some regions crowd and others thin out, so the carpet
+            // never reads as an even grid
+            var patch = new Noise3D(SeededRandom.Combine(g.Seed, 0xD1));
 
             // Candidate cells on both cavity walls (bottom first).
             var cells = new List<Cell>(N * M * 2);
@@ -767,8 +836,8 @@ namespace GeodeEmpire.Specimens
                     int nEff = Mathf.Max(6, Mathf.RoundToInt(N * cl));  // fewer cells toward the pole
                     for (int i = 0; i < nEff; i++)
                     {
-                        float lon = (i + 0.5f + rng.Range(-0.35f, 0.35f)) / nEff * Mathf.PI * 2f;
-                        float latJ = lat + rng.Range(-0.3f, 0.3f) / M * Mathf.PI * 0.5f;
+                        float lon = (i + 0.5f + rng.Range(-0.5f, 0.5f)) / nEff * Mathf.PI * 2f;
+                        float latJ = lat + rng.Range(-0.5f, 0.5f) / M * Mathf.PI * 0.5f;
                         var d = Dir(latJ, lon, s);
                         float ro = shape.Outer(d);
                         float ri = shape.Inner(d, ro);
@@ -843,6 +912,8 @@ namespace GeodeEmpire.Specimens
                     }
                 }
 
+                // crowd / thin by the cavity patch field (tiles keep their carpet coverage)
+                if (!isTile) p *= Mathf.Lerp(0.55f, 1.35f, patch.Fbm(cell.Dir * 2.2f, 2));
                 if (!rng.Chance(p)) continue;
 
                 float elong = isTile ? 1f : Mathf.Lerp(fam.ElongationMin, fam.ElongationMax, rng.NextFloat());

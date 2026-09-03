@@ -23,7 +23,7 @@ namespace GeodeEmpire.Lapidary
         public Transform Platen;
         public GameObject Machine;
         public GameObject Before;       // the corner as it was before the lap arrived
-        public float PlatenY = 0.782f;  // top of the pad, station-local
+        public float PlatenY = 0.786f;  // top of the pad, station-local
         public float PlatenRadius = 0.148f;
 
         [NonSerialized] public float SecondsToPolish = 6.5f;

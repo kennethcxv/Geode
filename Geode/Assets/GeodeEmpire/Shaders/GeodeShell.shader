@@ -65,6 +65,7 @@ Shader "GeodeEmpire/GeodeShell"
         float _SectorCrack[16];         // seam stress per sector, >= 1 is an open crack
         float4 _Impacts[32];            // chisel marks: longitude fraction, signed latitude fraction, radius (m), strength
         float _LoupeBoost;              // global: 1 while the player looks through the loupe
+        float _GeodeDebug;              // global dev switch: 1 = albedo only (material diagnosis)
         TEXTURE2D(_RockTex); SAMPLER(sampler_RockTex);
         TEXTURE2D(_NoiseTex); SAMPLER(sampler_NoiseTex);
         ENDHLSL
@@ -140,7 +141,7 @@ Shader "GeodeEmpire/GeodeShell"
             // Persistent fracture marks drawn in the shell surface itself: the jagged seam line per cracked sector, a
             // dotted hairline where a sector is stressed, chips with radiating hairlines where the chisel stood, and a
             // hairline creeping from each chip toward the seam as its sector loads up.
-            void FractureOverlay(float2 uv2, float grain, out float dark, out float frost, out float guide)
+            void FractureOverlay(float2 uv2, float grain, bool face, out float dark, out float frost, out float guide)
             {
                 dark = 0.0; frost = 0.0; guide = 0.0;
                 float lonF = uv2.x;
@@ -161,9 +162,12 @@ Shader "GeodeEmpire/GeodeShell"
                 float dots = smoothstep(0.38, 0.62, Noise1(lonF * 90.0, 0.55));
                 float seamA = seamLine * (cracked + hair * (1.0 - cracked) * dots * 0.8);
                 float lip = (1.0 - smoothstep(halfW * 1.6, halfW * 4.0, dSeam)) * cracked * 0.6 * widthNoise;
+                // the fracture face itself lies ON the seam (its surface coordinate is the seam latitude): the seam
+                // line, lip and guide belong to the exterior only, otherwise they paint the whole broken face
+                if (face) { seamA = 0.0; lip = 0.0; }
                 // the natural seam: a soft, slightly darker weathered band a real geode shows, clearer under the lamp
                 float gNoise = Noise1(lonF * 17.0, 0.66);
-                guide = (1.0 - smoothstep(0.0012, 0.0032 + 0.0015 * gNoise, dSeam)) * min(1.0, _SeamVisible + 0.5 * _LoupeBoost) * (1.0 - cracked) * (0.45 + 0.3 * gNoise);
+                guide = face ? 0.0 : (1.0 - smoothstep(0.0012, 0.0032 + 0.0015 * gNoise, dSeam)) * min(1.0, _SeamVisible + 0.5 * _LoupeBoost) * (1.0 - cracked) * (0.45 + 0.3 * gNoise);
                 dark += seamA * _CrackFade;
                 frost += lip * _CrackFade;
 
@@ -216,21 +220,24 @@ Shader "GeodeEmpire/GeodeShell"
 
                 float rock = TriplanarR(IN.positionOS, nOS, _TexScale);
                 float rockFine = TriplanarR(IN.positionOS + 3.1, nOS, _TexScale * 3.7);
-                float grain = rock * 0.7 + rockFine * 0.3;
+                float rockMicro = TriplanarR(IN.positionOS + 7.3, nOS, _TexScale * 11.0);   // sand-grain scale for close-ups
+                float grain = rock * 0.55 + rockFine * 0.3 + rockMicro * 0.15;
                 // micro relief: bend the normal by the detail height gradient so the exterior stops reading as smooth
                 // clay (screen-space derivatives of the height, scaled by the surface's own tangent frame)
-                if (c.r > 0.5)
+                if (c.r > 0.5 || (c.b > 0.5 && IN.uv2.y > -1.5))
                 {
-                    float h = rock * 0.6 + rockFine * 0.4;
+                    float h = rock * 0.5 + rockFine * 0.32 + rockMicro * 0.18;
                     float3 dpx = ddx(IN.positionWS), dpy = ddy(IN.positionWS);
                     float dhx = ddx(h), dhy = ddy(h);
                     float3 tx = dpx - N * dot(dpx, N);
                     float3 ty = dpy - N * dot(dpy, N);
                     float lx = max(1e-5, dot(tx, tx)), ly = max(1e-5, dot(ty, ty));
                     float3 grad = tx * (dhx / lx) + ty * (dhy / ly);
-                    float bump = 0.0035 * (1.0 - 0.5 * _Weathering);
+                    float bump = 0.009 * (1.0 - 0.45 * _Weathering);
                     int texFamB = (int)(_TexFamily + 0.5);
-                    bump *= texFamB == 1 ? 0.45 : texFamB == 3 ? 1.6 : texFamB == 0 ? 1.25 : 1.0;
+                    bump *= texFamB == 1 ? 0.5 : texFamB == 3 ? 1.5 : texFamB == 0 ? 1.25 : 1.0;
+                    if (c.b > 0.5) bump *= 0.7;
+                    bump *= 1.0 + 0.8 * saturate(_Dirt);   // caked clay is crumbly, not smooth
                     N = normalize(N - grad * bump);
                 }
                 float noise = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 2.7 + IN.positionOS.y * 1.3).b;
@@ -241,11 +248,19 @@ Shader "GeodeEmpire/GeodeShell"
                 if (texFam == 0) grainX = saturate((grain - 0.5) * 1.35 + 0.5);            // coarse matrix: harder grain contrast
                 else if (texFam == 1) grainX = saturate((grain - 0.5) * 0.55 + 0.55);      // weathered rind: soft, even, a little pale
                 float3 ext = lerp(_RockColor2.rgb, _RockColor.rgb, grainX);
+                // mottling: slow colour drift over the rock (no rock is one flat tone), crevices go dark, pits go darker
+                float mottle = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 1.7 + IN.positionOS.y * 1.1 + 0.61).r;
+                float mottle2 = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.yz * 3.1 + IN.positionOS.x * 2.2 + 0.23).b;
+                ext *= lerp(0.7, 1.15, mottle) * lerp(0.9, 1.08, mottle2);
+                ext = lerp(ext, ext * float3(0.92, 0.85, 0.78), smoothstep(0.55, 0.75, mottle2) * 0.6);
+                ext = lerp(ext, ext * 0.42, pow(saturate(1.0 - grain), 2.5) * 0.85);
+                float pits = smoothstep(0.66, 0.74, SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 27.0 + IN.positionOS.y * 19.0 + 0.4).g);
+                ext = lerp(ext, ext * 0.4, pits * 0.75);
                 ext = lerp(ext, ext * 0.55, _Weathering * (1.0 - grain) * 0.6);
                 if (texFam == 1)
                 {
-                    // weathered rind: bleached skin with fine pitting
-                    ext = lerp(ext, ext * float3(1.12, 1.08, 1.0) + 0.05, 0.5);
+                    // weathered rind: slightly bleached skin with fine pitting
+                    ext = lerp(ext, ext * float3(1.08, 1.05, 1.0) + 0.015, 0.4);
                     float pit = smoothstep(0.66, 0.74, SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 33.0 + IN.positionOS.y * 21.0).g);
                     ext = lerp(ext, ext * 0.6, pit * 0.7);
                 }
@@ -298,7 +313,7 @@ Shader "GeodeEmpire/GeodeShell"
                 // fracture overlay: only the exterior and natural fracture faces carry it; sawn faces are flat
                 bool sawn = IN.uv2.y < -1.5;
                 float crackDark = 0.0, crackFrost = 0.0, seamGuide = 0.0;
-                if ((c.r > 0.5 || c.b > 0.5) && !sawn) FractureOverlay(IN.uv2, grain, crackDark, crackFrost, seamGuide);
+                if ((c.r > 0.5 || c.b > 0.5) && !sawn) FractureOverlay(IN.uv2, grain, c.b > 0.5, crackDark, crackFrost, seamGuide);
                 float3 frostCol = lerp(ext, float3(0.86, 0.84, 0.79) * lerp(0.85, 1.0, grain), 0.62);
                 ext = lerp(ext, frostCol, crackFrost * 0.85);
                 // clay coating: sits in the low grain first and leaves the high points as it is scrubbed away; while
@@ -307,9 +322,11 @@ Shader "GeodeEmpire/GeodeShell"
                 float dirtFine = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xy * 23.0 + IN.positionOS.z * 17.0).b;
                 float dirtMask = _Dirt > 0.001 ? smoothstep(0.05, 0.4, _Dirt * 1.2 - (grain * 0.6 + dirtN * 0.35 + dirtFine * 0.15) + 0.3) : 0.0;
                 // dried quarry clay: ochre-brown, caked thick in the hollows and thin and dusty over the high points
-                float3 clay = lerp(float3(0.3, 0.23, 0.15), float3(0.42, 0.34, 0.23), grain) * lerp(0.82, 1.1, dirtN) * lerp(0.88, 1.06, dirtFine);
-                clay = lerp(clay, clay * 0.7, smoothstep(0.62, 0.72, dirtFine));       // cracked, crumbly patches
-                float3 dust = lerp(ext, float3(0.5, 0.43, 0.33), 0.45);
+                float3 clay = lerp(float3(0.26, 0.2, 0.13), float3(0.36, 0.29, 0.2), grain) * lerp(0.82, 1.1, dirtN) * lerp(0.88, 1.06, dirtFine);
+                clay = lerp(clay, clay * 0.5, smoothstep(0.55, 0.7, dirtFine));        // cracked, crumbly patches
+                clay *= lerp(0.65, 1.05, grain);                                         // crevices in the crust stay dark
+                clay = lerp(clay, clay * float3(0.85, 0.8, 0.75), smoothstep(0.4, 0.6, dirtN) * 0.5);
+                float3 dust = lerp(ext, float3(0.42, 0.36, 0.28), 0.45);
                 ext = lerp(ext, lerp(dust, clay, dirtMask), saturate(dirtMask * 1.6));
                 seamGuide *= 1.0 - dirtMask * 0.9;
                 ext = lerp(ext, ext * 0.55, seamGuide);
@@ -330,7 +347,12 @@ Shader "GeodeEmpire/GeodeShell"
                 float band = smoothstep(0.3, 0.7, sin(bandCoord) * 0.5 + 0.5);
                 float3 bandCol = lerp(_BandA.rgb, _BandB.rgb, band);
                 float bandMask = saturate(_BandStrength * 1.2) * smoothstep(lerp(0.78, 0.12, _BandStrength), lerp(0.96, 0.45, _BandStrength), c.a);
-                float3 rim = lerp(_RimColor.rgb * lerp(0.8, 1.1, grain), bandCol * lerp(0.85, 1.05, rockFine), bandMask);
+                float3 rim = lerp(_RimColor.rgb * lerp(0.62, 1.05, grain) * lerp(0.85, 1.1, rockFine), bandCol * lerp(0.85, 1.05, rockFine), bandMask);
+                // the broken shell shows its own rind first: the outer 15% of the face is exterior rock, then a
+                // slightly paler chalcedony layer, grainy and matte the whole way in
+                float rindT = smoothstep(0.02, 0.2, c.a);
+                rim = lerp(ext * 0.9, rim, rindT);
+                rim *= lerp(0.8, 1.0, mottle);
                 // chips torn out of the rim by the chisel: pale bruised patches with dark edges on the cut face
                 rim = lerp(rim, rim * float3(0.9, 0.88, 0.85) + 0.12, crackFrost * 0.6);
                 rim = lerp(rim, rim * 0.35, crackDark * 0.8);
@@ -366,6 +388,7 @@ Shader "GeodeEmpire/GeodeShell"
                 float smooth = extSmooth * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * c.g + (sawn ? sawnSmooth : 0.16) * c.b;
                 smooth += (grain - 0.5) * (sawn ? 0.02 : 0.1) + crackFrost * 0.06 * c.r;
 
+                if (_GeodeDebug > 0.5) return half4(albedo, 1.0);
                 InputData inputData = (InputData)0;
                 inputData.positionWS = IN.positionWS;
                 inputData.positionCS = IN.positionCS;

@@ -31,11 +31,12 @@ namespace GeodeEmpire.EditorTools
         {
             WorkshopTextures.EnsureAll();
             Directory.CreateDirectory(Folder);
-            Lit("M_Concrete", "T_Concrete", Color.white, 0.22f, 0f, 3.5f);
-            Lit("M_Plaster", "T_Plaster", new Color(0.9f, 0.87f, 0.8f), 0.12f, 0f, 2f);
-            Lit("M_Ceiling", "T_Plaster", new Color(0.75f, 0.74f, 0.7f), 0.1f, 0f, 2f);
-            Lit("M_Wood", "T_Wood", Color.white, 0.32f, 0f, 1f);
-            Lit("M_WoodDark", "T_WoodDark", Color.white, 0.38f, 0f, 1f);
+            // physical albedos: concrete/plaster/wood sit at 0.3-0.55, not white, so the lamps stop blowing the room out
+            Lit("M_Concrete", "T_Concrete", new Color(0.72f, 0.71f, 0.68f), 0.22f, 0f, 3.5f);
+            Lit("M_Plaster", "T_Plaster", new Color(0.74f, 0.71f, 0.65f), 0.12f, 0f, 2f);
+            Lit("M_Ceiling", "T_Plaster", new Color(0.62f, 0.61f, 0.58f), 0.1f, 0f, 2f);
+            Lit("M_Wood", "T_Wood", new Color(0.74f, 0.66f, 0.55f), 0.32f, 0f, 1f);
+            Lit("M_WoodDark", "T_WoodDark", new Color(0.85f, 0.8f, 0.74f), 0.38f, 0f, 1f);
             Lit("M_WoodPainted", null, new Color(0.62f, 0.66f, 0.6f), 0.45f, 0f, 1f);
             Lit("M_Metal", "T_Metal", new Color(0.82f, 0.82f, 0.84f), 0.62f, 0.85f, 1f);
             Lit("M_Steel", "T_Metal", new Color(0.58f, 0.6f, 0.63f), 0.7f, 0.9f, 1f);
@@ -45,8 +46,8 @@ namespace GeodeEmpire.EditorTools
             Lit("M_CounterPaint", null, new Color(0.24f, 0.3f, 0.28f), 0.4f, 0f, 1f);
             Lit("M_Brass", "T_Metal", new Color(0.78f, 0.62f, 0.34f), 0.68f, 0.9f, 1f);
             Lit("M_MetalDark", "T_Metal", new Color(0.32f, 0.32f, 0.34f), 0.55f, 0.7f, 1f);
-            Lit("M_Cardboard", "T_Cardboard", Color.white, 0.1f, 0f, 1f);
-            Lit("M_Straw", "T_Straw", Color.white, 0.2f, 0f, 1f);
+            Lit("M_Cardboard", "T_Cardboard", new Color(0.82f, 0.78f, 0.7f), 0.1f, 0f, 1f);
+            Lit("M_Straw", "T_Straw", new Color(0.85f, 0.8f, 0.68f), 0.2f, 0f, 1f);
             Lit("M_Rubber", null, new Color(0.12f, 0.11f, 0.1f), 0.25f, 0f, 1f);
             Lit("M_Plastic", null, new Color(0.24f, 0.25f, 0.28f), 0.55f, 0f, 1f);
             Lit("M_PlasticBlue", null, new Color(0.22f, 0.32f, 0.45f), 0.5f, 0f, 1f);
@@ -61,11 +62,22 @@ namespace GeodeEmpire.EditorTools
             PosterGenerator.EnsurePosters();
             Lit("M_PosterMinerals", "T_PosterMinerals", Color.white, 0.25f, 0f, 1f);
             Lit("M_PosterRocks", "T_PosterRocks", Color.white, 0.25f, 0f, 1f);
-            Lit("M_PlasterWarm", "T_Plaster", new Color(0.84f, 0.81f, 0.74f), 0.12f, 0f, 2f);
+            Lit("M_PlasterWarm", "T_Plaster", new Color(0.7f, 0.66f, 0.58f), 0.12f, 0f, 2f);
             Lit("M_Wainscot", "T_WoodDark", new Color(0.7f, 0.66f, 0.6f), 0.35f, 0f, 1f);
             var glass = Lit("M_Glass", null, new Color(0.7f, 0.85f, 0.95f, 0.18f), 0.95f, 0f, 1f);
             SetTransparent(Lit("M_Water", null, new Color(0.24f, 0.36f, 0.4f, 0.72f), 0.96f, 0f, 1f));
             Lit("M_MachinePaint", "T_Metal", new Color(0.56f, 0.62f, 0.58f), 0.55f, 0.15f, 1f);
+            // V5 hero-asset materials: real material separation on the rebuilt props
+            Lit("M_Leather", "T_Cardboard", new Color(0.34f, 0.23f, 0.16f), 0.38f, 0f, 2.5f);
+            Lit("M_Stainless", "T_Metal", new Color(0.86f, 0.87f, 0.89f), 0.82f, 0.95f, 1f);
+            Lit("M_Aluminium", "T_Metal", new Color(0.74f, 0.75f, 0.77f), 0.5f, 0.9f, 1f);
+            Lit("M_Hickory", "T_Wood", new Color(0.7f, 0.58f, 0.42f), 0.42f, 0f, 1.5f);
+            Lit("M_Bristle", "T_Straw", new Color(0.7f, 0.62f, 0.45f), 0.15f, 0f, 3f);
+            Lit("M_PlasticDark", null, new Color(0.13f, 0.13f, 0.14f), 0.6f, 0f, 1f);
+            Lit("M_Tarp", null, new Color(0.22f, 0.3f, 0.24f), 0.2f, 0f, 1f);
+            Lit("M_Rope", "T_Straw", new Color(0.72f, 0.64f, 0.5f), 0.1f, 0f, 4f);
+            Lit("M_Enamel", null, new Color(0.9f, 0.9f, 0.86f), 0.7f, 0f, 1f);
+            Lit("M_Rubble", "T_Concrete", new Color(0.42f, 0.38f, 0.33f), 0.12f, 0f, 6f);
             SetTransparent(glass);
             // loupe lens: magnifies the opaque scene behind it
             string lensPath = Folder + "/M_LoupeLens.mat";
@@ -187,6 +199,39 @@ namespace GeodeEmpire.EditorTools
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>
+        /// Screen-space ambient occlusion on the PC renderer: rocks, tools and furniture get real contact shading where
+        /// they meet a surface (V5: "fake-looking contact"). Downsampled, modest radius, so the M2 floor holds.
+        /// </summary>
+        private static void EnsureAmbientOcclusion(UniversalRendererData rd)
+        {
+            if (rd == null) return;
+            foreach (var f in rd.rendererFeatures) if (f is ScreenSpaceAmbientOcclusion) return;
+            var ao = ScriptableObject.CreateInstance<ScreenSpaceAmbientOcclusion>();
+            ao.name = "ScreenSpaceAmbientOcclusion";
+            AssetDatabase.AddObjectToAsset(ao, rd);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(ao, out _, out long localId);
+            var so = new SerializedObject(rd);
+            var feats = so.FindProperty("m_RendererFeatures");
+            var map = so.FindProperty("m_RendererFeatureMap");
+            feats.arraySize++;
+            feats.GetArrayElementAtIndex(feats.arraySize - 1).objectReferenceValue = ao;
+            map.arraySize++;
+            map.GetArrayElementAtIndex(map.arraySize - 1).longValue = localId;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var aso = new SerializedObject(ao);
+            aso.FindProperty("m_Settings.Intensity").floatValue = 1.5f;
+            aso.FindProperty("m_Settings.Radius").floatValue = 0.14f;
+            aso.FindProperty("m_Settings.Downsample").boolValue = true;
+            aso.FindProperty("m_Settings.Falloff").floatValue = 60f;
+            aso.FindProperty("m_Settings.DirectLightingStrength").floatValue = 0.3f;
+            aso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(ao);
+            EditorUtility.SetDirty(rd);
+            AssetDatabase.SaveAssets();
+        }
+
         public static void EnsureRendererSettings()
         {
             // shaders the runtime creates materials for by name are not referenced by any asset, so a player build
@@ -198,6 +243,7 @@ namespace GeodeEmpire.EditorTools
                 rd.renderingMode = RenderingMode.ForwardPlus;
                 EditorUtility.SetDirty(rd);
             }
+            EnsureAmbientOcclusion(rd);
             var rp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset");
             if (rp != null)
             {
@@ -228,9 +274,9 @@ namespace GeodeEmpire.EditorTools
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.42f, 0.44f, 0.5f);
-            RenderSettings.ambientEquatorColor = new Color(0.36f, 0.32f, 0.28f);
-            RenderSettings.ambientGroundColor = new Color(0.16f, 0.14f, 0.12f);
+            RenderSettings.ambientSkyColor = new Color(0.5f, 0.52f, 0.58f);
+            RenderSettings.ambientEquatorColor = new Color(0.44f, 0.4f, 0.35f);
+            RenderSettings.ambientGroundColor = new Color(0.2f, 0.18f, 0.15f);
             RenderSettings.fog = false;
             RenderSettings.skybox = null;
 
@@ -278,7 +324,7 @@ namespace GeodeEmpire.EditorTools
             var tm = vp.Add<Tonemapping>(true); tm.mode.Override(TonemappingMode.ACES); AssetDatabase.AddObjectToAsset(tm, vp);
             var bloom = vp.Add<Bloom>(true); bloom.intensity.Override(0.28f); bloom.threshold.Override(1.15f); bloom.scatter.Override(0.6f); AssetDatabase.AddObjectToAsset(bloom, vp);
             var vig = vp.Add<Vignette>(true); vig.intensity.Override(0.22f); vig.smoothness.Override(0.4f); AssetDatabase.AddObjectToAsset(vig, vp);
-            var ca = vp.Add<ColorAdjustments>(true); ca.contrast.Override(8f); ca.saturation.Override(6f); ca.postExposure.Override(0.15f); AssetDatabase.AddObjectToAsset(ca, vp);
+            var ca = vp.Add<ColorAdjustments>(true); ca.contrast.Override(8f); ca.saturation.Override(6f); ca.postExposure.Override(0f); AssetDatabase.AddObjectToAsset(ca, vp);
             EditorUtility.SetDirty(vp);
             AssetDatabase.SaveAssets();
             return vp;
@@ -289,21 +335,13 @@ namespace GeodeEmpire.EditorTools
             Directory.CreateDirectory(Path.GetDirectoryName(CratePrefabPath));
             AssetDatabase.Refresh();
             var root = new GameObject("Crate");
-            var body = Prop("prop_crate_body", root.transform, Vector3.zero, 0f, "M_Wood", collider: true, scale: new Vector3(1.35f, 1.15f, 1.35f));
-            // straw bed material on the straw disc: the prop is one mesh, so whole crate is wood; add a straw disc
-            var straw = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            straw.name = "Straw";
-            straw.transform.SetParent(root.transform, false);
-            // the body's floor top is ~0.085 up (scaled plank); the straw bed shows above it and the rocks rest on it
-            straw.transform.localPosition = new Vector3(0f, 0.072f, 0f);
-            straw.transform.localScale = new Vector3(0.7f, 0.012f, 0.5f);
-            straw.GetComponent<MeshRenderer>().sharedMaterial = WorkshopMaterials.Get("M_Straw");
-            Object.DestroyImmediate(straw.GetComponent<Collider>());
+            var body = Prop("prop_crate_body", root.transform, Vector3.zero, 0f, "M_Wood,M_Straw", collider: true, scale: new Vector3(1.35f, 1.15f, 1.35f));
+            // the straw bed is part of the crate mesh (slot 1); the rocks rest on its crest
             var lid = Prop("prop_crate_lid", root.transform, new Vector3(0f, 0.39f, 0f), 0f, "M_Wood", collider: false, scale: new Vector3(1.35f, 1f, 1.35f));
             lid.name = "Lid";
             var bed = new GameObject("Bed");
             bed.transform.SetParent(root.transform, false);
-            bed.transform.localPosition = new Vector3(0f, 0.09f, 0f);
+            bed.transform.localPosition = new Vector3(0f, 0.095f, 0f);
             var box = root.AddComponent<BoxCollider>();
             box.center = new Vector3(0f, 0.2f, 0f);
             box.size = new Vector3(0.86f, 0.4f, 0.64f);
@@ -335,12 +373,32 @@ namespace GeodeEmpire.EditorTools
                 r.sharedMaterials = mats;
                 r.shadowCastingMode = ShadowCastingMode.On;
             }
-            if (collider)
+            // collision proxies exported by the generator (COL_n children): cheap BoxColliders on the root that
+            // match the visible volumes, instead of a MeshCollider over every triangle of a hero machine
+            var proxies = new List<Transform>();
+            foreach (Transform child in go.transform) if (child.name.StartsWith("COL_")) proxies.Add(child);
+            foreach (var p in proxies)
+            {
+                var pmf = p.GetComponent<MeshFilter>();
+                if (collider && pmf != null && pmf.sharedMesh != null)
+                {
+                    var b = pmf.sharedMesh.bounds;
+                    var bc = go.AddComponent<BoxCollider>();
+                    bc.center = p.localPosition + p.localRotation * Vector3.Scale(b.center, p.localScale);
+                    bc.size = Vector3.Scale(b.size, p.localScale);
+                }
+                Object.DestroyImmediate(p.gameObject);
+            }
+            if (collider && proxies.Count == 0)
             {
                 foreach (var mf in go.GetComponentsInChildren<MeshFilter>())
                 {
                     var mc = mf.gameObject.AddComponent<MeshCollider>();
                     mc.sharedMesh = mf.sharedMesh;
+                    // small solid props (boxes, buckets, jars, tools) collide as convex hulls: PhysX can measure
+                    // penetration between them and they never trap a rock in a concave pocket
+                    var b = mf.sharedMesh.bounds.size;
+                    if (mf.sharedMesh.vertexCount < 3000 && b.x < 0.7f && b.y < 0.7f && b.z < 0.7f && !file.Contains("cradle") && !file.Contains("tray") && !file.Contains("crate") && !file.Contains("bin")) mc.convex = true;
                 }
             }
             return go;
@@ -364,9 +422,10 @@ namespace GeodeEmpire.EditorTools
         private static void BuildRoom(Transform parent)
         {
             float t = 0.2f;
-            Box("Floor", parent, new Vector3(RoomCX, -0.05f, 0f), new Vector3(RoomW, 0.1f, RoomD), "M_Concrete");
-            // the showroom side gets a warmer plank floor laid over the slab
-            Box("ShopFloor", parent, new Vector3((PartitionX + RoomXMax) * 0.5f, 0.004f, 0f), new Vector3(RoomXMax - PartitionX, 0.008f, RoomD), "M_WoodDark");
+            // the slab is recessed under the showroom so its plank floor finishes flush with the workshop floor at y=0
+            Box("Floor", parent, new Vector3((RoomXMin + PartitionX) * 0.5f, -0.05f, 0f), new Vector3(PartitionX - RoomXMin, 0.1f, RoomD), "M_Concrete");
+            Box("FloorShop", parent, new Vector3((PartitionX + RoomXMax) * 0.5f, -0.054f, 0f), new Vector3(RoomXMax - PartitionX, 0.092f, RoomD), "M_Concrete");
+            Box("ShopFloor", parent, new Vector3((PartitionX + RoomXMax) * 0.5f, -0.004f, 0f), new Vector3(RoomXMax - PartitionX, 0.008f, RoomD), "M_WoodDark");
             Box("Ceiling", parent, new Vector3(RoomCX, RoomH + 0.05f, 0f), new Vector3(RoomW, 0.1f, RoomD), "M_Ceiling");
             Box("WallNorth", parent, new Vector3(RoomCX, RoomH / 2f, RoomD / 2f + t / 2f), new Vector3(RoomW + 2 * t, RoomH, t), "M_PlasterWarm");
             Box("WainscotN", parent, new Vector3(RoomCX, 0.55f, RoomD / 2f - 0.015f), new Vector3(RoomW, 1.1f, 0.03f), "M_Wainscot");
@@ -378,9 +437,17 @@ namespace GeodeEmpire.EditorTools
             Box("WallSouthA", parent, new Vector3((sA0 + sA1) * 0.5f, RoomH / 2f, -RoomD / 2f - t / 2f), new Vector3(sA1 - sA0, RoomH, t), "M_Plaster");
             Box("WallSouthB", parent, new Vector3((sB0 + sB1) * 0.5f, RoomH / 2f, -RoomD / 2f - t / 2f), new Vector3(sB1 - sB0, RoomH, t), "M_Plaster");
             Box("DoorLintel", parent, new Vector3(ShopDoorX, (2.15f + RoomH) * 0.5f, -RoomD / 2f - t / 2f), new Vector3(doorHalf * 2f + 0.02f, RoomH - 2.15f, t), "M_Plaster");
-            Box("WainscotSA", parent, new Vector3((RoomXMin + sA1) * 0.5f, 0.55f, -RoomD / 2f + 0.015f), new Vector3(sA1 - RoomXMin, 1.1f, 0.03f), "M_Wainscot");
+            float wd0 = -2.85f, wd1 = -1.75f;   // workshop door frame
+            Box("WainscotSA", parent, new Vector3((RoomXMin + wd0) * 0.5f, 0.55f, -RoomD / 2f + 0.015f), new Vector3(wd0 - RoomXMin, 1.1f, 0.03f), "M_Wainscot");
+            Box("WainscotSA2", parent, new Vector3((wd1 + sA1) * 0.5f, 0.55f, -RoomD / 2f + 0.015f), new Vector3(sA1 - wd1, 1.1f, 0.03f), "M_Wainscot");
             Box("WainscotSB", parent, new Vector3((sB0 + RoomXMax) * 0.5f, 0.55f, -RoomD / 2f + 0.015f), new Vector3(RoomXMax - sB0, 1.1f, 0.03f), "M_Wainscot");
-            Box("WallEast", parent, new Vector3(RoomXMax + t / 2f, RoomH / 2f, 0f), new Vector3(t, RoomH, RoomD), "M_Plaster");
+            // east wall with a real window opening (z -2.3..-1.1, y 1.2..2.2) instead of a frame stuck on a solid wall
+            float wz0 = -2.3f, wz1 = -1.1f, wy0 = 1.2f, wy1 = 2.2f;
+            Box("WallEastS", parent, new Vector3(RoomXMax + t / 2f, RoomH / 2f, (-RoomD / 2f + wz0) * 0.5f), new Vector3(t, RoomH, wz0 + RoomD / 2f), "M_Plaster");
+            Box("WallEastN", parent, new Vector3(RoomXMax + t / 2f, RoomH / 2f, (wz1 + RoomD / 2f) * 0.5f), new Vector3(t, RoomH, RoomD / 2f - wz1), "M_Plaster");
+            Box("WallEastBelow", parent, new Vector3(RoomXMax + t / 2f, wy0 * 0.5f, (wz0 + wz1) * 0.5f), new Vector3(t, wy0, wz1 - wz0), "M_Plaster");
+            Box("WallEastAbove", parent, new Vector3(RoomXMax + t / 2f, (wy1 + RoomH) * 0.5f, (wz0 + wz1) * 0.5f), new Vector3(t, RoomH - wy1, wz1 - wz0), "M_Plaster");
+            Box("WallEastReveal", parent, new Vector3(RoomXMax + t + 0.01f, (wy0 + wy1) * 0.5f, (wz0 + wz1) * 0.5f), new Vector3(0.02f, wy1 - wy0, wz1 - wz0), "M_Plaster");   // outer skin behind the sky
             Box("WallWest", parent, new Vector3(RoomXMin - t / 2f, RoomH / 2f, 0f), new Vector3(t, RoomH, RoomD), "M_Plaster");
             // partition between workshop and showroom: solid to the south of the counter, solid north of it, open by the bench
             Box("PartitionS", parent, new Vector3(PartitionX, RoomH / 2f, (-RoomD / 2f - 1.65f) * 0.5f), new Vector3(0.15f, RoomH, -1.65f - (-RoomD / 2f)), "M_PlasterWarm");   // south segment: z -2.7 .. -1.65, the counter gap starts at -1.65
@@ -392,28 +459,31 @@ namespace GeodeEmpire.EditorTools
             for (int i = -2; i <= 2; i++) Box("Beam" + i, parent, new Vector3(RoomCX + i * 2.4f, RoomH - 0.08f, 0f), new Vector3(0.14f, 0.16f, RoomD), "M_WoodDark");
             var pipe = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             pipe.name = "Pipe"; pipe.transform.SetParent(parent, false);
-            pipe.transform.localPosition = new Vector3(RoomCX, RoomH - 0.3f, RoomD / 2f - 0.08f);
+            // the service pipe runs the workshop only: it stops short of the partition header instead of passing through it
+            pipe.transform.localPosition = new Vector3((RoomXMin + PartitionX - 0.12f) * 0.5f, RoomH - 0.3f, RoomD / 2f - 0.08f);
             pipe.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            pipe.transform.localScale = new Vector3(0.06f, RoomW / 2f, 0.06f);
+            pipe.transform.localScale = new Vector3(0.06f, (PartitionX - 0.12f - RoomXMin) / 2f, 0.06f);
             pipe.GetComponent<MeshRenderer>().sharedMaterial = WorkshopMaterials.Get("M_MetalDark");
             Object.DestroyImmediate(pipe.GetComponent<Collider>());
             Box("DoorMat", parent, new Vector3(-2.3f, 0.006f, -RoomD / 2f + 0.5f), new Vector3(0.9f, 0.012f, 0.55f), "M_Rubber");
             Box("ShopMat", parent, new Vector3(ShopDoorX, 0.012f, -RoomD / 2f + 0.5f), new Vector3(1.1f, 0.012f, 0.6f), "M_Rubber");
             // skirting / trim
             Box("SkirtN", parent, new Vector3(RoomCX, 0.05f, RoomD / 2f - 0.02f), new Vector3(RoomW, 0.1f, 0.04f), "M_WoodDark");
-            Box("SkirtSA", parent, new Vector3((RoomXMin + sA1) * 0.5f, 0.05f, -RoomD / 2f + 0.02f), new Vector3(sA1 - RoomXMin, 0.1f, 0.04f), "M_WoodDark");
+            Box("SkirtSA", parent, new Vector3((RoomXMin + wd0) * 0.5f, 0.05f, -RoomD / 2f + 0.02f), new Vector3(wd0 - RoomXMin, 0.1f, 0.04f), "M_WoodDark");
+            Box("SkirtSA2", parent, new Vector3((wd1 + sA1) * 0.5f, 0.05f, -RoomD / 2f + 0.02f), new Vector3(sA1 - wd1, 0.1f, 0.04f), "M_WoodDark");
             Box("SkirtSB", parent, new Vector3((sB0 + RoomXMax) * 0.5f, 0.05f, -RoomD / 2f + 0.02f), new Vector3(RoomXMax - sB0, 0.1f, 0.04f), "M_WoodDark");
             Box("SkirtE", parent, new Vector3(RoomXMax - 0.02f, 0.05f, 0f), new Vector3(0.04f, 0.1f, RoomD), "M_WoodDark");
             Box("SkirtW", parent, new Vector3(RoomXMin + 0.02f, 0.05f, 0f), new Vector3(0.04f, 0.1f, RoomD), "M_WoodDark");
             // rubber mat in front of the bench
-            Box("BenchMat", parent, new Vector3(0f, 0.006f, 1.35f), new Vector3(2.2f, 0.012f, 1.0f), "M_Rubber");
+            Box("BenchMat", parent, new Vector3(0f, 0.006f, 1.33f), new Vector3(1.5f, 0.012f, 0.9f), "M_Rubber");   // clear of the bench legs, the wash stand and the stool
 
             // shop window on the east wall, by the queue (frame + glass + outside backdrop)
-            Prop("prop_window_frame", parent, new Vector3(RoomXMax - 0.02f, 1.2f, -1.7f), -90f, "M_WoodPainted", collider: false);
-            var glass = Box("WindowGlass", parent, new Vector3(RoomXMax - 0.035f, 1.7f, -1.7f), new Vector3(0.01f, 0.96f, 1.16f), "M_Glass");
+            // the frame sits in the opening (its 8 cm thickness inside the reveal), the glass behind it, the sky at the outer skin
+            Prop("prop_window_frame", parent, new Vector3(RoomXMax + 0.04f, 1.2f - 0.095f, -1.7f), 90f, "M_WoodPainted", collider: false);   // front (-Z) toward the room; origin is the apron's underside
+            var glass = Box("WindowGlass", parent, new Vector3(RoomXMax + 0.075f, 1.7f, -1.7f), new Vector3(0.01f, 0.96f, 1.16f), "M_Glass");
             glass.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             Object.DestroyImmediate(glass.GetComponent<Collider>());
-            var sky = Box("WindowSky", parent, new Vector3(RoomXMax - 0.012f, 1.7f, -1.7f), new Vector3(0.01f, 0.96f, 1.16f), "M_Paper");
+            var sky = Box("WindowSky", parent, new Vector3(RoomXMax + 0.19f, 1.7f, -1.7f), new Vector3(0.01f, 0.96f, 1.16f), "M_Paper");
             var skyMat = AssetDatabase.LoadAssetAtPath<Material>(WorkshopMaterials.Folder + "/M_WindowSky.mat");
             if (skyMat == null)
             {
@@ -425,7 +495,7 @@ namespace GeodeEmpire.EditorTools
             Object.DestroyImmediate(sky.GetComponent<Collider>());
 
             // workshop back door on the south wall (decorative)
-            Prop("prop_door", parent, new Vector3(-2.3f, 0f, -RoomD / 2f + 0.06f), 0f, "M_WoodPainted", collider: true);
+            Prop("prop_door", parent, new Vector3(-2.3f, 0f, -RoomD / 2f + 0.055f), 0f, "M_WoodPainted,M_Brass", collider: true);   // architrave flush with the wall face
 
             // the shop entrance: a hinged painted door in the gap, and a porch outside it
             var hinge = new GameObject("ShopDoorHinge");
@@ -479,15 +549,15 @@ namespace GeodeEmpire.EditorTools
             foreach (var p in new[] { new Vector3(0f, 0f, -0.2f), new Vector3(1.4f, 0f, -1.6f), new Vector3(-2.4f, 0f, -1.2f), new Vector3(4.5f, 0f, -0.7f), new Vector3(5.7f, 0f, 1.3f) })
             {
                 Pendant(parent, new Vector3(p.x, RoomH, p.z));
-                MakeLight(lights, "Pendant", new Vector3(p.x, 2.2f, p.z), Vector3.zero, LightType.Point, new Color(1f, 0.9f, 0.76f), 2.6f, 7.5f, 0f, false);
+                MakeLight(lights, "Pendant", new Vector3(p.x, 2.2f, p.z), Vector3.zero, LightType.Point, new Color(1f, 0.9f, 0.76f), 2.0f, 7.5f, 0f, false);
             }
             // personal cabinet spots (cool white) from the room side of the partition
-            MakeLight(lights, "CabinetSpotA", new Vector3(1.55f, 2.45f, -0.05f), new Vector3(62f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 4.2f, 3.2f, 55f, false);
-            MakeLight(lights, "CabinetSpotB", new Vector3(1.55f, 2.45f, 0.65f), new Vector3(62f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 4.2f, 3.2f, 55f, false);
+            MakeLight(lights, "CabinetSpotA", new Vector3(1.55f, 2.45f, -0.05f), new Vector3(62f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 2.4f, 3.2f, 55f, false);
+            MakeLight(lights, "CabinetSpotB", new Vector3(1.55f, 2.45f, 0.65f), new Vector3(62f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 2.4f, 3.2f, 55f, false);
             // showroom: case spots and a counter light
-            MakeLight(lights, "CaseSpotA", new Vector3(6.05f, 2.55f, -0.1f), new Vector3(58f, 90f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 4.6f, 3.4f, 60f, false);
-            MakeLight(lights, "CaseSpotB", new Vector3(6.05f, 2.55f, 0.9f), new Vector3(58f, 90f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 4.6f, 3.4f, 60f, false);
-            MakeLight(lights, "CounterLight", new Vector3(3.1f, 2.5f, -1.0f), new Vector3(75f, -90f, 0f), LightType.Spot, new Color(1f, 0.95f, 0.86f), 3.2f, 3.5f, 60f, false);
+            MakeLight(lights, "CaseSpotA", new Vector3(6.05f, 2.55f, -0.1f), new Vector3(58f, 90f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 2.6f, 3.4f, 60f, false);
+            MakeLight(lights, "CaseSpotB", new Vector3(6.05f, 2.55f, 0.9f), new Vector3(58f, 90f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 2.6f, 3.4f, 60f, false);
+            MakeLight(lights, "CounterLight", new Vector3(3.1f, 2.5f, -1.0f), new Vector3(75f, -90f, 0f), LightType.Spot, new Color(1f, 0.95f, 0.86f), 1.8f, 3.5f, 60f, false);
             MakeLight(lights, "PorchLamp", new Vector3(ShopDoorX, 2.5f, -RoomD / 2f - 0.6f), Vector3.zero, LightType.Point, new Color(0.8f, 0.88f, 1f), 1.6f, 4f, 0f, false);
             // reflection probe for crystals
             var probeGo = new GameObject("ReflectionProbe");
@@ -505,7 +575,7 @@ namespace GeodeEmpire.EditorTools
 
         private static void Pendant(Transform parent, Vector3 ceilingPoint)
         {
-            var lamp = Prop("prop_pendant_lamp", parent, ceilingPoint, 0f, "M_MetalDark", collider: false);
+            var lamp = Prop("prop_pendant_lamp", parent, ceilingPoint, 0f, "M_MetalDark,M_Enamel", collider: false);
             var bulb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             bulb.name = "Bulb"; bulb.transform.SetParent(lamp.transform, false);
             bulb.transform.localPosition = new Vector3(0f, -0.72f, 0f);
@@ -568,7 +638,7 @@ namespace GeodeEmpire.EditorTools
             if (textWidth < 0.1f) textWidth = text.Length * 0.115f * scale;
             float boardWidth = textWidth + 0.22f * scale;
             // board: its thin axis is local Z; rotate so local +Z points into the wall. Base mesh is 0.5 x 0.14 m.
-            Prop("prop_sign_board", parent, pos, intoWallYaw, "M_WoodDark", collider: false, scale: new Vector3(boardWidth / 0.5f, 1.6f * scale, 2.5f));
+            Prop("prop_sign_board", parent, pos + rot * new Vector3(0f, 0f, -0.026f), intoWallYaw, "M_WoodDark", collider: false, scale: new Vector3(boardWidth / 0.5f, 1.6f * scale, 2.5f));
         }
 
         private static void Poster(Transform parent, string material, Vector3 pos, float yaw)
@@ -581,6 +651,15 @@ namespace GeodeEmpire.EditorTools
             quad.transform.localScale = new Vector3(0.58f, 0.58f, 1f);
             quad.GetComponent<MeshRenderer>().sharedMaterial = WorkshopMaterials.Get(material);
             Object.DestroyImmediate(quad.GetComponent<Collider>());
+        }
+
+        /// <summary>The real surface a slot offers (half-extents, local x/z): the zone validates the specimen's full footprint against it.</summary>
+        private static PlacementZone Support(PlacementZone z, float halfX, float halfZ, bool packed = false, float poseYaw = 0f)
+        {
+            z.SupportHalfSize = new Vector2(halfX, halfZ);
+            z.Packed = packed;
+            z.PoseYaw = poseYaw;
+            return z;
         }
 
         private static PlacementZone Zone(Transform parent, string name, Vector3 localPos, ZoneKind kind, string label, int capacity, bool opened, bool unopened, Vector3 triggerSize)
@@ -607,9 +686,9 @@ namespace GeodeEmpire.EditorTools
             var bench = new GameObject("CrackingBench").transform;
             bench.SetParent(parent, false);
             bench.localPosition = new Vector3(0f, 0f, 2.15f);
-            Prop("prop_workbench", bench, Vector3.zero, 0f, "M_Wood");
-            var cradleProp = Prop("prop_cradle", bench, new Vector3(0.25f, 0.9f, -0.05f), 0f, "M_Rubber", collider: true);
-            var cradleZone = Zone(bench, "CradleZone", new Vector3(0.25f, 0.9f, -0.05f), ZoneKind.Cradle, "the cradle", 1, true, true, new Vector3(0.32f, 0.22f, 0.32f));
+            Prop("prop_workbench", bench, Vector3.zero, 0f, "M_Wood,M_MetalDark");
+            var cradleProp = Prop("prop_cradle", bench, new Vector3(0.25f, 0.9f, -0.05f), 0f, "M_Leather,M_Rubber", collider: true);
+            var cradleZone = Support(Zone(bench, "CradleZone", new Vector3(0.25f, 0.9f, -0.05f), ZoneKind.Cradle, "the cradle", 1, true, true, new Vector3(0.32f, 0.22f, 0.32f)), 0.3f, 0.3f);
             cradleZone.SetHighlightRenderers(cradleProp.GetComponentsInChildren<Renderer>());
             var cradleAnchor = new GameObject("Anchor").transform;
             cradleAnchor.SetParent(cradleZone.transform, false);
@@ -621,14 +700,14 @@ namespace GeodeEmpire.EditorTools
             camAnchor.LookAt(bench.TransformPoint(new Vector3(0.25f, 0.97f, -0.05f)));
             var chisel = Prop("prop_chisel", bench, new Vector3(-0.35f, 0.935f, -0.15f), 0f, "M_Steel", collider: false);
             chisel.transform.localRotation = Quaternion.Euler(90f, 30f, 0f);
-            var hammer = Prop("prop_hammer", bench, new Vector3(-0.55f, 0.935f, 0.05f), 0f, "M_WoodDark,M_Steel", collider: false);
+            var hammer = Prop("prop_hammer", bench, new Vector3(-0.55f, 0.935f, 0.05f), 0f, "M_Hickory,M_Steel", collider: false);
             hammer.transform.localRotation = Quaternion.Euler(0f, -20f, 90f);
-            var lampProp = Prop("prop_task_lamp", bench, new Vector3(1.05f, 0.9f, 0.36f), 220f, "M_MetalDark", collider: false);
-            var taskLight = MakeLight(bench, "TaskLight", new Vector3(0.62f, 1.32f, 0.05f), new Vector3(58f, -110f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 2.2f, 2.6f, 62f, true);   // neutral daylight lamp: crystal colour stays honest
-            Prop("prop_pegboard", bench, new Vector3(0f, 1.35f, 0.5f), 0f, "M_Wood", collider: false);
-            Prop("prop_stool", bench, new Vector3(0.95f, 0f, -0.75f), 25f, "M_WoodDark");
+            var lampProp = Prop("prop_task_lamp", bench, new Vector3(0.74f, 0.9f, 0.24f), 225f, "M_MetalDark,M_Enamel,M_Bulb,M_PlasticDark", collider: true);   // base on the bench top (x < 0.9)
+            var taskLight = MakeLight(bench, "TaskLight", new Vector3(0.62f, 1.32f, 0.05f), new Vector3(58f, -110f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 0.35f, 2.6f, 62f, true);   // neutral daylight lamp at 0.5 m: crystal colour stays honest
+            Prop("prop_pegboard", bench, new Vector3(0f, 1.35f, RoomD / 2f - 2.15f - 0.032f), 0f, "M_Wood,M_PlasticDark,M_Metal", collider: false);   // battens on the wall face
+            Prop("prop_stool", bench, new Vector3(1.0f, 0f, -0.75f), 25f, "M_WoodDark");   // clear of the bench mat
             // the heavy cradle sits on the same spot, hidden until bought
-            var heavyCradle = Prop("prop_heavy_cradle", bench, new Vector3(0.25f, 0.9f, -0.05f), 0f, "M_MetalDark,M_Rubber", collider: true);
+            var heavyCradle = Prop("prop_heavy_cradle", bench, new Vector3(0.25f, 0.9f, -0.05f), 0f, "M_MetalDark,M_Leather,M_Rubber", collider: true);
             heavyCradle.SetActive(false);
             var cb = bench.gameObject.AddComponent<CrackingBench>();
             cb.Cradle = cradleZone;
@@ -647,34 +726,34 @@ namespace GeodeEmpire.EditorTools
             var wash = new GameObject("WashStation").transform;
             wash.SetParent(parent, false);
             wash.localPosition = new Vector3(-1.4f, 0f, 2.05f);
-            var tubProp = Prop("prop_wash_tub", wash, Vector3.zero, 0f, "M_PlasticBlue,M_Water", collider: true);
-            var tubZone = Zone(wash, "WashZone", new Vector3(0f, 0.74f, 0f), ZoneKind.Wash, "the wash tub", 1, false, true, new Vector3(0.46f, 0.26f, 0.34f));
+            var tubProp = Prop("prop_wash_tub", wash, Vector3.zero, 0f, "M_Steel,M_Water,M_PlasticBlue,M_Brass", collider: true);
+            var tubZone = Support(Zone(wash, "WashZone", new Vector3(0f, 0.66f, 0f), ZoneKind.Wash, "the wash tub", 1, false, true, new Vector3(0.46f, 0.35f, 0.34f)), 0.24f, 0.17f);   // the rock rests on the sink floor
             tubZone.SetHighlightRenderers(tubProp.GetComponentsInChildren<Renderer>());
             var tubAnchor = new GameObject("Anchor").transform;
             tubAnchor.SetParent(tubZone.transform, false);
             tubZone.Anchor = tubAnchor;
-            var brush = Prop("prop_brush", wash, new Vector3(0.21f, 0.83f, -0.14f), 25f, "M_WoodDark,M_Straw", collider: false);
+            var brush = Prop("prop_brush", wash, new Vector3(0.21f, 0.83f, -0.14f), 25f, "M_WoodDark,M_Bristle", collider: false);
             var ws = tubProp.AddComponent<WashStation>();
             ws.Tub = tubZone;
             ws.Brush = brush.transform;
             ws.SetHighlightRenderers(tubProp.GetComponentsInChildren<Renderer>());
-            Prop("prop_bucket", parent, new Vector3(-2.05f, 0f, 2.3f), 0f, "M_PlasticBlue");
+            Prop("prop_bucket", parent, new Vector3(-2.05f, 0f, 2.3f), 0f, "M_PlasticBlue,M_Metal");
 
             // ---- Appraisal bench (west wall) --------------------------------------------------
             var appraisal = new GameObject("AppraisalStation").transform;
             appraisal.SetParent(parent, false);
             appraisal.localPosition = new Vector3(-3.0f, 0f, 0.55f);
             appraisal.localRotation = Quaternion.Euler(0f, 90f, 0f);
-            Prop("prop_workbench", appraisal, Vector3.zero, 0f, "M_WoodDark", scale: new Vector3(0.75f, 1f, 0.85f));
-            var scaleProp = Prop("prop_scale_station", appraisal, new Vector3(0.15f, 0.9f, -0.02f), 180f, "M_MetalDark", collider: false);
-            var scaleZone = Zone(appraisal, "ScaleZone", new Vector3(0.15f, 0.945f, -0.04f), ZoneKind.Scale, "the scale", 1, true, false, new Vector3(0.3f, 0.2f, 0.3f));
+            Prop("prop_workbench", appraisal, Vector3.zero, 0f, "M_WoodDark,M_MetalDark", scale: new Vector3(0.75f, 1f, 0.85f));
+            var scaleProp = Prop("prop_scale_station", appraisal, new Vector3(0.15f, 0.9f, -0.02f), 180f, "M_PlasticDark,M_Screen,M_Stainless,M_Rubber", collider: true);
+            var scaleZone = Support(Zone(appraisal, "ScaleZone", new Vector3(0.15f, 0.954f, -0.01f), ZoneKind.Scale, "the scale", 1, true, false, new Vector3(0.44f, 0.2f, 0.4f)), 0.21f, 0.19f);   // on the platform (top 0.054 above the base)
             scaleZone.SetHighlightRenderers(scaleProp.GetComponentsInChildren<Renderer>());
             var scaleAnchor = new GameObject("Anchor").transform;
             scaleAnchor.SetParent(scaleZone.transform, false);
             scaleZone.Anchor = scaleAnchor;
             var ap = appraisal.gameObject.AddComponent<AppraisalStation>();
             ap.Scale = scaleZone;
-            var tabletProp = Prop("prop_tablet", appraisal, new Vector3(-0.42f, 0.9f, 0.1f), 15f, "M_Plastic", collider: true);
+            var tabletProp = Prop("prop_tablet", appraisal, new Vector3(-0.42f, 0.9f, 0.1f), 15f, "M_Plastic,M_PlasticDark", collider: true);
             var tablet = tabletProp.AddComponent<OrderTablet>();
             var screen = GameObject.CreatePrimitive(PrimitiveType.Quad);
             screen.name = "Screen";
@@ -686,20 +765,20 @@ namespace GeodeEmpire.EditorTools
             Object.DestroyImmediate(screen.GetComponent<Collider>());
             var shelf = new GameObject("StorageShelf").transform;
             shelf.SetParent(parent, false);
-            shelf.localPosition = new Vector3(-3.4f, 0f, 2.1f);
+            shelf.localPosition = new Vector3(-3.36f, 0f, 2.1f);   // back panel 3 cm off the skirting
             shelf.localRotation = Quaternion.Euler(0f, -90f, 0f);
             Prop("prop_shelf_unit", shelf, Vector3.zero, 0f, "M_WoodDark");
-            Prop("prop_cardboard_box", shelf, new Vector3(-0.2f, 0.135f, 0f), 12f, "M_Cardboard");
-            Prop("prop_cardboard_box", shelf, new Vector3(0.25f, 0.685f, 0f), -8f, "M_Cardboard", scale: new Vector3(0.7f, 0.7f, 0.7f));
-            Prop("prop_bucket", shelf, new Vector3(0.1f, 1.235f, 0f), 0f, "M_Plastic", scale: new Vector3(0.7f, 0.7f, 0.7f));
+            Prop("prop_cardboard_box", shelf, new Vector3(-0.2f, 0.135f, 0.0f), 0f, "M_Cardboard,M_Paper", scale: new Vector3(0.8f, 0.8f, 0.8f));   // 0.32 deep on a 0.36 shelf
+            Prop("prop_cardboard_box", shelf, new Vector3(0.25f, 0.685f, 0.0f), -8f, "M_Cardboard,M_Paper", scale: new Vector3(0.7f, 0.7f, 0.7f));
+            Prop("prop_bucket", shelf, new Vector3(0.1f, 1.235f, 0f), 0f, "M_Plastic,M_Metal", scale: new Vector3(0.7f, 0.7f, 0.7f));
 
             // ---- Dealer outbox + intercom (south-west, near the door) --------------------------
             var outbox = new GameObject("SellOutbox").transform;
             outbox.SetParent(parent, false);
-            outbox.localPosition = new Vector3(-1.2f, 0f, -2.1f);
-            Prop("prop_pallet", outbox, Vector3.zero, 0f, "M_Wood");
+            outbox.localPosition = new Vector3(-1.15f, 0f, -2.05f);
+            Prop("prop_pallet", outbox, Vector3.zero, 90f, "M_Wood,M_MetalDark");   // 0.8 along the wall: the door, outbox, bin, receiving and counter share one row
             var trayProp = Prop("prop_tray", outbox, new Vector3(0f, 0.12f, 0f), 0f, "M_PlasticBlue", collider: true, scale: new Vector3(1.6f, 1.2f, 1.6f));
-            var trayZone = Zone(outbox, "OutboxZone", new Vector3(0f, 0.135f, 0f), ZoneKind.SellTray, "the dealer outbox", 12, true, false, new Vector3(0.78f, 0.25f, 0.56f));
+            var trayZone = Support(Zone(outbox, "OutboxZone", new Vector3(0f, 0.135f, 0f), ZoneKind.SellTray, "the dealer outbox", 12, true, false, new Vector3(0.78f, 0.25f, 0.56f)), 0.37f, 0.25f, packed: true);
             trayZone.GridColumns = 4;
             trayZone.GridSpacing = new Vector2(0.17f, 0.15f);
             trayZone.SetHighlightRenderers(trayProp.GetComponentsInChildren<Renderer>());
@@ -708,27 +787,27 @@ namespace GeodeEmpire.EditorTools
             trayZone.Anchor = trayAnchor;
             var so = outbox.gameObject.AddComponent<SellOutbox>();
             so.Tray = trayZone;
-            var intercom = Box("DealerIntercom", outbox, new Vector3(0.75f, 1.35f, -0.56f), new Vector3(0.16f, 0.22f, 0.06f), "M_Plastic", isStatic: false);
-            var button = Box("Button", intercom.transform, new Vector3(0f, -0.05f, -0.035f), new Vector3(0.06f, 0.03f, 0.02f), "M_Metal", isStatic: false);
+            var intercom = Box("DealerIntercom", outbox, new Vector3(0.75f, 1.35f, -0.62f), new Vector3(0.16f, 0.22f, 0.06f), "M_Plastic", isStatic: false);   // on the wall face (z -2.67)
+            var button = Box("Button", intercom.transform, new Vector3(0f, -0.05f, 0.035f), new Vector3(0.06f, 0.03f, 0.02f), "M_Metal", isStatic: false);
             var ic = intercom.AddComponent<DealerIntercom>();
             ic.Outbox = so;
-            var signOut = Prop("prop_label_stand", outbox, new Vector3(0.45f, 0.125f, -0.25f), -20f, "M_Paper", collider: false, scale: new Vector3(2.5f, 2.5f, 2.5f));
+            var signOut = Prop("prop_label_stand", outbox, new Vector3(0.1f, 0.12f, -0.47f), -15f, "M_Paper", collider: false, scale: new Vector3(2.5f, 2.5f, 2.5f));
 
             // ---- Receiving pallet (south-east, near the door) ----------------------------------
             var receiving = new GameObject("ReceivingArea").transform;
             receiving.SetParent(parent, false);
             // cells end 0.19 m short of the partition so a crate in the east cells never touches it (or the cashier)
-            receiving.localPosition = new Vector3(1.18f, 0f, -1.9f);
+            receiving.localPosition = new Vector3(1.0f, 0f, -1.85f);   // east cell ends at 2.2, clear of the counter (2.275); south cells clear the wainscot
             foreach (var cell in new[] { new Vector3(-0.6f, 0f, 0.4f), new Vector3(0.6f, 0f, 0.4f), new Vector3(-0.6f, 0f, -0.4f), new Vector3(0.6f, 0f, -0.4f) })
-                Prop("prop_pallet", receiving, cell, 0f, "M_Wood");
+                Prop("prop_pallet", receiving, cell, 0f, "M_Wood,M_MetalDark");
             receiving.gameObject.AddComponent<ReceivingArea>();
 
             // ---- Display cabinet (east wall, visible from the bench) -------------------------
             var cabinet = new GameObject("DisplayCabinet").transform;
             cabinet.SetParent(parent, false);
-            cabinet.localPosition = new Vector3(PartitionX - 0.3f, 0f, 0.28f);   // against the partition, facing the workshop
+            cabinet.localPosition = new Vector3(PartitionX - 0.35f, 0f, 0.32f);   // against the partition trim, facing the workshop; its south end meets the counter's end at z -0.35
             cabinet.localRotation = Quaternion.Euler(0f, 90f, 0f);
-            var cabProp = Prop("prop_display_cabinet", cabinet, Vector3.zero, 0f, "M_WoodDark");
+            var cabProp = Prop("prop_display_cabinet", cabinet, Vector3.zero, 0f, "M_WoodDark,M_CaseLight");
             var dc = cabinet.gameObject.AddComponent<DisplayCabinet>();
             dc.LabelFont = AssetDatabase.LoadAssetAtPath<Font>(WorldFontMedium);
             dc.LabelMaterial = WorldTextMaterial(WorldFontMedium, "Assets/GeodeEmpire/Materials/M_WorldText_Medium.mat");
@@ -744,8 +823,8 @@ namespace GeodeEmpire.EditorTools
                 for (int col = 0; col < 4; col++)
                 {
                     float y = 0.215f + row * 0.5f;
-                    float x = (col - 1.5f) * 0.29f;
-                    var z = Zone(cabinet, $"Slot{slot}", new Vector3(x, y, 0.04f), ZoneKind.DisplaySlot, $"display slot {slot + 1}", 1, true, false, new Vector3(0.28f, 0.4f, 0.4f));
+                    float x = (col - 1.5f) * 0.3f;
+                    var z = Support(Zone(cabinet, $"Slot{slot}", new Vector3(x, y, 0.01f), ZoneKind.DisplaySlot, $"display slot {slot + 1}", 1, true, false, new Vector3(0.29f, 0.4f, 0.46f)), 0.14f, 0.21f);
                     z.SlotIndex = slot;
                     var a = new GameObject("Anchor").transform;
                     a.SetParent(z.transform, false);
@@ -759,24 +838,24 @@ namespace GeodeEmpire.EditorTools
             // ---- Saw bay (north wall by the partition opening): the tarp until the Trim Saw is bought, the machine after ----
             var sawRoot = new GameObject("SawStation").transform;
             sawRoot.SetParent(parent, false);
-            sawRoot.localPosition = new Vector3(1.75f, 0f, 2.3f);
-            var teaser = Prop("prop_saw_teaser", sawRoot, Vector3.zero, 180f, "M_Tarp");
+            sawRoot.localPosition = new Vector3(2.0f, 0f, 2.28f);   // the machine's side table (x -1.075..-0.525) clears the bench (x < 0.9) and the wainscot
+            var teaser = Prop("prop_saw_teaser", sawRoot, Vector3.zero, 180f, "M_Tarp,M_Rope");
             var machine = new GameObject("Machine").transform;
             machine.SetParent(sawRoot, false);
-            var sawBody = Prop("prop_saw_station", machine, Vector3.zero, 0f, "M_MachinePaint,M_Water,M_Glass", collider: true);
+            var sawBody = Prop("prop_saw_station", machine, Vector3.zero, 0f, "M_MachinePaint,M_Water,M_Glass,M_Rubber,M_Red", collider: true);
             var blade = Prop("prop_saw_blade", machine, new Vector3(0f, 1.06f, 0.05f), 0f, "M_Metal,M_MetalDark", collider: false);
             var vise = Prop("prop_saw_vise", machine, new Vector3(0.42f, 0.915f, 0f), 0f, "M_MachinePaint,M_Rubber", collider: true);
             var jaw = Prop("prop_saw_jaw", vise.transform, new Vector3(0f, 0.02f, 0.13f), 0f, "M_MachinePaint,M_Rubber", collider: false);
-            var outTrayProp = Prop("prop_tray", machine, new Vector3(-0.4f, 0.88f, -0.16f), 0f, "M_PlasticBlue", collider: true, scale: new Vector3(1.15f, 1f, 1.15f));
+            var outTrayProp = Prop("prop_tray", machine, new Vector3(-0.8f, 0.85f, 0.0f), 90f, "M_PlasticBlue", collider: true, scale: new Vector3(1.4f, 1f, 1.4f));   // on the side table, long side along the table
             var sawCam = new GameObject("SawCamera").transform;
             sawCam.SetParent(sawRoot, false);
-            var sawLight = MakeLight(machine, "SawLight", new Vector3(0.1f, 1.75f, -0.35f), new Vector3(72f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 1.8f, 2.2f, 58f, false);
+            var sawLight = MakeLight(machine, "SawLight", new Vector3(0.1f, 1.75f, -0.35f), new Vector3(72f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 0.8f, 2.2f, 58f, false);
             sawLight.enabled = false;
-            var clampZone = Zone(sawRoot, "ClampZone", new Vector3(0.42f, 0.935f, 0.05f), ZoneKind.Saw, "the saw clamp", 1, true, true, new Vector3(0.3f, 0.26f, 0.34f));
+            var clampZone = Support(Zone(sawRoot, "ClampZone", new Vector3(0.42f, 0.935f, 0.05f), ZoneKind.Saw, "the saw clamp", 1, true, true, new Vector3(0.3f, 0.26f, 0.34f)), 0.13f, 0.13f);
             clampZone.SetHighlightRenderers(vise.GetComponentsInChildren<Renderer>());
             var clampAnchor = new GameObject("Anchor").transform; clampAnchor.SetParent(clampZone.transform, false); clampZone.Anchor = clampAnchor;
-            var sawTray = Zone(machine, "SawTray", new Vector3(-0.4f, 0.895f, -0.16f), ZoneKind.SawTray, "the saw tray", 2, true, false, new Vector3(0.34f, 0.16f, 0.28f));
-            sawTray.GridColumns = 2; sawTray.GridSpacing = new Vector2(0.15f, 0.12f);
+            var sawTray = Support(Zone(machine, "SawTray", new Vector3(-0.8f, 0.867f, 0.0f), ZoneKind.SawTray, "the saw tray", 2, true, false, new Vector3(0.46f, 0.16f, 0.66f)), 0.22f, 0.32f, packed: true);
+            sawTray.GridColumns = 2; sawTray.GridSpacing = new Vector2(0.28f, 0f);
             sawTray.SetHighlightRenderers(outTrayProp.GetComponentsInChildren<Renderer>());
             var sawTrayAnchor = new GameObject("Anchor").transform; sawTrayAnchor.SetParent(sawTray.transform, false); sawTray.Anchor = sawTrayAnchor;
             var saw = sawRoot.gameObject.AddComponent<Lapidary.SawStation>();
@@ -793,37 +872,37 @@ namespace GeodeEmpire.EditorTools
             lapRoot.localRotation = Quaternion.Euler(0f, -90f, 0f);   // operator side toward the room (+X)
             var before = new GameObject("Before").transform;
             before.SetParent(lapRoot, false);
-            Prop("prop_cardboard_box", before, new Vector3(0.25f, 0f, -0.15f), 30f, "M_Cardboard");
-            Prop("prop_cardboard_box", before, new Vector3(-0.25f, 0f, 0.05f), -10f, "M_Cardboard", scale: new Vector3(0.8f, 0.9f, 0.8f));
+            Prop("prop_cardboard_box", before, new Vector3(0.25f, 0f, -0.15f), 30f, "M_Cardboard,M_Paper");
+            Prop("prop_cardboard_box", before, new Vector3(-0.25f, 0f, 0.05f), -10f, "M_Cardboard,M_Paper", scale: new Vector3(0.8f, 0.9f, 0.8f));
             var lapMachine = new GameObject("Machine").transform;
             lapMachine.SetParent(lapRoot, false);
-            var lapBody = Prop("prop_polish_lap", lapMachine, Vector3.zero, 0f, "M_MachinePaint,M_PlasticBlue", collider: true);
-            var platen = Prop("prop_polish_disc", lapMachine, new Vector3(0f, 0.76f, 0f), 0f, "M_Metal,M_Felt", collider: false);
-            var lapZone = Zone(lapRoot, "LapZone", new Vector3(0f, 0.782f, 0f), ZoneKind.Lap, "the flat lap", 1, true, false, new Vector3(0.34f, 0.2f, 0.34f));
+            var lapBody = Prop("prop_polish_lap", lapMachine, Vector3.zero, 0f, "M_MachinePaint,M_PlasticBlue,M_Rubber", collider: true);
+            var platen = Prop("prop_polish_disc", lapMachine, new Vector3(0f, 0.76f, 0f), 0f, "M_Aluminium,M_Felt", collider: false);
+            var lapZone = Support(Zone(lapRoot, "LapZone", new Vector3(0f, 0.786f, 0f), ZoneKind.Lap, "the flat lap", 1, true, false, new Vector3(0.34f, 0.2f, 0.34f)), 0.14f, 0.14f);   // top of the pad
             lapZone.SetHighlightRenderers(platen.GetComponentsInChildren<Renderer>());
             var lapAnchor = new GameObject("Anchor").transform; lapAnchor.SetParent(lapZone.transform, false); lapZone.Anchor = lapAnchor;
             var lap = lapRoot.gameObject.AddComponent<Lapidary.PolishStation>();
-            lap.Lap = lapZone; lap.Platen = platen.transform; lap.Machine = lapMachine.gameObject; lap.Before = before.gameObject;
+            lap.Lap = lapZone; lap.Platen = platen.transform; lap.Machine = lapMachine.gameObject; lap.Before = before.gameObject; lap.PlatenY = 0.786f;
             lap.SetHighlightRenderers(lapBody.GetComponentsInChildren<Renderer>());
             lapMachine.gameObject.SetActive(false);
-            Prop("prop_bucket", parent, new Vector3(-1.45f, 0f, 2.5f), 0f, "M_Plastic");
+            Prop("prop_bucket", parent, new Vector3(-1.45f, 0f, 2.5f), 0f, "M_Plastic,M_Metal");
 
             // ---- dressing: shelves, signs, posters, clutter ----------------------------------------
-            var wallShelf = Prop("prop_wall_shelf", parent, new Vector3(-3.47f, 1.55f, 0.55f), -90f, "M_WoodDark", collider: false);
-            Prop("prop_jar", wallShelf.transform, new Vector3(-0.3f, 0.03f, 0.02f), 0f, "M_JarGlass", collider: false);
-            Prop("prop_jar", wallShelf.transform, new Vector3(-0.18f, 0.03f, -0.03f), 0f, "M_JarGlass", collider: false);
-            Prop("prop_jar", wallShelf.transform, new Vector3(0.05f, 0.03f, 0.0f), 0f, "M_JarGlass", collider: false);
-            Prop("prop_cardboard_box", wallShelf.transform, new Vector3(0.28f, 0.03f, 0.0f), 8f, "M_Cardboard", collider: false, scale: new Vector3(0.35f, 0.35f, 0.35f));
-            Prop("prop_rock_bin", parent, new Vector3(-0.2f, 0f, -2.4f), 8f, "M_WoodDark");   // between the outbox and the pallets
-            Prop("prop_extinguisher", parent, new Vector3(-1.55f, 0f, -2.52f), 0f, "M_Red");
-            Prop("prop_broom", parent, new Vector3(-3.35f, 0f, -2.35f), 20f, "M_Wood", collider: false).transform.localRotation = Quaternion.Euler(-6f, 20f, 8f);
-            Prop("prop_wall_clock", parent, new Vector3(-2.3f, 2.5f, -RoomD / 2f + 0.02f), 180f, "M_Cream", collider: false);
+            var wallShelf = Prop("prop_wall_shelf", parent, new Vector3(-3.47f, 1.55f, 0.55f), -90f, "M_WoodDark,M_MetalDark", collider: false);
+            Prop("prop_jar", wallShelf.transform, new Vector3(-0.3f, 0.03f, 0.02f), 0f, "M_JarGlass,M_MetalDark", collider: false);
+            Prop("prop_jar", wallShelf.transform, new Vector3(-0.18f, 0.03f, -0.03f), 0f, "M_JarGlass,M_MetalDark", collider: false);
+            Prop("prop_jar", wallShelf.transform, new Vector3(0.05f, 0.03f, 0.0f), 0f, "M_JarGlass,M_MetalDark", collider: false);
+            Prop("prop_cardboard_box", wallShelf.transform, new Vector3(0.28f, 0.03f, 0.0f), 8f, "M_Cardboard,M_Paper", collider: false, scale: new Vector3(0.35f, 0.35f, 0.35f));
+            Prop("prop_rock_bin", parent, new Vector3(-0.45f, 0f, -2.35f), 90f, "M_WoodDark,M_Rubble");   // end-on between the outbox pallet (-0.85) and the receiving pallets (-0.2)
+            Prop("prop_extinguisher", parent, new Vector3(-3.48f, 0f, -1.6f), 90f, "M_Red,M_Metal,M_Rubber,M_Paper");   // on the west wall by the door, under the polishing pegboard
+            Prop("prop_broom", parent, new Vector3(-3.3f, 0.008f, -2.35f), 20f, "M_Wood,M_Bristle,M_Rope", collider: false).transform.localRotation = Quaternion.Euler(-3f, 20f, 3f);
+            Prop("prop_wall_clock", parent, new Vector3(0.3f, 2.45f, -RoomD / 2f + 0.02f), 180f, "M_Cream,M_Paper,M_MetalDark", collider: false);
             Poster(parent, "M_PosterMinerals", new Vector3(-1.5f, 1.25f, RoomD / 2f - 0.02f), 0f);
             Poster(parent, "M_PosterRocks", new Vector3(3.6f, 1.5f, RoomD / 2f - 0.02f), 0f);
-            Sign(parent, "RECEIVING", new Vector3(1.5f, 1.55f, -RoomD / 2f + 0.03f), 180f);
-            Sign(parent, "DEALER OUTBOX", new Vector3(-1.2f, 1.55f, -RoomD / 2f + 0.03f), 180f);
-            Sign(parent, "GEODE WORKS", new Vector3(-2.3f, 2.25f, -RoomD / 2f + 0.03f), 180f, 1.3f);
-            Sign(parent, "PRIVATE COLLECTION", new Vector3(PartitionX - 0.08f, 2.05f, 0.28f), 90f, 0.85f);
+            Sign(parent, "RECEIVING", new Vector3(1.0f, 1.55f, -RoomD / 2f + 0.03f), 180f);
+            Sign(parent, "DEALER OUTBOX", new Vector3(-0.9f, 1.72f, -RoomD / 2f + 0.03f), 180f, 0.75f);   // clear of the door architrave (x > -1.76) and the intercom (top 1.46)
+            Sign(parent, "GEODE WORKS", new Vector3(-2.3f, 2.5f, -RoomD / 2f + 0.03f), 180f, 1.3f);   // above the door frame (top 2.15)
+            Sign(parent, "PRIVATE COLLECTION", new Vector3(PartitionX - 0.08f, 2.05f, 0.32f), 90f, 0.85f);
             // ---- Stage 2: the lapidary workshop expansion. Everything here is inactive until the upgrade is bought ----
             var expansion = new GameObject("WorkshopExpansion");
             expansion.transform.SetParent(parent, false);
@@ -838,12 +917,12 @@ namespace GeodeEmpire.EditorTools
             // rock rack: steel material storage where the cardboard shelf stood, three lipped shelves of three
             var rack = new GameObject("RockRack").transform;
             rack.SetParent(s2, false);
-            rack.localPosition = new Vector3(-3.37f, 0f, 2.05f);
+            rack.localPosition = new Vector3(-3.33f, 0f, 2.05f);   // back panel 1.5 cm off the wainscot
             rack.localRotation = Quaternion.Euler(0f, -90f, 0f);   // back panel to the west wall, lips toward the room
             var rackProp = Prop("prop_rock_rack", rack, Vector3.zero, 0f, "M_Metal");
             foreach (var (name, y) in new[] { ("RackLow", 0.135f), ("RackMid", 0.615f), ("RackTop", 1.095f) })
             {
-                var rz = Zone(rack, name, new Vector3(0f, y, 0.02f), ZoneKind.Rack, "the rock rack", 3, true, true, new Vector3(1.12f, 0.42f, 0.42f));
+                var rz = Support(Zone(rack, name, new Vector3(0f, y, 0f), ZoneKind.Rack, "the rock rack", 3, true, true, new Vector3(1.12f, 0.42f, 0.42f)), 0.56f, 0.19f, packed: true);
                 rz.GridColumns = 3; rz.GridSpacing = new Vector2(0.38f, 0f);
                 rz.SetHighlightRenderers(rackProp.GetComponentsInChildren<Renderer>());
                 var ra = new GameObject("Anchor").transform; ra.SetParent(rz.transform, false); rz.Anchor = ra;
@@ -858,49 +937,49 @@ namespace GeodeEmpire.EditorTools
             int trophySlot = dc.Slots.Count;
             foreach (float boardY in new[] { 1.5f, 2.02f })
             {
-                Box($"TrophyBoard{boardY:F1}", trophy, new Vector3(0f, boardY, 0f), new Vector3(1.5f, 0.03f, 0.3f), "M_WoodDark");
-                foreach (float bx in new[] { -0.6f, 0.6f })
+                // boards 1.8 x 0.55 from the wall (local z +0.15) out to -0.4: room for a large geode propped clamshell-style
+                Box($"TrophyBoard{boardY:F1}", trophy, new Vector3(0f, boardY, -0.125f), new Vector3(1.8f, 0.03f, 0.55f), "M_WoodDark");
+                foreach (float bx in new[] { -0.75f, 0.75f })
                 {
-                    Box("Bracket", trophy, new Vector3(bx, boardY - 0.1f, 0.1f), new Vector3(0.03f, 0.17f, 0.03f), "M_MetalDark");
-                    Box("Bracket", trophy, new Vector3(bx, boardY - 0.03f, 0.03f), new Vector3(0.03f, 0.03f, 0.2f), "M_MetalDark");
+                    Box("Bracket", trophy, new Vector3(bx, boardY - 0.11f, 0.12f), new Vector3(0.03f, 0.19f, 0.03f), "M_MetalDark");
+                    Box("Bracket", trophy, new Vector3(bx, boardY - 0.03f, -0.1f), new Vector3(0.03f, 0.03f, 0.48f), "M_MetalDark");
                 }
-                if (boardY > 1.9f) Box("TrophyCanopy", trophy, new Vector3(0f, boardY + 0.45f, -0.02f), new Vector3(1.5f, 0.04f, 0.26f), "M_WoodDark");
-                foreach (float lx in new[] { -0.36f, 0.36f })
-                    MakeLight(trophy, "TrophyLamp", new Vector3(lx, boardY + 0.4f, -0.06f), Vector3.zero, LightType.Point, new Color(1f, 0.97f, 0.9f), 0.6f, 0.9f, 0f, false);
+                if (boardY > 1.9f) Box("TrophyCanopy", trophy, new Vector3(0f, boardY + 0.45f, -0.1f), new Vector3(1.8f, 0.04f, 0.5f), "M_WoodDark");
+                foreach (float lx in new[] { -0.45f, 0.45f })
+                    MakeLight(trophy, "TrophyLamp", new Vector3(lx, boardY + 0.4f, -0.15f), Vector3.zero, LightType.Point, new Color(1f, 0.97f, 0.9f), 0.6f, 0.9f, 0f, false);
                 for (int col = 0; col < 4; col++)
                 {
-                    float x = (col - 1.5f) * 0.36f;
-                    var z = Zone(trophy, $"Slot{trophySlot}", new Vector3(x, boardY + 0.015f, 0.0f), ZoneKind.DisplaySlot, $"display slot {trophySlot + 1}", 1, true, false, new Vector3(0.28f, 0.4f, 0.36f));
+                    float x = (col - 1.5f) * 0.45f;
+                    var z = Support(Zone(trophy, $"Slot{trophySlot}", new Vector3(x, boardY + 0.015f, -0.125f), ZoneKind.DisplaySlot, $"display slot {trophySlot + 1}", 1, true, false, new Vector3(0.42f, 0.4f, 0.52f)), 0.21f, 0.26f);
                     z.SlotIndex = trophySlot;
                     var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
                     dc.Slots.Add(z);
                     trophySlot++;
                 }
             }
-            MakeLight(s2, "TrophySpot", new Vector3(-2.75f, 2.8f, 0.54f), new Vector3(58f, -90f, 0f), LightType.Spot, new Color(0.95f, 0.96f, 1f), 3.2f, 3f, 62f, false);
+            MakeLight(s2, "TrophySpot", new Vector3(-2.75f, 2.8f, 0.54f), new Vector3(58f, -90f, 0f), LightType.Spot, new Color(0.95f, 0.96f, 1f), 1.8f, 3f, 62f, false);
             Sign(s2, "TROPHY WALL", new Vector3(RoomXMin + 0.03f, 2.62f, 0.54f), -90f, 0.75f);
 
             // saw bay: pegboard tooling above the machine and a proper light rig
-            Prop("prop_pegboard", s2, new Vector3(1.75f, 1.9f, RoomD / 2f - 0.02f), 0f, "M_Wood", collider: false);
-            var sawPegHammer = Prop("prop_hammer", s2, new Vector3(1.4f, 2.2f, RoomD / 2f - 0.07f), 0f, "M_WoodDark,M_Steel", collider: false);
+            Prop("prop_pegboard", s2, new Vector3(1.8f, 1.9f, RoomD / 2f - 0.032f), 0f, "M_Wood,M_PlasticDark,M_Metal", collider: false);   // clear of the partition header (x > 2.475, y > 2.25)
+            var sawPegHammer = Prop("prop_hammer", s2, new Vector3(1.6f, 2.2f, RoomD / 2f - 0.07f), 0f, "M_Hickory,M_Steel", collider: false);
             sawPegHammer.transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
-            Prop("prop_brush", s2, new Vector3(1.95f, 2.15f, RoomD / 2f - 0.06f), 0f, "M_WoodDark,M_Straw", collider: false).transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            Prop("prop_jar", s2, new Vector3(2.2f, 1.62f, RoomD / 2f - 0.09f), 0f, "M_JarGlass", collider: false);
-            MakeLight(s2, "SawRigA", new Vector3(1.4f, 2.75f, 1.95f), new Vector3(68f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 2.6f, 3.2f, 55f, false);
-            MakeLight(s2, "SawRigB", new Vector3(2.1f, 2.75f, 1.95f), new Vector3(68f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 2.6f, 3.2f, 55f, false);
+            Prop("prop_brush", s2, new Vector3(2.15f, 2.15f, RoomD / 2f - 0.06f), 0f, "M_WoodDark,M_Bristle", collider: false).transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            MakeLight(s2, "SawRigA", new Vector3(1.6f, 2.75f, 1.95f), new Vector3(68f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 1.4f, 3.2f, 55f, false);
+            MakeLight(s2, "SawRigB", new Vector3(2.3f, 2.75f, 1.95f), new Vector3(68f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 1.4f, 3.2f, 55f, false);
 
             // polishing corner: pegboard, a supplies shelf and a lamp make it a workstation instead of a machine in a corner
-            Prop("prop_pegboard", s2, new Vector3(RoomXMin + 0.03f, 1.6f, -1.15f), -90f, "M_Wood", collider: false);
-            var polishShelf = Prop("prop_wall_shelf", s2, new Vector3(RoomXMin + 0.13f, 2.05f, -1.15f), -90f, "M_WoodDark", collider: false);
-            Prop("prop_jar", polishShelf.transform, new Vector3(-0.25f, 0.03f, 0.0f), 0f, "M_JarGlass", collider: false);
-            Prop("prop_jar", polishShelf.transform, new Vector3(-0.05f, 0.03f, -0.02f), 0f, "M_JarGlass", collider: false);
-            Prop("prop_cardboard_box", polishShelf.transform, new Vector3(0.25f, 0.03f, 0.0f), -6f, "M_Cardboard", collider: false, scale: new Vector3(0.35f, 0.35f, 0.35f));
-            Prop("prop_brush", s2, new Vector3(RoomXMin + 0.08f, 1.75f, -1.45f), -90f, "M_WoodDark,M_Straw", collider: false).transform.localRotation = Quaternion.Euler(90f, -90f, 0f);
-            MakeLight(s2, "LapLight", new Vector3(-2.55f, 2.75f, -1.15f), new Vector3(62f, -90f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 2.4f, 3f, 58f, false);
+            Prop("prop_pegboard", s2, new Vector3(RoomXMin + 0.032f, 1.6f, -1.15f), -90f, "M_Wood,M_PlasticDark,M_Metal", collider: false);
+            var polishShelf = Prop("prop_wall_shelf", s2, new Vector3(RoomXMin + 0.13f, 2.05f, -1.15f), -90f, "M_WoodDark,M_MetalDark", collider: false);
+            Prop("prop_jar", polishShelf.transform, new Vector3(-0.25f, 0.03f, 0.0f), 0f, "M_JarGlass,M_MetalDark", collider: false);
+            Prop("prop_jar", polishShelf.transform, new Vector3(-0.05f, 0.03f, -0.02f), 0f, "M_JarGlass,M_MetalDark", collider: false);
+            Prop("prop_cardboard_box", polishShelf.transform, new Vector3(0.25f, 0.03f, 0.0f), -6f, "M_Cardboard,M_Paper", collider: false, scale: new Vector3(0.35f, 0.35f, 0.35f));
+            Prop("prop_brush", s2, new Vector3(RoomXMin + 0.08f, 1.75f, -1.45f), -90f, "M_WoodDark,M_Bristle", collider: false).transform.localRotation = Quaternion.Euler(90f, -90f, 0f);
+            MakeLight(s2, "LapLight", new Vector3(-2.55f, 2.75f, -1.15f), new Vector3(62f, -90f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 1.3f, 3f, 58f, false);
 
             BuildShowroom(parent, dc.LabelFont);
             // spare tools on the pegboard
-            var pegHammer = Prop("prop_hammer", parent, new Vector3(-0.35f, 1.65f, RoomD / 2f - 0.07f), 0f, "M_WoodDark,M_Steel", collider: false);
+            var pegHammer = Prop("prop_hammer", parent, new Vector3(-0.35f, 1.65f, RoomD / 2f - 0.07f), 0f, "M_Hickory,M_Steel", collider: false);
             pegHammer.transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
             var pegChisel = Prop("prop_chisel_fine", parent, new Vector3(0.25f, 1.45f, RoomD / 2f - 0.07f), 0f, "M_Steel", collider: false);
             pegChisel.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
@@ -925,7 +1004,7 @@ namespace GeodeEmpire.EditorTools
 
             // counter set into the partition: cashier on the workshop side, customers on the shop side
             var counter = Prop("prop_counter", shop, new Vector3(PartitionX, 0f, -1.0f), -90f, "M_WoodDark,M_CounterPaint");
-            var register = Prop("prop_register", shop, new Vector3(PartitionX - 0.1f, 0.95f, -1.42f), 90f, "M_Register,M_Screen", collider: true);
+            var register = Prop("prop_register", shop, new Vector3(PartitionX - 0.1f, 0.95f, -1.42f), 90f, "M_Register,M_Screen,M_PlasticDark", collider: true);
             var reg = register.AddComponent<CheckoutRegister>();
             reg.Shop = rs;
             reg.SetHighlightRenderers(register.GetComponentsInChildren<Renderer>());
@@ -940,18 +1019,18 @@ namespace GeodeEmpire.EditorTools
             rs.DoorLeaf = GameObject.Find("ShopDoorHinge")?.transform;
 
             // wall case: two shelves of three
-            var caseProp = Prop("prop_shop_case", shop, new Vector3(RoomXMax - 0.24f, 0f, 0.4f), 90f, "M_WoodDark,M_CaseLight");
+            var caseProp = Prop("prop_shop_case", shop, new Vector3(RoomXMax - 0.295f, 0f, 0.4f), 90f, "M_WoodDark,M_CaseLight");   // back 5 mm off the skirting
             int slot = 0;
             foreach (float shelfY in new[] { 0.5625f, 1.0625f })
                 foreach (float lx in new[] { -0.55f, 0f, 0.55f })
                 {
-                    var z = Zone(caseProp.transform, $"Sale{slot}", new Vector3(lx, shelfY, 0.03f), ZoneKind.SaleSlot, $"sales slot {slot + 1}", 1, true, false, new Vector3(0.36f, 0.34f, 0.32f));
+                    var z = Support(Zone(caseProp.transform, $"Sale{slot}", new Vector3(lx, shelfY, 0.01f), ZoneKind.SaleSlot, $"sales slot {slot + 1}", 1, true, false, new Vector3(0.5f, 0.34f, 0.42f)), 0.26f, 0.2f);
                     z.SlotIndex = slot;
                     var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
                     rs.SaleSlots.Add(z);
-                    var card = Prop("prop_price_card", caseProp.transform, new Vector3(lx, shelfY, -0.17f), 0f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
+                    var card = Prop("prop_price_card", caseProp.transform, new Vector3(lx, shelfY, -0.21f), 0f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
                     rs.PriceCards.Add(card.transform);
-                    var bp = new GameObject("Browse").transform; bp.SetParent(caseProp.transform, false); bp.localPosition = new Vector3(lx, 0f, -0.9f); rs.BrowsePoints.Add(bp);
+                    var bp = new GameObject("Browse").transform; bp.SetParent(caseProp.transform, false); bp.localPosition = new Vector3(lx, 0f, -0.95f); rs.BrowsePoints.Add(bp);
                     slot++;
                 }
             // jewel-case lighting: a small shadowless lamp under the shelf above each pair of slots, so the pieces glow
@@ -971,16 +1050,16 @@ namespace GeodeEmpire.EditorTools
                 }
             // island table: four more, unlocked by the Showroom Island Table upgrade
             var table = Prop("prop_shop_table", shop, new Vector3(4.75f, 0f, 0.7f), 0f, "M_WoodDark,M_Felt");
-            foreach (var lp in new[] { new Vector3(-0.32f, 0f, -0.17f), new Vector3(0.32f, 0f, -0.17f), new Vector3(-0.32f, 0f, 0.17f), new Vector3(0.32f, 0f, 0.17f) })
+            foreach (var lp in new[] { new Vector3(-0.4f, 0f, -0.215f), new Vector3(0.4f, 0f, -0.215f), new Vector3(-0.4f, 0f, 0.215f), new Vector3(0.4f, 0f, 0.215f) })
             {
-                var z = Zone(table.transform, $"Sale{slot}", new Vector3(lp.x, 0.872f, lp.z), ZoneKind.SaleSlot, $"sales slot {slot + 1}", 1, true, false, new Vector3(0.3f, 0.34f, 0.3f));
+                float side = Mathf.Sign(lp.z);
+                var z = Support(Zone(table.transform, $"Sale{slot}", new Vector3(lp.x, 0.872f, lp.z), ZoneKind.SaleSlot, $"sales slot {slot + 1}", 1, true, false, new Vector3(0.76f, 0.34f, 0.42f)), 0.38f, 0.2f, poseYaw: side > 0f ? 180f : 0f);
                 z.SlotIndex = slot;
                 var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
                 rs.SaleSlots.Add(z);
-                float side = Mathf.Sign(lp.z);
-                var card = Prop("prop_price_card", table.transform, new Vector3(lp.x, 0.872f, lp.z + side * 0.22f), side > 0f ? 0f : 180f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
+                var card = Prop("prop_price_card", table.transform, new Vector3(lp.x, 0.872f, lp.z + side * 0.25f), side > 0f ? 0f : 180f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
                 rs.PriceCards.Add(card.transform);
-                var bp = new GameObject("Browse").transform; bp.SetParent(table.transform, false); bp.localPosition = new Vector3(lp.x, 0f, side * 0.95f); rs.BrowsePoints.Add(bp);
+                var bp = new GameObject("Browse").transform; bp.SetParent(table.transform, false); bp.localPosition = new Vector3(lp.x, 0f, side * 1.05f); rs.BrowsePoints.Add(bp);
                 slot++;
             }
 
@@ -989,20 +1068,23 @@ namespace GeodeEmpire.EditorTools
             {
                 var shopShelf = new GameObject("ShopShelf").transform;
                 shopShelf.SetParent(_stage2, false);
-                shopShelf.localPosition = new Vector3(3.9f, 0f, -RoomD / 2f + 0.15f);
+                shopShelf.localPosition = new Vector3(3.9f, 0f, -RoomD / 2f + 0.18f);   // back panel on the wainscot face
                 shopShelf.localRotation = Quaternion.Euler(0f, 180f, 0f);   // local -Z faces north into the shop
-                Box("ShelfBoard", shopShelf, new Vector3(0f, 1.0f, 0f), new Vector3(1.7f, 0.03f, 0.32f), "M_WoodDark");
+                Box("ShelfBoard", shopShelf, new Vector3(0f, 1.0f, -0.075f), new Vector3(1.7f, 0.03f, 0.45f), "M_WoodDark");
                 Box("ShelfBack", shopShelf, new Vector3(0f, 1.25f, 0.14f), new Vector3(1.7f, 0.52f, 0.02f), "M_CounterPaint");
-                Box("ShelfValance", shopShelf, new Vector3(0f, 1.49f, -0.02f), new Vector3(1.7f, 0.04f, 0.3f), "M_WoodDark");
+                Box("ShelfValance", shopShelf, new Vector3(0f, 1.49f, -0.075f), new Vector3(1.7f, 0.04f, 0.45f), "M_WoodDark");
                 foreach (float bx in new[] { -0.7f, 0.7f })
-                    Box("Bracket", shopShelf, new Vector3(bx, 0.9f, 0.1f), new Vector3(0.03f, 0.17f, 0.03f), "M_MetalDark");
+                {
+                    Box("Bracket", shopShelf, new Vector3(bx, 0.9f, 0.12f), new Vector3(0.03f, 0.17f, 0.03f), "M_MetalDark");
+                    Box("Bracket", shopShelf, new Vector3(bx, 0.97f, -0.06f), new Vector3(0.03f, 0.03f, 0.4f), "M_MetalDark");
+                }
                 foreach (float lx in new[] { -0.6f, -0.2f, 0.2f, 0.6f })
                 {
-                    var z = Zone(shopShelf, $"Sale{slot}", new Vector3(lx, 1.015f, 0.0f), ZoneKind.SaleSlot, $"sales slot {slot + 1}", 1, true, false, new Vector3(0.36f, 0.34f, 0.32f));
+                    var z = Support(Zone(shopShelf, $"Sale{slot}", new Vector3(lx, 1.015f, -0.075f), ZoneKind.SaleSlot, $"sales slot {slot + 1}", 1, true, false, new Vector3(0.38f, 0.34f, 0.44f)), 0.19f, 0.2f);
                     z.SlotIndex = slot;
                     var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
                     rs.SaleSlots.Add(z);
-                    var card = Prop("prop_price_card", shopShelf, new Vector3(lx, 1.015f, -0.17f), 0f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
+                    var card = Prop("prop_price_card", shopShelf, new Vector3(lx, 1.015f, -0.28f), 0f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
                     rs.PriceCards.Add(card.transform);
                     var bp = new GameObject("Browse").transform; bp.SetParent(shopShelf, false); bp.localPosition = new Vector3(lx, 0f, -0.85f); rs.BrowsePoints.Add(bp);
                     slot++;
@@ -1016,8 +1098,8 @@ namespace GeodeEmpire.EditorTools
             Sign(parent, "GEODE WORKS  ·  SHOWROOM", new Vector3(PartitionX + 0.08f, 2.3f, -1.0f), -90f, 0.9f);
             Sign(parent, "FOR SALE", new Vector3(RoomXMax - 0.03f, 2.15f, 0.4f), 90f, 0.9f);
             Sign(parent, "OPEN", new Vector3(ShopDoorX + 0.9f, 2.5f, -RoomD / 2f + 0.03f), 180f, 0.7f);
-            Prop("prop_stool", shop, new Vector3(2.2f, 0f, 0.2f), 40f, "M_WoodDark");   // cashier's stool north of the counter, out of the receiving bay and the walking lanes
-            Prop("prop_cardboard_box", shop, new Vector3(6.55f, 0f, -2.35f), 20f, "M_Cardboard", scale: new Vector3(0.8f, 0.8f, 0.8f));
+            // (the cashier's stool that stood here sat inside the collection cabinet's footprint: removed in V5)
+            Prop("prop_cardboard_box", shop, new Vector3(6.55f, 0f, -2.35f), 20f, "M_Cardboard,M_Paper", scale: new Vector3(0.8f, 0.8f, 0.8f));
             Prop("prop_label_stand", shop, new Vector3(PartitionX + 0.2f, 0.95f, -0.45f), 90f, "M_Paper", collider: false, scale: new Vector3(2f, 2f, 2f));
 
             // customers: a jointed figure template kept inactive, spawned by the shop

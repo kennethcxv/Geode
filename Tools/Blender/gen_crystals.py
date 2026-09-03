@@ -28,38 +28,54 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import geode_blender_lib as lib  # noqa: E402
 
 TAG = "gen_crystals"
-OUT_DIR = os.path.join(lib.UNITY_ASSETS, "Models", "Crystals")
+OUT_DIR = os.environ.get("CRYSTAL_OUT", os.path.join(lib.UNITY_ASSETS, "Models", "Crystals"))
 
 
 # ---------------------------------------------------------------------------
 # Archetypes (each returns a bmesh, +Z up, base near z=0)
 # ---------------------------------------------------------------------------
 def quartz_point(rng, radius=0.18, prism_h=0.68, term_h=0.32, ditrigonal=0.14, term_alt=0.07,
-                 jitter_deg=5.0, apex_off=0.05):
+                 jitter_deg=5.0, apex_off=0.05, striations=True):
+    """Hexagonal prism with a six-face termination. The prism carries faint horizontal striations (real quartz
+    prism faces are striated at right angles to the c-axis), so the faces catch light in bands instead of reading
+    as one flat polygon."""
     n = 6
     radii = [radius * (1 + ditrigonal * (1 if i % 2 == 0 else -1)) for i in range(n)]
     angs = [math.radians(60 * i + rng.uniform(-jitter_deg, jitter_deg)) for i in range(n)]
+    rings = 7 if striations and prism_h > 0.3 else 1
     verts = []
-    for i in range(n):
-        verts.append((radii[i] * math.cos(angs[i]), radii[i] * math.sin(angs[i]), 0.0))
-    for i in range(n):
-        z = prism_h + (term_alt if i % 2 == 0 else -term_alt) * rng.uniform(0.6, 1.2)
-        verts.append((radii[i] * math.cos(angs[i]), radii[i] * math.sin(angs[i]), z))
+    for k in range(rings + 1):
+        t = k / rings
+        z = prism_h * t
+        stri = 1.0 + (0.006 * (1 if k % 2 == 0 else -1) if 0 < k < rings and striations else 0.0)
+        for i in range(n):
+            zz = z if k < rings else prism_h + (term_alt if i % 2 == 0 else -term_alt) * rng.uniform(0.6, 1.2)
+            verts.append((radii[i] * stri * math.cos(angs[i]), radii[i] * stri * math.sin(angs[i]), zz))
     verts.append((rng.uniform(-apex_off, apex_off) * radius, rng.uniform(-apex_off, apex_off) * radius,
                   prism_h + term_h))
+    apex = len(verts) - 1
     faces = [tuple(reversed(range(n)))]
+    for k in range(rings):
+        for i in range(n):
+            j = (i + 1) % n
+            faces.append((k * n + i, k * n + j, (k + 1) * n + j, (k + 1) * n + i))
+    top = rings * n
     for i in range(n):
         j = (i + 1) % n
-        faces.append((i, j, n + j, n + i))
-        faces.append((n + i, n + j, 2 * n))
+        faces.append((top + i, top + j, apex))
     return lib.bm_from_pydata(verts, faces)
 
 
-def cube(rng, size=0.6):
+def cube(rng, size=0.6, corner=0.12):
+    """Cube with modified corners (small octahedral faces at the corners, as fluorite and pyrite grow) and a
+    slight non-cubic distortion so instances look less mechanical."""
     bm = lib.bm_box(size, center=(0, 0, size / 2))
-    # slight non-cubic distortion so instances look less mechanical
+    if corner > 0:
+        bmesh.ops.bevel(bm, geom=list(bm.verts), offset=size * corner, offset_type="OFFSET", segments=1,
+                        profile=0.5, affect="VERTICES", clamp_overlap=True)
     m = Matrix.Diagonal((rng.uniform(0.92, 1.08), rng.uniform(0.92, 1.08), rng.uniform(0.95, 1.05), 1.0))
     lib.bm_transform(bm, m)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     return bm
 
 
@@ -120,7 +136,7 @@ def blade(rng, width=0.36, thick=0.09, body_h=0.78, tip_h=1.0):
 
 
 def needle(rng):
-    return quartz_point(rng, radius=0.035, prism_h=0.9, term_h=0.1, ditrigonal=0.0, term_alt=0.0, jitter_deg=0)
+    return quartz_point(rng, radius=0.035, prism_h=0.9, term_h=0.1, ditrigonal=0.0, term_alt=0.0, jitter_deg=0, striations=False)
 
 
 def pyritohedron(rng, size=0.32):
@@ -142,15 +158,15 @@ def pyritohedron(rng, size=0.32):
     return bm
 
 
-def druzy_tile(rng, disc_r=0.5, count=16):
+def druzy_tile(rng, disc_r=0.5, count=30):
     bm = lib.bm_cylinder(disc_r, 0.05, segments=14)
     for _ in range(count):
         r = rng.uniform(0.0, disc_r * 0.82)
         a = rng.uniform(0, 2 * math.pi)
         px, py = r * math.cos(a), r * math.sin(a)
-        h = rng.uniform(0.12, 0.3)
-        w = rng.uniform(0.06, 0.11)
-        pt = quartz_point(rng, radius=w, prism_h=h * 0.65, term_h=h * 0.35)
+        h = rng.uniform(0.1, 0.32)
+        w = rng.uniform(0.05, 0.11)
+        pt = quartz_point(rng, radius=w, prism_h=h * 0.65, term_h=h * 0.35, striations=False)
         tilt = Matrix.Rotation(math.radians(rng.uniform(0, 28)), 4, "X") @ Matrix.Rotation(rng.uniform(0, 6.28), 4, "Z")
         m = Matrix.Translation((px, py, 0.03)) @ Matrix.Rotation(rng.uniform(0, 6.28), 4, "Z") @ tilt
         lib.bm_append(bm, pt, m)
@@ -171,13 +187,15 @@ def quartz_cluster(rng, count=5):
     return bm
 
 
-def botryoidal(rng, disc_r=0.5, count=7):
-    bm = lib.bm_cylinder(disc_r, 0.04, segments=14)
+def botryoidal(rng, disc_r=0.5, count=11):
+    bm = lib.bm_cylinder(disc_r, 0.04, segments=24)
     for _ in range(count):
-        r = rng.uniform(0.0, disc_r * 0.6)
+        r = rng.uniform(0.0, disc_r * 0.62)
         a = rng.uniform(0, 2 * math.pi)
-        rad = rng.uniform(0.16, 0.3)
-        sph = lib.bm_icosphere(rad, subdivisions=2, center=(r * math.cos(a), r * math.sin(a), rad * 0.55))
+        rad = rng.uniform(0.13, 0.3)
+        sph = lib.bm_icosphere(rad, subdivisions=3, center=(r * math.cos(a), r * math.sin(a), rad * 0.5))
+        for v in sph.verts:
+            v.co.z = rad * 0.5 + (v.co.z - rad * 0.5) * rng.uniform(0.85, 1.0) if False else v.co.z
         lib.bm_append(bm, sph)
     return bm
 
@@ -186,7 +204,7 @@ def aragonite_spray(rng, count=13):
     bm = lib.bm_icosphere(0.09, subdivisions=1, center=(0, 0, 0.06))
     for i in range(count):
         length = rng.uniform(0.45, 1.0)
-        nd = quartz_point(rng, radius=0.04, prism_h=length * 0.9, term_h=length * 0.1, ditrigonal=0.0, term_alt=0.0, jitter_deg=0)
+        nd = quartz_point(rng, radius=0.04, prism_h=length * 0.9, term_h=length * 0.1, ditrigonal=0.0, term_alt=0.0, jitter_deg=0, striations=False)
         # direction within ~70 degrees of +Z
         theta = math.radians(rng.uniform(8, 70))
         phi = rng.uniform(0, 2 * math.pi)
@@ -302,7 +320,7 @@ def build_all():
         rng = random.Random(seed)
         bm = builder(rng)
         if bevel > 0:
-            lib.bm_bevel(bm, bevel, segments=1)
+            lib.bm_bevel(bm, bevel, segments=2 if len(bm.verts) < 200 else 1)
         lib.bm_box_uv(bm, scale=1.0)
         lib.bm_origin_to_base(bm)
         # compound tiles are intentionally overlapping (non-manifold) - skip that check for them
@@ -318,7 +336,7 @@ def build_all():
                      f"h={max(zs):.3f} w={max(xs)-min(xs):.3f}x{max(ys)-min(ys):.3f} base_z={min(zs):.4f}")
         if abs(min(zs)) > 1e-5:
             lib.fail(TAG, f"{name}: base not at z=0")
-        if len(mesh.vertices) > 900:
+        if len(mesh.vertices) > 2600:
             lib.fail(TAG, f"{name}: too dense ({len(mesh.vertices)} verts)")
         lib.export_fbx([obj], os.path.join(OUT_DIR, name + ".fbx"), tag=TAG)
         built.append(name)

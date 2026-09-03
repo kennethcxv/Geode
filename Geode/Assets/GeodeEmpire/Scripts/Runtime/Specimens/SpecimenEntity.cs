@@ -6,6 +6,9 @@ using GeodeEmpire.Save;
 
 namespace GeodeEmpire.Specimens
 {
+    /// <summary>How an opened geode's halves are arranged where it sits.</summary>
+    public enum DisplayPose { Natural, Closed, SideBySide, Clamshell }
+
     /// <summary>
     /// The physical specimen in the workshop: record + visual + physics. One per SpecimenRecord that is in the world.
     /// </summary>
@@ -186,6 +189,68 @@ namespace GeodeEmpire.Specimens
             if (Visual == null || Visual.TopHalf == null || !IsOpened) return;
             Visual.TopHalf.localRotation = Quaternion.identity;
             Visual.TopHalf.localPosition = Vector3.zero;
+        }
+
+        /// <summary>
+        /// Where the top half sits (specimen-local) in a display pose; false for a closed rock or a sawn piece (one body).
+        /// Natural is the layout the reveal left (or side by side); Clamshell props the top half up behind the bottom half,
+        /// cavity toward -Z (the front of a shelf), so a big geode takes 2r of shelf width instead of 4r.
+        /// </summary>
+        public bool TopPoseFor(DisplayPose pose, out Vector3 pos, out Quaternion rot)
+        {
+            pos = Vector3.zero; rot = Quaternion.identity;
+            if (Visual == null || Visual.TopHalf == null || Visual.Geometry == null || !IsOpened) return false;
+            float r = Visual.Geometry.MeanEquatorRadius;
+            switch (pose)
+            {
+                case DisplayPose.Closed:
+                    return true;
+                case DisplayPose.Clamshell:
+                    rot = Quaternion.Euler(-72f, 0f, 0f) * Quaternion.Euler(0f, 0f, 180f);
+                    pos = new Vector3(0f, -RestHeightOffset(false) - LowestOfTop(rot), r * 1.02f + 0.012f);
+                    return true;
+                case DisplayPose.Natural when Record.HasOpenPose:
+                    pos = Record.OpenTopLocalPos; rot = Record.OpenTopLocalRot;
+                    return true;
+                default:
+                    rot = Quaternion.Euler(0f, 0f, 180f);
+                    pos = new Vector3(-r * 2.15f, -RestHeightOffset(false) - LowestOfTop(rot), 0f);
+                    return true;
+            }
+        }
+
+        public void ApplyPose(DisplayPose pose)
+        {
+            if (Visual == null) return;
+            if (Visual.TopHalf == null) { Visual.SetCrystalsVisible(true); return; }
+            if (!IsOpened) { ApplyOpenPose(); return; }
+            Visual.SetCrystalsVisible(true);
+            if (TopPoseFor(pose, out var p, out var q)) { Visual.TopHalf.localRotation = q; Visual.TopHalf.localPosition = p; }
+        }
+
+        /// <summary>Specimen-local bounds of the collider hulls in a pose: the footprint a surface has to support (pivot at the origin).</summary>
+        public Bounds FootprintFor(DisplayPose pose)
+        {
+            if (Visual == null) return new Bounds(Vector3.zero, Vector3.one * 0.1f);
+            var b = new Bounds(Vector3.zero, Vector3.zero);
+            bool any = false;
+            void Add(Mesh m, Vector3 p, Quaternion q)
+            {
+                if (m == null) return;
+                var verts = m.vertices;
+                for (int i = 0; i < verts.Length; i++)
+                {
+                    var v = q * verts[i] + p;
+                    if (!any) { b = new Bounds(v, Vector3.zero); any = true; } else b.Encapsulate(v);
+                }
+            }
+            Add(Visual.BottomColliderMesh, Vector3.zero, Quaternion.identity);
+            if (Visual.TopColliderMesh != null)
+            {
+                if (TopPoseFor(pose, out var p, out var q)) Add(Visual.TopColliderMesh, p, q);
+                else Add(Visual.TopColliderMesh, Vector3.zero, Quaternion.identity);
+            }
+            return b;
         }
 
         /// <summary>

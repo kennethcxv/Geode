@@ -2094,7 +2094,10 @@ namespace GeodeEmpire.Core
                 if (receiving) stand = new Vector3(Mathf.Clamp(rp.x + (attempt == 0 ? 0f : (rp.x < 1.18f ? 0.6f : -0.6f)), 0.3f, 2.1f), 0f, Mathf.Max(rp.z + 0.8f, -0.8f));
                 stand.x = Mathf.Clamp(stand.x, -3.1f, 6.6f); stand.z = Mathf.Clamp(stand.z, -2.25f, 2.25f);
                 yield return RouteTo(stand, 0.25f);
-                yield return LookAndInteract(rp, "Pick up");
+                // aim at the collider's centre, not the pivot: a sawn half's pivot sits above its hull, and a ray at
+                // the pivot from a steep angle can graze past a 13 cm piece
+                var col = rock != null ? rock.GetComponentInChildren<Collider>() : null;
+                yield return LookAndInteract(col != null ? col.bounds.center : rp, "Pick up");
                 dir = -dir;
             }
         }

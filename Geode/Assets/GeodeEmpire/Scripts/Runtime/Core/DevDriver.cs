@@ -193,5 +193,40 @@ namespace GeodeEmpire.Core
             var c = Controller;
             if (c != null) c.Teleport(pos, yaw);
         }
+
+        /// <summary>
+        /// Hero close-up: render the scene from an arbitrary eye point (not the player's camera) to a PNG, with the
+        /// main camera's rendering settings, so an asset can be inspected at 30-60 cm from any angle.
+        /// </summary>
+        public static string CaptureFrom(Vector3 eye, Vector3 lookAt, float fov, string path, int width = 1280, int height = 720)
+        {
+            var main = Camera.main;
+            var go = new GameObject("HeroCam");
+            var cam = go.AddComponent<Camera>();
+            if (main != null) cam.CopyFrom(main);
+            cam.fieldOfView = fov;
+            cam.nearClipPlane = 0.02f;
+            go.transform.position = eye;
+            go.transform.rotation = Quaternion.LookRotation(lookAt - eye, Vector3.up);
+            var data = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            if (data == null) data = go.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            data.renderPostProcessing = true;
+            data.antialiasing = UnityEngine.Rendering.Universal.AntialiasingMode.FastApproximateAntialiasing;
+            var rt = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
+            cam.targetTexture = rt;
+            cam.Render();
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(width, height, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = prev;
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+            System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+            cam.targetTexture = null;
+            if (Application.isPlaying) { Object.Destroy(rt); Object.Destroy(tex); Object.Destroy(go); }
+            else { Object.DestroyImmediate(rt); Object.DestroyImmediate(tex); Object.DestroyImmediate(go); }
+            return path;
+        }
     }
 }

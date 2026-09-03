@@ -52,9 +52,10 @@ def reset_scene():
 
 
 def object_from_bmesh(name, bm, smooth=False):
-    """Turn a bmesh into a linked scene object. Frees the bmesh."""
-    for f in bm.faces:
-        f.smooth = smooth
+    """Turn a bmesh into a linked scene object. Frees the bmesh. smooth=None keeps per-face flags (hq parts)."""
+    if smooth is not None:
+        for f in bm.faces:
+            f.smooth = smooth
     mesh = bpy.data.meshes.new(name + "_Mesh")
     bm.to_mesh(mesh)
     bm.free()

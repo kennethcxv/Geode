@@ -107,12 +107,13 @@ namespace GeodeEmpire.Specimens
             if (Geology != null) ApplyShellProperties();
         }
 
+        // real rock albedo is low (0.2-0.4): brighter tones blew out to cream under the bench lamp
         public static readonly Color[] MatrixTones =
         {
-            new Color(0.5f, 0.45f, 0.4f), // warm brown-grey
-            new Color(0.46f, 0.46f, 0.45f), // neutral grey
-            new Color(0.56f, 0.48f, 0.38f), // tan
-            new Color(0.34f, 0.33f, 0.32f), // dark basalt
+            new Color(0.35f, 0.3f, 0.26f), // warm brown-grey
+            new Color(0.31f, 0.31f, 0.3f), // neutral grey
+            new Color(0.39f, 0.33f, 0.25f), // tan
+            new Color(0.22f, 0.21f, 0.2f), // dark basalt
         };
 
         public bool IsPiece => Geometry != null && Geometry.IsPiece;
@@ -378,13 +379,13 @@ namespace GeodeEmpire.Specimens
             var fam = g.Family;
             var pal = g.Palette;
             var tone = MatrixTones[Mathf.Clamp(g.ExteriorTone, 0, MatrixTones.Length - 1)];
-            var tone2 = Color.Lerp(tone, Color.black, 0.35f);
-            var weathered = Color.Lerp(tone, new Color(0.5f, 0.44f, 0.36f), g.Weathering * 0.35f);
+            var tone2 = Color.Lerp(tone, Color.black, 0.5f);
+            var weathered = Color.Lerp(tone, new Color(0.38f, 0.33f, 0.27f), g.Weathering * 0.35f);
             _mpb.Clear();
             _mpb.SetColor(RockColorId, weathered);
             _mpb.SetColor(RockColor2Id, tone2);
             _mpb.SetColor(CavityColorId, fam.CavityWall);
-            _mpb.SetColor(RimColorId, Color.Lerp(tone, Color.black, 0.12f));
+            _mpb.SetColor(RimColorId, Color.Lerp(tone, Color.black, 0.3f));
             _mpb.SetColor(BandAId, pal.BandA);
             _mpb.SetColor(BandBId, pal.BandB);
             _mpb.SetFloat(BandStrengthId, fam.BandStrength);
