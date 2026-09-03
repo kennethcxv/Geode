@@ -36,6 +36,8 @@ namespace GeodeEmpire.Specimens
             e.Record = record;
             e.Visual = go.AddComponent<SpecimenVisual>();
             e.Visual.Build(record.Geology, record.Condition, lib);
+            // a worked rock shows its chips and cracks wherever it is, not only on the bench
+            e.Visual.SetCrackState(record.SectorStress, record.Impacts, 0.55f, record.IsOpened ? 0.35f : 1f);
             e.Body = go.AddComponent<Rigidbody>();
             e.Body.mass = Mathf.Clamp(record.Geology.MassKg, 0.2f, 6f);
             e.Body.interpolation = RigidbodyInterpolation.None;
@@ -107,6 +109,24 @@ namespace GeodeEmpire.Specimens
         public void SetCollidersEnabled(bool on)
         {
             foreach (var c in _colliders) if (c != null) c.enabled = on;
+        }
+
+        /// <summary>
+        /// Lowest point of the (closed) rock under a given rotation, relative to its pivot: how far the pivot must sit
+        /// above a surface so a tilted rock rests on it instead of sinking in. Uses the collider hulls, so it agrees
+        /// with what physics and the collision audit see.
+        /// </summary>
+        public float LowestPointOffset(Quaternion rotation)
+        {
+            float lowest = float.MaxValue;
+            void Scan(Mesh m)
+            {
+                if (m == null) return;
+                var verts = m.vertices;
+                for (int i = 0; i < verts.Length; i++) { float y = (rotation * verts[i]).y; if (y < lowest) lowest = y; }
+            }
+            if (Visual != null) { Scan(Visual.BottomColliderMesh); if (!IsOpened) Scan(Visual.TopColliderMesh); }
+            return lowest == float.MaxValue ? -RestHeightOffset(false) : lowest;
         }
 
         /// <summary>How far above a surface the pivot must sit so the rock rests on it.</summary>

@@ -21,6 +21,8 @@ namespace GeodeEmpire.Player
         public bool LookEnabled = true;
         public Vector3 SpawnPoint = new Vector3(0f, 0.08f, 0f);
         public float SpawnYaw;
+        /// <summary>Lens used while working at a station: tighter than free roam so the rock fills the view.</summary>
+        public float StationFov = 46f;
 
         private CharacterController _cc;
         private float _yaw, _pitch;
@@ -158,6 +160,7 @@ namespace GeodeEmpire.Player
             float dt = Time.deltaTime;
             _stationBlend = Mathf.MoveTowards(_stationBlend, _stationAnchor != null ? 1f : 0f, dt * 2.6f);
             float t = Mathf.SmoothStep(0f, 1f, _stationBlend);
+            Camera.fieldOfView = Mathf.Lerp(GameSettings.Current.FieldOfView, StationFov, t);
             Vector3 homePos = CameraPivot.TransformPoint(_camLocalPos);
             Quaternion homeRot = CameraPivot.rotation * _camLocalRot;
             if (_stationAnchor != null || _stationBlend > 0f)

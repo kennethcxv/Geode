@@ -165,6 +165,9 @@ namespace GeodeEmpire.EditorTools
                 rp.shadowDistance = 18f;
                 rp.shadowCascadeCount = 2;
                 rp.supportsHDR = true;
+                // specimens drive their shell/crystal materials through property blocks; the resident drawer keeps
+                // drawing such renderers with material defaults on top of the classic draw (z-fighting patches)
+                rp.gpuResidentDrawerMode = GPUResidentDrawerMode.Disabled;
                 EditorUtility.SetDirty(rp);
             }
             AssetDatabase.SaveAssets();
@@ -482,7 +485,7 @@ namespace GeodeEmpire.EditorTools
             bench.SetParent(parent, false);
             bench.localPosition = new Vector3(0f, 0f, 2.15f);
             Prop("prop_workbench", bench, Vector3.zero, 0f, "M_Wood");
-            var cradleProp = Prop("prop_cradle", bench, new Vector3(0.25f, 0.9f, -0.05f), 0f, "M_Rubber", collider: false);
+            var cradleProp = Prop("prop_cradle", bench, new Vector3(0.25f, 0.9f, -0.05f), 0f, "M_Rubber", collider: true);
             var cradleZone = Zone(bench, "CradleZone", new Vector3(0.25f, 0.9f, -0.05f), ZoneKind.Cradle, "the cradle", 1, true, true, new Vector3(0.32f, 0.22f, 0.32f));
             cradleZone.SetHighlightRenderers(cradleProp.GetComponentsInChildren<Renderer>());
             var cradleAnchor = new GameObject("Anchor").transform;
@@ -493,7 +496,7 @@ namespace GeodeEmpire.EditorTools
             camAnchor.SetParent(bench, false);
             camAnchor.localPosition = new Vector3(0.25f, 1.3f, -0.5f);
             camAnchor.LookAt(bench.TransformPoint(new Vector3(0.25f, 0.97f, -0.05f)));
-            var chisel = Prop("prop_chisel", bench, new Vector3(-0.35f, 0.935f, -0.15f), 0f, "M_Metal", collider: false);
+            var chisel = Prop("prop_chisel", bench, new Vector3(-0.35f, 0.935f, -0.15f), 0f, "M_Metal", collider: false, scale: new Vector3(0.78f, 0.82f, 0.78f));
             chisel.transform.localRotation = Quaternion.Euler(90f, 30f, 0f);
             var hammer = Prop("prop_hammer", bench, new Vector3(-0.55f, 0.935f, 0.05f), 0f, "M_MetalDark", collider: false);
             hammer.transform.localRotation = Quaternion.Euler(0f, -20f, 90f);
@@ -507,6 +510,7 @@ namespace GeodeEmpire.EditorTools
             cb.CradleCenter = cradleAnchor;
             cb.CameraAnchor = camAnchor;
             cb.ChiselVisual = chisel.transform;
+            cb.ChiselLength = 0.22f * 0.82f;
             cb.HammerVisual = hammer.transform;
             cb.TaskLight = taskLight;
 

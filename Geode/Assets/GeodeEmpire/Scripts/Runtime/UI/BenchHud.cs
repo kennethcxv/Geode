@@ -11,7 +11,8 @@ namespace GeodeEmpire.UI
     {
         private CrackingBench _bench;
         private VisualElement _root, _reticle, _panel, _forceFill, _progressFill, _progressRow, _result;
-        private Label _title, _cracks, _hint, _resultName, _resultNote, _resultPrompt;
+        private Label _title, _cracks, _hint, _resultName, _resultNote, _resultPrompt, _zone;
+        private int _lastZone = -1;
         private float _flash;
         private int _lastCracks = -1;
         private int _lastHintState = -1;
@@ -32,9 +33,20 @@ namespace GeodeEmpire.UI
 
             _panel = UiKit.Box(_root, "card", "bench-panel");
             _title = UiKit.Label(_panel, "CRACKING BENCH", "bench-title");
-            UiKit.Label(_panel, "Force", "muted");
+            var forceRow = UiKit.Box(_panel, "row");
+            forceRow.style.justifyContent = Justify.SpaceBetween;
+            UiKit.Label(forceRow, "Force", "muted");
+            _zone = UiKit.Label(forceRow, "", "muted");
             var fbg = UiKit.Box(_panel, "meter-bg");
             _forceFill = UiKit.Box(fbg, "meter-fill", "meter-fill-force");
+            // zone ticks on the meter: tap | careful | firm | heavy
+            foreach (float z in new[] { CrackingBench.ForceTap, CrackingBench.ForceCareful, CrackingBench.ForceFirm })
+            {
+                var tick = UiKit.Box(fbg);
+                tick.style.position = Position.Absolute; tick.style.left = Length.Percent(z * 100f); tick.style.top = 0; tick.style.bottom = 0;
+                tick.style.width = 2; tick.style.backgroundColor = new Color(1f, 1f, 1f, 0.35f);
+                tick.pickingMode = PickingMode.Ignore;
+            }
             _progressRow = UiKit.Box(_panel);
             UiKit.Label(_progressRow, "Fracture ring", "muted");
             var pbg = UiKit.Box(_progressRow, "meter-bg");
@@ -113,7 +125,12 @@ namespace GeodeEmpire.UI
             _reticle.style.left = Length.Percent(c.x * 100f);
             _reticle.style.top = Length.Percent((1f - c.y) * 100f);
             _reticle.style.opacity = _bench.AimValid ? 1f : 0.35f;
+            // the reticle tells placement: white on the seam, amber off it
+            var rc = _bench.AimValid ? Color.Lerp(new Color(1f, 0.72f, 0.3f), Color.white, _bench.Placement) : new Color(1f, 1f, 1f, 0.5f);
+            _reticle.style.borderTopColor = rc; _reticle.style.borderBottomColor = rc; _reticle.style.borderLeftColor = rc; _reticle.style.borderRightColor = rc;
             _forceFill.style.width = Length.Percent(_bench.Charge * 100f);
+            int zone = _bench.Charge <= 0.02f ? 0 : _bench.Charge < CrackingBench.ForceTap ? 1 : _bench.Charge < CrackingBench.ForceCareful ? 2 : _bench.Charge < CrackingBench.ForceFirm ? 3 : 4;
+            if (zone != _lastZone) { _lastZone = zone; _zone.text = zone == 0 ? "" : CrackingBench.ForceZoneName(_bench.Charge).ToUpper(); }
             _flash = Mathf.Max(0f, _flash - Time.deltaTime * 3f);
             bool lamp = _bench.HasLamp;
             _progressRow.style.display = lamp ? DisplayStyle.Flex : DisplayStyle.None;
@@ -129,10 +146,11 @@ namespace GeodeEmpire.UI
             if (_bench.LastResult.Slipped && _flash > 0.5f) state = 5;
             else if (_bench.LastResult.Overstrike && _flash > 0.5f) state = 6;
             else if (!_bench.AimValid) state = 1;
-            else if (_bench.Charge > 0.75f) state = 2;
+            else if (_bench.Charge >= CrackingBench.ForceFirm) state = 2;
             else if (_bench.Charge > 0.02f) state = 3;
+            else if (_bench.Placement < 0.5f) state = 7;
             else state = 4;
-            if (state != _lastHintState || (state == 4 && GameInput.Scheme != _lastScheme))
+            if (state != _lastHintState || ((state == 4 || state == 7) && GameInput.Scheme != _lastScheme))
             {
                 _lastHintState = state; _lastScheme = GameInput.Scheme;
                 _hint.text = state switch
@@ -142,6 +160,7 @@ namespace GeodeEmpire.UI
                     3 => "Release to strike",
                     5 => "Slipped! Aim squarely at the shell.",
                     6 => "That segment is already cracked. Work around the ring.",
+                    7 => $"Off the seam: the shell only splits along its natural ring  •  {GameInput.Glyph("Rotate")} rotate",
                     _ => $"Hold {GameInput.Glyph("Strike")} to wind up  •  {GameInput.Glyph("Rotate")} rotate  •  {GameInput.Glyph("Back")} leave",
                 };
             }

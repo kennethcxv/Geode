@@ -21,6 +21,11 @@ Shader "GeodeEmpire/GeodeShell"
         _Highlight("Highlight", Range(0, 1)) = 0
         _RockTex("Rock Detail (R)", 2D) = "gray" {}
         _NoiseTex("Noise", 2D) = "gray" {}
+        // fracture overlay (driven per specimen through a property block)
+        _ImpactCount("Impact Count", Float) = 0
+        _SeamVisible("Seam Guide", Float) = 0.4
+        _SurfR("Surface Radius", Float) = 0.06
+        _CrackFade("Crack Fade", Float) = 1
     }
     SubShader
     {
@@ -32,7 +37,15 @@ Shader "GeodeEmpire/GeodeShell"
             float4 _RockColor, _RockColor2, _CavityColor, _RimColor, _BandA, _BandB, _HintColor, _CavityCrystalColor;
             float _BandStrength, _BandFrequency, _BandOffset, _HintAmount, _Weathering, _CavitySmoothness, _TexScale, _Highlight, _CavityDruzy;
             float4 _RockTex_ST, _NoiseTex_ST;
+            // fracture overlay scalars (set per specimen through a property block)
+            float _ImpactCount;
+            float _SeamVisible;         // faint natural seam guide, stronger under the inspection lamp
+            float _SurfR;               // mean equator radius (m), for metric distances on the surface
+            float _CrackFade;           // 1 on a closed rock, lower once opened
         CBUFFER_END
+        // fracture overlay arrays: kept outside the per-material block so property-block arrays reach them
+        float _SectorCrack[16];         // seam stress per sector, >= 1 is an open crack
+        float4 _Impacts[32];            // chisel marks: longitude fraction, signed latitude fraction, radius (m), strength
         TEXTURE2D(_RockTex); SAMPLER(sampler_RockTex);
         TEXTURE2D(_NoiseTex); SAMPLER(sampler_NoiseTex);
         ENDHLSL
@@ -66,6 +79,7 @@ Shader "GeodeEmpire/GeodeShell"
                 float3 normalOS : NORMAL;
                 float4 color : COLOR;
                 float2 uv : TEXCOORD0;
+                float2 uv2 : TEXCOORD1;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -78,6 +92,7 @@ Shader "GeodeEmpire/GeodeShell"
                 float3 positionOS : TEXCOORD3;
                 float3 normalOS : TEXCOORD4;
                 float3 uvFog : TEXCOORD5;
+                float2 uv2 : TEXCOORD6;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -94,7 +109,72 @@ Shader "GeodeEmpire/GeodeShell"
                 OUT.color = IN.color;
                 OUT.positionOS = IN.positionOS.xyz;
                 OUT.uvFog = float3(IN.uv, ComputeFogFactor(pos.positionCS.z));
+                OUT.uv2 = IN.uv2;
                 return OUT;
+            }
+
+            float Noise1(float x, float row)
+            {
+                return SAMPLE_TEXTURE2D_LOD(_NoiseTex, sampler_NoiseTex, float2(x, row), 0).r;
+            }
+
+            // Persistent fracture marks drawn in the shell surface itself: the jagged seam line per cracked sector, a
+            // dotted hairline where a sector is stressed, chips with radiating hairlines where the chisel stood, and a
+            // hairline creeping from each chip toward the seam as its sector loads up.
+            void FractureOverlay(float2 uv2, float grain, out float dark, out float frost, out float guide)
+            {
+                dark = 0.0; frost = 0.0; guide = 0.0;
+                float lonF = uv2.x;
+                float latF = uv2.y;
+                float R = max(0.01, _SurfR);
+                float mPerLat = 1.5708 * R;
+                float mPerLon = 6.2832 * R * max(0.2, cos(latF * 1.5708));
+
+                float seamLat = (Noise1(lonF * 7.0, 0.31) - 0.5) * 0.09 + (Noise1(lonF * 29.0, 0.77) - 0.5) * 0.03;
+                float dSeam = abs(latF - seamLat) * mPerLat;
+                int sector = (int)floor(frac(lonF) * 16.0);
+                float st = _SectorCrack[sector];
+                float cracked = smoothstep(0.82, 1.0, st);
+                float hair = smoothstep(0.3, 0.82, st);
+                float widthNoise = Noise1(lonF * 53.0, 0.12);
+                float halfW = lerp(0.0006, 0.0024, cracked) * lerp(0.6, 1.4, widthNoise);
+                float seamLine = 1.0 - smoothstep(halfW * 0.5, halfW * 1.6, dSeam);
+                float dots = smoothstep(0.38, 0.62, Noise1(lonF * 90.0, 0.55));
+                float seamA = seamLine * (cracked + hair * (1.0 - cracked) * dots * 0.8);
+                float lip = (1.0 - smoothstep(halfW * 1.6, halfW * 4.0, dSeam)) * cracked * 0.6 * widthNoise;
+                // the natural seam: a soft, slightly darker weathered band a real geode shows, clearer under the lamp
+                float gNoise = Noise1(lonF * 17.0, 0.66);
+                guide = (1.0 - smoothstep(0.0012, 0.0032 + 0.0015 * gNoise, dSeam)) * _SeamVisible * (1.0 - cracked) * (0.45 + 0.3 * gNoise);
+                dark += seamA * _CrackFade;
+                frost += lip * _CrackFade;
+
+                int n = (int)_ImpactCount;
+                for (int k = 0; k < n; k++)
+                {
+                    float4 im = _Impacts[k];
+                    float du = frac(lonF - im.x + 0.5) - 0.5;
+                    float dx = du * mPerLon;
+                    float dy = (latF - im.y) * mPerLat;
+                    float dist = sqrt(dx * dx + dy * dy);
+                    float r = im.z;
+                    float ang = atan2(dy, dx);
+                    // ragged chip outline: two noise octaves around the rim, never a clean disc
+                    float rn = r * (0.55 + 0.45 * Noise1(ang * 0.55 + k * 0.37, 0.5) + 0.3 * (Noise1(ang * 2.1 + k * 0.91, 0.85) - 0.5));
+                    float inside = 1.0 - smoothstep(rn * 0.55, rn, dist);
+                    float ring = smoothstep(rn * 0.72, rn * 1.02, dist) * (1.0 - smoothstep(rn * 1.02, rn * 1.35, dist));
+                    float rays = pow(saturate(cos(ang * 3.0 + k * 1.7)), 22.0) * (1.0 - smoothstep(r * 1.0, r * 2.9, dist)) * step(rn * 0.9, dist);
+                    frost += inside * im.w * (0.7 + 0.5 * grain);
+                    dark += (ring * 0.9 + rays * 0.8) * im.w;
+                    // hairline from the chip to the seam, growing with that sector's stress
+                    float ist = _SectorCrack[(int)floor(frac(im.x) * 16.0)];
+                    float toSeam = seamLat - im.y;
+                    float along = (latF - im.y) / (abs(toSeam) < 1e-4 ? 1e-4 : toSeam);
+                    float wig = (Noise1(latF * 23.0 + k * 0.5, 0.2) - 0.5) * 0.0035;
+                    float hl = step(0.0, along) * step(along, saturate(ist)) * (1.0 - smoothstep(0.0005, 0.0014, abs(dx + wig))) * step(rn * 0.9, dist);
+                    dark += hl * im.w * 0.85;
+                }
+                dark = saturate(dark);
+                frost = saturate(frost);
             }
 
             float TriplanarR(float3 p, float3 n, float scale)
@@ -126,6 +206,14 @@ Shader "GeodeEmpire/GeodeShell"
                 float hintMask = smoothstep(0.58, 0.72, noise) * _HintAmount;
                 ext = lerp(ext, _HintColor.rgb * lerp(0.8, 1.0, grain), hintMask);
 
+                // fracture overlay: only the exterior carries it
+                float crackDark = 0.0, crackFrost = 0.0, seamGuide = 0.0;
+                if (c.r > 0.5) FractureOverlay(IN.uv2, grain, crackDark, crackFrost, seamGuide);
+                float3 frostCol = lerp(ext, float3(0.86, 0.84, 0.79) * lerp(0.85, 1.0, grain), 0.62);
+                ext = lerp(ext, frostCol, crackFrost * 0.85);
+                ext = lerp(ext, ext * 0.55, seamGuide);
+                ext = lerp(ext, ext * 0.2, crackDark);
+
                 // cut face: rind on the outside, bands toward the cavity
                 float bandCoord = c.a * _BandFrequency + _BandOffset * 6.2831 + (noise - 0.5) * 1.6;
                 float band = smoothstep(0.3, 0.7, sin(bandCoord) * 0.5 + 0.5);
@@ -145,7 +233,7 @@ Shader "GeodeEmpire/GeodeShell"
 
                 float3 albedo = ext * c.r + cav * c.g + rim * c.b;
                 float smooth = 0.18 * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * c.g + 0.16 * c.b;
-                smooth += (grain - 0.5) * 0.1;
+                smooth += (grain - 0.5) * 0.1 + crackFrost * 0.06 * c.r;
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = IN.positionWS;

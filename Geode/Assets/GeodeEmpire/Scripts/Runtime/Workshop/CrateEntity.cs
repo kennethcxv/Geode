@@ -234,8 +234,11 @@ namespace GeodeEmpire.Workshop
                         float fr = Footprint(e);
                         float px = x + fr + rng.Range(-0.008f, 0.008f);
                         float pz = z + depths[ri] * 0.5f + rng.Range(-0.008f, 0.008f);
-                        var local = new Vector3(px, layerY + e.RestHeightOffset(false) + 0.01f, pz);
-                        e.SetPose(Bed.TransformPoint(local), Bed.rotation * Quaternion.Euler(rng.Range(-12f, 12f), rng.Range(0f, 360f), rng.Range(-12f, 12f)));
+                        var tilt = Quaternion.Euler(rng.Range(-12f, 12f), rng.Range(0f, 360f), rng.Range(-12f, 12f));
+                        // a tilted lumpy rock rests on its actual lowest point, not on its pole
+                        float lift = -e.LowestPointOffset(tilt) + 0.004f;
+                        var local = new Vector3(px, layerY + lift, pz);
+                        e.SetPose(Bed.TransformPoint(local), Bed.rotation * tilt);
                         e.SetStaticCollidable();
                         e.SyncRecordTransform();
                         _rocks.Add(e);

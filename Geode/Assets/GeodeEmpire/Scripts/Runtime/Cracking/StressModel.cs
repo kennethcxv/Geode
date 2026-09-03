@@ -107,10 +107,13 @@ namespace GeodeEmpire.Cracking
             float clampMult = Clamped ? 1.1f : 1f;
             float baseStress = 1.9f * force * (0.4f + 0.6f * angle) * placement * thicknessMult * toolMult * clampMult / Mathf.Max(0.5f, Toughness);
 
-            // existing fracture lines guide the crack
+            // existing fracture lines guide the crack, and a ring that is mostly open pulls the rest apart:
+            // the last few segments crack under far less than the first ones did
             int left = (sector + Sectors - 1) % Sectors, right = (sector + 1) % Sectors;
             bool neighborCracked = Stress[left] >= 1f || Stress[right] >= 1f;
             if (neighborCracked && !wasCracked) baseStress *= 1.3f;
+            float ringFrac = CrackedCount() / (float)Sectors;
+            if (!wasCracked) baseStress *= 1f + 1.1f * ringFrac * ringFrac;
 
             float spread = FineChisel ? 0.28f : 0.45f;
             if (wasCracked)

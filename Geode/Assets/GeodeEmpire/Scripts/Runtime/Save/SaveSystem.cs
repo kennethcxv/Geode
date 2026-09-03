@@ -95,6 +95,7 @@ namespace GeodeEmpire.Save
             {
                 r.Condition ??= new GeodeEmpire.Specimens.SpecimenCondition();
                 r.SectorStress ??= Array.Empty<float>();
+                r.Impacts ??= new System.Collections.Generic.List<Vector4>();
             }
         }
 

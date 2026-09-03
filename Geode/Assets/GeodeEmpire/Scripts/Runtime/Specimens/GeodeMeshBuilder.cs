@@ -30,6 +30,8 @@ namespace GeodeEmpire.Specimens
         public bool IsTop;
         public Vector3[] Vertices;
         public Vector2[] UVs;
+        /// <summary>Surface coordinates for the fracture overlay: x = longitude fraction, y = signed latitude fraction (0 at the seam).</summary>
+        public Vector2[] UV2;
         public Color[] Colors;
         public int[] Triangles;
         public float[] EquatorOuterRadius;   // per longitude, for crack ribbons
@@ -71,6 +73,7 @@ namespace GeodeEmpire.Specimens
             m.indexFormat = Vertices.Length > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
             m.vertices = Vertices;
             m.uv = UVs;
+            m.uv2 = UV2;
             m.colors = Colors;
             m.triangles = Triangles;
             m.RecalculateNormals();
@@ -212,6 +215,7 @@ namespace GeodeEmpire.Specimens
             int N = Longitudes, M = Latitudes;
             var verts = new List<Vector3>(N * (M + 1) * 2 + N * (RimRings + 1) + 2);
             var uvs = new List<Vector2>(verts.Capacity);
+            var uv2 = new List<Vector2>(verts.Capacity);
             var cols = new List<Color>(verts.Capacity);
             var tris = new List<int>(verts.Capacity * 6);
             var half = new GeodeHalfGeometry { IsTop = s > 0, EquatorOuterRadius = new float[N], EquatorY = new float[N] };
@@ -238,6 +242,7 @@ namespace GeodeEmpire.Specimens
                     if (k == 0) { p.y = jitter[i]; half.EquatorOuterRadius[i] = r; }
                     verts.Add(p);
                     uvs.Add(new Vector2(i / (float)N, k / (float)M));
+                    uv2.Add(new Vector2(i / (float)N, s * k / (float)M));
                     cols.Add(new Color(1f, 0f, 0f, g.Weathering));
                 }
             }
@@ -247,6 +252,7 @@ namespace GeodeEmpire.Specimens
                 half.PoleY = p.y;
                 verts.Add(p);
                 uvs.Add(new Vector2(0.5f, 1f));
+                uv2.Add(new Vector2(0.5f, s));
                 cols.Add(new Color(1f, 0f, 0f, g.Weathering));
             }
             int extPole = verts.Count - 1;
@@ -270,6 +276,7 @@ namespace GeodeEmpire.Specimens
                     if (k == 0) p.y = jitter[i];
                     verts.Add(p);
                     uvs.Add(new Vector2(i / (float)N, k / (float)M));
+                    uv2.Add(new Vector2(i / (float)N, s * k / (float)M));
                     cols.Add(new Color(0f, 1f, 0f, k / (float)M));
                 }
             }
@@ -278,6 +285,7 @@ namespace GeodeEmpire.Specimens
                 float ro = shape.Outer(d);
                 verts.Add(d * shape.Inner(d, ro));
                 uvs.Add(new Vector2(0.5f, 1f));
+                uv2.Add(new Vector2(0.5f, s));
                 cols.Add(new Color(0f, 1f, 0f, 1f));
             }
             int cavPole = verts.Count - 1;
@@ -300,6 +308,7 @@ namespace GeodeEmpire.Specimens
                     float r = Mathf.Lerp(ro, ri, t);
                     verts.Add(new Vector3(Mathf.Cos(lon) * r, jitter[i], Mathf.Sin(lon) * r));
                     uvs.Add(new Vector2(i / (float)N, t));
+                    uv2.Add(new Vector2(i / (float)N, 0f));
                     cols.Add(new Color(0f, 0f, 1f, t));
                 }
             }
@@ -321,6 +330,7 @@ namespace GeodeEmpire.Specimens
 
             half.Vertices = verts.ToArray();
             half.UVs = uvs.ToArray();
+            half.UV2 = uv2.ToArray();
             half.Colors = cols.ToArray();
             half.Triangles = tris.ToArray();
             return half;

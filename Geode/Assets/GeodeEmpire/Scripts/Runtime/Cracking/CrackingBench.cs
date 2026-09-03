@@ -15,8 +15,10 @@ using GeodeEmpire.Workshop;
 namespace GeodeEmpire.Cracking
 {
     /// <summary>
-    /// The signature interaction. Placing a rock on the cradle enters bench view: aim the chisel on the shell,
-    /// wind up and strike, rotate the rock, read the cracks, and finally split it open with a reveal sequence.
+    /// The signature interaction. Placing a rock on the cradle enters bench view: set the chisel on the shell (it snaps
+    /// to the seam when close), wind up and strike, watch the chip and the hairline appear where the chisel stood,
+    /// rotate the rock and work around the ring, then split it open with a reveal sequence.
+    /// Tools are posed by explicit contact geometry (tip on the shell, hammer face on the chisel cap), never by physics.
     /// </summary>
     public sealed class CrackingBench : MonoBehaviour
     {
@@ -27,6 +29,28 @@ namespace GeodeEmpire.Cracking
         public Transform HammerVisual;
         public Light TaskLight;
 
+        // tool geometry (metres). Chisel: tip at its origin, cap at +Y ChiselLength. Hammer: origin at the handle
+        // bottom, head centre at +Y HammerLen, head is a bar of half-length HammerHeadHalf along local X.
+        public float ChiselLength = 0.215f;
+        public float HammerLen = 0.315f;
+        public float HammerHeadHalf = 0.055f;
+        /// <summary>How far the flipped half must land from the rock centre so it clears the cradle ring.</summary>
+        public float CradleClearance = 0.145f;
+
+        // bench view tuning (live-editable, code-owned so the scene never pins stale values): where the camera sits
+        // around the rock and how the chisel and hammer are held
+        [NonSerialized] public float CamToPlayer = 0.68f, CamRight = -0.18f, CamUp = 0.55f;
+        [NonSerialized] public float CamDistPerRadius = 3.6f, CamDistBase = 0.17f, CamDistMin = 0.34f, CamDistMax = 0.72f;
+        [NonSerialized] public float LookAhead = 0.03f, LookRight = 0.06f, LookUpPerRadius = 0.2f, LookUpBase = 0.03f;
+        [NonSerialized] public float ChiselAlongRadial = 0.7f, ChiselLeanRight = 0.4f, ChiselLeanUp = 0.5f, ChiselMinCos = 0.75f;
+        [NonSerialized] public float HandleRight = 0.35f, HandleToPlayer = 0.55f;
+        [NonSerialized] public float RestAngle = 6f, WindupRange = 58f;
+        /// <summary>Re-apply the camera framing (after tuning the fields above in Play Mode).</summary>
+        public void Reframe() { if (Active) FrameRock(); }
+
+        public const float ForceTap = 0.28f, ForceCareful = 0.52f, ForceFirm = 0.78f;
+        public static string ForceZoneName(float f) => f < ForceTap ? "Tap" : f < ForceCareful ? "Careful" : f < ForceFirm ? "Firm" : "Heavy";
+
         public bool Active { get; private set; }
         public bool Revealing { get; private set; }
         public bool Opened { get; private set; }
@@ -34,22 +58,35 @@ namespace GeodeEmpire.Cracking
         public StressModel Model => _model;
         public float Charge => _charge;
         public bool AimValid => _aimValid;
+        /// <summary>1 when the chisel sits on the seam, fading to 0 away from it.</summary>
+        public float Placement => _placement;
+        public bool Swinging => _swinging;
         public Vector2 Cursor => _cursor;
         public bool HasLamp => GameSession.Instance != null && UpgradeCatalog.Has(GameSession.Instance.State, UpgradeCatalog.InspectionLamp);
         public StressModel.StrikeResult LastResult => _lastResult;
         public int DamageEventsThisRock => _damageThisRock;
         public string ResultNote { get; private set; } = "";
 
-        /// <summary>Test/tutorial hook: viewport position of the seam point facing the camera.</summary>
-        public Vector2 SeamCursorHint()
+        /// <summary>
+        /// Test/tutorial hook: viewport position of a seam point. Default is the near-right flank (the working spot a
+        /// right-handed player naturally uses: chisel held on the near side, hammer from the right), offset in degrees
+        /// around the rock from the point facing the camera, positive toward the player's right.
+        /// </summary>
+        public Vector2 SeamCursorHint(float azimuthOffsetDeg = 30f)
         {
             if (_rock == null || _cam == null) return new Vector2(0.5f, 0.5f);
             var geo = _rock.Visual.Geometry;
             Vector3 toCam = _cam.transform.position - _rock.transform.position; toCam.y = 0f; toCam.Normalize();
-            Vector3 p = _rock.transform.position + toCam * geo.MeanEquatorRadius * 0.98f;
+            Vector3 right = -Vector3.Cross(Vector3.up, toCam).normalized;
+            float a = azimuthOffsetDeg * Mathf.Deg2Rad;
+            Vector3 dir = Mathf.Cos(a) * toCam + Mathf.Sin(a) * right;
+            Vector3 p = _rock.transform.position + dir * geo.MeanEquatorRadius * 0.98f;
             var vp = _cam.WorldToViewportPoint(p);
             return new Vector2(vp.x, vp.y);
         }
+
+        /// <summary>Dev: freeze the swing at the moment of contact (for captures) until cleared.</summary>
+        public bool HoldAtContact;
 
         /// <summary>
         /// Dev/clip-test staging: put a specimen of the given seed on the cradle, enter bench view with the ring
@@ -61,13 +98,18 @@ namespace GeodeEmpire.Cracking
             if (Active) Exit();
             var occupant = Cradle.First;
             if (occupant != null) { Cradle.Take(occupant, true); session.Despawn(occupant); }
+            // staged rocks are dev props: earlier ones must not pile up in the career (they would be restored on top
+            // of each other at the cradle)
+            var stale = new List<SpecimenRecord>();
+            foreach (var r in session.State.Specimens) if (r.SupplierId == "stage") stale.Add(r);
+            foreach (var r in stale) { var old = session.GetEntity(r.Id); if (old != null) session.Despawn(old); session.State.Specimens.Remove(r); }
             var rec = session.CreateSpecimenRecord(seed, "stage", "STAGE");
             rec.Location = Save.SpecimenLocation.World;
             var e = session.Spawn(rec, Cradle.Anchor.position, Quaternion.identity, false);
             Cradle.Place(e, true);
             Enter(e);
             for (int i = 0; i < StressModel.Sectors - 3; i++) _model.Stress[i] = 1f;
-            _ribbon?.Refresh(_model, HasLamp);
+            RefreshCrackVisual();
             if (splitNow) StageSplit();
             return e;
         }
@@ -80,6 +122,13 @@ namespace GeodeEmpire.Cracking
             StartCoroutine(RevealRoutine(result));
         }
 
+        /// <summary>Dev: perform one strike at the current aim with the given force, through the real swing.</summary>
+        public void StageStrike(float force)
+        {
+            if (!Active || _rock == null || Opened || Revealing || _swinging || !_aimValid) return;
+            StartCoroutine(SwingRoutine(Mathf.Clamp(force, 0.12f, 1f)));
+        }
+
         public void SetCursor(Vector2 viewport) => _cursor = new Vector2(Mathf.Clamp(viewport.x, 0.12f, 0.88f), Mathf.Clamp(viewport.y, 0.12f, 0.9f));
 
         public event Action Entered;
@@ -90,14 +139,19 @@ namespace GeodeEmpire.Cracking
         private readonly RaycastHit[] _aimHits = new RaycastHit[12];
         private SpecimenEntity _rock;
         private StressModel _model;
-        private CrackRibbon _ribbon;
         private SeededRandom _rng;
         private Vector2 _cursor = new Vector2(0.5f, 0.55f);
         private bool _aimValid;
-        private Vector3 _aimPoint, _aimNormal;
+        private Vector3 _aimPoint, _aimNormal, _aimRadial, _aimTangent;
+        private Vector3 _aimLocalRaw;         // where the ray actually hit, rock-local, before seam snapping
+        private float _placement;
+        // tool pose frozen at the moment the swing starts, so the hammer lands where the chisel was
+        private Vector3 _toolPoint, _toolNormal, _toolRadial, _toolTangent, _toolAxis;
         private float _charge;
         private bool _charging, _swinging;
-        private float _swingT;
+        private float _swingT, _recoilT = -1f, _swingCharge;
+        private float _jolt, _rockKick;
+        private Vector3 _rockBasePos;
         private float _rockYaw;
         private int _damageThisRock;
         private StressModel.StrikeResult _lastResult;
@@ -186,15 +240,60 @@ namespace GeodeEmpire.Cracking
                 e.Record.ProcessingStarted = true;
                 session.FlushSave("bench-enter");
             }
-            _ribbon = CrackRibbon.Attach(e, session.Library.CrackMaterial);
-            _ribbon.Refresh(_model, HasLamp);
+            RefreshCrackVisual();
             _rockYaw = 0f;
+            _rockBasePos = _rock.transform.position;
+            _jolt = 0f; _rockKick = 0f;
             _cursor = new Vector2(0.5f, 0.52f);
-            if (CameraAnchor != null) CameraAnchor.SetPositionAndRotation(_camAnchorHomePos, _camAnchorHomeRot);
+            FrameRock();
+            EnsureFillLight().enabled = true;
             if (_controller != null) _controller.EnterStationView(CameraAnchor);
             if (_player != null) _player.InputLocked = true;
             if (TaskLight != null) TaskLight.intensity = _lightBase * (HasLamp ? 1.6f : 1f);
             Entered?.Invoke();
+        }
+
+        /// <summary>Bench camera: the same viewing direction as the authored anchor, but close enough that the rock fills the view.</summary>
+        private void FrameRock()
+        {
+            if (CameraAnchor == null || _rock == null) return;
+            var geo = _rock.Visual.Geometry;
+            Vector3 center = CradleCenter.position;
+            // steep, slightly to the right: the chisel is driven almost horizontally into the seam on the near side and
+            // leans left, the hammer comes from the right, so from up here the strike is seen side-on, not end-on
+            Vector3 toPlayer = -transform.forward; toPlayer.y = 0f; toPlayer.Normalize();
+            Vector3 right = Vector3.Cross(Vector3.up, -toPlayer).normalized;     // the player's right when facing the bench
+            Vector3 dir = (toPlayer * CamToPlayer + right * CamRight + Vector3.up * CamUp).normalized;
+            float dist = Mathf.Clamp(geo.MaxRadius * CamDistPerRadius + CamDistBase, CamDistMin, CamDistMax);
+            Vector3 camPos = center + dir * dist;
+            // the chisel and hammer extend toward the player, so look a little that way
+            Vector3 lookAt = center + toPlayer * LookAhead + right * LookRight + Vector3.up * (geo.MaxRadius * LookUpPerRadius + LookUpBase);
+            CameraAnchor.SetPositionAndRotation(camPos, Quaternion.LookRotation(lookAt - camPos, Vector3.up));
+        }
+
+        private Light _fill;
+
+        /// <summary>A soft fill from the player's side so the face being worked is never in the task light's shadow.</summary>
+        private Light EnsureFillLight()
+        {
+            if (_fill != null) return _fill;
+            var go = new GameObject("BenchFill");
+            go.transform.SetParent(CameraAnchor, false);
+            go.transform.localPosition = new Vector3(0.12f, 0.05f, -0.05f);
+            _fill = go.AddComponent<Light>();
+            _fill.type = LightType.Point;
+            _fill.range = 1.4f;
+            _fill.intensity = 0.9f;
+            _fill.color = new Color(1f, 0.95f, 0.88f);
+            _fill.shadows = LightShadows.None;
+            return _fill;
+        }
+
+        /// <summary>Push the persisted stress and impact marks into the shell shader.</summary>
+        private void RefreshCrackVisual()
+        {
+            if (_rock == null || _rock.Visual == null) return;
+            _rock.Visual.SetCrackState(_model != null ? _model.Stress : _rock.Record.SectorStress, _rock.Record.Impacts, HasLamp ? 1f : 0.55f, Opened ? 0.35f : 1f);
         }
 
         /// <summary>Dev diagnostics: record why the bench was left.</summary>
@@ -210,12 +309,14 @@ namespace GeodeEmpire.Cracking
             if (_controller != null) _controller.ExitStationView();
             if (_player != null) _player.InputLocked = false;
             RestTools();
-            if (_ribbon != null && !Opened) { Destroy(_ribbon.gameObject); }
-            _ribbon = null;
-            if (_rock != null) _rock.Locked = false;
+            if (_fill != null) _fill.enabled = false;
+            if (_rock != null)
+            {
+                _rock.Locked = false;
+                if (!Opened) _rock.transform.position = _rockBasePos;
+            }
             if (TaskLight != null) TaskLight.intensity = _lightBase;
-            _charge = 0f; _charging = false; _swinging = false;
-            var r = _rock;
+            _charge = 0f; _charging = false; _swinging = false; _recoilT = -1f;
             _rock = null;
             Exited?.Invoke();
             GameSession.Instance?.QueueSave("bench-exit");
@@ -252,7 +353,13 @@ namespace GeodeEmpire.Cracking
             {
                 _rockYaw += rot;
                 _rock.transform.RotateAround(CradleCenter.position, Vector3.up, rot);
+                _rockBasePos = _rock.transform.position;
             }
+
+            // the rock takes the hit: a tiny settle into the cradle that springs back
+            _rockKick = Mathf.MoveTowards(_rockKick, 0f, dt * 9f);
+            _rock.transform.position = _rockBasePos + Vector3.down * (0.0025f * _rockKick);
+            _jolt = Mathf.MoveTowards(_jolt, 0f, dt * 11f);
 
             // virtual cursor
             Vector2 look = GameInput.Look;
@@ -261,18 +368,8 @@ namespace GeodeEmpire.Cracking
             _cursor.x = Mathf.Clamp(_cursor.x, 0.12f, 0.88f);
             _cursor.y = Mathf.Clamp(_cursor.y, 0.12f, 0.9f);
 
-            // aim on the rock surface
-            _aimValid = false;
-            var ray = _cam.ViewportPointToRay(new Vector3(_cursor.x, _cursor.y, 0f));
-            int n = Physics.RaycastNonAlloc(ray, _aimHits, 3f, ~0, QueryTriggerInteraction.Ignore);
-            float best = float.MaxValue;
-            for (int i = 0; i < n; i++)
-            {
-                var h = _aimHits[i];
-                if (h.collider.attachedRigidbody != _rock.Body) continue;
-                if (h.distance < best) { best = h.distance; _aimPoint = h.point; _aimNormal = h.normal; _aimValid = true; }
-            }
-            UpdateToolVisuals(dt);
+            if (!_swinging) Aim();
+            UpdateToolVisuals();
 
             // wind-up and strike
             if (!_swinging)
@@ -292,43 +389,118 @@ namespace GeodeEmpire.Cracking
             }
         }
 
-        private void UpdateToolVisuals(float dt)
+        /// <summary>
+        /// Where the chisel goes: the shell point under the cursor, pulled onto the natural seam when it is close.
+        /// The snap makes a deliberate placement easy on any device; strikes far from the seam stay poor.
+        /// </summary>
+        private void Aim()
+        {
+            _aimValid = false;
+            _placement = 0f;
+            var ray = _cam.ViewportPointToRay(new Vector3(_cursor.x, _cursor.y, 0f));
+            int n = Physics.RaycastNonAlloc(ray, _aimHits, 3f, ~0, QueryTriggerInteraction.Ignore);
+            float best = float.MaxValue;
+            RaycastHit hit = default;
+            for (int i = 0; i < n; i++)
+            {
+                var h = _aimHits[i];
+                if (h.collider.attachedRigidbody != _rock.Body) continue;
+                if (h.distance < best) { best = h.distance; hit = h; _aimValid = true; }
+            }
+            if (!_aimValid) return;
+
+            var geo = _rock.Visual.Geometry;
+            var rockT = _rock.transform;
+            Vector3 local = rockT.InverseTransformPoint(hit.point);
+            _aimLocalRaw = local;
+            float lon = Mathf.Atan2(local.z, local.x);
+            float offset = local.y / Mathf.Max(0.01f, geo.MaxRadius);
+            float snap = 1f - Mathf.SmoothStep(0.10f, 0.26f, Mathf.Abs(offset));
+            Vector3 aimLocal = local;
+            if (snap > 0f)
+            {
+                // the seam point at this longitude: rim radius and rim jitter interpolated between shell longitudes
+                int N = geo.Longitudes;
+                float lt = (lon < 0f ? lon + Mathf.PI * 2f : lon) / (Mathf.PI * 2f) * N;
+                int l0 = Mathf.FloorToInt(lt) % N, l1 = (l0 + 1) % N;
+                float f = lt - Mathf.Floor(lt);
+                float r = Mathf.Lerp(geo.Bottom.EquatorOuterRadius[l0], geo.Bottom.EquatorOuterRadius[l1], f);
+                float y = Mathf.Lerp(geo.Bottom.EquatorY[l0], geo.Bottom.EquatorY[l1], f);
+                var seamLocal = new Vector3(Mathf.Cos(lon) * r, y, Mathf.Sin(lon) * r);
+                aimLocal = Vector3.Lerp(local, seamLocal, snap);
+            }
+            _placement = snap;
+            _aimPoint = rockT.TransformPoint(aimLocal);
+            _aimNormal = hit.normal;
+            // the chisel is driven along the rock's radial at the seam (the bumpy face normal only decides how
+            // square the blow lands); the blade lies along the seam tangent
+            _aimRadial = rockT.TransformDirection(new Vector3(Mathf.Cos(lon), 0f, Mathf.Sin(lon))).normalized;
+            _aimTangent = rockT.TransformDirection(new Vector3(-Mathf.Sin(lon), 0f, Mathf.Cos(lon))).normalized;
+        }
+
+        private float WindupAngle(float charge) => RestAngle + WindupRange * charge;
+
+        private void UpdateToolVisuals()
         {
             if (ChiselVisual == null) return;
-            if (!_aimValid)
+            if (!_aimValid && !_swinging)
             {
                 RestTools();
                 return;
             }
-            Vector3 toCam = (_cam.transform.position - _aimPoint).normalized;
-            Vector3 axis = (_aimNormal * 0.75f + toCam * 0.45f + Vector3.up * 0.35f).normalized;
-            var rot = Quaternion.FromToRotation(Vector3.up, axis);
-            ChiselVisual.SetPositionAndRotation(_aimPoint, rot * Quaternion.Euler(0f, 35f, 0f));
-            if (HammerVisual != null)
+            if (!_swinging) { _toolPoint = _aimPoint; _toolNormal = _aimNormal; _toolRadial = _aimRadial; _toolTangent = _aimTangent; }
+            if (!ChiselVisual.gameObject.activeSelf) ChiselVisual.gameObject.SetActive(true);
+
+            Vector3 toCam = (_cam.transform.position - _toolPoint).normalized;
+            Vector3 camFlat = toCam; camFlat.y = 0f; camFlat.Normalize();
+            Vector3 right = -Vector3.Cross(Vector3.up, camFlat).normalized;
+            // driven along the seam radial, leaning up and to the player's right so the hammer comes down onto it
+            // from the near side; never more than ~40 degrees off the radial so the wedge bites instead of skating
+            Vector3 axis = (_toolRadial * ChiselAlongRadial + Vector3.up * ChiselLeanUp + right * ChiselLeanRight).normalized;
+            float cosMin = ChiselMinCos;
+            float d = Vector3.Dot(axis, _toolRadial);
+            if (d < cosMin) axis = Vector3.Slerp(axis, _toolRadial, (cosMin - d) / Mathf.Max(0.01f, 1f - d)).normalized;
+            _toolAxis = axis;
+            Vector3 tangent = _toolTangent - axis * Vector3.Dot(_toolTangent, axis);
+            if (tangent.sqrMagnitude < 1e-4f) tangent = Vector3.Cross(axis, toCam);
+            tangent.Normalize();
+            var chiselRot = Quaternion.LookRotation(Vector3.Cross(tangent, axis), axis);
+            // tip rests on the shell (a hair outside it so the wedge never sinks in), driven a few mm in on impact
+            Vector3 tip = _toolPoint + _toolNormal * 0.0012f - axis * (0.0045f * _jolt);
+            ChiselVisual.SetPositionAndRotation(tip, chiselRot);
+
+            if (HammerVisual == null) return;
+            if (!HammerVisual.gameObject.activeSelf) HammerVisual.gameObject.SetActive(true);
+            // hammer in the right hand: the grip sits toward the player and to their right, the head bar lies along the
+            // chisel axis, and at the bottom of the swing its lower face sits on the chisel cap
+            Vector3 cap = tip + axis * ChiselLength;
+            Vector3 handleDir = -(right * HandleRight + camFlat * HandleToPlayer);   // grip -> head
+            handleDir -= axis * Vector3.Dot(handleDir, axis);
+            handleDir.Normalize();
+            Vector3 headContact = cap + axis * (HammerHeadHalf + 0.002f);
+            Vector3 grip = headContact - handleDir * HammerLen;
+            Vector3 swingAxis = Vector3.Cross(axis, handleDir).normalized;   // positive angle drives the head into the cap
+            float angle;
+            if (_swinging)
             {
-                // hammer held to the right of the chisel: head above the chisel cap, handle out to the side.
-                // Wind-up raises the head around the grip; the swing brings it down onto the cap.
-                const float chiselLen = 0.215f, hammerLen = 0.315f;
-                float swingDrop = _swinging ? Mathf.SmoothStep(0f, 1f, _swingT) : 0f;
-                Vector3 headPos = _aimPoint + axis * chiselLen;
-                Vector3 side = Vector3.Cross(axis, toCam).normalized;   // roughly the player's right
-                Vector3 handleDir = -side;
-                Vector3 grip = headPos + axis * 0.012f - handleDir * hammerLen;
-                Vector3 swingAxis = Vector3.Cross(axis, handleDir).normalized;
-                float raise = Mathf.Lerp(-(18f + 40f * _charge), 4f, swingDrop);
-                var swing = Quaternion.AngleAxis(raise, swingAxis);
-                Vector3 hd = swing * handleDir;
-                Vector3 ax = swing * axis;
-                var hRot = Quaternion.LookRotation(Vector3.Cross(ax, hd), hd);
-                HammerVisual.SetPositionAndRotation(grip, hRot);
+                if (_recoilT >= 0f) angle = Mathf.Lerp(0f, -16f, Mathf.SmoothStep(0f, 1f, _recoilT));
+                else angle = Mathf.Lerp(-WindupAngle(_swingCharge), 0f, Mathf.SmoothStep(0f, 1f, _swingT));
             }
+            else angle = -WindupAngle(_charge);
+            var swing = Quaternion.AngleAxis(angle, swingAxis);
+            Vector3 hd = swing * handleDir;
+            Vector3 ax = swing * axis;
+            var hRot = Quaternion.LookRotation(Vector3.Cross(ax, hd), hd);
+            HammerVisual.SetPositionAndRotation(grip, hRot);
         }
 
         private IEnumerator SwingRoutine(float force)
         {
             _swinging = true;
             _swingT = 0f;
-            float dur = Mathf.Lerp(0.09f, 0.14f, force);
+            _recoilT = -1f;
+            _swingCharge = Mathf.Clamp01(force);
+            float dur = Mathf.Lerp(0.10f, 0.15f, force);
             while (_swingT < 1f)
             {
                 _swingT += Time.deltaTime / dur;
@@ -336,20 +508,30 @@ namespace GeodeEmpire.Cracking
             }
             _swingT = 1f;
             DoStrike(force);
-            yield return new WaitForSeconds(0.08f);
+            // the face stays on the cap for a beat so the contact reads, then the hammer springs back
+            yield return new WaitForSeconds(0.05f);
+            while (HoldAtContact) { _jolt = 1f; yield return null; }
+            _recoilT = 0f;
+            while (_recoilT < 1f)
+            {
+                _recoilT += Time.deltaTime / 0.16f;
+                yield return null;
+            }
             _charge = 0f;
             _swinging = false;
+            _recoilT = -1f;
         }
 
         private void DoStrike(float force)
         {
             var session = GameSession.Instance;
             var geo = _rock.Visual.Geometry;
-            Vector3 local = _rock.transform.InverseTransformPoint(_aimPoint);
+            var rockT = _rock.transform;
+            Vector3 local = rockT.InverseTransformPoint(_toolPoint);
             float azimuth = Mathf.Atan2(local.z, local.x);
             float planeOffset = Mathf.Clamp(local.y / Mathf.Max(0.01f, geo.MaxRadius), -1f, 1f);
-            Vector3 toCam = (_cam.transform.position - _aimPoint).normalized;
-            float angle = Mathf.Clamp01(Vector3.Dot(_aimNormal, toCam) * 1.15f);
+            // how square the blow lands: the chisel axis against the actual face it stands on
+            float angle = Mathf.Clamp01(Vector3.Dot(_toolAxis, _toolNormal) * 1.2f);
             var input = new StressModel.StrikeInput { Azimuth = azimuth, PlaneOffset = planeOffset, Force = force, AngleFactor = angle };
             var result = _model.Strike(input, ref _rng);
             _lastResult = result;
@@ -360,30 +542,38 @@ namespace GeodeEmpire.Cracking
             rec.StrikeCount = _model.StrikeCount;
             session.State.Stats.TotalStrikes++;
 
+            _jolt = Mathf.Clamp01(0.4f + force);
+            _rockKick = Mathf.Clamp01(0.3f + force * 0.8f);
+
             // feedback
-            string clip = force < 0.4f ? "tap_light" : force < 0.75f ? "tap_medium" : "tap_heavy";
+            float ringFrac = result.CracksTotal / (float)StressModel.Sectors;
+            string clip = force < ForceTap ? "tap_light" : force < ForceFirm ? "tap_medium" : "tap_heavy";
             if (result.Slipped)
             {
-                WorkshopAudio.Play("slip", _aimPoint, 0.8f);
+                WorkshopAudio.Play("slip", _toolPoint, 0.8f);
                 _controller?.Impulse(0.15f * force);
             }
             else
             {
-                WorkshopAudio.Play(clip, _aimPoint, Mathf.Lerp(0.6f, 1f, force), Mathf.Lerp(1.1f, 0.85f, force) * (result.Placement > 0.6f ? 1f : 1.12f));
-                if (result.NewCrack) { WorkshopAudio.Play("tick", _aimPoint, 0.9f, 0.9f); WorkshopAudio.Play("creak", _aimPoint, 0.35f, 1.1f); }
-                else if (result.StressAdded > 0.4f && _rng.Chance(0.35f)) WorkshopAudio.Play("tick", _aimPoint, 0.4f, 1.2f);
+                float pitch = Mathf.Lerp(1.1f, 0.85f, force) * (result.Placement > 0.6f ? 1f : 1.1f) * (result.Overstrike ? 0.82f : 1f);
+                WorkshopAudio.Play(clip, _toolPoint, Mathf.Lerp(0.6f, 1f, force), pitch);
+                if (result.NewCrack) { WorkshopAudio.Play("tick", _toolPoint, 0.9f, 0.9f); WorkshopAudio.Play("creak", _toolPoint, 0.35f + 0.4f * ringFrac, 1.1f - 0.25f * ringFrac); }
+                else if (result.StressAdded > 0.4f && _rng.Chance(0.35f)) WorkshopAudio.Play("tick", _toolPoint, 0.4f, 1.2f);
+                // a shell with most of its ring cracked groans under every blow
+                if (ringFrac >= 0.5f && !result.NewCrack) WorkshopAudio.Play("creak", _rock.transform.position, 0.25f + 0.35f * ringFrac, 0.8f);
                 _controller?.Impulse((0.2f + 0.55f * force) * (result.NewCrack ? 1.3f : 1f));
-                EffectsFactory.Instance?.Impact(_aimPoint, _aimNormal, force * (result.Placement * 0.6f + 0.4f));
+                EffectsFactory.Instance?.Impact(_toolPoint, _toolNormal, force * (result.Placement * 0.6f + 0.4f));
+                if (result.NewCrack) SeamBurst(result.Sector, geo);
             }
-            var bottomLocal = _rock.Visual.BottomHalf.InverseTransformPoint(_aimPoint);
-            var bottomNormal = _rock.Visual.BottomHalf.InverseTransformDirection(_aimNormal);
-            _ribbon?.AddImpactMark(bottomLocal, bottomNormal, geo.MaxRadius * (0.04f + force * 0.05f), 0.35f + force * 0.4f);
-            _ribbon?.Refresh(_model, HasLamp);
+
+            // the chip where the chisel stood, persisted so the rock still shows its history after a reload
+            AddImpactMark(local, geo, geo.MaxRadius * (0.075f + force * 0.085f), result.Slipped ? 0.3f : 0.5f + force * 0.5f);
+            RefreshCrackVisual();
 
             if (result.Damaged && !result.Opened)
             {
                 ApplyDamage(result.DamageSeverity, azimuth);
-                WorkshopAudio.Play("crystal_break", _aimPoint, 0.5f, 0.85f);
+                WorkshopAudio.Play("crystal_break", _toolPoint, 0.5f, 0.85f);
             }
 
             Tutorial.Notify("first_strike");
@@ -398,6 +588,33 @@ namespace GeodeEmpire.Cracking
             {
                 // committed within the coalescing window; bench-enter already flushed the anti-reroll state
                 session.QueueSave("strike");
+            }
+        }
+
+        /// <summary>Store a chip in shell surface coordinates (longitude fraction, signed latitude fraction).</summary>
+        private void AddImpactMark(Vector3 local, GeodeGeometry geo, float radius, float strength)
+        {
+            float lon = Mathf.Atan2(local.z, local.x);
+            float u = (lon < 0f ? lon + Mathf.PI * 2f : lon) / (Mathf.PI * 2f);
+            float len = Mathf.Max(0.001f, local.magnitude);
+            float v = Mathf.Asin(Mathf.Clamp(local.y / len, -1f, 1f)) / (Mathf.PI * 0.5f);
+            var list = _rock.Record.Impacts;
+            list.Add(new Vector4(u, v, radius, strength));
+            while (list.Count > SpecimenVisual.MaxImpacts) list.RemoveAt(0);
+        }
+
+        /// <summary>Dust and flakes along a seam segment that just opened.</summary>
+        private void SeamBurst(int sector, GeodeGeometry geo)
+        {
+            var fx = EffectsFactory.Instance;
+            if (fx == null) return;
+            for (int i = 0; i < 3; i++)
+            {
+                float a = (sector + (i + 0.5f) / 3f) / StressModel.Sectors * Mathf.PI * 2f;
+                var dirLocal = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                Vector3 p = _rock.transform.TransformPoint(dirLocal * geo.MeanEquatorRadius);
+                Vector3 nrm = _rock.transform.TransformDirection(dirLocal);
+                fx.Impact(p, nrm, 0.25f);
             }
         }
 
@@ -456,19 +673,18 @@ namespace GeodeEmpire.Cracking
             bool rare = g.Tier >= QualityTier.Exceptional;
             bool attractive = g.Tier >= QualityTier.Good;
             RestTools();
+            _rock.transform.position = _rockBasePos;
 
             // the split
             WorkshopAudio.Play("crack_final", _rock.transform.position, 1f, rare ? 0.92f : 1f);
             WorkshopAudio.Play("fragments", _rock.transform.position, 0.8f);
             _controller?.Impulse(0.9f);
             EffectsFactory.Instance?.Split(_rock.transform.position, geo.MeanEquatorRadius, _cam.transform.forward);
-            if (_ribbon != null)
-            {
-                for (int i = 0; i < StressModel.Sectors; i++) _model.Stress[i] = Mathf.Max(_model.Stress[i], 1f);
-                _ribbon.Refresh(_model, false);
-            }
+            for (int i = 0; i < StressModel.Sectors; i++) _model.Stress[i] = Mathf.Max(_model.Stress[i], 1f);
+            rec.SectorStress = _model.ToArray();
             vis.RebuildCrystals();
             vis.SetCrystalsVisible(true);
+            vis.SetCrackState(_model.Stress, rec.Impacts, 0f, 1f);
             _rock.RebuildColliders();
             _rock.SetStaticCollidable();
 
@@ -489,7 +705,8 @@ namespace GeodeEmpire.Cracking
                 StartCoroutine(DelayedSting(0.4f));
             }
 
-            // hinge the top half open sideways (to the player's left) so both halves stay in view like an open book
+            // hinge the top half open along the seam, to the player's left, like a book; it tips over the cradle
+            // ring and comes to rest on the bench top, so both halves stay in view and nothing overlaps
             var top = vis.TopHalf;
             Vector3 camFlat = _cam.transform.position - _rock.transform.position; camFlat.y = 0f; camFlat.Normalize();
             Vector3 camRight = Vector3.Cross(Vector3.up, camFlat).normalized;   // player's right
@@ -499,22 +716,30 @@ namespace GeodeEmpire.Cracking
             Vector3 axis = Vector3.Cross(Vector3.up, fLocal).normalized;
             Vector3 startPos = top.localPosition;
             Quaternion startRot = top.localRotation;
-            // where the flipped half will come to rest: on whatever surface lies under its landing spot
-            Vector3 landLocal = hinge + Quaternion.AngleAxis(178f, axis) * (startPos - hinge);
+            float landDist = Mathf.Max(2f * R + 0.012f, CradleClearance + geo.MaxRadius);
+            Vector3 slide = -fLocal * (landDist - 2f * R);
+            Vector3 landLocal = hinge + Quaternion.AngleAxis(178f, axis) * (startPos - hinge) + slide;
             Vector3 landWorld = _rock.transform.TransformPoint(landLocal);
+            // rest on whatever lies under the landing spot (bench top), never above or inside it
             float surfaceY = _rock.transform.position.y + geo.BottomY;
-            var downRay = new Ray(landWorld + Vector3.up * 0.25f, Vector3.down);
-            foreach (var h in Physics.RaycastAll(downRay, 0.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            var downRay = new Ray(landWorld + Vector3.up * 0.3f, Vector3.down);
+            float bestSurface = float.MinValue;
+            int hits = Physics.RaycastNonAlloc(downRay, _aimHits, 0.7f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < hits; i++)
             {
-                if (h.collider.GetComponentInParent<SpecimenEntity>() == _rock) continue;
-                if (h.point.y > surfaceY - 0.3f) { surfaceY = Mathf.Max(surfaceY - 0.3f, h.point.y); break; }
+                var h = _aimHits[i];
+                if (h.collider.attachedRigidbody == _rock.Body) continue;
+                if (h.point.y > surfaceY - 0.3f && h.point.y < surfaceY + 0.05f && h.point.y > bestSurface) bestSurface = h.point.y;
             }
-            float finalLift = (surfaceY + geo.TopY) - _rock.transform.TransformPoint(landLocal).y;
+            if (bestSurface > float.MinValue) surfaceY = bestSurface;
+            float finalLift = (surfaceY + geo.TopY) - landWorld.y;
             float dur = rare ? 1.5f : 1.15f;
-            // dolly the bench camera in to admire the interior
+            // dolly the bench camera in to admire the interior, centred between the two halves
             Vector3 camFrom = CameraAnchor.position; Quaternion camFromRot = CameraAnchor.rotation;
-            Vector3 camTo = _rock.transform.position - camRight * geo.MaxRadius * 1.1f + camFlat * (geo.MaxRadius * 1.6f + 0.04f) + Vector3.up * (geo.MaxRadius * 1.9f + 0.03f);
-            Quaternion camToRot = Quaternion.LookRotation((_rock.transform.position - camRight * geo.MaxRadius * 1.1f + Vector3.up * geo.MaxRadius * 0.2f) - camTo, Vector3.up);
+            Vector3 mid = _rock.transform.position - camRight * (landDist * 0.5f);
+            float camDist = Mathf.Clamp(geo.MaxRadius * 3.6f + 0.1f, 0.28f, 0.6f);
+            Vector3 camTo = mid + camFlat * (camDist * 0.7f) + Vector3.up * (camDist * 0.72f);
+            Quaternion camToRot = Quaternion.LookRotation((mid + Vector3.up * geo.MaxRadius * 0.15f) - camTo, Vector3.up);
             float t = 0f;
             while (t < 1f)
             {
@@ -523,7 +748,7 @@ namespace GeodeEmpire.Cracking
                 float angle = Mathf.Lerp(0f, 178f, e);
                 float lift = Mathf.Sin(Mathf.Clamp01(t) * Mathf.PI) * R * 0.28f;
                 var rot = Quaternion.AngleAxis(angle, axis);
-                Vector3 pos = hinge + rot * (startPos - hinge) + Vector3.up * (lift + finalLift * e);
+                Vector3 pos = hinge + rot * (startPos - hinge) + slide * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.35f) / 0.65f)) + Vector3.up * (lift + finalLift * e);
                 top.localPosition = pos;
                 top.localRotation = rot * startRot;
                 light.intensity = Mathf.Sin(Mathf.Clamp01(t) * Mathf.PI) * (rare ? 2.4f : 1.5f);
@@ -533,14 +758,13 @@ namespace GeodeEmpire.Cracking
                 yield return null;
             }
             CameraAnchor.SetPositionAndRotation(camTo, camToRot);
-            top.localPosition = hinge + Quaternion.AngleAxis(178f, axis) * (startPos - hinge) + Vector3.up * finalLift;
+            top.localPosition = landLocal + Vector3.up * finalLift;
             top.localRotation = Quaternion.AngleAxis(178f, axis) * startRot;
             WorkshopAudio.Play("rock_place", _rock.transform.TransformPoint(top.localPosition), 0.5f, 0.9f);
+            EffectsFactory.Instance?.Impact(_rock.transform.TransformPoint(top.localPosition) + Vector3.down * geo.TopY * 0.9f, Vector3.up, 0.3f);
             _rock.RebuildColliders();
             _rock.SetStaticCollidable();
             StartCoroutine(FadeLight(light, 1.2f));
-            if (_ribbon != null) StartCoroutine(FadeRibbon(_ribbon, 0.8f));
-            _ribbon = null;
 
             ResultNote = BuildResultNote(g, damage, result);
             Opened = true;
@@ -577,19 +801,6 @@ namespace GeodeEmpire.Cracking
             float start = l.intensity, t = 0f;
             while (t < 1f) { t += Time.deltaTime / dur; if (l == null) yield break; l.intensity = Mathf.Lerp(start, 0f, t); yield return null; }
             if (l != null) Destroy(l.gameObject);
-        }
-
-        private static IEnumerator FadeRibbon(CrackRibbon r, float dur)
-        {
-            float t = 0f;
-            var rends = r.GetComponentsInChildren<Renderer>();
-            while (t < 1f)
-            {
-                t += Time.deltaTime / dur;
-                if (r == null) yield break;
-                yield return null;
-            }
-            if (r != null) Destroy(r.gameObject);
         }
     }
 }

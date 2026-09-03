@@ -51,6 +51,35 @@ namespace GeodeEmpire.Specimens
         private static readonly int SparkleId = Shader.PropertyToID("_Sparkle");
         private static readonly int ZoningId = Shader.PropertyToID("_ZoningStrength");
         private static readonly int InclusionsId = Shader.PropertyToID("_Inclusions");
+        private static readonly int SectorCrackId = Shader.PropertyToID("_SectorCrack");
+        private static readonly int ImpactsId = Shader.PropertyToID("_Impacts");
+        private static readonly int ImpactCountId = Shader.PropertyToID("_ImpactCount");
+        private static readonly int SeamVisibleId = Shader.PropertyToID("_SeamVisible");
+        private static readonly int SurfRId = Shader.PropertyToID("_SurfR");
+        private static readonly int CrackFadeId = Shader.PropertyToID("_CrackFade");
+
+        public const int CrackSectors = 16;
+        public const int MaxImpacts = 32;
+        private readonly float[] _sectorCrack = new float[CrackSectors];
+        private readonly Vector4[] _impacts = new Vector4[MaxImpacts];
+        private int _impactCount;
+        private float _seamVisible = 0.4f, _crackFade = 1f;
+
+        /// <summary>
+        /// Fracture overlay state: per-sector seam stress (>= 1 is an open crack), chisel marks in shell surface
+        /// coordinates, how visible the faint seam guide is, and a fade for opened specimens.
+        /// </summary>
+        public void SetCrackState(float[] sectorStress, IList<Vector4> impacts, float seamVisible, float fade)
+        {
+            for (int i = 0; i < CrackSectors; i++) _sectorCrack[i] = sectorStress != null && i < sectorStress.Length ? sectorStress[i] : 0f;
+            _impactCount = 0;
+            if (impacts != null)
+                for (int i = Mathf.Max(0, impacts.Count - MaxImpacts); i < impacts.Count; i++) _impacts[_impactCount++] = impacts[i];
+            for (int i = _impactCount; i < MaxImpacts; i++) _impacts[i] = Vector4.zero;
+            _seamVisible = seamVisible;
+            _crackFade = fade;
+            if (Geology != null) ApplyShellProperties();
+        }
 
         public static readonly Color[] MatrixTones =
         {
@@ -246,6 +275,12 @@ namespace GeodeEmpire.Specimens
             _mpb.SetFloat(CavityDruzyId, CavityDruzyAmount(g));
             _mpb.SetColor(CavityCrystalColorId, ApplySaturation(Color.Lerp(pal.SurfaceA, pal.SurfaceB, 0.5f), g.Saturation));
             _mpb.SetFloat(HighlightId, _highlight);
+            _mpb.SetFloatArray(SectorCrackId, _sectorCrack);
+            _mpb.SetVectorArray(ImpactsId, _impacts);
+            _mpb.SetFloat(ImpactCountId, _impactCount);
+            _mpb.SetFloat(SeamVisibleId, _seamVisible);
+            _mpb.SetFloat(SurfRId, Geometry != null ? Geometry.MeanEquatorRadius : 0.06f);
+            _mpb.SetFloat(CrackFadeId, _crackFade);
             if (TopShellRenderer != null) TopShellRenderer.SetPropertyBlock(_mpb);
             if (BottomShellRenderer != null) BottomShellRenderer.SetPropertyBlock(_mpb);
         }

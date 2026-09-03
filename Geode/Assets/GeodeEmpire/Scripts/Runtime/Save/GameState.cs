@@ -31,6 +31,8 @@ namespace GeodeEmpire.Save
         // processing commit state
         public bool ProcessingStarted;
         public float[] SectorStress = Array.Empty<float>();
+        /// <summary>Chisel marks on the shell (longitude fraction, signed latitude fraction, radius m, strength), newest last.</summary>
+        public List<Vector4> Impacts = new List<Vector4>();
         public int StrikeCount;
         public int DamageEvents;
         public float ShellDamage;
