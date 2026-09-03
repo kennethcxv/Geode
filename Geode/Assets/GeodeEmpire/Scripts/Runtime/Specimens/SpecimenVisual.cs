@@ -192,6 +192,7 @@ namespace GeodeEmpire.Specimens
                 var d = _lib.GetMeshData(c.Archetype);
                 if (d == null) continue;
                 vCount += d.Vertices.Length; iCount += d.Triangles.Length;
+                if (Condition.DamageAt(c.Index) >= CrystalDamage.Broken) { vCount += d.Vertices.Length; iCount += d.Triangles.Length; }   // its fallen tip
             }
             if (vCount == 0) return null;
             var verts = new List<Vector3>(vCount);
@@ -227,6 +228,39 @@ namespace GeodeEmpire.Specimens
                     uvs.Add(new Vector2(v.x, v.z));
                 }
                 for (int t = 0; t < data.Triangles.Length; t++) tris.Add(baseIndex + data.Triangles[t]);
+
+                // the broken-off tip lies in the cavity beside its stub: the piece above the cut, toppled and shrunk
+                if (dmg >= CrystalDamage.Broken)
+                {
+                    float tipLen = data.Height - cutY;
+                    if (tipLen > data.Height * 0.15f)
+                    {
+                        uint h = (uint)(c.Index * 2654435761u);
+                        float yaw = (h % 360u), roll = 70f + (h >> 9) % 25u;
+                        var lie = c.Rotation * Quaternion.Euler(roll, yaw, 0f);
+                        // it falls inward, toward the cavity floor, so it can never poke through the shell
+                        Vector3 lobe = Geology.LobeCenters != null && Geology.LobeCenters.Length > 0 ? Geology.LobeCenters[0] : Vector3.zero;
+                        Vector3 inward = lobe - c.Position; if (inward.sqrMagnitude < 1e-6f) inward = c.Rotation * Vector3.up; inward.Normalize();
+                        Vector3 at = c.Position + inward * (c.Footprint * 1.5f + tipLen * 0.35f);
+                        var fm = Matrix4x4.TRS(at, lie, c.Scale * 0.8f);
+                        var fnm = fm.inverse.transpose;
+                        int fBase = verts.Count;
+                        for (int i = 0; i < data.Vertices.Length; i++)
+                        {
+                            var v = data.Vertices[i];
+                            var n = data.Normals[i];
+                            bool below = v.y < cutY;                   // the part that stayed on the stub
+                            if (below) { v.y = cutY; n = Vector3.down; }
+                            v.y -= cutY;                              // pivot at the break
+                            verts.Add(fm.MultiplyPoint3x4(v));
+                            norms.Add(fnm.MultiplyVector(n).normalized);
+                            var fcol = below ? new Color(Mathf.Min(1.5f, tint.r * 1.55f), Mathf.Min(1.5f, tint.g * 1.5f), Mathf.Min(1.5f, tint.b * 1.45f), 0f) : new Color(tint.r, tint.g, tint.b, 1f);
+                            cols.Add(fcol);
+                            uvs.Add(new Vector2(v.x, v.z));
+                        }
+                        for (int t = 0; t < data.Triangles.Length; t++) tris.Add(fBase + data.Triangles[t]);
+                    }
+                }
             }
             if (verts.Count == 0) return null;
             var mesh = new Mesh { name = (top ? "Top" : "Bottom") + (secondary ? "SecondaryCrystals" : "Crystals") };

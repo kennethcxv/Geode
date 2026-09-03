@@ -37,6 +37,8 @@ namespace GeodeEmpire.EditorTools
             Lit("M_WoodDark", "T_WoodDark", Color.white, 0.38f, 0f, 1f);
             Lit("M_WoodPainted", null, new Color(0.62f, 0.66f, 0.6f), 0.45f, 0f, 1f);
             Lit("M_Metal", "T_Metal", new Color(0.82f, 0.82f, 0.84f), 0.62f, 0.85f, 1f);
+            Lit("M_Steel", "T_Metal", new Color(0.58f, 0.6f, 0.63f), 0.7f, 0.9f, 1f);
+            Lit("M_Brass", "T_Metal", new Color(0.78f, 0.62f, 0.34f), 0.68f, 0.9f, 1f);
             Lit("M_MetalDark", "T_Metal", new Color(0.32f, 0.32f, 0.34f), 0.55f, 0.7f, 1f);
             Lit("M_Cardboard", "T_Cardboard", Color.white, 0.1f, 0f, 1f);
             Lit("M_Straw", "T_Straw", Color.white, 0.2f, 0f, 1f);
@@ -58,6 +60,13 @@ namespace GeodeEmpire.EditorTools
             Lit("M_Wainscot", "T_WoodDark", new Color(0.7f, 0.66f, 0.6f), 0.35f, 0f, 1f);
             var glass = Lit("M_Glass", null, new Color(0.7f, 0.85f, 0.95f, 0.18f), 0.95f, 0f, 1f);
             SetTransparent(glass);
+            // loupe lens: magnifies the opaque scene behind it
+            string lensPath = Folder + "/M_LoupeLens.mat";
+            var lens = AssetDatabase.LoadAssetAtPath<Material>(lensPath);
+            var lensShader = Shader.Find("GeodeEmpire/LoupeLens");
+            if (lens == null) { lens = new Material(lensShader); AssetDatabase.CreateAsset(lens, lensPath); }
+            if (lens.shader != lensShader) lens.shader = lensShader;
+            EditorUtility.SetDirty(lens);
             SetTransparent(AssetDatabase.LoadAssetAtPath<Material>(Folder + "/M_JarGlass.mat"));
             AssetDatabase.SaveAssets();
         }
@@ -168,6 +177,10 @@ namespace GeodeEmpire.EditorTools
                 // specimens drive their shell/crystal materials through property blocks; the resident drawer keeps
                 // drawing such renderers with material defaults on top of the classic draw (z-fighting patches)
                 rp.gpuResidentDrawerMode = GPUResidentDrawerMode.Disabled;
+                // the loupe lens samples the opaque texture: keep the copy full resolution (property is read-only at runtime)
+                var so = new SerializedObject(rp);
+                var od = so.FindProperty("m_OpaqueDownsampling");
+                if (od != null) { od.intValue = 0; so.ApplyModifiedPropertiesWithoutUndo(); }
                 EditorUtility.SetDirty(rp);
             }
             AssetDatabase.SaveAssets();
@@ -251,15 +264,16 @@ namespace GeodeEmpire.EditorTools
             var straw = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             straw.name = "Straw";
             straw.transform.SetParent(root.transform, false);
-            straw.transform.localPosition = new Vector3(0f, 0.055f, 0f);
-            straw.transform.localScale = new Vector3(0.7f, 0.02f, 0.5f);
+            // the body's floor top is ~0.085 up (scaled plank); the straw bed shows above it and the rocks rest on it
+            straw.transform.localPosition = new Vector3(0f, 0.072f, 0f);
+            straw.transform.localScale = new Vector3(0.7f, 0.012f, 0.5f);
             straw.GetComponent<MeshRenderer>().sharedMaterial = WorkshopMaterials.Get("M_Straw");
             Object.DestroyImmediate(straw.GetComponent<Collider>());
             var lid = Prop("prop_crate_lid", root.transform, new Vector3(0f, 0.39f, 0f), 0f, "M_Wood", collider: false, scale: new Vector3(1.35f, 1f, 1.35f));
             lid.name = "Lid";
             var bed = new GameObject("Bed");
             bed.transform.SetParent(root.transform, false);
-            bed.transform.localPosition = new Vector3(0f, 0.075f, 0f);
+            bed.transform.localPosition = new Vector3(0f, 0.09f, 0f);
             var box = root.AddComponent<BoxCollider>();
             box.center = new Vector3(0f, 0.2f, 0f);
             box.size = new Vector3(0.86f, 0.4f, 0.64f);
@@ -272,6 +286,7 @@ namespace GeodeEmpire.EditorTools
         }
 
         // ------------------------------------------------------------------------------------
+        /// <param name="material">material for every slot, or a comma-separated list per material slot (e.g. "M_WoodDark,M_Metal")</param>
         private static GameObject Prop(string file, Transform parent, Vector3 pos, float yaw, string material, bool collider = true, Vector3? scale = null)
         {
             var asset = AssetDatabase.LoadAssetAtPath<GameObject>($"{PropFolder}/{file}.fbx");
@@ -282,11 +297,11 @@ namespace GeodeEmpire.EditorTools
             go.transform.localPosition = pos;
             go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
             if (scale.HasValue) go.transform.localScale = scale.Value;
-            var mat = WorkshopMaterials.Get(material);
+            var names = material.Split(',');
             foreach (var r in go.GetComponentsInChildren<MeshRenderer>())
             {
                 var mats = new Material[r.sharedMaterials.Length];
-                for (int i = 0; i < mats.Length; i++) mats[i] = mat;
+                for (int i = 0; i < mats.Length; i++) mats[i] = WorkshopMaterials.Get(names[Mathf.Min(i, names.Length - 1)].Trim());
                 r.sharedMaterials = mats;
                 r.shadowCastingMode = ShadowCastingMode.On;
             }
@@ -496,12 +511,12 @@ namespace GeodeEmpire.EditorTools
             camAnchor.SetParent(bench, false);
             camAnchor.localPosition = new Vector3(0.25f, 1.3f, -0.5f);
             camAnchor.LookAt(bench.TransformPoint(new Vector3(0.25f, 0.97f, -0.05f)));
-            var chisel = Prop("prop_chisel", bench, new Vector3(-0.35f, 0.935f, -0.15f), 0f, "M_Metal", collider: false, scale: new Vector3(0.78f, 0.82f, 0.78f));
+            var chisel = Prop("prop_chisel", bench, new Vector3(-0.35f, 0.935f, -0.15f), 0f, "M_Steel", collider: false);
             chisel.transform.localRotation = Quaternion.Euler(90f, 30f, 0f);
-            var hammer = Prop("prop_hammer", bench, new Vector3(-0.55f, 0.935f, 0.05f), 0f, "M_MetalDark", collider: false);
+            var hammer = Prop("prop_hammer", bench, new Vector3(-0.55f, 0.935f, 0.05f), 0f, "M_WoodDark,M_Steel", collider: false);
             hammer.transform.localRotation = Quaternion.Euler(0f, -20f, 90f);
             var lampProp = Prop("prop_task_lamp", bench, new Vector3(1.05f, 0.9f, 0.36f), 220f, "M_MetalDark", collider: false);
-            var taskLight = MakeLight(bench, "TaskLight", new Vector3(0.62f, 1.32f, 0.05f), new Vector3(58f, -110f, 0f), LightType.Spot, new Color(1f, 0.92f, 0.8f), 2.4f, 2.6f, 62f, true);
+            var taskLight = MakeLight(bench, "TaskLight", new Vector3(0.62f, 1.32f, 0.05f), new Vector3(58f, -110f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 2.2f, 2.6f, 62f, true);   // neutral daylight lamp: crystal colour stays honest
             Prop("prop_pegboard", bench, new Vector3(0f, 1.35f, 0.5f), 0f, "M_Wood", collider: false);
             Prop("prop_bucket", bench, new Vector3(-1.2f, 0f, -0.1f), 0f, "M_PlasticBlue");
             Prop("prop_stool", bench, new Vector3(0.95f, 0f, -0.75f), 25f, "M_WoodDark");
@@ -510,7 +525,9 @@ namespace GeodeEmpire.EditorTools
             cb.CradleCenter = cradleAnchor;
             cb.CameraAnchor = camAnchor;
             cb.ChiselVisual = chisel.transform;
-            cb.ChiselLength = 0.22f * 0.82f;
+            cb.ChiselLength = 0.17f;
+            cb.HammerLen = 0.312f;
+            cb.HammerHeadHalf = 0.066f;
             cb.HammerVisual = hammer.transform;
             cb.TaskLight = taskLight;
 
@@ -631,9 +648,9 @@ namespace GeodeEmpire.EditorTools
             Sign(parent, "GEODE WORKS", new Vector3(-2.3f, 2.25f, -RoomD / 2f + 0.03f), 180f, 1.3f);
             Sign(parent, "COLLECTION", new Vector3(RoomW / 2f - 0.03f, 2.0f, 0.9f), 90f);
             // spare tools on the pegboard
-            var pegHammer = Prop("prop_hammer", parent, new Vector3(-0.35f, 1.65f, RoomD / 2f - 0.07f), 0f, "M_MetalDark", collider: false);
+            var pegHammer = Prop("prop_hammer", parent, new Vector3(-0.35f, 1.65f, RoomD / 2f - 0.07f), 0f, "M_WoodDark,M_Steel", collider: false);
             pegHammer.transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
-            var pegChisel = Prop("prop_chisel_fine", parent, new Vector3(0.25f, 1.45f, RoomD / 2f - 0.07f), 0f, "M_Metal", collider: false);
+            var pegChisel = Prop("prop_chisel_fine", parent, new Vector3(0.25f, 1.45f, RoomD / 2f - 0.07f), 0f, "M_Steel", collider: false);
             pegChisel.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
             Prop("prop_stool", parent, new Vector3(-2.2f, 0f, 1.6f), -40f, "M_WoodDark");
 
@@ -676,6 +693,13 @@ namespace GeodeEmpire.EditorTools
             var pi = player.AddComponent<PlayerInteractor>();
             pi.Cam = cam;
             pi.Controller = fpc;
+            // the loupe lives in the hand: parked under the camera, raised by LoupeTool
+            var loupe = Prop("prop_loupe", camGo.transform, new Vector3(0.05f, -0.16f, 0.2f), 0f, "M_Brass,M_LoupeLens", collider: false);
+            foreach (var r in loupe.GetComponentsInChildren<MeshRenderer>()) r.shadowCastingMode = ShadowCastingMode.Off;
+            loupe.SetActive(false);
+            var lt = player.AddComponent<LoupeTool>();
+            lt.Loupe = loupe.transform;
+            lt.Player = pi;
         }
 
         private static void BuildSystems(PanelSettings panel, VolumeProfile profile)

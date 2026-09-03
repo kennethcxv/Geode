@@ -46,6 +46,7 @@ Shader "GeodeEmpire/GeodeShell"
         // fracture overlay arrays: kept outside the per-material block so property-block arrays reach them
         float _SectorCrack[16];         // seam stress per sector, >= 1 is an open crack
         float4 _Impacts[32];            // chisel marks: longitude fraction, signed latitude fraction, radius (m), strength
+        float _LoupeBoost;              // global: 1 while the player looks through the loupe
         TEXTURE2D(_RockTex); SAMPLER(sampler_RockTex);
         TEXTURE2D(_NoiseTex); SAMPLER(sampler_NoiseTex);
         ENDHLSL
@@ -144,7 +145,7 @@ Shader "GeodeEmpire/GeodeShell"
                 float lip = (1.0 - smoothstep(halfW * 1.6, halfW * 4.0, dSeam)) * cracked * 0.6 * widthNoise;
                 // the natural seam: a soft, slightly darker weathered band a real geode shows, clearer under the lamp
                 float gNoise = Noise1(lonF * 17.0, 0.66);
-                guide = (1.0 - smoothstep(0.0012, 0.0032 + 0.0015 * gNoise, dSeam)) * _SeamVisible * (1.0 - cracked) * (0.45 + 0.3 * gNoise);
+                guide = (1.0 - smoothstep(0.0012, 0.0032 + 0.0015 * gNoise, dSeam)) * min(1.0, _SeamVisible + 0.5 * _LoupeBoost) * (1.0 - cracked) * (0.45 + 0.3 * gNoise);
                 dark += seamA * _CrackFade;
                 frost += lip * _CrackFade;
 
@@ -198,17 +199,36 @@ Shader "GeodeEmpire/GeodeShell"
                 float rock = TriplanarR(IN.positionOS, nOS, _TexScale);
                 float rockFine = TriplanarR(IN.positionOS + 3.1, nOS, _TexScale * 3.7);
                 float grain = rock * 0.7 + rockFine * 0.3;
+                // micro relief: bend the normal by the detail height gradient so the exterior stops reading as smooth
+                // clay (screen-space derivatives of the height, scaled by the surface's own tangent frame)
+                if (c.r > 0.5)
+                {
+                    float h = rock * 0.6 + rockFine * 0.4;
+                    float3 dpx = ddx(IN.positionWS), dpy = ddy(IN.positionWS);
+                    float dhx = ddx(h), dhy = ddy(h);
+                    float3 tx = dpx - N * dot(dpx, N);
+                    float3 ty = dpy - N * dot(dpy, N);
+                    float lx = max(1e-5, dot(tx, tx)), ly = max(1e-5, dot(ty, ty));
+                    float3 grad = tx * (dhx / lx) + ty * (dhy / ly);
+                    float bump = 0.0035 * (1.0 - 0.5 * _Weathering);
+                    N = normalize(N - grad * bump);
+                }
                 float noise = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 2.7 + IN.positionOS.y * 1.3).b;
 
                 // exterior: two-tone rock with dirt in crevices + optional exposed mineral hint
                 float3 ext = lerp(_RockColor2.rgb, _RockColor.rgb, grain);
                 ext = lerp(ext, ext * 0.55, _Weathering * (1.0 - grain) * 0.6);
-                float hintMask = smoothstep(0.58, 0.72, noise) * _HintAmount;
+                // exposed mineral: a faint hint at arm's length; under the loupe the veins and a speckle of tiny
+                // exposed crystals in the mineral's colour come up (still only what is on the outside)
+                float hintAmt = _HintAmount * (1.0 + 1.6 * _LoupeBoost);
+                float hintMask = smoothstep(0.58 - 0.08 * _LoupeBoost, 0.72, noise) * saturate(hintAmt);
                 ext = lerp(ext, _HintColor.rgb * lerp(0.8, 1.0, grain), hintMask);
+                float speck = pow(saturate(SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xy * 61.0 + IN.positionOS.z * 37.0).g), 9.0);
+                ext = lerp(ext, _HintColor.rgb * 1.15, speck * _HintAmount * 2.5 * _LoupeBoost);
 
                 // fracture overlay: only the exterior carries it
                 float crackDark = 0.0, crackFrost = 0.0, seamGuide = 0.0;
-                if (c.r > 0.5) FractureOverlay(IN.uv2, grain, crackDark, crackFrost, seamGuide);
+                if (c.r > 0.5 || c.b > 0.5) FractureOverlay(IN.uv2, grain, crackDark, crackFrost, seamGuide);
                 float3 frostCol = lerp(ext, float3(0.86, 0.84, 0.79) * lerp(0.85, 1.0, grain), 0.62);
                 ext = lerp(ext, frostCol, crackFrost * 0.85);
                 ext = lerp(ext, ext * 0.55, seamGuide);
@@ -220,6 +240,9 @@ Shader "GeodeEmpire/GeodeShell"
                 float3 bandCol = lerp(_BandA.rgb, _BandB.rgb, band);
                 float bandMask = saturate(_BandStrength * 1.2) * smoothstep(lerp(0.78, 0.12, _BandStrength), lerp(0.96, 0.45, _BandStrength), c.a);
                 float3 rim = lerp(_RimColor.rgb * lerp(0.8, 1.1, grain), bandCol * lerp(0.85, 1.05, rockFine), bandMask);
+                // chips torn out of the rim by the chisel: pale bruised patches with dark edges on the cut face
+                rim = lerp(rim, rim * float3(0.9, 0.88, 0.85) + 0.12, crackFrost * 0.6);
+                rim = lerp(rim, rim * 0.35, crackDark * 0.8);
 
                 // cavity wall: matrix colour with faint continuation of the last band
                 float band2 = smoothstep(0.3, 0.7, sin(_BandFrequency + _BandOffset * 6.2831 + c.a * 2.0 + (noise - 0.5)) * 0.5 + 0.5);

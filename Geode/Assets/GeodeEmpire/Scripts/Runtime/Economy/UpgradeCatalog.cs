@@ -21,9 +21,13 @@ namespace GeodeEmpire.Economy
         public const string InspectionLamp = "inspection_lamp";
         public const string DisplayExpansion = "display_expansion";
         public const string CalibratedScale = "calibrated_scale";
+        public const string Loupe = "loupe";
 
         public static readonly UpgradeDefinition[] All =
         {
+            new UpgradeDefinition { Id = Loupe, Name = "Jeweller's Loupe", Price = 45f, Order = -1,
+                Description = "A folding 10x brass loupe for reading rock up close.",
+                Effect = "Hold a rock and raise the loupe: exposed mineral, banding, hairline cracks and chips come into focus. It never shows what is inside." },
             new UpgradeDefinition { Id = InspectionLamp, Name = "Inspection Lamp", Price = 110f, Order = 0,
                 Description = "A bright articulated lamp over the cracking bench.",
                 Effect = "Shows the fracture ring and stress build-up clearly while you work, and estimates shell thickness." },

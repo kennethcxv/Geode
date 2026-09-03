@@ -99,9 +99,12 @@ Shader "GeodeEmpire/Crystal"
 
                 float3 surf = _BaseColor.rgb * IN.color.rgb;
                 float3 deep = _DeepColor.rgb * IN.color.rgb;
-                float3 body = lerp(surf, deep, _Translucency * ndv);
+                // the deep colour shows through at every angle, strongest looking straight into a face
+                float3 body = lerp(surf, deep, _Translucency * (0.4 + 0.6 * ndv));
                 float zone = smoothstep(0.4, 0.95, IN.color.a);
                 body = lerp(body, _ZoneColor.rgb * IN.color.rgb, _ZoningStrength * zone);
+                // bases sit in the crowd; tips catch the light (cheap contact shadow that grounds the carpet)
+                float baseAO = lerp(0.5, 1.0, smoothstep(0.0, 0.8, IN.color.a));
                 float inc = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 7.0 + IN.positionOS.y * 2.3).r;
                 body = lerp(body, surf * 1.05, _Inclusions * inc * 0.8);
 
@@ -121,7 +124,7 @@ Shader "GeodeEmpire/Crystal"
                 s.metallic = _Metallic;
                 s.specular = half3(0, 0, 0);
                 s.smoothness = _Smoothness;
-                s.occlusion = 1.0;
+                s.occlusion = baseAO;
                 s.alpha = 1.0;
                 s.normalTS = half3(0, 0, 1);
 

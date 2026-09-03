@@ -35,14 +35,18 @@ namespace GeodeEmpire.Economy
                 var target = targets[i];
                 ulong chosen = 0;
                 SpecimenGeology chosenGeo = null;
+                // a focused source draws most of its rocks from its preferred families
+                bool wantPreferred = sup.PreferredMinerals != null && sup.PreferredMinerals.Length > 0 && rng.Chance(sup.PreferredShare);
                 for (int attempt = 0; attempt < MaxAttemptsPerRock; attempt++)
                 {
                     ulong seed = rng.NextULong();
                     var g = SpecimenGenerator.Generate(seed);
                     if (g.Tier != target) continue;
+                    if (wantPreferred && attempt < MaxAttemptsPerRock - 40 && System.Array.IndexOf(sup.PreferredMinerals, g.Mineral) < 0) continue;
                     // keep crates varied: at most 3 of one family, and the curated first crate avoids repeats
                     int have = mineralCounts.GetValueOrDefault(g.Mineral);
                     int limit = state.CrateCounter == 1 ? 2 : 3;
+                    if (wantPreferred) limit = 12;   // a focused lot is allowed to repeat its mineral
                     if (have >= limit && attempt < MaxAttemptsPerRock - 20) continue;
                     chosen = seed;
                     chosenGeo = g;

@@ -31,9 +31,9 @@ namespace GeodeEmpire.Cracking
 
         // tool geometry (metres). Chisel: tip at its origin, cap at +Y ChiselLength. Hammer: origin at the handle
         // bottom, head centre at +Y HammerLen, head is a bar of half-length HammerHeadHalf along local X.
-        public float ChiselLength = 0.215f;
-        public float HammerLen = 0.315f;
-        public float HammerHeadHalf = 0.055f;
+        public float ChiselLength = 0.17f;
+        public float HammerLen = 0.312f;
+        public float HammerHeadHalf = 0.066f;
         /// <summary>How far the flipped half must land from the rock centre so it clears the cradle ring.</summary>
         public float CradleClearance = 0.145f;
 
@@ -490,7 +490,8 @@ namespace GeodeEmpire.Cracking
             var swing = Quaternion.AngleAxis(angle, swingAxis);
             Vector3 hd = swing * handleDir;
             Vector3 ax = swing * axis;
-            var hRot = Quaternion.LookRotation(Vector3.Cross(ax, hd), hd);
+            // local +X (the domed striking face) points down the chisel axis at the cap; the peen points away
+            var hRot = Quaternion.LookRotation(Vector3.Cross(hd, ax), hd);
             HammerVisual.SetPositionAndRotation(grip, hRot);
         }
 
@@ -581,7 +582,8 @@ namespace GeodeEmpire.Cracking
 
             if (result.Opened)
             {
-                if (result.Shattered) { ApplyDamage(0.9f, azimuth); ApplyDamage(0.7f, azimuth + 2.5f); }
+                // a burst shell tears crystals off all the way round, not just under the chisel
+                if (result.Shattered) { ApplyDamage(0.95f, azimuth); ApplyDamage(0.8f, azimuth + 1.6f); ApplyDamage(0.75f, azimuth + 3.1f); ApplyDamage(0.7f, azimuth + 4.7f); }
                 StartCoroutine(RevealRoutine(result));
             }
             else
@@ -636,7 +638,8 @@ namespace GeodeEmpire.Cracking
             }
             if (candidates.Count == 0) return;
             candidates.Sort((a, b) => a.score.CompareTo(b.score));
-            int count = Mathf.Clamp(1 + Mathf.RoundToInt(severity * 3f), 1, candidates.Count);
+            // a blow wrecks a patch of the carpet, not one point: scale with how many crystals there are
+            int count = Mathf.Clamp(1 + Mathf.RoundToInt(severity * (2f + geo.Crystals.Count * 0.035f)), 1, candidates.Count);
             for (int i = 0; i < count; i++)
             {
                 int idx = candidates[i].index;
@@ -648,6 +651,10 @@ namespace GeodeEmpire.Cracking
             _rock.Record.DamageEvents++;
             _rock.Record.ShellDamage = Mathf.Clamp01(_rock.Record.ShellDamage + severity * 0.12f);
             _rock.Record.DamageFraction = _rock.Visual.CrystalDamageFraction();
+            // the shell shows it too: a ragged chip torn out of the rim beside the strike, bigger the harder the blow
+            float rimLon = azimuth + _rng.Range(-0.35f, 0.35f);
+            var rimLocal = new Vector3(Mathf.Cos(rimLon), _rng.Range(-0.08f, 0.08f), Mathf.Sin(rimLon)) * geo.MeanEquatorRadius;
+            AddImpactMark(rimLocal, geo, geo.MaxRadius * (0.09f + severity * 0.12f), 0.7f + severity * 0.3f);
             _damageThisRock++;
             if (_rock.Record.DamageEvents == 1) GameSession.Instance.State.Stats.SpecimensDamaged++;   // persisted counter: no double count after re-entering
         }
@@ -694,7 +701,7 @@ namespace GeodeEmpire.Cracking
             var light = lightGo.AddComponent<Light>();
             light.type = LightType.Point;
             light.range = geo.MaxRadius * 6f;
-            light.color = new Color(1f, 0.96f, 0.88f);
+            light.color = new Color(0.93f, 0.96f, 1f);      // cool, so crystal colour reads instead of going yellow
             light.intensity = 0f;
             light.shadows = LightShadows.None;
 
@@ -721,7 +728,7 @@ namespace GeodeEmpire.Cracking
             Vector3 landLocal = hinge + Quaternion.AngleAxis(178f, axis) * (startPos - hinge) + slide;
             Vector3 landWorld = _rock.transform.TransformPoint(landLocal);
             // rest on whatever lies under the landing spot (bench top), never above or inside it
-            float surfaceY = _rock.transform.position.y + geo.BottomY;
+            float surfaceY = _rock.transform.position.y - _rock.RestHeightOffset(false);
             var downRay = new Ray(landWorld + Vector3.up * 0.3f, Vector3.down);
             float bestSurface = float.MinValue;
             int hits = Physics.RaycastNonAlloc(downRay, _aimHits, 0.7f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
@@ -732,7 +739,9 @@ namespace GeodeEmpire.Cracking
                 if (h.point.y > surfaceY - 0.3f && h.point.y < surfaceY + 0.05f && h.point.y > bestSurface) bestSurface = h.point.y;
             }
             if (bestSurface > float.MinValue) surfaceY = bestSurface;
-            float finalLift = (surfaceY + geo.TopY) - landWorld.y;
+            // rest the flipped half on its real lowest lump, not its pole
+            var landRot = Quaternion.AngleAxis(178f, axis) * startRot;
+            float finalLift = (surfaceY - _rock.LowestOfTop(landRot)) - landWorld.y;
             float dur = rare ? 1.5f : 1.15f;
             // dolly the bench camera in to admire the interior, centred between the two halves
             Vector3 camFrom = CameraAnchor.position; Quaternion camFromRot = CameraAnchor.rotation;
@@ -751,7 +760,7 @@ namespace GeodeEmpire.Cracking
                 Vector3 pos = hinge + rot * (startPos - hinge) + slide * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.35f) / 0.65f)) + Vector3.up * (lift + finalLift * e);
                 top.localPosition = pos;
                 top.localRotation = rot * startRot;
-                light.intensity = Mathf.Sin(Mathf.Clamp01(t) * Mathf.PI) * (rare ? 2.4f : 1.5f);
+                light.intensity = Mathf.Sin(Mathf.Clamp01(t) * Mathf.PI) * (rare ? 1.5f : 0.9f);
                 float ct = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.15f) / 0.85f));
                 CameraAnchor.SetPositionAndRotation(Vector3.Lerp(camFrom, camTo, ct), Quaternion.Slerp(camFromRot, camToRot, ct));
                 if (t > 0.35f && t < 0.4f) EffectsFactory.Instance?.Glints(_rock.transform.position + Vector3.up * R * 0.4f, R * 0.7f, attractive ? 18 : 8, SpecimenVisual.ApplySaturation(g.Palette.SurfaceA, g.Saturation));

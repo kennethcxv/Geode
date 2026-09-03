@@ -222,6 +222,14 @@ namespace GeodeEmpire.UI
                 UiKit.Label(tags, VarianceTag(sup), "tag");
                 if (!unlocked) UiKit.Label(tags, "LOCKED", "tag", "tag-locked");
                 var desc = UiKit.Label(text, unlocked ? sup.Description : sup.UnlockHint, "item-desc");
+                if (unlocked)
+                {
+                    void Line(string k, string v) { var r2 = UiKit.Box(text, "row"); r2.style.marginTop = 4; var kl = UiKit.Label(r2, k, "item-sub"); kl.style.width = 92; var vl = UiKit.Label(r2, v, "item-sub"); vl.style.whiteSpace = WhiteSpace.Normal; vl.style.flexShrink = 1; }
+                    Line("Expect", sup.Character);
+                    Line("Risk", sup.Risk);
+                    Line("Minerals", sup.Minerals);
+                    Line("Look for", sup.Clue);
+                }
                 var side = UiKit.Box(row);
                 side.style.alignItems = Align.FlexEnd;
                 side.style.minWidth = 180;
@@ -246,6 +254,7 @@ namespace GeodeEmpire.UI
             {
                 SupplierCatalog.Local => "HIGH VARIANCE",
                 SupplierCatalog.Regional => "RELIABLE",
+                SupplierCatalog.AmethystLot => "FOCUSED",
                 SupplierCatalog.Estate => "GAMBLE",
                 _ => "DISPLAY GRADE",
             };

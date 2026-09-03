@@ -66,33 +66,104 @@ def torus(bm, major, minor, center, seg_major=28, seg_minor=10, squash=1.0):
 # Props
 # ---------------------------------------------------------------------------
 def hammer(rng):
+    """Engineer's hammer: hickory handle along +Z with an oval grip swell, forged steel head across X with a
+    slightly domed striking face and a chamfered cross-peen. Head faces are material slot 1, handle slot 0."""
     bm = bmesh.new()
-    # handle along +Z, origin at handle bottom
-    cyl(bm, 0.016, 0.3, (0, 0, 0), segments=10, radius_top=0.014)
-    cyl(bm, 0.02, 0.05, (0, 0, 0.0), segments=10, radius_top=0.017)  # grip flare
-    # head (mallet-like engineer's hammer): box with bevel, oriented along X
-    head = lib.bm_box((0.11, 0.036, 0.036), (0, 0, 0.315))
-    lib.bm_bevel(head, 0.005, segments=1)
+    # handle: octagonal, tapering from the grip swell to the neck, origin at the grip end
+    handle = lib.bm_cylinder(0.0155, 0.29, segments=10, radius_top=0.0125)
+    for v in handle.verts:
+        z = v.co.z
+        swell = 1.0 + 0.18 * math.exp(-((z - 0.06) / 0.05) ** 2)   # grip swell near the hand
+        v.co.x *= swell * 1.0
+        v.co.y *= swell * 1.25                                        # oval section, deeper than wide
+    lib.bm_append(bm, handle)
+    # neck wedge where the handle enters the eye
+    cyl(bm, 0.0135, 0.02, (0, 0, 0.289), segments=10, radius_top=0.016)
+    # head: a bar along X, slightly waisted, face end domed, peen end chamfered
+    head = lib.bm_box((0.118, 0.034, 0.036), (0, 0, 0.312))
+    for v in head.verts:
+        x = v.co.x
+        waist = 0.85 + 0.15 * min(1.0, abs(x) / 0.045)              # thinner around the eye
+        v.co.y *= waist
+        v.co.z = 0.312 + (v.co.z - 0.312) * waist
+        if x < -0.05:                                                 # peen end tapers
+            v.co.y *= 0.55
+            v.co.z = 0.312 + (v.co.z - 0.312) * 0.9
+    lib.bm_bevel(head, 0.004, segments=2)
+    for f in head.faces:
+        f.material_index = 1
     lib.bm_append(bm, head)
+    # domed striking face cap
+    face = lib.bm_cylinder(0.0165, 0.006, segments=12, radius_top=0.0145)
+    for f in face.faces:
+        f.material_index = 1
+    lib.bm_append(bm, face, Matrix.Translation((0.059, 0, 0.312)) @ Matrix.Rotation(math.radians(90), 4, "Y"))
     return bm, False
 
 
 def chisel(rng, fine=False):
+    """Cold chisel: origin at the cutting edge (+Z up the shank). Flat blade widening from the edge, octagonal
+    shank, a slight mushroomed striking cap. The fine chisel is longer, slimmer and has a knurled grip band."""
     bm = bmesh.new()
-    length = 0.22 if not fine else 0.24
-    r = 0.011 if not fine else 0.008
-    # tip at origin: tapered wedge, then octagonal shank, then mushroom head at the top
-    tip = lib.bm_cylinder(0.002, 0.03, segments=8, radius_top=r)
-    lib.bm_append(bm, tip, Matrix.Translation((0, 0, 0)))
-    # flatten tip into a blade
-    for v in bm.verts:
-        if v.co.z < 0.001:
-            v.co.x *= 4.0
-            v.co.y *= 0.25
-    cyl(bm, r, length - 0.06, (0, 0, 0.03), segments=8)
+    length = 0.17 if not fine else 0.19
+    r = 0.0075 if not fine else 0.0062
+    # blade: a flattened wedge 0.032 tall, from a 1.6 mm edge to the shank section
+    blade = lib.bm_cylinder(0.001, 0.034, segments=8, radius_top=r)
+    for v in blade.verts:
+        t = v.co.z / 0.034
+        v.co.x *= 2.4 - 1.4 * t          # wide edge -> round shank
+        v.co.y *= 0.35 + 0.65 * t         # thin edge
+    lib.bm_append(bm, blade)
+    # shank: octagonal
+    cyl(bm, r, length - 0.034 - 0.022, (0, 0, 0.034), segments=8)
     if fine:
-        cyl(bm, r * 1.6, 0.03, (0, 0, 0.11), segments=8)  # grip ring
-    cyl(bm, r * 1.5, 0.03, (0, 0, length - 0.03), segments=10, radius_top=r * 1.3)
+        knurl = lib.bm_cylinder(r * 1.45, 0.028, segments=8)
+        for v in knurl.verts:
+            a = math.atan2(v.co.y, v.co.x)
+            v.co.x *= 1.0 + 0.06 * math.cos(a * 8)
+            v.co.y *= 1.0 + 0.06 * math.cos(a * 8)
+        lib.bm_append(bm, knurl, Matrix.Translation((0, 0, 0.085)))
+    # cap: mushroomed by hammering, slightly wider than the shank with a soft top
+    cap = lib.bm_cylinder(r * 1.25, 0.022, segments=10, radius_top=r * 1.05)
+    lib.bm_bevel(cap, 0.0018, segments=1)
+    lib.bm_append(bm, cap, Matrix.Translation((0, 0, length - 0.022)))
+    return bm, False
+
+
+def loupe(rng):
+    """Jeweller's loupe: a short brass barrel holding a lens, on a folding arm and a grip. Origin at the base of the
+    grip (+Z up); the lens axis is +Y (toward the player when raised). Lens disc is material slot 1."""
+    bm = bmesh.new()
+    # grip: rounded bar
+    grip = lib.bm_box((0.018, 0.012, 0.075), (0, 0, 0.0375))
+    lib.bm_bevel(grip, 0.004, segments=2)
+    lib.bm_append(bm, grip)
+    # arm to the barrel
+    arm = lib.bm_box((0.008, 0.008, 0.02), (0, 0, 0.085))
+    lib.bm_append(bm, arm)
+    # barrel: ring, axis along Y
+    ring_outer = lib.bm_cylinder(0.021, 0.014, segments=28, cap=False)
+    ring_inner = lib.bm_cylinder(0.017, 0.014, segments=28, cap=False)
+    for f in ring_inner.faces:
+        f.normal_flip()
+    barrel = bmesh.new()
+    lib.bm_append(barrel, ring_outer)
+    lib.bm_append(barrel, ring_inner)
+    # close the ring ends with quads between outer and inner loops
+    n = 28
+    ov = [v for v in barrel.verts][:2 * n]
+    iv = [v for v in barrel.verts][2 * n:4 * n]
+    for k in (0, 1):
+        for i in range(n):
+            j = (i + 1) % n
+            a, b_, c, d = ov[k * n + i], ov[k * n + j], iv[k * n + j], iv[k * n + i]
+            barrel.faces.new((a, b_, c, d) if k == 1 else (d, c, b_, a))
+    lib.bm_append(bm, barrel, Matrix.Translation((0, -0.007, 0.112)) @ Matrix.Rotation(math.radians(-90), 4, "X"))
+    # lens: a thin disc inside the barrel, slot 1
+    lens = lib.bm_cylinder(0.0168, 0.003, segments=28)
+    for f in lens.faces:
+        f.material_index = 1
+    lib.bm_append(bm, lens, Matrix.Translation((0, -0.0015, 0.112)) @ Matrix.Rotation(math.radians(-90), 4, "X"))
     return bm, False
 
 
@@ -430,6 +501,7 @@ PROPS = [
     ("prop_hammer", hammer, 201),
     ("prop_chisel", lambda r: chisel(r, False), 202),
     ("prop_chisel_fine", lambda r: chisel(r, True), 203),
+    ("prop_loupe", loupe, 232),
     ("prop_workbench", workbench, 204),
     ("prop_cradle", cradle, 205),
     ("prop_crate_body", crate_body, 206),
@@ -472,7 +544,7 @@ def build_all():
         lib.bm_box_uv(bm, scale=UV_SCALE)
         if name == "prop_pendant_lamp":
             pass  # origin stays at the ceiling attachment point
-        elif name not in ("prop_chisel", "prop_chisel_fine", "prop_tablet"):
+        elif name not in ("prop_chisel", "prop_chisel_fine", "prop_tablet", "prop_loupe"):
             lib.bm_origin_to_base(bm, center_xy=(name not in ("prop_hammer",)))
         else:
             lib.bm_origin_to_base(bm, center_xy=True)
@@ -480,6 +552,10 @@ def build_all():
         obj = lib.object_from_bmesh(name, bm, smooth=smooth)
         lib.apply_transforms(obj)
         mesh = obj.data
+        # material slots: faces tagged with material_index > 0 become separate submeshes in Unity
+        max_slot = max((poly.material_index for poly in mesh.polygons), default=0)
+        for slot in range(max_slot + 1):
+            mesh.materials.append(bpy.data.materials.new(f"{name}_slot{slot}"))
         xs = [v.co.x for v in mesh.vertices]
         ys = [v.co.y for v in mesh.vertices]
         zs = [v.co.z for v in mesh.vertices]

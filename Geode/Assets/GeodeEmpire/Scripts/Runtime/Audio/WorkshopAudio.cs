@@ -104,6 +104,8 @@ namespace GeodeEmpire.Audio
             _bank["discovery"] = Variants(1, i => Discovery(seed: 180));
             _bank["slip"] = Variants(2, i => Slip(seed: 190 + (ulong)i));
             _bank["thud"] = Variants(2, i => Impact(0.4f, 120f + i * 20f, 1.0f, 0.5f, 0.6f, 1.2f, seed: 200 + (ulong)i));
+            _bank["loupe_up"] = Variants(1, i => Chime(2600f, 0.12f, seed: 210, noise: 0.15f));
+            _bank["loupe_down"] = Variants(1, i => Impact(0.08f, 700f, 0.3f, 0.05f, 0.5f, 6f, seed: 211));
             _bank["ambience"] = new[] { Ambience(seed: 300) };
         }
 

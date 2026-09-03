@@ -38,8 +38,12 @@ Material:
     - _BandStrength: 0.5
     - _CavityDruzy: 0
     - _CavitySmoothness: 0.35
+    - _CrackFade: 1
     - _Highlight: 0
     - _HintAmount: 0
+    - _ImpactCount: 0
+    - _SeamVisible: 0.4
+    - _SurfR: 0.06
     - _TexScale: 14
     - _Weathering: 0.5
     m_Colors:

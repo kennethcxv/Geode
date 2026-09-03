@@ -118,27 +118,33 @@ namespace GeodeEmpire.Specimens
         /// </summary>
         public float LowestPointOffset(Quaternion rotation)
         {
-            float lowest = float.MaxValue;
-            void Scan(Mesh m)
-            {
-                if (m == null) return;
-                var verts = m.vertices;
-                for (int i = 0; i < verts.Length; i++) { float y = (rotation * verts[i]).y; if (y < lowest) lowest = y; }
-            }
-            if (Visual != null) { Scan(Visual.BottomColliderMesh); if (!IsOpened) Scan(Visual.TopColliderMesh); }
-            return lowest == float.MaxValue ? -RestHeightOffset(false) : lowest;
+            float lowest = Mathf.Min(LowestOf(Visual != null ? Visual.BottomColliderMesh : null, rotation), IsOpened ? float.MaxValue : LowestOf(Visual != null ? Visual.TopColliderMesh : null, rotation));
+            return lowest == float.MaxValue ? -0.05f : lowest;
         }
 
-        /// <summary>How far above a surface the pivot must sit so the rock rests on it.</summary>
+        /// <summary>Lowest hull vertex of the top half under a local rotation (negative: below the half's pivot).</summary>
+        public float LowestOfTop(Quaternion localRotation) => LowestOf(Visual != null ? Visual.TopColliderMesh : null, localRotation);
+
+        private static float LowestOf(Mesh m, Quaternion rotation)
+        {
+            if (m == null) return float.MaxValue;
+            float lowest = float.MaxValue;
+            var verts = m.vertices;
+            for (int i = 0; i < verts.Length; i++) { float y = (rotation * verts[i]).y; if (y < lowest) lowest = y; }
+            return lowest;
+        }
+
+        private float _bottomLowest = float.NaN;
+
+        /// <summary>
+        /// How far above a surface the pivot must sit so the rock rests on it: the bottom hull's real lowest lump, not
+        /// the pole, so nothing sinks into cradles, trays or shelves.
+        /// </summary>
         public float RestHeightOffset(bool cavityUp)
         {
             if (Visual == null || Visual.Geometry == null) return 0.05f;
-            if (IsOpened)
-            {
-                // opened: bottom half sits on its exterior with the cut face up; pivot is the fracture plane
-                return -Visual.Geometry.BottomY;
-            }
-            return -Visual.Geometry.BottomY;
+            if (float.IsNaN(_bottomLowest)) _bottomLowest = LowestOf(Visual.BottomColliderMesh, Quaternion.identity);
+            return _bottomLowest == float.MaxValue ? -Visual.Geometry.BottomY : -_bottomLowest;
         }
 
         /// <summary>Arrange halves for an opened specimen: top half hinged open beside the bottom half.</summary>
@@ -158,9 +164,10 @@ namespace GeodeEmpire.Specimens
                 }
                 float r = geo.MeanEquatorRadius;
                 // lie the top half next to the bottom half, cavity up (rotated 180 around Z, shifted along -X);
-                // its lowest point must touch the same surface: after flipping, its pole (TopY) is lowest
-                Visual.TopHalf.localRotation = Quaternion.Euler(0f, 0f, 180f);
-                Visual.TopHalf.localPosition = new Vector3(-r * 2.15f, geo.BottomY + geo.TopY, 0f);
+                // both halves rest on their real lowest hull points on the same surface
+                var flip = Quaternion.Euler(0f, 0f, 180f);
+                Visual.TopHalf.localRotation = flip;
+                Visual.TopHalf.localPosition = new Vector3(-r * 2.15f, -RestHeightOffset(false) - LowestOfTop(flip), 0f);
             }
             else
             {
@@ -177,9 +184,8 @@ namespace GeodeEmpire.Specimens
         public void CommitOpenPose()
         {
             if (Visual == null || Visual.TopHalf == null || !IsOpened) return;
-            var geo = Visual.Geometry;
             var p = Visual.TopHalf.localPosition;
-            p.y = geo.BottomY + geo.TopY;
+            p.y = -RestHeightOffset(false) - LowestOfTop(Visual.TopHalf.localRotation);
             Visual.TopHalf.localPosition = p;
             Record.OpenTopLocalPos = p;
             Record.OpenTopLocalRot = Visual.TopHalf.localRotation;

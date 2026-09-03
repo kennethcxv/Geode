@@ -122,7 +122,7 @@ namespace GeodeEmpire.Cracking
                 r.Overstrike = force > 0.45f;
                 Stress[left] += baseStress * spread * 0.5f;
                 Stress[right] += baseStress * spread * 0.5f;
-                Stress[sector] += baseStress * 0.3f;   // keeps accumulating toward a brute-force shatter
+                Stress[sector] += baseStress * 0.25f;  // keeps accumulating toward a brute-force shatter
                 r.StressAdded = baseStress * spread;
             }
             else
@@ -153,7 +153,9 @@ namespace GeodeEmpire.Cracking
             // brute force: a sector hammered far past cracking, or a heavy blow on an already stressed shell
             float maxStress = 0f;
             for (int i = 0; i < Sectors; i++) maxStress = Mathf.Max(maxStress, Stress[i]);
-            bool overwhelmed = !ringOpen && (maxStress >= 6f || (force > 0.75f && TotalStress() >= Sectors * 1.1f));
+            // pounding one spot eventually bursts the shell, but it takes at least as many blows as working the ring
+            float burst = 6f + 4f * Mathf.Clamp(Toughness, 0.6f, 1.5f);
+            bool overwhelmed = !ringOpen && (maxStress >= burst || (force > 0.75f && TotalStress() >= Sectors * 1.1f));
             if (ringOpen || overwhelmed)
             {
                 r.Opened = true;

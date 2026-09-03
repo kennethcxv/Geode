@@ -12,7 +12,7 @@ namespace GeodeEmpire.Core
     public static class GameInput
     {
         private static InputActionMap _player;
-        private static InputAction _move, _look, _interact, _strike, _inspect, _drop, _rotate, _scroll, _sprint, _back, _pause, _tablet;
+        private static InputAction _move, _look, _interact, _strike, _inspect, _drop, _rotate, _scroll, _sprint, _back, _pause, _tablet, _loupe;
         private static bool _ready;
         private static double _lastGamepadTime = -1, _lastKbmTime = 0;
 
@@ -47,6 +47,7 @@ namespace GeodeEmpire.Core
             _back = _player.FindAction("Back", true);
             _pause = _player.FindAction("Pause", true);
             _tablet = _player.FindAction("Tablet", true);
+            _loupe = _player.FindAction("Loupe", false);
             _player.Enable();
             var ui = asset.FindActionMap("UI");
             ui?.Enable();
@@ -97,6 +98,7 @@ namespace GeodeEmpire.Core
         public static bool BackPressed => _ready && _back.WasPressedThisFrame();
         public static bool PausePressed => _ready && _pause.WasPressedThisFrame();
         public static bool TabletPressed => _ready && _tablet.WasPressedThisFrame();
+        public static bool LoupePressed => _ready && _loupe != null && _loupe.WasPressedThisFrame();
 
         /// <summary>Human-readable glyph for an action in the current scheme.</summary>
         public static string Glyph(string action)
@@ -112,6 +114,7 @@ namespace GeodeEmpire.Core
                 case "Back": return gp ? "B" : "Esc";
                 case "Pause": return gp ? "Start" : "Esc";
                 case "Tablet": return gp ? "Select" : "Tab";
+                case "Loupe": return gp ? "Y" : "F";
                 case "Move": return gp ? "L-Stick" : "WASD";
                 case "Look": return gp ? "R-Stick" : "Mouse";
                 case "Sprint": return gp ? "L3" : "Shift";

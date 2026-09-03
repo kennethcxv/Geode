@@ -25,6 +25,8 @@ namespace GeodeEmpire.Player
         public string Prompt { get; private set; } = "";
         public string Hint { get; private set; } = "";
         public bool Inspecting { get; private set; }
+        /// <summary>The loupe is raised: the held piece stays up in inspect pose without holding the inspect button.</summary>
+        public bool LoupeActive { get; private set; }
         /// <summary>Set by stations/UI to suspend free-roam interaction.</summary>
         public bool InputLocked;
         /// <summary>Frame until which interact presses are ignored (a station consumed the press).</summary>
@@ -69,12 +71,13 @@ namespace GeodeEmpire.Player
                 return;
             }
 
-            // inspect held object
-            if (Held != null && GameInput.InspectHeld)
+            // inspect held object (held button, or the loupe keeping it raised)
+            if (Held != null && (GameInput.InspectHeld || LoupeActive))
             {
                 if (!Inspecting) BeginInspect();
                 Vector2 look = GameInput.Look;
                 float k = GameInput.UsingGamepad ? 180f * Time.deltaTime : 0.35f;
+                if (LoupeActive) k *= 0.6f;   // finer control under magnification
                 _inspectRot = Quaternion.AngleAxis(-look.x * k, Vector3.up) * Quaternion.AngleAxis(look.y * k, Vector3.right) * _inspectRot;
                 _inspectZoom = Mathf.Clamp(_inspectZoom + GameInput.Scroll.y * 0.0006f + GameInput.Rotate * Time.deltaTime * 0.2f, -0.12f, 0.16f);
             }
@@ -182,7 +185,8 @@ namespace GeodeEmpire.Player
             if (Inspecting)
             {
                 p = "";
-                h = $"{GameInput.Glyph("Look")} rotate   {GameInput.Glyph("Inspect")} release";
+                h = LoupeActive ? $"{GameInput.Glyph("Look")} turn   {GameInput.Glyph("Loupe")} lower loupe"
+                                : $"{GameInput.Glyph("Look")} rotate   {GameInput.Glyph("Inspect")} release" + (LoupeTool.Owned ? $"   {GameInput.Glyph("Loupe")} loupe" : "");
             }
             else if (Target != null)
             {
@@ -191,7 +195,7 @@ namespace GeodeEmpire.Player
             }
             if (Held != null && !Inspecting)
             {
-                string held = $"Hold {GameInput.Glyph("Inspect")} to inspect   {GameInput.Glyph("Drop")} drop";
+                string held = $"Hold {GameInput.Glyph("Inspect")} to inspect   {GameInput.Glyph("Drop")} drop" + (LoupeTool.Owned ? $"   {GameInput.Glyph("Loupe")} loupe" : "");
                 h = string.IsNullOrEmpty(h) ? held : h + "   " + held;
             }
             if (p != Prompt || h != Hint)
@@ -200,6 +204,14 @@ namespace GeodeEmpire.Player
                 Hint = h;
                 PromptChanged?.Invoke();
             }
+        }
+
+        /// <summary>Called by the loupe: raised means the piece stays in inspect pose.</summary>
+        public void SetLoupe(bool on)
+        {
+            LoupeActive = on;
+            if (!on && !GameInput.InspectHeld && Inspecting) EndInspect();
+            RefreshPrompt();
         }
 
         public void PickUp(SpecimenEntity e)
@@ -227,6 +239,7 @@ namespace GeodeEmpire.Player
             if (Held == null) return;
             var e = Held;
             Held = null;
+            LoupeActive = false;
             if (Inspecting) EndInspect();
             e.SetCollidersEnabled(true);
             RefreshPrompt();
@@ -237,6 +250,7 @@ namespace GeodeEmpire.Player
             if (Held == null) return;
             var e = Held;
             Held = null;
+            LoupeActive = false;
             if (Inspecting) EndInspect();
             e.transform.SetParent(null, true);
             e.SetCollidersEnabled(true);
@@ -256,7 +270,9 @@ namespace GeodeEmpire.Player
             var anchor = Inspecting ? InspectAnchor : HoldAnchor;
             Quaternion baseRot = Held.IsOpened ? Quaternion.Euler(-62f, 18f, 0f) : Quaternion.Euler(18f, 32f, 8f);
             Quaternion targetRot = anchor.rotation * (Inspecting ? _inspectRot * Quaternion.Euler(Held.IsOpened ? -70f : 10f, 0f, 0f) : baseRot);
+            // under the loupe the piece comes up to the lens (just past it, so the magnified view is of the rock)
             Vector3 targetPos = anchor.position + (Inspecting ? anchor.forward * _inspectZoom : Vector3.zero);
+            if (LoupeActive) targetPos += anchor.right * LoupeTool.HeldOffset.x + anchor.up * LoupeTool.HeldOffset.y + anchor.forward * LoupeTool.HeldOffset.z;
             // keep large rocks from clipping the camera
             float pushBack = Mathf.Max(0f, Held.Radius - 0.06f) * (Inspecting ? 1.6f : 0.9f);
             targetPos += anchor.forward * pushBack;

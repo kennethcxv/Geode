@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using GeodeEmpire.Save;
+using GeodeEmpire.Specimens;
 
 namespace GeodeEmpire.Economy
 {
@@ -17,6 +18,12 @@ namespace GeodeEmpire.Economy
         public float[] TierWeights;       // Common, Decent, Good, Exceptional, Museum, WorldClass
         public string UnlockHint;
         public Color Accent;
+        /// <summary>Mineral families this source favours (null = the quarry's natural mix).</summary>
+        public MineralId[] PreferredMinerals;
+        /// <summary>Fraction of the crate drawn from the preferred families.</summary>
+        public float PreferredShare;
+        /// <summary>Plain-language expectations shown on the tablet: character, risk, likely minerals, exterior clue.</summary>
+        public string Character, Risk, Minerals, Clue;
 
         public string RockCountLabel => CountHidden ? "6–12 rocks (unsorted)" : MinRocks == MaxRocks ? $"{MinRocks} rocks" : $"{MinRocks}–{MaxRocks} rocks";
     }
@@ -25,6 +32,7 @@ namespace GeodeEmpire.Economy
     {
         public const string Local = "local";
         public const string Regional = "regional";
+        public const string AmethystLot = "amethyst";
         public const string Estate = "estate";
         public const string Premium = "premium";
 
@@ -37,6 +45,10 @@ namespace GeodeEmpire.Economy
                 Price = 75f, MinRocks = 9, MaxRocks = 10, CountHidden = false,
                 TierWeights = new[] { 0.62f, 0.25f, 0.09f, 0.03f, 0.003f, 0.0005f },
                 UnlockHint = "", Accent = new Color(0.75f, 0.62f, 0.42f),
+                Character = "Broad common material with a low floor. Volume for the outbox and hammer practice.",
+                Risk = "Cheap gamble: most of the crate is ordinary, one piece now and then is not.",
+                Minerals = "Quartz, agate and calcite mostly; anything can turn up.",
+                Clue = "Mixed sizes, dusty exteriors, few surface hints.",
             },
             new SupplierDefinition
             {
@@ -45,6 +57,23 @@ namespace GeodeEmpire.Economy
                 Price = 190f, MinRocks = 8, MaxRocks = 8, CountHidden = false,
                 TierWeights = new[] { 0.28f, 0.40f, 0.24f, 0.065f, 0.015f, 0.003f },
                 UnlockHint = "Unlocks after your first sale to the dealer.", Accent = new Color(0.45f, 0.65f, 0.55f),
+                Character = "Pre-sorted by weight and sound: a reliable floor, steady value, no miracles.",
+                Risk = "Low. The duds and the jackpots were both skimmed off before you saw the crate.",
+                Minerals = "The full range, weighted toward hollow quartz-family geodes.",
+                Clue = "Uniform sizes, clean exteriors; the dealer's chalk marks the heavier ones.",
+            },
+            new SupplierDefinition
+            {
+                Id = AmethystLot, Name = "Amethyst Lot", Tagline = "One mine, one mineral. Purple or bust.",
+                Description = "A pallet straight from an amethyst working. Most of it is amethyst; deep-purple cathedrals happen here and almost nowhere else.",
+                Price = 230f, MinRocks = 8, MaxRocks = 9, CountHidden = false,
+                TierWeights = new[] { 0.36f, 0.32f, 0.2f, 0.09f, 0.025f, 0.005f },
+                UnlockHint = "Unlocks after you have opened an amethyst.", Accent = new Color(0.6f, 0.42f, 0.85f),
+                PreferredMinerals = new[] { MineralId.Amethyst }, PreferredShare = 0.78f,
+                Character = "Little variety, strong colour odds: this is where the cathedrals come from.",
+                Risk = "Medium. A pale lot is disappointing; a saturated one pays for the next three crates.",
+                Minerals = "Amethyst, with a little clear quartz and calcite from the same seams.",
+                Clue = "Round, heavy, purple staining in the pits of the shell.",
             },
             new SupplierDefinition
             {
@@ -52,7 +81,12 @@ namespace GeodeEmpire.Economy
                 Description = "Unknown provenance, unknown count. Estate lots can be a box of gravel or the best week of your career.",
                 Price = 260f, MinRocks = 6, MaxRocks = 12, CountHidden = true,
                 TierWeights = new[] { 0.50f, 0.20f, 0.15f, 0.10f, 0.03f, 0.01f },
-                UnlockHint = "Unlocks once you have a specimen on display.", Accent = new Color(0.62f, 0.45f, 0.72f),
+                UnlockHint = "Unlocks after your second crate, once you have a specimen on display.", Accent = new Color(0.62f, 0.45f, 0.72f),
+                PreferredMinerals = new[] { MineralId.Celestite, MineralId.Fluorite, MineralId.Pyrite, MineralId.Aragonite, MineralId.SmokyQuartz }, PreferredShare = 0.45f,
+                Character = "Somebody's unsorted collection. Odd families, odd combinations, unknown count.",
+                Risk = "High. Half a box of gravel is normal; so is the best piece of your month.",
+                Minerals = "Skews to the unusual: celestite, fluorite, pyrite, aragonite, smoky quartz.",
+                Clue = "Old labels, mixed matrix colours, some already chipped.",
             },
             new SupplierDefinition
             {
@@ -61,6 +95,10 @@ namespace GeodeEmpire.Economy
                 Price = 520f, MinRocks = 7, MaxRocks = 7, CountHidden = false,
                 TierWeights = new[] { 0.03f, 0.20f, 0.42f, 0.28f, 0.06f, 0.01f },
                 UnlockHint = "Invitation arrives when your displayed collection is worth $1,500.", Accent = new Color(0.85f, 0.7f, 0.35f),
+                Character = "Display-grade material with a high floor. Beautiful, expensive, rarely the biggest upside.",
+                Risk = "Low on junk, capped on jackpots. You pay for certainty.",
+                Minerals = "Whatever is showing best that month: saturated quartz family, fluorite, celestite.",
+                Clue = "Numbered, wrapped, pre-inspected. The dealer already knows what you are getting.",
             },
         };
 
@@ -76,9 +114,17 @@ namespace GeodeEmpire.Economy
             var newly = new List<string>();
             if (!state.HasSupplier(Local)) { state.UnlockedSuppliers.Add(Local); }
             if (!state.HasSupplier(Regional) && state.Stats.SpecimensSold > 0) { state.UnlockedSuppliers.Add(Regional); newly.Add(Regional); }
-            if (!state.HasSupplier(Estate) && state.DisplayedCount() > 0) { state.UnlockedSuppliers.Add(Estate); newly.Add(Estate); }
+            if (!state.HasSupplier(AmethystLot) && HasOpened(state, MineralId.Amethyst)) { state.UnlockedSuppliers.Add(AmethystLot); newly.Add(AmethystLot); }
+            // the gamble is the third strategy: it lands mid-slice, after the player has bought twice and kept something
+            if (!state.HasSupplier(Estate) && state.Stats.CratesPurchased >= 2 && state.DisplayedCount() > 0) { state.UnlockedSuppliers.Add(Estate); newly.Add(Estate); }
             if (!state.HasSupplier(Premium) && state.CollectionValue() >= 1500f) { state.UnlockedSuppliers.Add(Premium); newly.Add(Premium); }
             return newly;
+        }
+
+        private static bool HasOpened(GameState state, MineralId mineral)
+        {
+            foreach (var s in state.Specimens) if (s.IsOpened && s.Geology.Mineral == mineral) return true;
+            return false;
         }
     }
 }
