@@ -650,7 +650,8 @@ namespace GeodeEmpire.Lapidary
             bool rare = ra.Geology.Tier >= QualityTier.Exceptional && !parent.IsPiece && ra.PieceOpening > 0.3f;
             if (rare) WorkshopAudio.Play2D("discovery", 0.5f);
             Tutorial.Notify("saw_cut");
-            Finished?.Invoke();
+            // a player who grabbed the piece during the camera move has already left the station: no result card then
+            if (Active) Finished?.Invoke();
         }
 
         /// <summary>For a re-cut piece: the plane offset in the vise maps to a height along the piece's own normal.</summary>

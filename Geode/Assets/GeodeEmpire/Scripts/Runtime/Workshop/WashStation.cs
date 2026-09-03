@@ -28,8 +28,9 @@ namespace GeodeEmpire.Workshop
         private float _stroke, _nextScrubSound, _rockYaw;
         private PlayerInteractor _player;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             if (Brush != null) { _brushRestPos = Brush.localPosition; _brushRestRot = Brush.localRotation; }
             if (Tub != null)
             {

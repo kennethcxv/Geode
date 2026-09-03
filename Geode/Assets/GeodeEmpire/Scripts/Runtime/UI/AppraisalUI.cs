@@ -53,7 +53,9 @@ namespace GeodeEmpire.UI
         private void Update()
         {
             if (_card == null) return;
-            bool show = _wanted && HudController.Instance != null && HudController.Instance.FreeRoam && !CursorController.InMenu;
+            // the card reads at the scale; a piece left on it should not follow the player round the workshop
+            bool near = _station == null || Camera.main == null || (Camera.main.transform.position - _station.transform.position).sqrMagnitude < 3.4f * 3.4f;
+            bool show = _wanted && near && HudController.Instance != null && HudController.Instance.FreeRoam && !CursorController.InMenu;
             var d = show ? DisplayStyle.Flex : DisplayStyle.None;
             if (_card.style.display != d) _card.style.display = d;
         }

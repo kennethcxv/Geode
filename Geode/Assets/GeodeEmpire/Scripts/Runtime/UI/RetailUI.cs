@@ -95,7 +95,7 @@ namespace GeodeEmpire.UI
             int browsing = 0, queued = 0;
             foreach (var c in _shop.Customers) { if (c == null) continue; if (c.State == Customer.Phase.Queued || c.State == Customer.Phase.ToQueue) queued++; else if (c.State != Customer.Phase.Leaving && c.State != Customer.Phase.Done) browsing++; }
             bool waiting = _shop.AtCounter != null && _shop.AtCounter.Wanted != null;
-            string text = waiting ? $"Customer waiting at the counter{(queued > 0 ? $"  +{queued} in line" : "")}" : browsing > 0 ? $"{browsing} browsing the shop" : "";
+            string text = waiting ? $"{_shop.AtCounter.Archetype.Name} waiting at the counter{(queued > 0 ? $"  +{queued} in line" : "")}" : browsing > 0 ? $"{browsing} browsing the shop" : "";
             _chipText.text = text;
             _chip.style.display = string.IsNullOrEmpty(text) ? DisplayStyle.None : DisplayStyle.Flex;
             _chip.EnableInClassList("retail-chip-waiting", waiting);

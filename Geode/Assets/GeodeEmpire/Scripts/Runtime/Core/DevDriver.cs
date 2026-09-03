@@ -60,6 +60,7 @@ namespace GeodeEmpire.Core
 
         // ---- keyboard / mouse -----------------------------------------------------------------
         public void KeyDown(Key key) { InputSystem.QueueStateEvent(_kb, new KeyboardState(key)); }
+        public void KeysDown(params Key[] keys) { InputSystem.QueueStateEvent(_kb, new KeyboardState(keys)); }
         public void KeyUp() { InputSystem.QueueStateEvent(_kb, new KeyboardState()); }
 
         public Coroutine Tap(Key key, float hold = 0.08f) => StartCoroutine(TapRoutine(key, hold));
@@ -137,19 +138,47 @@ namespace GeodeEmpire.Core
 
         /// <summary>Walk toward a point using the Move action (virtual keyboard), stopping within tolerance.</summary>
         public Coroutine WalkTo(Vector3 target, float tolerance = 0.35f, float timeout = 12f) => StartCoroutine(WalkRoutine(target, tolerance, timeout));
+        /// <summary>Sidesteps taken by walks that stopped making progress (a table edge, a crate corner); cumulative.</summary>
+        public int Dodges;
+
+        /// <summary>
+        /// Walks toward the target. A controller that stops making progress sidesteps for a moment, alternating sides
+        /// and lengthening each time, the way a player nudges round a table: the walk only pushes toward its target.
+        /// </summary>
         private IEnumerator WalkRoutine(Vector3 target, float tolerance, float timeout)
         {
             Busy = true;
             Status = "walking";
             var c = Controller;
-            float t = 0f;
+            float t = 0f, sinceCheck = 0f, dodgeT = 0f;
+            int dodges = 0;
+            Vector3 checkPos = c != null ? c.transform.position : Vector3.zero;
             while (c != null && t < timeout)
             {
                 var flat = target - c.transform.position; flat.y = 0f;
                 if (flat.magnitude < tolerance) break;
                 LookAt(new Vector3(target.x, c.CameraPivot.position.y, target.z));
-                if (UseGamepad) PadState(new Vector2(0f, 1f), Vector2.zero, 0f, 0f); else KeyDown(Key.W);
-                t += Time.unscaledDeltaTime;
+                float dt = Time.unscaledDeltaTime;
+                if (dodgeT > 0f)
+                {
+                    dodgeT -= dt;
+                    bool left = dodges % 2 == 1;
+                    if (UseGamepad) PadState(new Vector2(left ? -0.9f : 0.9f, 0.45f), Vector2.zero, 0f, 0f);
+                    else KeysDown(Key.W, left ? Key.A : Key.D);
+                }
+                else
+                {
+                    if (UseGamepad) PadState(new Vector2(0f, 1f), Vector2.zero, 0f, 0f); else KeyDown(Key.W);
+                    sinceCheck += dt;
+                    if (sinceCheck >= 0.5f)
+                    {
+                        float moved = (c.transform.position - checkPos).magnitude;
+                        checkPos = c.transform.position;
+                        sinceCheck = 0f;
+                        if (moved < 0.05f) { dodges++; Dodges++; dodgeT = 0.45f + 0.25f * dodges; }
+                    }
+                }
+                t += dt;
                 yield return null;
             }
             if (UseGamepad) PadState(Vector2.zero, Vector2.zero, 0f, 0f); else KeyUp();

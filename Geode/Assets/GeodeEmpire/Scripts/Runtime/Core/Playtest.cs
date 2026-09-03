@@ -74,6 +74,7 @@ namespace GeodeEmpire.Core
 
         private IEnumerator LookAndInteract(Vector3 point, string expectPromptContains, float settle = 0.25f)
         {
+            yield return DismissLetters();
             if (D.LastWalkRemaining > 0.6f) L($"  walk ended {D.LastWalkRemaining:F2} m short of its target (player at {D.Controller.transform.position:F2})");
             D.LookAt(point);
             yield return new WaitForSeconds(settle);
@@ -235,6 +236,30 @@ namespace GeodeEmpire.Core
         private const float PartitionX = 2.55f;
         private static readonly Vector3 OpeningWest = new Vector3(2.2f, 0f, 1.8f), OpeningEast = new Vector3(2.95f, 0f, 1.8f);
 
+        private int _walkRescues;
+
+        /// <summary>
+        /// Walk with a rescue: when the controller ends up wedged well short of its target, list what surrounds it and
+        /// teleport it there so the run keeps going. The count is reported at the end, so a wedge is still a finding.
+        /// </summary>
+        private IEnumerator Walk(Vector3 target, float tolerance = 0.3f, float timeout = 12f)
+        {
+            yield return DismissLetters();
+            yield return D.WalkTo(target, tolerance, timeout);
+            if (D.LastWalkRemaining <= 0.9f) yield break;
+            var c = D.Controller;
+            if (c == null) yield break;
+            Vector3 pos = c.transform.position;
+            var names = new HashSet<string>();
+            foreach (var col in Physics.OverlapCapsule(pos + Vector3.up * 0.25f, pos + Vector3.up * 1.5f, 0.5f, ~0, QueryTriggerInteraction.Ignore))
+                if (col.transform.root != c.transform.root) names.Add(col.transform.root.name + "/" + col.name);
+            _walkRescues++;
+            L($"  WALK RESCUE {_walkRescues}: wedged {D.LastWalkRemaining:F2} m short at {pos:F2} next to [{string.Join(", ", names)}]; teleporting to {target:F2}");
+            D.Teleport(new Vector3(target.x, 0f, target.z), c.transform.eulerAngles.y);
+            yield return null;
+            D.LastWalkRemaining = 0f;
+        }
+
         /// <summary>Walk to a point, going round through the partition opening when the target is in the other room.</summary>
         private IEnumerator RouteTo(Vector3 target, float tolerance = 0.3f)
         {
@@ -242,10 +267,10 @@ namespace GeodeEmpire.Core
             bool hereEast = c.transform.position.x > PartitionX, thereEast = target.x > PartitionX;
             if (hereEast != thereEast)
             {
-                yield return D.WalkTo(hereEast ? OpeningEast : OpeningWest, 0.3f, 14f);
-                yield return D.WalkTo(hereEast ? OpeningWest : OpeningEast, 0.3f, 8f);
+                yield return Walk(hereEast ? OpeningEast : OpeningWest, 0.3f, 14f);
+                yield return Walk(hereEast ? OpeningWest : OpeningEast, 0.3f, 8f);
             }
-            yield return D.WalkTo(target, tolerance, 14f);
+            yield return Walk(target, tolerance, 14f);
         }
 
         /// <summary>A standing spot near a station point, offset toward the room centre so we never walk into walls.</summary>
@@ -280,7 +305,7 @@ namespace GeodeEmpire.Core
             Vector3 cratePos = crate.transform.position;
             Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f;
             stand.y = 0f;
-            yield return D.WalkTo(stand, 0.3f);
+            yield return Walk(stand, 0.3f);
             D.LookAt(cratePos + Vector3.up * 0.2f);
             yield return null; yield return null;
             Snap("crate_delivered");
@@ -302,7 +327,7 @@ namespace GeodeEmpire.Core
             Phase = "to-bench";
             Vector3 cradle = ZonePos(ZoneKind.Cradle);
             Vector3 benchStand = new Vector3(cradle.x, 0f, cradle.z - 0.95f);
-            yield return D.WalkTo(benchStand, 0.25f);
+            yield return Walk(benchStand, 0.25f);
             yield return LookAndInteract(cradle, "Set on the cradle");
             yield return new WaitForSeconds(1.2f);
             var bench = Find<CrackingBench>();
@@ -338,7 +363,7 @@ namespace GeodeEmpire.Core
 
             Phase = "appraise";
             Vector3 scale = ZonePos(ZoneKind.Scale);
-            yield return D.WalkTo(StandNear(scale), 0.3f);
+            yield return Walk(StandNear(scale), 0.3f);
             yield return LookAndInteract(scale, "Weigh on the scale");
             yield return new WaitForSeconds(1.6f);
             var ap = Find<AppraisalStation>();
@@ -349,13 +374,13 @@ namespace GeodeEmpire.Core
 
             Phase = "sell";
             Vector3 tray = ZonePos(ZoneKind.SellTray);
-            yield return D.WalkTo(StandNear(tray), 0.3f);
+            yield return Walk(StandNear(tray), 0.3f);
             yield return LookAndInteract(tray, "Place in the dealer outbox");
             var outbox = Find<SellOutbox>();
             L("outbox count=" + outbox.Count + " est=" + outbox.EstimateTotal());
             Snap("outbox");
             var intercom = Find<DealerIntercom>();
-            yield return D.WalkTo(StandNear(new Vector3(intercom.transform.position.x, 0f, intercom.transform.position.z), 1.7f), 0.3f);
+            yield return Walk(StandNear(new Vector3(intercom.transform.position.x, 0f, intercom.transform.position.z), 1.7f), 0.3f);
             yield return LookAndInteract(intercom.transform.position, "Call dealer");
             yield return new WaitForSeconds(0.5f);
             L($"cash={S.State.Cash} sold={S.State.Stats.SpecimensSold} suppliers={string.Join(",", S.State.UnlockedSuppliers)}");
@@ -380,7 +405,7 @@ namespace GeodeEmpire.Core
             {
                 Vector3 cratePos = crate.transform.position;
                 Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
-                yield return D.WalkTo(stand, 0.3f);
+                yield return Walk(stand, 0.3f);
                 yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                 yield return new WaitForSeconds(0.9f);
             }
@@ -462,7 +487,7 @@ namespace GeodeEmpire.Core
             {
                 Vector3 cratePos = crate.transform.position;
                 Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
-                yield return D.WalkTo(stand, 0.3f);
+                yield return Walk(stand, 0.3f);
                 yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                 yield return new WaitForSeconds(0.9f);
             }
@@ -555,7 +580,7 @@ namespace GeodeEmpire.Core
             {
                 Vector3 cratePos = crate.transform.position;
                 Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
-                yield return D.WalkTo(stand, 0.3f);
+                yield return Walk(stand, 0.3f);
                 yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                 yield return new WaitForSeconds(0.9f);
             }
@@ -654,6 +679,234 @@ namespace GeodeEmpire.Core
         /// </summary>
         public void RunPolish() { if (!Running) StartCoroutine(Polish()); }
         public void RunStage2() { if (!Running) StartCoroutine(Stage2()); }
+        private PlacementZone FreeDisplaySlot()
+        {
+            PlacementZone best = null;
+            foreach (var z in FindObjectsByType<PlacementZone>(FindObjectsInactive.Exclude))
+                if (z.Kind == ZoneKind.DisplaySlot && !z.Locked && z.IsEmpty && (best == null || z.SlotIndex < best.SlotIndex)) best = z;
+            return best;
+        }
+
+        public void RunCareer(string style, float minutes = 12f, bool boost = false) { if (!Running) StartCoroutine(Career(style, minutes, boost)); }
+
+        /// <summary>
+        /// A clean-start career in one style for a while: hammer (A), saw (B), collector (C), seller (D), poorsaw (E),
+        /// mixed (F), saveheavy (G: reload every cycle), controller (H: pad input). Each cycle buys a crate the style
+        /// would choose, processes it with the tools it favours, sells, restocks and buys upgrades in its own order.
+        /// "boost" grants a lump of cash after the first cycle so the saw/Stage-2 paths run inside a short window.
+        /// </summary>
+        private IEnumerator Career(string style, float minutes, bool boost)
+        {
+            Running = true;
+            float t0 = Time.time;
+            int cycle = 0, reloads = 0, cuts = 0, polishes = 0, sawRefusals = 0;
+            bool boosted = false;
+            _walkRescues = 0;
+            D.Dodges = 0;
+            UseGamepad = style == "controller";
+            string crackStyle = style == "careless" ? "careless" : "careful";
+            L($"== Career {style} {minutes:F0} min boost={boost} pad={UseGamepad} cash={S.State.Cash}");
+            yield return FirstCrate(crackStyle);
+            Running = true;
+            while (Time.time - t0 < minutes * 60f)
+            {
+                cycle++;
+                Phase = $"career {style} {cycle}";
+                if (boost && cycle == 2 && !boosted) { boosted = true; S.AddCash(2400f, "test"); L($"  boost: +$2400 -> {S.State.Cash}"); }
+                yield return CareerUpgrades(style);
+                Running = true;
+                // saw work first, while the crate is still full of candidates
+                if (S.State.HasUpgrade(Economy.UpgradeCatalog.TrimSaw) && style != "hammer" && style != "careless")
+                {
+                    int want = style == "saw" || style == "poorsaw" ? 3 : 1;
+                    for (int i = 0; i < want; i++)
+                    {
+                        yield return SawOne(style == "poorsaw" ? "poor" : "good");
+                        Running = true;
+                        if (_sawResult == 1) cuts++; else if (_sawResult == -1) sawRefusals++; else break;
+                    }
+                }
+                yield return CrackAllCore(crackStyle);
+                Running = true;
+                if (S.State.HasUpgrade(Economy.UpgradeCatalog.PolishLap) && style != "hammer")
+                {
+                    yield return Polish();
+                    Running = true;
+                    polishes++;
+                }
+                yield return SellOutbox();
+                Running = true;
+                yield return RetailCycle(style == "seller" ? 3 : 1);
+                Running = true;
+                yield return BreakDownEmptyCrates();
+                Running = true;
+                if (style == "saveheavy")
+                {
+                    S.FlushSave("test");
+                    S.ContinueGame();
+                    yield return new WaitForSeconds(1.0f);
+                    reloads++;
+                    L($"  reload {reloads}: {DuplicateCheck()} {WorldSummary()}");
+                }
+                L($"-- {style} cycle {cycle} at {(Time.time - t0) / 60f:F1} min: cash={S.State.Cash} opened={S.State.Stats.SpecimensOpened} cuts={S.State.Stats.SawCuts} polished={S.State.Stats.PiecesPolished} kept={S.State.DisplayedCount()} forSale={S.State.ForSaleCount()} retail={S.State.Stats.RetailSales} upgrades=[{string.Join(",", S.State.Upgrades)}] stage={S.State.WorkshopStage} families={S.State.Encyclopedia.Count} prestige={S.State.Prestige}");
+                if (Time.time - t0 >= minutes * 60f) break;
+                string sup = ChooseSupplier(style);
+                if (sup == null && boost && !boosted) { boosted = true; S.AddCash(2400f, "test"); L($"  boost: +$2400 -> {S.State.Cash}"); sup = ChooseSupplier(style); }
+                string err = null;
+                if (sup == null || !S.BuyCrate(sup, out err)) { L($"  cannot buy a crate ({sup}: {err ?? "none affordable"}) cash={S.State.Cash} forSale={S.State.ForSaleCount()} outbox={S.State.Stats.SpecimensSold}"); break; }
+                L($"  bought {sup} cash={S.State.Cash}");
+                yield return new WaitForSeconds(1.5f);
+                yield return OpenNewestCrate();
+            }
+            L($"== Career {style} end: cycles={cycle} minutes={(Time.time - t0) / 60f:F1} cash={S.State.Cash} opened={S.State.Stats.SpecimensOpened} cuts={cuts}/{S.State.Stats.SawCuts} sawRefusals={sawRefusals} polishes={polishes} kept={S.State.DisplayedCount()} sold={S.State.Stats.SpecimensSold} retail={S.State.Stats.RetailSales} upgrades={S.State.Upgrades.Count} stage={S.State.WorkshopStage} families={S.State.Encyclopedia.Count} reloads={reloads} walkRescues={_walkRescues} walkDodges={D.Dodges} {DuplicateCheck()}");
+            L(Core.CollisionAudit.Report($"career {style} end"));
+            UseGamepad = false;
+            Phase = "done";
+            Running = false;
+        }
+
+        private static readonly Dictionary<string, string[]> CareerOrders = new Dictionary<string, string[]>
+        {
+            ["hammer"] = new[] { Economy.UpgradeCatalog.Loupe, Economy.UpgradeCatalog.InspectionLamp, Economy.UpgradeCatalog.BenchClamp, Economy.UpgradeCatalog.FineChisel, Economy.UpgradeCatalog.CalibratedScale, Economy.UpgradeCatalog.HeavyCradle, Economy.UpgradeCatalog.Wedge, Economy.UpgradeCatalog.DisplayExpansion, Economy.UpgradeCatalog.SalesTable },
+            ["careless"] = new[] { Economy.UpgradeCatalog.BenchClamp, Economy.UpgradeCatalog.InspectionLamp, Economy.UpgradeCatalog.FineChisel, Economy.UpgradeCatalog.Loupe },
+            ["saw"] = new[] { Economy.UpgradeCatalog.TrimSaw, Economy.UpgradeCatalog.ThinBlade, Economy.UpgradeCatalog.CoolantPump, Economy.UpgradeCatalog.Stage2, Economy.UpgradeCatalog.PolishLap, Economy.UpgradeCatalog.Loupe, Economy.UpgradeCatalog.CalibratedScale },
+            ["poorsaw"] = new[] { Economy.UpgradeCatalog.TrimSaw, Economy.UpgradeCatalog.Stage2, Economy.UpgradeCatalog.PolishLap },
+            ["collector"] = new[] { Economy.UpgradeCatalog.Loupe, Economy.UpgradeCatalog.InspectionLamp, Economy.UpgradeCatalog.DisplayExpansion, Economy.UpgradeCatalog.FineChisel, Economy.UpgradeCatalog.CalibratedScale, Economy.UpgradeCatalog.TrimSaw, Economy.UpgradeCatalog.Stage2 },
+            ["seller"] = new[] { Economy.UpgradeCatalog.SalesTable, Economy.UpgradeCatalog.CalibratedScale, Economy.UpgradeCatalog.Loupe, Economy.UpgradeCatalog.TrimSaw, Economy.UpgradeCatalog.Stage2, Economy.UpgradeCatalog.PolishLap },
+            ["saveheavy"] = new[] { Economy.UpgradeCatalog.TrimSaw, Economy.UpgradeCatalog.Stage2, Economy.UpgradeCatalog.PolishLap, Economy.UpgradeCatalog.Loupe },
+            ["mixed"] = new[] { Economy.UpgradeCatalog.Loupe, Economy.UpgradeCatalog.InspectionLamp, Economy.UpgradeCatalog.BenchClamp, Economy.UpgradeCatalog.TrimSaw, Economy.UpgradeCatalog.FineChisel, Economy.UpgradeCatalog.CalibratedScale, Economy.UpgradeCatalog.SalesTable, Economy.UpgradeCatalog.Stage2, Economy.UpgradeCatalog.PolishLap },
+        };
+
+        private IEnumerator CareerUpgrades(string style)
+        {
+            var order = CareerOrders.TryGetValue(style, out var o) ? o : CareerOrders["mixed"];
+            foreach (var id in order)
+            {
+                if (S.State.HasUpgrade(id)) continue;
+                var up = Economy.UpgradeCatalog.Get(id);
+                if (S.State.Cash - up.Price < 100f) break;
+                if (!S.CanBuyUpgrade(id, out string why)) { L($"  upgrade {id} not available: {why}"); continue; }
+                bool ok = S.BuyUpgrade(id, out string err);
+                L($"  upgrade {id}: {(ok ? "bought" : err)} cash={S.State.Cash}");
+                yield return new WaitForSeconds(0.3f);
+            }
+            // a worn blade gets replaced
+            if (S.State.HasUpgrade(Economy.UpgradeCatalog.TrimSaw) && S.State.BladeWear >= 0.7f && S.CanBuyUpgrade(Economy.UpgradeCatalog.SawBlade, out _))
+            {
+                S.BuyUpgrade(Economy.UpgradeCatalog.SawBlade, out _);
+                L($"  new blade fitted cash={S.State.Cash}");
+            }
+        }
+
+        private string ChooseSupplier(string style)
+        {
+            string[] prefs = style switch
+            {
+                "hammer" => new[] { "regional", "local" },
+                "careless" => new[] { "local" },
+                "saw" or "poorsaw" => new[] { "cutting", "regional", "local" },
+                "collector" => new[] { "desert", "amethyst", "estate", "regional", "local" },
+                "seller" => new[] { "amethyst", "regional", "local" },
+                _ => new[] { "oversized", "desert", "cutting", "amethyst", "estate", "regional", "local" },
+            };
+            foreach (var id in prefs)
+            {
+                var sup = Economy.SupplierCatalog.Get(id);
+                if (sup == null || !S.State.HasSupplier(id)) continue;
+                if (S.State.Cash >= sup.Price + (id == "local" ? 0f : 60f)) return id;
+            }
+            return null;
+        }
+
+        private IEnumerator OpenNewestCrate()
+        {
+            CrateEntity crate = null;
+            foreach (var c in S.Crates.Values) if (!c.IsOpened) crate = c;
+            if (crate == null) yield break;
+            Vector3 cratePos = crate.transform.position;
+            Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
+            yield return RouteTo(stand, 0.3f);
+            yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
+            yield return new WaitForSeconds(0.9f);
+            L($"  crate {crate.Record.Id} opened={crate.IsOpened} rocks={crate.RemainingRocks}");
+        }
+
+        private int _sawResult;   // 1 cut, -1 refused/none, 0 failed
+
+        /// <summary>One rock through the saw with a technique, both pieces weighed and dealt with the way the crack loop does.</summary>
+        private IEnumerator SawOne(string technique)
+        {
+            _sawResult = 0;
+            var saw = Find<Lapidary.SawStation>();
+            if (saw == null || !saw.Owned) { _sawResult = -1; yield break; }
+            // the saw's own strengths: nodules and agate, medium or small
+            SpecimenEntity rock = null; float best = -1f;
+            foreach (var e in S.Entities.Values)
+            {
+                if (e.IsOpened || e.IsPiece) continue;
+                if (e.Record.Location != SpecimenLocation.InCrate && e.Record.Location != SpecimenLocation.World && e.Record.Location != SpecimenLocation.Rack) continue;
+                var g = e.Geology;
+                if (g.SizeClass == SizeClass.Oversized) continue;
+                float score = (g.Mineral == MineralId.Agate ? 0.5f : 0f) + (g.CavityFraction < 0.4f ? 0.3f : 0f) + (g.Tier >= QualityTier.Decent ? 0.2f : 0f) - (g.SizeClass == SizeClass.Large ? 0.3f : 0f);
+                if (score > best) { best = score; rock = e; }
+            }
+            if (rock == null) { _sawResult = -1; yield break; }
+            yield return DismissLetters();
+            yield return FetchRock(rock);
+            if (P.Held == null) { _sawResult = -1; yield break; }
+            rock = P.Held;
+            Vector3 clamp = ZonePos(ZoneKind.Saw);
+            yield return RouteTo(new Vector3(clamp.x - 0.15f, 0f, clamp.z - 0.95f), 0.25f);
+            yield return LookAndInteract(clamp, "Clamp in");
+            yield return new WaitForSeconds(0.6f);
+            if (!saw.Active)
+            {
+                // refused (too big, dull blade...): this rock goes to the hammer instead
+                L($"  saw refused {rock.Id} ({rock.Geology.SizeClass}): '{P.Prompt}'");
+                if (P.Held != null) { Vector3 bin = ZonePos(ZoneKind.Cradle); yield return RouteTo(new Vector3(bin.x, 0f, bin.z - 0.95f), 0.3f); P.Drop(); }
+                _sawResult = -1;
+                yield break;
+            }
+            bool poor = technique == "poor";
+            saw.SetPlan(poor ? 32f : 0f, poor ? 18f : 0f, poor ? 0.02f : 0f);
+            yield return new WaitForSeconds(0.2f);
+            yield return Interact();
+            yield return new WaitForSeconds(0.4f);
+            saw.DevFeed = true; saw.DevFast = poor;
+            float t0 = Time.time;
+            while (saw.State == Lapidary.SawStation.Phase.Cutting && Time.time - t0 < 120f) yield return null;
+            saw.DevFeed = false; saw.DevFast = false;
+            yield return new WaitForSeconds(1.2f);
+            var g2 = rock.Geology;
+            L($"  sawed {rock.Id} {g2.Mineral} {g2.Cavity} {g2.Tier} {g2.SizeClass} in {Time.time - t0:F0}s ({technique}) chips={saw.ChipsThisCut} wear={saw.WearThisCut:F3} blade={S.State.BladeWear:F2} A=${(saw.PieceA != null ? saw.PieceA.Record.PristineForSale() : 0f)} B=${(saw.PieceB != null ? saw.PieceB.Record.PristineForSale() : 0f)} note='{saw.ResultNote}'");
+            _sawResult = 1;
+            // piece A from the vise, piece B from the tray
+            for (int k = 0; k < 2; k++)
+            {
+                if (k == 0) yield return Interact();
+                else
+                {
+                    Vector3 tray = ZonePos(ZoneKind.SawTray);
+                    yield return RouteTo(new Vector3(tray.x, 0f, tray.z - 0.9f), 0.3f);
+                    yield return LookAndInteract(tray, "Take");
+                }
+                yield return new WaitForSeconds(0.3f);
+                if (P.Held == null) { L("  no piece in hand"); continue; }
+                var piece = P.Held;
+                yield return AppraiseHeld();
+                if (P.Held == null) continue;
+                float v = piece.Record.EstimatedValue();
+                if (v >= 40f && FreeDisplaySlot() != null && S.State.DisplayedCount() < 3) yield return KeepHeld();
+                else if (v >= 12f && FreeSaleSlot() != null) yield return StockHeld();
+                else
+                {
+                    Vector3 outbox = ZonePos(ZoneKind.SellTray);
+                    yield return RouteTo(StandNear(outbox), 0.3f);
+                    yield return LookAndInteract(outbox, "Place in the dealer outbox");
+                }
+            }
+        }
+
         public void RunPieceLifecycle() { if (!Running) StartCoroutine(PieceLifecycle()); }
 
         /// <summary>
@@ -1104,7 +1357,7 @@ namespace GeodeEmpire.Core
             L("held=" + (P.Held != null ? P.Held.Record.DisplayName : "none"));
             if (P.Held == null) { Running = false; yield break; }
             Vector3 slot = ZonePos(ZoneKind.DisplaySlot, 0);
-            yield return D.WalkTo(StandNear(slot, 1.0f), 0.3f);
+            yield return Walk(StandNear(slot, 1.0f), 0.3f);
             yield return LookAndInteract(slot, "Place in display slot");
             yield return new WaitForSeconds(0.4f);
             var st = S.State;
@@ -1643,7 +1896,8 @@ namespace GeodeEmpire.Core
             yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Ring up");
             yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Take");
             yield return new WaitForSeconds(0.3f);
-            L($"  served {c.Archetype.Name}: {what} for {price}: cash {cashBefore} -> {S.State.Cash}");
+            if (S.State.Cash > cashBefore) L($"  served {c.Archetype.Name}: {what} for {price}: cash {cashBefore} -> {S.State.Cash}");
+            else L($"  SALE FAILED for {c.Archetype.Name}: {what} for {price} (cash unchanged at {S.State.Cash}, prompt='{P.Prompt}')");
         }
 
         private PlacementZone FreeSaleSlot()
@@ -1695,7 +1949,9 @@ namespace GeodeEmpire.Core
         {
             if (P.Held == null) yield break;
             var e = P.Held;
-            Vector3 slot = ZonePos(ZoneKind.DisplaySlot, 0);
+            var free = FreeDisplaySlot();
+            if (free == null) { L("no free display slot"); yield break; }
+            Vector3 slot = free.transform.position;
             yield return RouteTo(StandNear(slot, 1.0f), 0.3f);
             yield return LookAndInteract(slot, "Place in display slot");
             yield return new WaitForSeconds(0.4f);
@@ -1801,10 +2057,15 @@ namespace GeodeEmpire.Core
         }
 
         /// <summary>Dealer letters (tease, premium invite) block gameplay input until dismissed, exactly as for a player.</summary>
+        private UI.SliceDirector _sliceDirector;
+
+        /// <summary>A milestone letter is modal: it swallows movement and prompts until it is dismissed.</summary>
         private IEnumerator DismissLetters()
         {
-            var sd = Find<UI.SliceDirector>();
-            for (int i = 0; i < 3 && sd != null && sd.IsOpen; i++)
+            if (_sliceDirector == null) _sliceDirector = Find<UI.SliceDirector>();
+            var sd = _sliceDirector;
+            if (sd == null || !sd.IsOpen) yield break;
+            for (int i = 0; i < 3 && sd.IsOpen; i++)
             {
                 L("  letter shown: '" + sd.CurrentTitle + "' (dismissing)");
                 if (UseGamepad) yield return D.PadTap(GamepadButton.South, 0.1f); else yield return D.Tap(Key.Enter, 0.1f);
@@ -1824,9 +2085,13 @@ namespace GeodeEmpire.Core
             Vector3 dir = rp - center; dir.y = 0f;
             if (dir.sqrMagnitude < 0.0004f) dir = new Vector3(-0.2f, 0f, 0.7f);
             dir.Normalize();
+            // rocks in the receiving corner are always approached from the room side: the pocket between the pallets,
+            // the rock bin and the south wall wedges a controller that only pushes toward its target
+            bool receiving = rp.z < -0.9f && rp.x > -0.2f && rp.x < 2.6f;
             for (int attempt = 0; attempt < 2 && P.Held == null; attempt++)
             {
                 Vector3 stand = rp + dir * 0.8f; stand.y = 0f;
+                if (receiving) stand = new Vector3(Mathf.Clamp(rp.x + (attempt == 0 ? 0f : (rp.x < 1.18f ? 0.6f : -0.6f)), 0.3f, 2.1f), 0f, Mathf.Max(rp.z + 0.8f, -0.8f));
                 stand.x = Mathf.Clamp(stand.x, -3.1f, 6.6f); stand.z = Mathf.Clamp(stand.z, -2.25f, 2.25f);
                 yield return RouteTo(stand, 0.25f);
                 yield return LookAndInteract(rp, "Pick up");
@@ -1840,7 +2105,7 @@ namespace GeodeEmpire.Core
             var outbox = Find<SellOutbox>();
             if (outbox.Count == 0) { L("outbox empty, nothing to sell"); yield break; }
             var intercom = Find<DealerIntercom>();
-            yield return D.WalkTo(StandNear(new Vector3(intercom.transform.position.x, 0f, intercom.transform.position.z), 1.7f), 0.3f);
+            yield return Walk(StandNear(new Vector3(intercom.transform.position.x, 0f, intercom.transform.position.z), 1.7f), 0.3f);
             yield return LookAndInteract(intercom.transform.position, "Call dealer");
             yield return new WaitForSeconds(0.6f);
             L("sold: cash=" + S.State.Cash + " outbox=" + outbox.Count);
@@ -1866,7 +2131,7 @@ namespace GeodeEmpire.Core
             Phase = "open-crate";
             Vector3 cratePos = crate.transform.position;
             Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
-            yield return D.WalkTo(stand, 0.3f);
+            yield return Walk(stand, 0.3f);
             yield return LookAndInteract(cratePos + Vector3.up * 0.25f, "Open crate");
             yield return new WaitForSeconds(1.0f);
             L("crate opened=" + crate.IsOpened + " remaining=" + crate.RemainingRocks);
@@ -1898,7 +2163,7 @@ namespace GeodeEmpire.Core
                 if (P.Held == null) { L("could not pick " + rock.Id); break; }
                 if (P.Held != rock) L($"  aimed at {rock.Id} but picked up {P.Held.Id} (rocks too close together)");
                 rock = P.Held;
-                yield return D.WalkTo(benchStand, 0.25f);
+                yield return Walk(benchStand, 0.25f);
                 yield return LookAndInteract(cradle, "Set on the cradle");
                 yield return new WaitForSeconds(1.0f);
                 if (!bench.Active) { L("bench did not activate"); break; }

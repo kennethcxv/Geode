@@ -82,6 +82,7 @@ namespace GeodeEmpire.UI
 
         private void OnFinished()
         {
+            if (!_saw.Active) return;
             _panel.style.display = DisplayStyle.None;
             _result.style.display = DisplayStyle.Flex;
             var a = _saw.PieceA; var b = _saw.PieceB;

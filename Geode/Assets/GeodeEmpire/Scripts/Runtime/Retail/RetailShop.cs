@@ -50,7 +50,7 @@ namespace GeodeEmpire.Retail
 
         /// <summary>Navigation health counters, read by the retail stress test.</summary>
         public sealed class NavMetrics { public int StuckRecoveries, Repositions, PathFailures; }
-        public NavMetrics Metrics = new NavMetrics();
+        [System.NonSerialized] public NavMetrics Metrics = new NavMetrics();
         private float _nextSpawnIn = 25f;
         private int _customerCounter;
         private float _doorOpen;
@@ -315,8 +315,8 @@ namespace GeodeEmpire.Retail
         {
             if (AtCounter == c) return;
             AtCounter = c;
+            // the bell and the HUD chip carry this; a toast on top of the chip said the same thing twice
             WorkshopAudio.Play("counter_bell", CounterItemPoint != null ? CounterItemPoint.position : transform.position, 0.7f);
-            GameSession.Instance?.Notify($"{c.Archetype.Name} is waiting at the counter", NotificationKind.Info);
             CustomerArrivedAtCounter?.Invoke(c);
             Changed?.Invoke();
         }
