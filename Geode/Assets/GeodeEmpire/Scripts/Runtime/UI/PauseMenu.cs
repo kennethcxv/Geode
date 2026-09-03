@@ -91,10 +91,13 @@ namespace GeodeEmpire.UI
             if (ShowSettingsOnly) Close(); else ShowSettings(false);
         }
 
+        /// <summary>A station owns the screen: its own Back handling leaves it, the pause menu stays out of it.</summary>
         private static bool BenchActive()
         {
             var b = FindAnyObjectByType<Cracking.CrackingBench>();
-            return b != null && b.Active;
+            if (b != null && b.Active) return true;
+            var s = FindAnyObjectByType<Lapidary.SawStation>();
+            return s != null && s.Active;
         }
 
         public void Open()

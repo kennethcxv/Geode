@@ -91,6 +91,23 @@ namespace GeodeEmpire.Core
             yield return Interact();
         }
 
+        /// <summary>Every collider along the crosshair ray, with what it belongs to and whether it would take a press.</summary>
+        private void ProbeAll(string tag)
+        {
+            var p = P;
+            var cam = p.Cam;
+            var ray = new Ray(cam.transform.position, cam.transform.forward);
+            var hits = Physics.RaycastAll(ray, 3f, p.Mask, QueryTriggerInteraction.Collide);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            var sb = new StringBuilder($"  probeAll[{tag}] {hits.Length} hits:");
+            foreach (var h in hits)
+            {
+                var inter = h.collider.GetComponentInParent<IInteractable>();
+                sb.Append($"\n     {h.collider.transform.root.name}/{h.collider.name}@{h.distance:F2} trigger={h.collider.isTrigger} inter={(inter != null ? inter.GetType().Name : "-")} can={(inter != null && inter.CanInteract(p))}");
+            }
+            L(sb.ToString());
+        }
+
         private void Probe(string tag)
         {
             var p = P;
@@ -513,6 +530,119 @@ namespace GeodeEmpire.Core
                 Snap("saw_piece_appraisal");
             }
             L(RunSaveReloadCheck());
+            Phase = "done";
+            Running = false;
+        }
+
+        /// <summary>
+        /// V4 saw persistence and pad: clamp a rock through the real inputs (pad if UseGamepad), turn/tilt/slide it with
+        /// the sticks and bumpers, commit, feed to ~40%, save and reload mid-cut, check the cut resumes at the same
+        /// plane and depth, finish it, then reload again and check both pieces exist once and the parent is gone.
+        /// </summary>
+        public void RunSawPersistence() { if (!Running) StartCoroutine(SawPersistence()); }
+
+        private IEnumerator SawPersistence()
+        {
+            Running = true;
+            Phase = "saw-persist";
+            var saw = Find<Lapidary.SawStation>();
+            if (!saw.Owned) { if (S.State.Cash < 700f) S.AddCash(700f, "test"); S.BuyUpgrade(Economy.UpgradeCatalog.TrimSaw, out _); yield return null; }
+            L($"== SawPersistence pad={UseGamepad} cash={S.State.Cash}");
+            if (S.Crates.Count == 0) { S.BuyCrate("local", out _); yield return new WaitForSeconds(1.4f); }
+            CrateEntity crate = null;
+            foreach (var c in S.Crates.Values) if (!c.IsOpened || c.RemainingRocks > 0) { crate = c; break; }
+            if (crate != null && !crate.IsOpened)
+            {
+                Vector3 cratePos = crate.transform.position;
+                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
+                yield return D.WalkTo(stand, 0.3f);
+                yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
+                yield return new WaitForSeconds(0.9f);
+            }
+            SpecimenEntity rock = null;
+            foreach (var e in S.Entities.Values) if (!e.IsOpened && e.Record.Location == SpecimenLocation.InCrate && (int)e.Geology.SizeClass <= 1) { rock = e; break; }
+            if (rock == null) { L("no suitable rock"); Running = false; yield break; }
+            yield return FetchRock(rock);
+            if (P.Held == null) { L("could not pick up"); Running = false; yield break; }
+            rock = P.Held;
+            Vector3 clamp = ZonePos(ZoneKind.Saw);
+            yield return RouteTo(new Vector3(clamp.x - 0.15f, 0f, clamp.z - 0.95f), 0.25f);
+            yield return LookAndInteract(clamp, "Clamp in");
+            yield return new WaitForSeconds(1.2f);
+            if (!saw.Active) { L("saw did not take the rock"); Probe("saw"); Running = false; yield break; }
+            L($"in saw: active={saw.Active} state={saw.State} canRotate={saw.CanRotate}");
+            // orient through the real inputs: yaw (bumpers / Q,R), tilt (right stick / mouse), across (left stick / A,D)
+            float y0 = saw.Yaw, r0 = saw.Roll, o0 = saw.Offset;
+            if (UseGamepad)
+            {
+                D.PadState(Vector2.zero, Vector2.zero, 0f, 0f, GamepadButton.RightShoulder); yield return new WaitForSeconds(0.35f);
+                D.PadState(Vector2.zero, new Vector2(0f, 1f), 0f, 0f); yield return new WaitForSeconds(0.35f);
+                D.PadState(new Vector2(1f, 0f), Vector2.zero, 0f, 0f); yield return new WaitForSeconds(0.35f);
+                D.PadState(Vector2.zero, Vector2.zero, 0f, 0f);
+            }
+            else
+            {
+                D.KeyDown(Key.R); yield return new WaitForSeconds(0.3f); D.KeyUp();
+                yield return new WaitForSeconds(0.15f);
+                for (int i = 0; i < 14; i++) { D.MouseDelta(0f, 40f); yield return null; }
+                yield return new WaitForSeconds(0.15f);
+                D.KeyDown(Key.D); yield return new WaitForSeconds(0.3f); D.KeyUp();
+            }
+            yield return new WaitForSeconds(0.2f);
+            L($"inputs moved the plan: yaw {y0}->{saw.Yaw}  roll {r0}->{saw.Roll}  offset {o0 * 1000f:F0}->{saw.Offset * 1000f:F0}mm");
+            Snap("sawp_plan");
+            yield return Interact();
+            yield return new WaitForSeconds(0.5f);
+            saw.PlanInRockFrame(out var n1, out float h1);
+            L($"committed={saw.Committed} plan n={n1:F3} h={h1 * 1000f:F1}mm saved={rock.Record.CutCommitted}");
+            // feed to 40% through the real button
+            if (UseGamepad) D.PadState(Vector2.zero, Vector2.zero, 0f, 1f); else D.SetMouseButton(0, true);
+            float t0 = Time.time;
+            while (saw.Progress < 0.4f && Time.time - t0 < 40f) yield return null;
+            if (UseGamepad) D.PadState(Vector2.zero, Vector2.zero, 0f, 0f); else D.SetMouseButton(0, false);
+            yield return new WaitForSeconds(0.4f);
+            float pBefore = saw.Progress;
+            L($"fed to {pBefore:P0} in {Time.time - t0:F1}s feeding={saw.Feeding} load={saw.Load:F2}");
+            Snap("sawp_midcut");
+            // step away (Back), save, reload, come back
+            if (UseGamepad) yield return D.PadTap(GamepadButton.East, 0.1f); else yield return D.Tap(Key.Escape, 0.1f);
+            yield return new WaitForSeconds(0.4f);
+            L($"stepped away: active={saw.Active} rockLoc={rock.Record.Location} progress saved={rock.Record.CutProgress:P0}");
+            S.FlushSave("test");
+            S.ContinueGame();
+            yield return new WaitForSeconds(0.8f);
+            var back = S.GetEntity(rock.Id);
+            L($"after reload: entity={(back != null)} loc={(back != null ? back.Record.Location.ToString() : "-")} committed={(back != null && back.Record.CutCommitted)} progress={(back != null ? back.Record.CutProgress : 0f):P0} clampHas={(saw.Clamp.First != null ? saw.Clamp.First.Id : "none")}");
+            // re-enter and finish
+            yield return RouteTo(new Vector3(clamp.x - 0.15f, 0f, clamp.z - 0.95f), 0.25f);
+            D.LookAt(clamp);
+            yield return new WaitForSeconds(0.3f);
+            L($"prompt at clamp='{P.Prompt}' sawCan={saw.CanInteract(P)} occ={(saw.Clamp.First != null ? saw.Clamp.First.Id : "none")} occLocked={(saw.Clamp.First != null && saw.Clamp.First.Locked)} owned={saw.Owned} active={saw.Active} machine={saw.Machine.activeInHierarchy} teaser={saw.Teaser.activeInHierarchy} cam={P.Cam.transform.position:F2} fwd={P.Cam.transform.forward:F2} player={D.Controller.transform.position:F2}");
+            foreach (var col in saw.Machine.GetComponentsInChildren<Collider>(true)) L($"     machine collider {col.name} enabled={col.enabled} active={col.gameObject.activeInHierarchy} bounds={col.bounds.center:F2}/{col.bounds.size:F2}");
+            ProbeAll("clamp");
+            yield return Interact();
+            yield return new WaitForSeconds(0.6f);
+            saw.PlanInRockFrame(out var n2, out float h2);
+            L($"resumed: active={saw.Active} state={saw.State} progress={saw.Progress:P0} plan n={n2:F3} h={h2 * 1000f:F1}mm same={(Vector3.Distance(n1, n2) < 0.01f && Mathf.Abs(h1 - h2) < 0.0005f && Mathf.Abs(saw.Progress - pBefore) < 0.02f)}");
+            if (!saw.Active) { L("resume failed; stopping here"); Phase = "done"; Running = false; yield break; }
+            saw.DevFeed = true;
+            t0 = Time.time;
+            while (saw.Active && saw.State == Lapidary.SawStation.Phase.Cutting && Time.time - t0 < 60f) yield return null;
+            saw.DevFeed = false;
+            yield return new WaitForSeconds(1.2f);
+            string aId = saw.PieceA != null ? saw.PieceA.Id : "none", bId = saw.PieceB != null ? saw.PieceB.Id : "none";
+            L($"finished: state={saw.State} pieces {aId} {bId} note='{saw.ResultNote}'");
+            if (saw.Active) { if (UseGamepad) yield return D.PadTap(GamepadButton.East, 0.1f); else yield return D.Tap(Key.Escape, 0.1f); }
+            yield return new WaitForSeconds(0.4f);
+            if (CursorController.InMenu) { L("  pause menu opened by the Back press: closing it"); if (UseGamepad) yield return D.PadTap(GamepadButton.Start, 0.1f); else yield return D.Tap(Key.Escape, 0.1f); yield return new WaitForSeconds(0.3f); }
+            S.FlushSave("test");
+            S.ContinueGame();
+            yield return new WaitForSeconds(0.8f);
+            int copiesA = 0, copiesB = 0, parents = 0;
+            foreach (var r in S.State.Specimens) { if (r.Id == aId) copiesA++; if (r.Id == bId) copiesB++; if (r.Id == rock.Id) parents++; }
+            var pa = S.State.FindSpecimen(aId); var pb = S.State.FindSpecimen(bId); var pp = S.State.FindSpecimen(rock.Id);
+            L($"after second reload: A records={copiesA} entity={(S.GetEntity(aId) != null)} loc={(pa != null ? pa.Location.ToString() : "-")}  B records={copiesB} entity={(S.GetEntity(bId) != null)} loc={(pb != null ? pb.Location.ToString() : "-")}  parent records={parents} loc={(pp != null ? pp.Location.ToString() : "-")} entity={(S.GetEntity(rock.Id) != null)}");
+            L(Core.CollisionAudit.Report("saw persistence end"));
             Phase = "done";
             Running = false;
         }

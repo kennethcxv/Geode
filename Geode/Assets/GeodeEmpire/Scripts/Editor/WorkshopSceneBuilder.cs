@@ -763,7 +763,7 @@ namespace GeodeEmpire.EditorTools
             machine.SetParent(sawRoot, false);
             var sawBody = Prop("prop_saw_station", machine, Vector3.zero, 0f, "M_MachinePaint,M_Water,M_Glass", collider: true);
             var blade = Prop("prop_saw_blade", machine, new Vector3(0f, 1.06f, 0.05f), 0f, "M_Metal,M_MetalDark", collider: false);
-            var vise = Prop("prop_saw_vise", machine, new Vector3(0.42f, 0.915f, 0f), 0f, "M_MachinePaint,M_Rubber", collider: false);
+            var vise = Prop("prop_saw_vise", machine, new Vector3(0.42f, 0.915f, 0f), 0f, "M_MachinePaint,M_Rubber", collider: true);
             var jaw = Prop("prop_saw_jaw", vise.transform, new Vector3(0f, 0.02f, 0.13f), 0f, "M_MachinePaint,M_Rubber", collider: false);
             var outTrayProp = Prop("prop_tray", machine, new Vector3(-0.4f, 0.88f, -0.16f), 0f, "M_PlasticBlue", collider: true, scale: new Vector3(1.15f, 1f, 1.15f));
             var sawCam = new GameObject("SawCamera").transform;
@@ -781,6 +781,7 @@ namespace GeodeEmpire.EditorTools
             saw.Clamp = clampZone; saw.OutTray = sawTray;
             saw.Vise = vise.transform; saw.Jaw = jaw.transform; saw.Blade = blade.transform;
             saw.CameraAnchor = sawCam; saw.Teaser = teaser; saw.Machine = machine.gameObject; saw.TaskLight = sawLight;
+            saw.SetHighlightRenderers(vise.GetComponentsInChildren<Renderer>());
             machine.gameObject.SetActive(false);
             var ts = teaser.AddComponent<TeaserSign>();
             Prop("prop_cardboard_box", parent, new Vector3(-2.9f, 0f, -1.4f), 30f, "M_Cardboard");

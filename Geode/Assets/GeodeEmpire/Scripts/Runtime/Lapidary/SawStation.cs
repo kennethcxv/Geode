@@ -21,9 +21,31 @@ namespace GeodeEmpire.Lapidary
     /// wears. The cut is committed to the save the moment the clamp closes: a reload resumes the same plane at the
     /// same depth. Two pieces come out, both tied to the parent rock.
     /// </summary>
-    public sealed class SawStation : MonoBehaviour
+    public sealed class SawStation : InteractableBehaviour
     {
         public enum Phase { Idle, Orient, Cutting, Done }
+
+        // ---- the machine as an interactable: resume a committed cut left in the clamp -------------------------
+        public override bool CanInteract(PlayerInteractor player)
+        {
+            if (Active || !Owned || player.Held != null || Clamp == null) return false;
+            var occ = Clamp.First;
+            return occ != null && occ.Record.CutCommitted;
+        }
+
+        public override string GetPrompt(PlayerInteractor player)
+        {
+            var occ = Clamp != null ? Clamp.First : null;
+            return occ != null ? $"Resume the cut  ({Mathf.RoundToInt(occ.Record.CutProgress * 100f)}% through)" : "";
+        }
+
+        public override string GetHint(PlayerInteractor player) => "The clamp holds the rock exactly where it was";
+
+        public override void Interact(PlayerInteractor player)
+        {
+            var occ = Clamp != null ? Clamp.First : null;
+            if (occ != null && occ.Record.CutCommitted) Enter(occ);
+        }
 
         public PlacementZone Clamp;
         public PlacementZone OutTray;
@@ -46,7 +68,7 @@ namespace GeodeEmpire.Lapidary
         public float SledTopY = 0.02f;
 
         // tuning (code-owned)
-        [NonSerialized] public float BaseFeed = 0.02f;           // m/s carriage speed at nominal feed
+        [NonSerialized] public float BaseFeed = 0.015f;          // m/s carriage speed at nominal feed: a medium rock is ~30 s
         [NonSerialized] public float FastFeedMult = 1.9f;
         [NonSerialized] public float YawStep = 5f, RollStep = 5f, OffsetStep = 0.003f;
         [NonSerialized] public float Kerf = 0.003f, ThinKerf = 0.0015f;
@@ -99,13 +121,17 @@ namespace GeodeEmpire.Lapidary
         private System.Random _cutRng;
 
         // ------------------------------------------------------------------------------------
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             if (Clamp != null)
             {
                 Clamp.Placed += OnPlaced;
                 Clamp.Taken += OnTaken;
                 Clamp.ExtraRefusal = Refusal;
+                // looking anywhere at the clamp with a committed cut in it offers to resume
+                Clamp.ResumePrompt = occ => occ != null && occ.Record.CutCommitted && !Active ? $"Resume the cut  ({Mathf.RoundToInt(occ.Record.CutProgress * 100f)}% through)" : null;
+                Clamp.ResumeAction = occ => { if (occ != null && occ.Record.CutCommitted && !Active) Enter(occ); };
             }
             if (Vise != null) _viseHome = Vise.localPosition;
             if (Jaw != null) _jawHome = Jaw.localPosition;
@@ -140,6 +166,24 @@ namespace GeodeEmpire.Lapidary
             if (Machine != null) Machine.SetActive(owned);
             if (Clamp != null) Clamp.Locked = !owned;
             if (OutTray != null) OutTray.Locked = !owned;
+            // a rock with a committed cut is held by the clamp until the cut is finished: parked in the vise where
+            // the blade left it, not floating at the zone anchor
+            var occ = Clamp != null ? Clamp.First : null;
+            if (occ != null && occ.Record.CutCommitted && !Active)
+            {
+                occ.Locked = true; occ.SetStaticCollidable();
+                var rec = occ.Record;
+                _rock = occ;
+                _rockRadius = occ.Visual != null && occ.Visual.Geometry != null ? occ.Visual.Geometry.MaxRadius : occ.Geology.Size * 1.2f;
+                _rockHalfWidth = _rockRadius;
+                _yaw = rec.CutYaw; _roll = rec.CutRoll; _offset = rec.CutOffset;
+                _carriageX = Mathf.Lerp(CarriageStartForRock, CarriageEndX, Mathf.Clamp01(rec.CutProgress));
+                var keep = State; State = Phase.Cutting;
+                PoseRock();
+                State = keep;
+                _rock = null;
+                occ.Visual.SetCutPreview(rec.CutNormal, rec.CutHeight, Vector3.right, -10f, 0.6f);
+            }
         }
 
         private string Refusal(SpecimenEntity e)
@@ -175,6 +219,7 @@ namespace GeodeEmpire.Lapidary
         {
             if (Active || e == null) return;
             var session = GameSession.Instance;
+            _enterFrame = Time.frameCount;
             _rock = e;
             _rock.Locked = true;
             _rock.SetStaticCollidable();
@@ -214,7 +259,8 @@ namespace GeodeEmpire.Lapidary
 
         public void Exit()
         {
-            if (!Active || State == Phase.Cutting && _feeding) return;
+            if (!Active) return;
+            _feeding = false; DevFeed = false;
             CursorController.MarkInputConsumed();
             Active = false;
             if (_controller != null) _controller.ExitStationView();
@@ -222,7 +268,7 @@ namespace GeodeEmpire.Lapidary
             StopMotor();
             if (_rock != null)
             {
-                _rock.Locked = false;
+                _rock.Locked = State == Phase.Cutting;   // a committed cut keeps the rock in the clamp
                 if (State != Phase.Cutting) _rock.Visual.SetCutPreview(Vector3.up, 0f, Vector3.right, -10f, 0f);
             }
             if (State != Phase.Cutting) { State = Phase.Idle; OpenJaw(); }
@@ -396,8 +442,11 @@ namespace GeodeEmpire.Lapidary
             }
             if (!any) _repeatTimer = 0f;
             if (changed) { PoseRock(); UpdatePreview(1f); }
-            if (GameInput.InteractPressed) Commit();
+            // the press that clamped the rock must not also commit the cut
+            if (GameInput.InteractPressed && Time.frameCount > _enterFrame + 1) Commit();
         }
+
+        private int _enterFrame;
 
         /// <summary>The clamp closes and the cut is committed to the save.</summary>
         public void Commit()

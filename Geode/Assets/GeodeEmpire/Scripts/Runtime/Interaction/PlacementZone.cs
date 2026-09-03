@@ -52,6 +52,9 @@ namespace GeodeEmpire.Interaction
 
         /// <summary>Station-specific acceptance (the saw takes whole rough and sawn pieces, the lap takes cut faces).</summary>
         public System.Func<SpecimenEntity, string> ExtraRefusal;
+        /// <summary>A station may claim the empty-handed press on its occupant (resume a committed cut) instead of a take.</summary>
+        public System.Func<SpecimenEntity, string> ResumePrompt;
+        public System.Action<SpecimenEntity> ResumeAction;
 
         public bool Accepts(SpecimenEntity e)
         {
@@ -79,7 +82,10 @@ namespace GeodeEmpire.Interaction
         {
             if (player.Held != null) return true;          // accepted, or a refusal the prompt explains
             if (Locked) return false;
-            if (Occupants.Count == 0 || Occupants[Occupants.Count - 1].Locked) return false;
+            if (Occupants.Count == 0) return false;
+            // a rock with a committed cut stays in the clamp (locked): the press resumes the cut instead
+            if (Kind == ZoneKind.Saw && Occupants[0].Record.CutCommitted) return ResumePrompt != null && ResumePrompt(Occupants[0]) != null;
+            if (Occupants[Occupants.Count - 1].Locked) return false;
             // a dirty rock in the tub is scrubbed, not taken: the tub itself carries that prompt
             if (Kind == ZoneKind.Wash && Occupants[0].Visual != null && Occupants[0].Visual.DirtRemaining > 0.02f) return false;
             return true;
@@ -95,6 +101,7 @@ namespace GeodeEmpire.Interaction
                 return $"{verb} {DisplayLabel}";
             }
             var top = Occupants.Count > 0 ? Occupants[Occupants.Count - 1] : null;
+            if (top != null && ResumePrompt != null) { string resume = ResumePrompt(top); if (resume != null) return resume; }
             return top != null ? $"Take {top.ShortName}" : "";
         }
 
@@ -116,6 +123,7 @@ namespace GeodeEmpire.Interaction
             else if (Occupants.Count > 0)
             {
                 var top = Occupants[Occupants.Count - 1];
+                if (ResumePrompt != null && ResumePrompt(top) != null && ResumeAction != null) { ResumeAction(top); return; }
                 if (top.Locked) return;
                 Take(top);
                 player.PickUp(top);
