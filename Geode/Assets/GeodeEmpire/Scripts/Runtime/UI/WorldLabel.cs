@@ -17,8 +17,8 @@ namespace GeodeEmpire.UI
         public Color Color = Color.white;
         public TextAnchor Anchor = TextAnchor.MiddleCenter;
 
-        private string _text = "";
-        private Mesh _mesh;
+        [SerializeField] private string _text = "";
+        private Mesh _mesh;                    // never saved: rebuilt from _text on load (a scene-embedded mesh corrupts player builds)
         private static readonly List<Vector3> Verts = new List<Vector3>(256);
         private static readonly List<Vector2> Uvs = new List<Vector2>(256);
         private static readonly List<Color32> Cols = new List<Color32>(256);
@@ -50,15 +50,40 @@ namespace GeodeEmpire.UI
 
         public void SetColor(Color c) { Color = c; Rebuild(); }
 
+        private void Awake() { if (_mesh == null) Rebuild(); }
+        private void OnValidate() { if (_mesh != null) Rebuild(); }
+
         private void OnDestroy()
         {
             if (_mesh == null) return;
             if (Application.isPlaying) Destroy(_mesh); else DestroyImmediate(_mesh);
         }
 
+        /// <summary>Width in metres of the widest line, from the font metrics alone (usable in the Editor, no mesh needed).</summary>
+        public float MeasureWidth()
+        {
+            if (Font == null || string.IsNullOrEmpty(_text)) return 0f;
+            float k = LineHeight / Mathf.Max(1f, Font.lineHeight);
+            float best = 0f;
+            foreach (var line in _text.Split('\n'))
+            {
+                float w = 0f;
+                for (int i = 0; i < line.Length; i++) if (Font.GetCharacterInfo(line[i], out var ci)) w += ci.advance * k;
+                best = Mathf.Max(best, w);
+            }
+            return best;
+        }
+
         public void Rebuild()
         {
-            if (_mesh == null) { _mesh = new Mesh { name = "WorldLabel" }; _mesh.MarkDynamic(); GetComponent<MeshFilter>().sharedMesh = _mesh; }
+            // meshes exist only while playing: a mesh referenced from a saved scene corrupts the player build
+            if (!Application.isPlaying) return;
+            if (_mesh == null)
+            {
+                _mesh = new Mesh { name = "WorldLabel", hideFlags = HideFlags.HideAndDontSave };
+                _mesh.MarkDynamic();
+                GetComponent<MeshFilter>().sharedMesh = _mesh;
+            }
             Verts.Clear(); Uvs.Clear(); Cols.Clear(); Tris.Clear();
             if (Font == null || string.IsNullOrEmpty(_text)) { _mesh.Clear(); return; }
             float px = Mathf.Max(1f, Font.lineHeight);        // atlas pixels per line

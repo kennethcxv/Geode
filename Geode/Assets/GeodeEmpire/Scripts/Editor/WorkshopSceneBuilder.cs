@@ -560,9 +560,8 @@ namespace GeodeEmpire.EditorTools
             tm.transform.SetPositionAndRotation(pos + rot * new Vector3(0f, 0.112f * scale, -0.06f), rot);
             tm.Text = text;
             var label = tm.gameObject;
-            var b = label.GetComponent<MeshRenderer>().bounds;
-            float textWidth = Mathf.Max(b.size.x, b.size.z);
-            if (textWidth < 0.1f) textWidth = text.Length * 0.115f * scale;          // mesh not generated yet in batch mode
+            float textWidth = tm.MeasureWidth();
+            if (textWidth < 0.1f) textWidth = text.Length * 0.115f * scale;
             float boardWidth = textWidth + 0.22f * scale;
             // board: its thin axis is local Z; rotate so local +Z points into the wall. Base mesh is 0.5 x 0.14 m.
             Prop("prop_sign_board", parent, pos, intoWallYaw, "M_WoodDark", collider: false, scale: new Vector3(boardWidth / 0.5f, 1.6f * scale, 2.5f));
