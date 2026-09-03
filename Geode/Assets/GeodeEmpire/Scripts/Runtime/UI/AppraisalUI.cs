@@ -47,6 +47,17 @@ namespace GeodeEmpire.UI
             if (_station != null) { _station.Appraised -= Show; _station.Cleared -= Hide; }
         }
 
+        private bool _wanted;
+
+        /// <summary>The card belongs to free roam: a station view or a menu takes the screen, and it comes back after.</summary>
+        private void Update()
+        {
+            if (_card == null) return;
+            bool show = _wanted && HudController.Instance != null && HudController.Instance.FreeRoam && !CursorController.InMenu;
+            var d = show ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_card.style.display != d) _card.style.display = d;
+        }
+
         private void Show(SpecimenEntity e)
         {
             var r = e.Record;
@@ -73,6 +84,7 @@ namespace GeodeEmpire.UI
             _record.style.display = string.IsNullOrEmpty(rec) ? DisplayStyle.None : DisplayStyle.Flex;
             int displayed = s.DisplayedCount();
             _hint.text = $"Keep it: display cabinet {displayed}/{s.DisplayCapacity}.   Sell it: dealer outbox.";
+            _wanted = true;
             _card.style.display = DisplayStyle.Flex;
         }
 
@@ -88,6 +100,7 @@ namespace GeodeEmpire.UI
 
         private void Hide()
         {
+            _wanted = false;
             _card.style.display = DisplayStyle.None;
         }
     }

@@ -634,7 +634,7 @@ def saw_station(rng):
     cyl(bm, 0.02, 0.02, (-0.5, -0.35, 0.98), segments=10, matrix=Matrix.Rotation(math.radians(90), 4, "X"))   # start button
     guard = lib.bm_box((0.6, 0.008, 0.42), (0.0, 0.26, 1.09))
     for f in guard.faces:
-        f.material_index = 1
+        f.material_index = 2
     lib.bm_append(bm, guard)
     return bm, False
 

@@ -130,6 +130,9 @@ namespace GeodeEmpire.UI
             if (_freeRoam) SetFreeRoamVisible(true);
         }
 
+        /// <summary>True while the player is free-roaming (no station view or menu owns the screen).</summary>
+        public bool FreeRoam => _freeRoam;
+
         /// <summary>Hide crosshair/prompt while a station or menu owns the screen.</summary>
         public void SetFreeRoamVisible(bool visible)
         {

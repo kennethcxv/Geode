@@ -79,6 +79,57 @@ namespace GeodeEmpire.Specimens
             return Mathf.Max(1f, Mathf.Round(g.BaseValue * mult));
         }
 
+        /// <summary>
+        /// Value of a sawn piece. A crystal geode's half is worth what it kept of the field and how much of the cavity the
+        /// face opens; a banded nodule's face is the product itself, and a polish makes it. A cut that missed the cavity
+        /// is a lump of rind. Two centre cuts of a geode add up to about one natural split; the saw buys certainty and
+        /// two separately saleable pieces, not more value.
+        /// </summary>
+        public static float PieceValue(SpecimenGeology g, PieceShape piece, float retained, float opening, float symmetry, float faceArea, float polish, float crystalDamageFraction, float shellDamage)
+        {
+            float basev = g.BaseValue;
+            float value;
+            bool nodule = g.Cavity == CavityArchetype.Nodule;
+            float thin = piece.IsSlab && piece.Thickness < 0.009f ? 0.7f : 1f;   // a wafer chips in the hand
+            if (nodule)
+            {
+                // the banded face: area and finish
+                value = basev * (0.2f + 0.6f * Mathf.Clamp01(faceArea)) * (1f + 0.85f * Mathf.Clamp01(polish)) * thin;
+                if (piece.IsSlab) value *= 1.15f;   // a slab shows the pattern on both sides
+            }
+            else if (opening <= 0.02f)
+            {
+                value = basev * 0.04f * Mathf.Clamp01(faceArea) * (1f + 0.3f * polish) + 1f;   // rind
+            }
+            else
+            {
+                value = basev * Mathf.Pow(Mathf.Clamp01(retained), 0.85f) * (0.35f + 0.65f * Mathf.Clamp01(opening)) * (0.8f + 0.2f * Mathf.Clamp01(symmetry)) * (1f + 0.12f * Mathf.Clamp01(polish)) * thin;
+            }
+            float d = Mathf.Clamp01(crystalDamageFraction);
+            value *= (1f - d * 0.85f) * (1f - Mathf.Clamp01(shellDamage) * 0.25f);
+            return Mathf.Max(1f, Mathf.Round(value));
+        }
+
+        public static string PieceWord(SpecimenGeology g, PieceShape piece, float polish, float opening)
+        {
+            bool polished = polish > 0.5f;
+            if (g.Cavity == CavityArchetype.Nodule) return piece.IsSlab ? (polished ? "Polished Slab" : "Slab") : (polished ? "Polished Slice" : "Sawn Slice");
+            if (opening <= 0.02f) return "Rind Cut";
+            if (piece.IsSlab) return polished ? "Polished Slab" : "Slab";
+            return polished ? "Polished Half" : "Sawn Half";
+        }
+
+        /// <summary>"Deep Violet Amethyst Sawn Half", "Banded Agate Polished Slab".</summary>
+        public static string PieceName(SpecimenGeology g, PieceShape piece, float polish, float opening)
+        {
+            var fam = g.Family;
+            string colorWord = ColorWord(g);
+            string famName = fam.Name;
+            if (fam.Id == MineralId.ClearQuartz && !string.IsNullOrEmpty(colorWord)) famName = "Quartz";
+            if (!string.IsNullOrEmpty(colorWord) && famName.StartsWith(colorWord, System.StringComparison.OrdinalIgnoreCase)) colorWord = null;
+            return (string.IsNullOrEmpty(colorWord) ? "" : colorWord + " ") + famName + " " + PieceWord(g, piece, polish, opening);
+        }
+
         public static string TierLabel(QualityTier t) => t switch
         {
             QualityTier.Common => "Common",

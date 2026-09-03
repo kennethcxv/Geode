@@ -167,6 +167,7 @@ namespace GeodeEmpire.Core
                 {
                     case SpecimenLocation.Sold:
                     case SpecimenLocation.Discarded:
+                    case SpecimenLocation.Cut:
                         continue;
                     case SpecimenLocation.InCrate:
                     {
@@ -253,6 +254,88 @@ namespace GeodeEmpire.Core
             };
             State.Specimens.Add(r);
             return r;
+        }
+
+        /// <summary>
+        /// The saw's commit: the parent record becomes the lineage's root (Location Cut, never spawned again) and two
+        /// piece records are born from the same seed. Nothing is rerolled and nothing is duplicated: damage indices are
+        /// shared with the parent, a piece's own damage lives on its own copy from here on.
+        /// </summary>
+        public (SpecimenRecord a, SpecimenRecord b) CutSpecimen(SpecimenRecord parent, PieceShape shapeA, PieceShape shapeB, string tool)
+        {
+            parent.CutCommitted = false;
+            parent.CutProgress = 0f;
+            SpecimenRecord Make(PieceShape shape, string suffix)
+            {
+                var geo = GeodeMeshBuilder.BuildPiece(parent.Geology, shape);
+                var r = new SpecimenRecord
+                {
+                    Id = parent.Id + suffix,
+                    Seed = parent.Seed,
+                    SupplierId = parent.SupplierId,
+                    CrateId = parent.CrateId,
+                    Condition = parent.Condition.Clone(),
+                    Location = SpecimenLocation.World,
+                    DiscoveredAtTicks = parent.DiscoveredAtTicks,
+                    OpenedAtTicks = DateTime.UtcNow.Ticks,
+                    IsPiece = true,
+                    Piece = shape,
+                    ParentId = parent.Id,
+                    CutIndex = parent.CutIndex + 1,
+                    PieceRetained = geo.RetainedCrystalFraction,
+                    PieceOpening = geo.CavityOpening,
+                    PieceSymmetry = geo.CutSymmetry,
+                    PieceFaceArea = geo.FaceAreaFraction,
+                    Polish = 0f,
+                    ProcessedBy = tool,
+                    ShellDamage = parent.ShellDamage,
+                    StrikeCount = parent.StrikeCount,
+                    SectorStress = (float[])(parent.SectorStress ?? Array.Empty<float>()).Clone(),
+                    Impacts = new List<Vector4>(parent.Impacts ?? new List<Vector4>()),
+                    CustomName = null,
+                };
+                r.Condition.Opened = true;
+                r.Condition.Cleaned = 1f;   // the slurry washes the piece
+                // damage as the appraisal sees it, from the piece's own crystals
+                float total = 0f, lost = 0f;
+                foreach (var c in geo.Crystals)
+                {
+                    float w = c.Height * c.Height * (c.Centerpiece ? 4f : 1f);
+                    total += w;
+                    byte d = r.Condition.DamageAt(c.Index);
+                    lost += w * (d == CrystalDamage.Chipped ? 0.3f : d == CrystalDamage.Broken ? 0.7f : d >= CrystalDamage.Missing ? 1f : 0f);
+                }
+                r.DamageFraction = total > 0f ? lost / total : 0f;
+                State.Specimens.Add(r);
+                return r;
+            }
+            var a = Make(shapeA, parent.IsPiece ? "a" : "-A");
+            var b = Make(shapeB, parent.IsPiece ? "b" : "-B");
+            bool firstOpen = !parent.IsOpened;
+            parent.Location = SpecimenLocation.Cut;
+            parent.Condition.Opened = true;
+            var st = State.Stats;
+            st.SawCuts++;
+            if (shapeA.IsSlab || shapeB.IsSlab) st.SlabsCut++;
+            if (firstOpen)
+            {
+                st.RocksProcessed++;
+                // the discovery is the better piece's
+                var best = a.PristineForSale() >= b.PristineForSale() ? a : b;
+                RecordDiscovery(best, best.DamageFraction);
+            }
+            foreach (var r in new[] { a, b })
+            {
+                float v = r.PristineForSale();
+                if (v > st.HighestValueSawResult) { st.HighestValueSawResult = v; st.HighestValueSawResultName = r.DisplayName; }
+                float face = r.PieceFaceArea * Mathf.PI * parent.Geology.Size * parent.Geology.Size * 10000f;
+                if (r.Piece.IsSlab && face > st.LargestSlabFaceCm2) { st.LargestSlabFaceCm2 = face; st.LargestSlabName = r.DisplayName; }
+            }
+            var entity = GetEntity(parent.Id);
+            if (entity != null) Despawn(entity);
+            StateChanged?.Invoke();
+            FlushSave("cut");
+            return (a, b);
         }
 
         public SpecimenEntity Spawn(SpecimenRecord r, Vector3 position, Quaternion rotation, bool physics)
@@ -372,7 +455,7 @@ namespace GeodeEmpire.Core
             if (State == null) return false;
             foreach (var s in State.Specimens)
             {
-                if (s.Location == SpecimenLocation.Sold || s.Location == SpecimenLocation.Discarded || s.Location == SpecimenLocation.DisplaySlot) continue;
+                if (s.Location == SpecimenLocation.Sold || s.Location == SpecimenLocation.Discarded || s.Location == SpecimenLocation.Cut || s.Location == SpecimenLocation.DisplaySlot) continue;
                 return true;   // includes stock on the sales fixtures: it can always be taken back to the dealer
             }
             return false;
@@ -387,7 +470,9 @@ namespace GeodeEmpire.Core
             reason = null;
             var up = Economy.UpgradeCatalog.Get(upgradeId);
             if (up == null) { reason = "Unknown upgrade"; return false; }
-            if (State.HasUpgrade(upgradeId)) { reason = "Installed"; return false; }
+            if (!up.Consumable && State.HasUpgrade(upgradeId)) { reason = "Installed"; return false; }
+            if (!string.IsNullOrEmpty(up.Requires) && !State.HasUpgrade(up.Requires)) { reason = "Needs the " + Economy.UpgradeCatalog.Get(up.Requires).Name; return false; }
+            if (up.Consumable && upgradeId == Economy.UpgradeCatalog.SawBlade && State.BladeWear < 0.2f) { reason = "Blade still sharp"; return false; }
             if (!CanAfford(up.Price)) { reason = "Not enough cash"; return false; }
             float cheapest = Economy.SupplierCatalog.Get(Economy.SupplierCatalog.Local).Price;
             if (State.Cash - up.Price < cheapest && !HasProcessableMaterial()) { reason = $"Keep {UI.UiKit.Money(cheapest)} for a crate"; return false; }
@@ -415,9 +500,18 @@ namespace GeodeEmpire.Core
             error = null;
             var up = Economy.UpgradeCatalog.Get(upgradeId);
             if (up == null) { error = "Unknown upgrade"; return false; }
-            if (State.HasUpgrade(upgradeId)) { error = "Already owned"; return false; }
+            if (!up.Consumable && State.HasUpgrade(upgradeId)) { error = "Already owned"; return false; }
             if (!CanBuyUpgrade(upgradeId, out string why)) { error = why; return false; }
             TrySpend(up.Price, "upgrade");
+            if (up.Consumable)
+            {
+                if (upgradeId == Economy.UpgradeCatalog.SawBlade) State.BladeWear = 0f;
+                Audio.WorkshopAudio.Play2D("ui_buy", 0.7f);
+                Notify($"{up.Name} fitted.", NotificationKind.Success);
+                StateChanged?.Invoke();
+                FlushSave("supplies");
+                return true;
+            }
             State.Upgrades.Add(upgradeId);
             if (upgradeId == Economy.UpgradeCatalog.DisplayExpansion) State.DisplayCapacity = 12;
             if (upgradeId == Economy.UpgradeCatalog.SalesTable) State.SaleCapacity = 10;

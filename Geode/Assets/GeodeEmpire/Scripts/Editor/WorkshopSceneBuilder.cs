@@ -64,7 +64,8 @@ namespace GeodeEmpire.EditorTools
             Lit("M_PlasterWarm", "T_Plaster", new Color(0.84f, 0.81f, 0.74f), 0.12f, 0f, 2f);
             Lit("M_Wainscot", "T_WoodDark", new Color(0.7f, 0.66f, 0.6f), 0.35f, 0f, 1f);
             var glass = Lit("M_Glass", null, new Color(0.7f, 0.85f, 0.95f, 0.18f), 0.95f, 0f, 1f);
-            SetTransparent(Lit("M_Water", null, new Color(0.4f, 0.58f, 0.66f, 0.6f), 0.96f, 0f, 1f));
+            SetTransparent(Lit("M_Water", null, new Color(0.24f, 0.36f, 0.4f, 0.72f), 0.96f, 0f, 1f));
+            Lit("M_MachinePaint", "T_Metal", new Color(0.56f, 0.62f, 0.58f), 0.55f, 0.15f, 1f);
             SetTransparent(glass);
             // loupe lens: magnifies the opaque scene behind it
             string lensPath = Folder + "/M_LoupeLens.mat";
@@ -753,7 +754,34 @@ namespace GeodeEmpire.EditorTools
             }
 
             // ---- Saw teaser + clutter -----------------------------------------------------------
-            var teaser = Prop("prop_saw_teaser", parent, new Vector3(1.75f, 0f, 2.3f), 180f, "M_Tarp");   // north wall by the partition opening, facing the room
+            // ---- Saw bay (north wall by the partition opening): the tarp until the Trim Saw is bought, the machine after ----
+            var sawRoot = new GameObject("SawStation").transform;
+            sawRoot.SetParent(parent, false);
+            sawRoot.localPosition = new Vector3(1.75f, 0f, 2.3f);
+            var teaser = Prop("prop_saw_teaser", sawRoot, Vector3.zero, 180f, "M_Tarp");
+            var machine = new GameObject("Machine").transform;
+            machine.SetParent(sawRoot, false);
+            var sawBody = Prop("prop_saw_station", machine, Vector3.zero, 0f, "M_MachinePaint,M_Water,M_Glass", collider: true);
+            var blade = Prop("prop_saw_blade", machine, new Vector3(0f, 1.06f, 0.05f), 0f, "M_Metal,M_MetalDark", collider: false);
+            var vise = Prop("prop_saw_vise", machine, new Vector3(0.42f, 0.915f, 0f), 0f, "M_MachinePaint,M_Rubber", collider: false);
+            var jaw = Prop("prop_saw_jaw", vise.transform, new Vector3(0f, 0.02f, 0.13f), 0f, "M_MachinePaint,M_Rubber", collider: false);
+            var outTrayProp = Prop("prop_tray", machine, new Vector3(-0.4f, 0.88f, -0.16f), 0f, "M_PlasticBlue", collider: true, scale: new Vector3(1.15f, 1f, 1.15f));
+            var sawCam = new GameObject("SawCamera").transform;
+            sawCam.SetParent(sawRoot, false);
+            var sawLight = MakeLight(machine, "SawLight", new Vector3(0.1f, 1.75f, -0.35f), new Vector3(72f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 1.8f, 2.2f, 58f, false);
+            sawLight.enabled = false;
+            var clampZone = Zone(sawRoot, "ClampZone", new Vector3(0.42f, 0.935f, 0.05f), ZoneKind.Saw, "the saw clamp", 1, true, true, new Vector3(0.3f, 0.26f, 0.34f));
+            clampZone.SetHighlightRenderers(vise.GetComponentsInChildren<Renderer>());
+            var clampAnchor = new GameObject("Anchor").transform; clampAnchor.SetParent(clampZone.transform, false); clampZone.Anchor = clampAnchor;
+            var sawTray = Zone(machine, "SawTray", new Vector3(-0.4f, 0.895f, -0.16f), ZoneKind.SawTray, "the saw tray", 2, true, false, new Vector3(0.34f, 0.16f, 0.28f));
+            sawTray.GridColumns = 2; sawTray.GridSpacing = new Vector2(0.15f, 0.12f);
+            sawTray.SetHighlightRenderers(outTrayProp.GetComponentsInChildren<Renderer>());
+            var sawTrayAnchor = new GameObject("Anchor").transform; sawTrayAnchor.SetParent(sawTray.transform, false); sawTray.Anchor = sawTrayAnchor;
+            var saw = sawRoot.gameObject.AddComponent<Lapidary.SawStation>();
+            saw.Clamp = clampZone; saw.OutTray = sawTray;
+            saw.Vise = vise.transform; saw.Jaw = jaw.transform; saw.Blade = blade.transform;
+            saw.CameraAnchor = sawCam; saw.Teaser = teaser; saw.Machine = machine.gameObject; saw.TaskLight = sawLight;
+            machine.gameObject.SetActive(false);
             var ts = teaser.AddComponent<TeaserSign>();
             Prop("prop_cardboard_box", parent, new Vector3(-2.9f, 0f, -1.4f), 30f, "M_Cardboard");
             Prop("prop_cardboard_box", parent, new Vector3(-2.7f, 0f, -0.9f), -10f, "M_Cardboard", scale: new Vector3(0.8f, 0.9f, 0.8f));
@@ -953,6 +981,7 @@ namespace GeodeEmpire.EditorTools
             doc.sortingOrder = 0;
             hud.AddComponent<HudController>();
             hud.AddComponent<BenchHud>();
+            hud.AddComponent<SawHud>();
             hud.AddComponent<TabletUI>();
             hud.AddComponent<AppraisalUI>();
             hud.AddComponent<PauseMenu>();

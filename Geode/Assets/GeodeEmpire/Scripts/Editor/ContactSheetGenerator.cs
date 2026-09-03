@@ -26,6 +26,9 @@ namespace GeodeEmpire.EditorTools
             public SpecimenGeology Geology;
             public SpecimenCondition Condition;
             public string Caption;
+            /// <summary>Render a sawn piece instead of the whole rock.</summary>
+            public PieceShape? Piece;
+            public float Polish;
         }
 
         [MenuItem("GeodeEmpire/Contact Sheet/Interiors 200 (2 sheets)")]
@@ -43,6 +46,45 @@ namespace GeodeEmpire.EditorTools
 
         [MenuItem("GeodeEmpire/Contact Sheet/Size classes")]
         public static void SizeSheet() => SizeClasses();
+
+        [MenuItem("GeodeEmpire/Contact Sheet/Saw cut examples")]
+        public static void CutSheet() => CutExamples();
+
+        /// <summary>
+        /// Saw geometry check: for a few specimens (a hollow geode, a nodule, a cathedral, a pocket) render the natural
+        /// split, a centre cut (both pieces), an off-centre cut, a slab, a polished slab, and a cut that misses the
+        /// cavity. Each cell is one piece under identical lighting.
+        /// </summary>
+        public static string CutExamples(int cell = 256)
+        {
+            var picks = new List<SpecimenGeology>();
+            var wantCav = new List<CavityArchetype> { CavityArchetype.Hollow, CavityArchetype.Nodule, CavityArchetype.Cathedral, CavityArchetype.Pocket };
+            ulong seed = 12000;
+            while (picks.Count < wantCav.Count && seed < 30000UL)
+            {
+                var g = SpecimenGenerator.Generate(seed++);
+                if (g.Cavity == wantCav[picks.Count] && g.Tier >= QualityTier.Decent && g.SizeClass == SizeClass.Medium) picks.Add(g);
+            }
+            var cells = new List<Cell>();
+            foreach (var g in picks)
+            {
+                float R = g.Size;
+                Vector3 n = Vector3.up;
+                var lobe = g.LobeCenters != null && g.LobeCenters.Length > 0 ? g.LobeCenters[0] : Vector3.zero;
+                float centre = Vector3.Dot(lobe, n);
+                cells.Add(new Cell { Geology = g, Condition = new SpecimenCondition { Opened = true, Cleaned = 1f }, Caption = "natural split" });
+                cells.Add(new Cell { Geology = g, Condition = Open(), Caption = "centre lower", Piece = PieceShape.Below(n, centre - 0.0015f) });
+                cells.Add(new Cell { Geology = g, Condition = Open(), Caption = "centre upper", Piece = PieceShape.Above(n, centre + 0.0015f) });
+                cells.Add(new Cell { Geology = g, Condition = Open(), Caption = "off-centre", Piece = PieceShape.Below(n, centre + R * 0.35f) });
+                cells.Add(new Cell { Geology = g, Condition = Open(), Caption = "slab", Piece = new PieceShape { Normal = n, Lo = centre - 0.006f, Hi = centre + 0.006f, HasLo = true, HasHi = true } });
+                cells.Add(new Cell { Geology = g, Condition = Open(), Caption = "slab polished", Polish = 1f, Piece = new PieceShape { Normal = n, Lo = centre - 0.006f, Hi = centre + 0.006f, HasLo = true, HasHi = true } });
+                cells.Add(new Cell { Geology = g, Condition = Open(), Caption = "rind (missed)", Piece = PieceShape.Above(n, R * 0.82f) });
+                cells.Add(new Cell { Geology = g, Condition = Open(), Caption = "tilted cut", Piece = PieceShape.Below(new Vector3(0.35f, 1f, 0.2f).normalized, centre) });
+            }
+            return Render(cells, "saw_cuts", true, cell, 8, 0f);
+        }
+
+        private static SpecimenCondition Open() => new SpecimenCondition { Opened = true, Cleaned = 1f };
 
         public static string Generate(int count, ulong firstSeed, string fileName, bool opened, int cell = 256, int cols = 10, ulong[] seeds = null)
         {
@@ -256,11 +298,11 @@ namespace GeodeEmpire.EditorTools
                     var go = new GameObject("Specimen");
                     go.transform.SetParent(rig.transform, false);
                     var vis = go.AddComponent<SpecimenVisual>();
-                    vis.Build(g, cells[n].Condition ?? new SpecimenCondition { Opened = opened, Cleaned = 1f }, lib);
+                    vis.Build(g, cells[n].Condition ?? new SpecimenCondition { Opened = opened, Cleaned = 1f }, lib, cells[n].Piece, cells[n].Polish);
                     float radius = vis.Geometry.MaxRadius;
                     if (opened)
                     {
-                        vis.TopHalf.gameObject.SetActive(false);
+                        if (vis.TopHalf != null) vis.TopHalf.gameObject.SetActive(false);
                         // camera looks down into the cavity from a slight tilt
                         float dist = fixedDistance > 0f ? fixedDistance : radius * 4.4f;
                         camGo.transform.localPosition = new Vector3(0f, dist * 0.74f, -dist * 0.62f);

@@ -11,6 +11,10 @@ namespace GeodeEmpire.Economy
         public string Effect;
         public float Price;
         public int Order;
+        /// <summary>A consumable (a fresh blade): bought again and again, never listed as owned.</summary>
+        public bool Consumable;
+        /// <summary>Only offered once this upgrade is owned.</summary>
+        public string Requires;
     }
 
     /// <summary>Few upgrades, each changing how the game plays rather than a hidden percentage.</summary>
@@ -25,6 +29,11 @@ namespace GeodeEmpire.Economy
         public const string SalesTable = "sales_table";
         public const string HeavyCradle = "heavy_cradle";
         public const string Wedge = "wedge";
+        public const string TrimSaw = "trim_saw";
+        public const string SawBlade = "saw_blade";
+        public const string ThinBlade = "thin_blade";
+        public const string CoolantPump = "coolant_pump";
+        public const string PolishLap = "polish_lap";
 
         public static readonly UpgradeDefinition[] All =
         {
@@ -55,6 +64,21 @@ namespace GeodeEmpire.Economy
             new UpgradeDefinition { Id = HeavyCradle, Name = "Heavy Cradle", Price = 240f, Order = 2,
                 Description = "A wide sandbag ring on a steel plate with three padded posts.",
                 Effect = "Oversized rough sits dead still instead of rocking under every blow: no more skidded strikes, full force into the seam." },
+            new UpgradeDefinition { Id = TrimSaw, Name = "Trim Saw", Price = 650f, Order = 5,
+                Description = "A 10-inch diamond trim saw with a coolant tray and a carriage vise, under the tarp by the partition.",
+                Effect = "A second way to open rock: clamp it, choose the plane, feed it through. Slow, precise, costs blade; cuts flat display faces and slabs, and never shatters a delicate shell." },
+            new UpgradeDefinition { Id = SawBlade, Name = "Diamond Blade", Price = 45f, Order = 6, Consumable = true, Requires = TrimSaw,
+                Description = "A fresh 10-inch sintered diamond blade.",
+                Effect = "Replaces the worn blade. A dull blade cuts slowly and chips the edges of the cut." },
+            new UpgradeDefinition { Id = ThinBlade, Name = "Thin-Kerf Blade Profile", Price = 140f, Order = 7, Requires = TrimSaw,
+                Description = "A thinner, stiffer blade and a truer arbor.",
+                Effect = "Half the kerf: fewer crystals lost along the cut and cleaner faces. Wears a little faster." },
+            new UpgradeDefinition { Id = CoolantPump, Name = "Coolant Pump", Price = 110f, Order = 7, Requires = TrimSaw,
+                Description = "A recirculating pump flooding the blade instead of a drip.",
+                Effect = "The blade runs cool: much less load when feeding hard, half the chipping, longer blade life." },
+            new UpgradeDefinition { Id = PolishLap, Name = "Flat Lap", Price = 420f, Order = 8, Requires = TrimSaw,
+                Description = "A 12-inch flat lap with a diamond pad and a drip feed.",
+                Effect = "Polish sawn faces: banded slabs and slices come up glossy and saturated, worth far more. Natural cavities stay as they are." },
         };
 
         public static UpgradeDefinition Get(string id)

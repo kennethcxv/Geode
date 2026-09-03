@@ -47,7 +47,8 @@ namespace GeodeEmpire.Workshop
             if (Current != e) { Weighing = false; yield break; }
             var session = GameSession.Instance;
             float damage = e.Visual.CrystalDamageFraction();
-            float value = Valuation.DamagedValue(e.Geology, damage, e.Record.ShellDamage);
+            e.Record.DamageFraction = damage;
+            float value = e.Record.PristineForSale();   // a sawn piece is valued as a piece, a split rock as a rock
             bool first = !e.Record.Appraised;
             e.Record.Appraised = true;
             e.Record.AppraisedValue = value;

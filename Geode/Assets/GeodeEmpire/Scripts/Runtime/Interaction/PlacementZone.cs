@@ -8,7 +8,7 @@ using GeodeEmpire.Specimens;
 
 namespace GeodeEmpire.Interaction
 {
-    public enum ZoneKind { Cradle, SellTray, Scale, DisplaySlot, Shelf, SaleSlot, Counter, Wash }
+    public enum ZoneKind { Cradle, SellTray, Scale, DisplaySlot, Shelf, SaleSlot, Counter, Wash, Saw, SawTray, Lap }
 
     /// <summary>
     /// A physical spot specimens can be placed into (and taken from). Trays hold several, slots hold one.
@@ -45,8 +45,13 @@ namespace GeodeEmpire.Interaction
             ZoneKind.DisplaySlot => SpecimenLocation.DisplaySlot,
             ZoneKind.SaleSlot => SpecimenLocation.SaleSlot,
             ZoneKind.Wash => SpecimenLocation.WashTub,
+            ZoneKind.Saw => SpecimenLocation.Saw,
+            ZoneKind.Lap => SpecimenLocation.Lap,
             _ => SpecimenLocation.World,
         };
+
+        /// <summary>Station-specific acceptance (the saw takes whole rough and sawn pieces, the lap takes cut faces).</summary>
+        public System.Func<SpecimenEntity, string> ExtraRefusal;
 
         public bool Accepts(SpecimenEntity e)
         {
@@ -66,6 +71,7 @@ namespace GeodeEmpire.Interaction
             if (!opened && !AcceptsUnopened) return Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot ? "Crack it open first" : "Opened specimens only";
             if (Kind == ZoneKind.SaleSlot && !e.Record.Appraised) return "Appraise it first: the scale sets the price";
             if (Kind == ZoneKind.Wash && e.Visual != null && e.Visual.DirtRemaining < 0.04f) return "Already clean";
+            if (ExtraRefusal != null) { string why = ExtraRefusal(e); if (why != null) return why; }
             return null;
         }
 
@@ -85,7 +91,7 @@ namespace GeodeEmpire.Interaction
             {
                 string why = RefusalReason(player.Held);
                 if (why != null) return why;
-                string verb = Kind == ZoneKind.Cradle ? "Set on" : Kind == ZoneKind.Scale ? "Weigh on" : Kind == ZoneKind.SaleSlot ? "Put up for sale on" : Kind == ZoneKind.Wash ? "Dunk in" : "Place in";
+                string verb = Kind == ZoneKind.Cradle ? "Set on" : Kind == ZoneKind.Scale ? "Weigh on" : Kind == ZoneKind.SaleSlot ? "Put up for sale on" : Kind == ZoneKind.Wash ? "Dunk in" : Kind == ZoneKind.Saw ? "Clamp in" : Kind == ZoneKind.Lap ? "Set face-down on" : "Place in";
                 return $"{verb} {DisplayLabel}";
             }
             var top = Occupants.Count > 0 ? Occupants[Occupants.Count - 1] : null;

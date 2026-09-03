@@ -188,7 +188,7 @@ namespace GeodeEmpire.Core
             }
             int entities = s.Entities.Count;
             int expectedEntities = 0;
-            foreach (var r in s.State.Specimens) if (r.Location != SpecimenLocation.Sold && r.Location != SpecimenLocation.Discarded) expectedEntities++;
+            foreach (var r in s.State.Specimens) if (r.Location != SpecimenLocation.Sold && r.Location != SpecimenLocation.Discarded && r.Location != SpecimenLocation.Cut) expectedEntities++;
             sb.Insert(0, $"save/reload: specimens={s.State.Specimens.Count} cashBefore={cash} cashAfter={s.State.Cash} crates={crates}->{s.State.Crates.Count} upgrades='{upgrades}' entities={entities}/{expectedEntities} mismatches={mismatches}\n");
             foreach (var e in s.Entities.Values)
             {
@@ -414,6 +414,105 @@ namespace GeodeEmpire.Core
             D.SetMouseButton(1, false);
             yield return new WaitForSeconds(0.2f);
             L(Core.CollisionAudit.Report("wash end"));
+            Phase = "done";
+            Running = false;
+        }
+
+        /// <summary>
+        /// V4 saw: buy the saw if needed, take an unopened rock to it, clamp, set a plan (yaw/roll/offset), commit, feed
+        /// through (fast when asked), read the pieces, take the better one to the scale. Logs times, chips, wear, values.
+        /// </summary>
+        public void RunSawCut(float yaw = 0f, float roll = 0f, float offset = 0f, bool fast = false) { if (!Running) StartCoroutine(SawCut(yaw, roll, offset, fast)); }
+
+        private IEnumerator SawCut(float yaw, float roll, float offset, bool fast)
+        {
+            Running = true;
+            Phase = "saw";
+            var saw = Find<Lapidary.SawStation>();
+            if (saw == null) { L("no saw station"); Running = false; yield break; }
+            if (!saw.Owned)
+            {
+                if (S.State.Cash < 700f) S.AddCash(700f, "test");
+                S.BuyUpgrade(Economy.UpgradeCatalog.TrimSaw, out string err);
+                L("bought saw: " + (err ?? "ok") + " owned=" + saw.Owned);
+                yield return null;
+            }
+            L($"== SawCut yaw={yaw} roll={roll} offset={offset} fast={fast} cash={S.State.Cash} blade={S.State.BladeWear:F2}");
+            if (S.Crates.Count == 0) { S.BuyCrate("local", out string err2); yield return new WaitForSeconds(1.4f); }
+            CrateEntity crate = null;
+            foreach (var c in S.Crates.Values) if (!c.IsOpened || c.RemainingRocks > 0) { crate = c; break; }
+            if (crate != null && !crate.IsOpened)
+            {
+                Vector3 cratePos = crate.transform.position;
+                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
+                yield return D.WalkTo(stand, 0.3f);
+                yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
+                yield return new WaitForSeconds(0.9f);
+            }
+            // a medium or small unopened rock with a decent cavity, for a readable cut
+            SpecimenEntity rock = null; float best = -1f;
+            foreach (var e in S.Entities.Values)
+            {
+                if (e.IsOpened || e.Record.Location != SpecimenLocation.InCrate) continue;
+                if (e.Geology.SizeClass == SizeClass.Oversized || e.Geology.SizeClass == SizeClass.Large) continue;
+                float score = e.Geology.CavityFraction + (e.Geology.Tier >= QualityTier.Decent ? 0.3f : 0f);
+                if (score > best) { best = score; rock = e; }
+            }
+            if (rock == null) { L("no suitable rock"); Running = false; yield break; }
+            yield return FetchRock(rock);
+            if (P.Held == null) { L("could not pick up"); Running = false; yield break; }
+            rock = P.Held;
+            L($"rock {rock.Id} {rock.Geology.Mineral} {rock.Geology.Cavity} size={rock.Geology.SizeClass} r={rock.Radius:F3} tier={rock.Geology.Tier} base=${rock.Geology.BaseValue}");
+            Vector3 clamp = ZonePos(ZoneKind.Saw);
+            yield return RouteTo(new Vector3(clamp.x - 0.15f, 0f, clamp.z - 0.95f), 0.25f);
+            yield return LookAndInteract(clamp, "Clamp in");
+            yield return new WaitForSeconds(0.8f);
+            L($"saw active={saw.Active} state={saw.State} rock={(saw.Rock != null ? saw.Rock.Id : "none")}");
+            if (!saw.Active) { Probe("saw"); Running = false; yield break; }
+            Snap("saw_clamped");
+            // set the plan through the real inputs where cheap (a few yaw taps), then exactly
+            yield return Rotate(0.2f, 1);
+            saw.SetPlan(yaw, roll, offset);
+            yield return new WaitForSeconds(0.3f);
+            saw.Estimate(out float secs, out float wear, out float cost);
+            saw.PlanInRockFrame(out var n, out float h);
+            L($"plan yaw={saw.Yaw} roll={saw.Roll} offset={saw.Offset * 1000f:F0}mm normal={n:F2} h={h * 1000f:F1}mm estimate {secs:F0}s wear={wear:F3} ${cost:F1}");
+            Snap("saw_plan");
+            yield return Interact();
+            yield return new WaitForSeconds(0.5f);
+            L($"committed={saw.Committed} state={saw.State} saved cut={rock.Record.CutCommitted}");
+            saw.DevFeed = true; saw.DevFast = fast;
+            float t0 = Time.time; float maxLoad = 0f; bool snapped = false;
+            while (saw.State == Lapidary.SawStation.Phase.Cutting && Time.time - t0 < 90f)
+            {
+                maxLoad = Mathf.Max(maxLoad, saw.Load);
+                if (!snapped && saw.Progress > 0.45f) { snapped = true; Snap("saw_cutting"); }
+                yield return null;
+            }
+            saw.DevFeed = false; saw.DevFast = false;
+            yield return new WaitForSeconds(1.5f);
+            L($"cut done in {Time.time - t0:F1}s state={saw.State} maxLoad={maxLoad:F2} chips={saw.ChipsThisCut} wear={saw.WearThisCut:F3} blade={S.State.BladeWear:F2} note='{saw.ResultNote}'");
+            Snap("saw_result");
+            var a = saw.PieceA; var b = saw.PieceB;
+            if (a != null) L($"piece A {a.Id} {a.Record.DisplayName} value=${a.Record.PristineForSale()} retained={a.Record.PieceRetained:F2} opening={a.Record.PieceOpening:F2} sym={a.Record.PieceSymmetry:F2} face={a.Record.PieceFaceArea:F2} loc={a.Record.Location}");
+            if (b != null) L($"piece B {b.Id} {b.Record.DisplayName} value=${b.Record.PristineForSale()} retained={b.Record.PieceRetained:F2} opening={b.Record.PieceOpening:F2} loc={b.Record.Location}");
+            var parentRec = S.State.FindSpecimen(rock.Record.Id);
+            L($"parent loc={(parentRec != null ? parentRec.Location.ToString() : "missing")} entity={(S.GetEntity(rock.Record.Id) != null)}");
+            L(Core.CollisionAudit.Report("saw pieces"));
+            yield return Interact();
+            yield return new WaitForSeconds(0.5f);
+            L($"took piece: held={(P.Held != null ? P.Held.Id : "none")} sawActive={saw.Active}");
+            if (P.Held != null)
+            {
+                Vector3 scale = ZonePos(ZoneKind.Scale);
+                yield return RouteTo(StandNear(scale), 0.3f);
+                yield return LookAndInteract(scale, "Weigh on the scale");
+                yield return new WaitForSeconds(1.6f);
+                var ap = Find<AppraisalStation>();
+                L("appraised piece=" + (ap.Current != null && ap.Current.Record.Appraised) + " value=" + (ap.Current != null ? ap.Current.Record.AppraisedValue.ToString() : "") + " name=" + (ap.Current != null ? ap.Current.Record.DisplayName : ""));
+                Snap("saw_piece_appraisal");
+            }
+            L(RunSaveReloadCheck());
             Phase = "done";
             Running = false;
         }

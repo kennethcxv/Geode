@@ -67,6 +67,43 @@ namespace GeodeEmpire.Audio
             src.Play();
         }
 
+        /// <summary>Start a looping clip on its own source (machines): the caller owns pitch/volume and stops it.</summary>
+        public static AudioSource StartLoop(string name, Vector3 position, float volume = 1f, float pitch = 1f)
+        {
+            EnsureBuilt();
+            if (!_bank.TryGetValue(name, out var clips) || clips.Length == 0) return null;
+            var go = new GameObject("Loop_" + name);
+            go.transform.SetParent(_root.transform, false);
+            go.transform.position = position;
+            var src = go.AddComponent<AudioSource>();
+            src.playOnAwake = false;
+            src.loop = true;
+            src.spatialBlend = 1f;
+            src.rolloffMode = AudioRolloffMode.Linear;
+            src.minDistance = 0.8f;
+            src.maxDistance = 10f;
+            src.dopplerLevel = 0f;
+            src.clip = clips[0];
+            src.volume = volume * SfxVolume;
+            src.pitch = pitch;
+            src.Play();
+            return src;
+        }
+
+        public static void SetLoop(AudioSource src, float volume, float pitch)
+        {
+            if (src == null) return;
+            src.volume = volume * SfxVolume;
+            src.pitch = pitch;
+        }
+
+        public static void StopLoop(AudioSource src)
+        {
+            if (src == null) return;
+            src.Stop();
+            Object.Destroy(src.gameObject);
+        }
+
         public static void Play2D(string name, float volume = 1f, float pitch = 1f)
         {
             EnsureBuilt();
@@ -121,7 +158,85 @@ namespace GeodeEmpire.Audio
             _bank["knock_2"] = Variants(2, i => Knock(1f, seed: 268 + (ulong)i));
             _bank["scrub"] = Variants(3, i => Scrub(0.32f + i * 0.04f, seed: 270 + (ulong)i));
             _bank["splash"] = Variants(2, i => Splash(seed: 280 + (ulong)i));
+            // lapidary saw: motor loop, blade-in-stone grind loop, clamp clack, the released piece dropping, the cut-through ring
+            _bank["saw_motor"] = new[] { LoopClip(Motor(seed: 400)) };
+            _bank["saw_grind"] = new[] { LoopClip(Grind(seed: 410)) };
+            _bank["clamp"] = Variants(2, i => Impact(0.14f, 640f + i * 60f, 0.7f, 0.1f, 0.35f, 4f, seed: 420 + (ulong)i));
+            _bank["cut_through"] = Variants(1, i => CutThrough(seed: 430));
+            _bank["lap_motor"] = new[] { LoopClip(Motor(seed: 440, hum: 150f, whine: 0.35f)) };
+            _bank["lap_contact"] = new[] { LoopClip(Grind(seed: 450, fine: true)) };
             _bank["ambience"] = new[] { Ambience(seed: 300) };
+        }
+
+        private static AudioClip LoopClip(float[] data)
+        {
+            var clip = AudioClip.Create("loop", data.Length, 1, SampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        /// <summary>A small motor: mains hum, a belt whine and bearing noise. Loop-safe (whole periods of the hum).</summary>
+        private static float[] Motor(ulong seed, float hum = 100f, float whine = 0.55f)
+        {
+            float duration = 1.0f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.08f;
+                float h = Mathf.Sin(2f * Mathf.PI * hum * t) * 0.35f + Mathf.Sin(2f * Mathf.PI * hum * 2f * t) * 0.15f;
+                float w = Mathf.Sin(2f * Mathf.PI * hum * 11f * t + Mathf.Sin(t * 6f) * 0.3f) * whine * 0.18f;
+                d[i] = Mathf.Clamp((h + w + lp * 0.9f) * 0.55f, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>Diamond blade in stone: a wide hiss with a gritty rumble underneath. Loop-safe.</summary>
+        private static float[] Grind(ulong seed, bool fine = false)
+        {
+            float duration = 1.0f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f, lp2 = 0f, bp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * (fine ? 0.5f : 0.3f);
+                lp2 += (lp - lp2) * 0.6f;
+                bp += (noise - bp) * 0.02f;
+                float grit = rng.NextFloat() < (fine ? 0.02f : 0.05f) ? noise * 0.6f : 0f;
+                float v = lp2 * 1.4f + (fine ? 0f : bp * 2.2f) + grit;
+                d[i] = Mathf.Clamp(v * 0.5f, -1f, 1f);
+            }
+            // seamless: crossfade the last 2000 samples into the first
+            int x = 2000;
+            for (int i = 0; i < x; i++) { float a = i / (float)x; int j = n - x + i; d[j] = d[j] * (1f - a) + d[i] * a; }
+            return d;
+        }
+
+        /// <summary>The blade breaks through: the load drops with a short ring and the halves knock.</summary>
+        private static float[] CutThrough(ulong seed)
+        {
+            float duration = 0.7f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.35f;
+                float ring = Mathf.Sin(2f * Mathf.PI * 3400f * t) * Mathf.Exp(-t * 18f) * 0.35f + Mathf.Sin(2f * Mathf.PI * 5100f * t) * Mathf.Exp(-t * 30f) * 0.15f;
+                float knock = t > 0.22f ? Mathf.Sin(2f * Mathf.PI * 380f * (t - 0.22f)) * Mathf.Exp(-(t - 0.22f) * 40f) * 0.7f + lp * Mathf.Exp(-(t - 0.22f) * 60f) * 0.5f : 0f;
+                d[i] = Mathf.Clamp(ring + knock, -1f, 1f);
+            }
+            return d;
         }
 
         /// <summary>Knuckle on stone. A hollow shell has a ringing body mode and a slow decay; a solid one is a dull, short thud.</summary>

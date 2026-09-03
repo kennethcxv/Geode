@@ -31,6 +31,11 @@ Shader "GeodeEmpire/GeodeShell"
         _Dirt("Clay Coating", Range(0, 1)) = 0
         _Stain("Iron Staining", Range(0, 1)) = 0
         _Chip("Natural Chip (lon, lat, radius m, amount)", Vector) = (0, 0, 0, 0)
+        _Polish("Cut Face Polish", Range(0, 1)) = 0
+        // saw: the planned cut plane (object-space normal xyz, height w) and the kerf so far (feed axis xyz, reach w)
+        _CutPlane("Cut Plane", Vector) = (0, 1, 0, 0)
+        _CutFeed("Cut Feed", Vector) = (1, 0, 0, -10)
+        _CutShow("Cut Preview", Range(0, 1)) = 0
     }
     SubShader
     {
@@ -51,6 +56,10 @@ Shader "GeodeEmpire/GeodeShell"
             float _Dirt;                // clay coating still on the rock (washing lowers it)
             float _Stain;               // iron-oxide streaking
             float4 _Chip;               // natural chip: longitude fraction, signed latitude fraction, radius (m), amount
+            float _Polish;              // finish on sawn faces: 0 saw-marked matte, 1 mirror
+            float4 _CutPlane;           // object-space plane: normal xyz, height w
+            float4 _CutFeed;            // object-space feed axis xyz; w = how far along it the kerf has reached
+            float _CutShow;             // 0 hidden, 1 preview line drawn
         CBUFFER_END
         // fracture overlay arrays: kept outside the per-material block so property-block arrays reach them
         float _SectorCrack[16];         // seam stress per sector, >= 1 is an open crack
@@ -286,9 +295,10 @@ Shader "GeodeEmpire/GeodeShell"
                     ext = lerp(ext, ext * 0.45, cring * _Chip.w);
                 }
 
-                // fracture overlay: only the exterior carries it
+                // fracture overlay: only the exterior and natural fracture faces carry it; sawn faces are flat
+                bool sawn = IN.uv2.y < -1.5;
                 float crackDark = 0.0, crackFrost = 0.0, seamGuide = 0.0;
-                if (c.r > 0.5 || c.b > 0.5) FractureOverlay(IN.uv2, grain, crackDark, crackFrost, seamGuide);
+                if ((c.r > 0.5 || c.b > 0.5) && !sawn) FractureOverlay(IN.uv2, grain, crackDark, crackFrost, seamGuide);
                 float3 frostCol = lerp(ext, float3(0.86, 0.84, 0.79) * lerp(0.85, 1.0, grain), 0.62);
                 ext = lerp(ext, frostCol, crackFrost * 0.85);
                 // clay coating: sits in the low grain first and leaves the high points as it is scrubbed away; while
@@ -304,6 +314,16 @@ Shader "GeodeEmpire/GeodeShell"
                 seamGuide *= 1.0 - dirtMask * 0.9;
                 ext = lerp(ext, ext * 0.55, seamGuide);
                 ext = lerp(ext, ext * 0.2, crackDark);
+                // the saw: a chalk-thin guide line where the blade will pass, and the dark wet kerf it has cut so far
+                if (_CutShow > 0.001)
+                {
+                    float dPlane = abs(dot(IN.positionOS, _CutPlane.xyz) - _CutPlane.w);
+                    float along = dot(IN.positionOS, _CutFeed.xyz);
+                    float guide = (1.0 - smoothstep(0.0009, 0.0018, dPlane)) * _CutShow;
+                    float kerf = (1.0 - smoothstep(0.0014, 0.0022, dPlane)) * step(along, _CutFeed.w) * _CutShow;
+                    ext = lerp(ext, float3(0.95, 0.92, 0.8), guide * 0.85);
+                    ext = lerp(ext, float3(0.08, 0.075, 0.07), kerf);
+                }
 
                 // cut face: rind on the outside, bands toward the cavity
                 float bandCoord = c.a * _BandFrequency + _BandOffset * 6.2831 + (noise - 0.5) * 1.6;
@@ -314,6 +334,21 @@ Shader "GeodeEmpire/GeodeShell"
                 // chips torn out of the rim by the chisel: pale bruised patches with dark edges on the cut face
                 rim = lerp(rim, rim * float3(0.9, 0.88, 0.85) + 0.12, crackFrost * 0.6);
                 rim = lerp(rim, rim * 0.35, crackDark * 0.8);
+                float sawnSmooth = 0.0;
+                if (sawn)
+                {
+                    // a saw leaves a flat, slightly frosted face with faint arc marks; the bands show fully but dull.
+                    // Polishing takes the frost and the marks away and brings the colour and the gloss up.
+                    float3 bandFull = lerp(_BandA.rgb, _BandB.rgb, band);
+                    float bandFace = saturate(_BandStrength * 1.3) * smoothstep(0.02, 0.35, c.a);
+                    float3 face = lerp(_RimColor.rgb * lerp(0.95, 1.12, grain), bandFull, bandFace);
+                    float marks = 0.5 + 0.5 * sin(c.a * 170.0 + IN.uvFog.x * 9.0 + noise * 4.0);
+                    float frost = (1.0 - _Polish) * (0.42 + 0.1 * marks + 0.12 * grain);
+                    face = lerp(face, face * 0.45 + 0.5, frost * 0.5);                 // frosted, milky
+                    face = lerp(face, face * face * 1.35, _Polish * 0.6);             // polish deepens the colour
+                    rim = face;
+                    sawnSmooth = lerp(0.22, 0.92, _Polish);
+                }
 
                 // cavity wall: matrix colour with faint continuation of the last band
                 float band2 = smoothstep(0.3, 0.7, sin(_BandFrequency + _BandOffset * 6.2831 + c.a * 2.0 + (noise - 0.5)) * 0.5 + 0.5);
@@ -328,8 +363,8 @@ Shader "GeodeEmpire/GeodeShell"
                 float3 albedo = ext * c.r + cav * c.g + rim * c.b;
                 float extSmooth = texFam == 1 ? 0.24 : texFam == 3 ? 0.1 : 0.18;
                 extSmooth = lerp(extSmooth, 0.06, dirtMask) + chipAmt * 0.3;
-                float smooth = extSmooth * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * c.g + 0.16 * c.b;
-                smooth += (grain - 0.5) * 0.1 + crackFrost * 0.06 * c.r;
+                float smooth = extSmooth * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * c.g + (sawn ? sawnSmooth : 0.16) * c.b;
+                smooth += (grain - 0.5) * (sawn ? 0.02 : 0.1) + crackFrost * 0.06 * c.r;
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = IN.positionWS;

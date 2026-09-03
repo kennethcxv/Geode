@@ -61,12 +61,28 @@ namespace GeodeEmpire.Specimens
         private static readonly int DirtId = Shader.PropertyToID("_Dirt");
         private static readonly int StainId = Shader.PropertyToID("_Stain");
         private static readonly int ChipId = Shader.PropertyToID("_Chip");
+        private static readonly int PolishId = Shader.PropertyToID("_Polish");
 
         /// <summary>Clay still on the shell, 0..1: the geology's coating less whatever has been scrubbed off.</summary>
         public float DirtRemaining => Geology != null && Condition != null ? Mathf.Clamp01(Geology.Dirt * (1f - Condition.Cleaned)) : 0f;
 
         /// <summary>Re-apply condition-driven shell properties (after scrubbing).</summary>
         public void RefreshCondition() { if (Geology != null) ApplyShellProperties(); }
+
+        private static readonly int CutPlaneId = Shader.PropertyToID("_CutPlane");
+        private static readonly int CutFeedId = Shader.PropertyToID("_CutFeed");
+        private static readonly int CutShowId = Shader.PropertyToID("_CutShow");
+        private Vector4 _cutPlane = new Vector4(0f, 1f, 0f, 0f), _cutFeed = new Vector4(1f, 0f, 0f, -10f);
+        private float _cutShow;
+
+        /// <summary>Saw preview: the planned plane (object space) and the kerf reach along the feed axis; show=0 clears it.</summary>
+        public void SetCutPreview(Vector3 normal, float height, Vector3 feedAxis, float reach, float show)
+        {
+            _cutPlane = new Vector4(normal.x, normal.y, normal.z, height);
+            _cutFeed = new Vector4(feedAxis.x, feedAxis.y, feedAxis.z, reach);
+            _cutShow = show;
+            if (Geology != null) ApplyShellProperties();
+        }
 
         public const int CrackSectors = 16;
         public const int MaxImpacts = 32;
@@ -99,15 +115,39 @@ namespace GeodeEmpire.Specimens
             new Color(0.34f, 0.33f, 0.32f), // dark basalt
         };
 
-        public void Build(SpecimenGeology geology, SpecimenCondition condition, SpecimenAssetLibrary lib)
+        public bool IsPiece => Geometry != null && Geometry.IsPiece;
+        /// <summary>Finish of the cut faces, 0..1 (pieces only); pushed to the shell shader.</summary>
+        public float Polish { get; private set; }
+
+        public void Build(SpecimenGeology geology, SpecimenCondition condition, SpecimenAssetLibrary lib) => Build(geology, condition, lib, null, 0f);
+
+        /// <summary>Build a whole specimen (piece == null) or one sawn piece of it.</summary>
+        public void Build(SpecimenGeology geology, SpecimenCondition condition, SpecimenAssetLibrary lib, PieceShape? piece, float polish)
         {
             Clear();
             Geology = geology;
             Condition = condition ?? new SpecimenCondition();
             _lib = lib;
+            Polish = polish;
+            _mpb ??= new MaterialPropertyBlock();
+            if (piece.HasValue)
+            {
+                Geometry = GeodeMeshBuilder.BuildPiece(geology, piece.Value);
+                Condition.EnsureSize(GeodeMeshBuilder.Build(geology).Crystals.Count);   // damage is indexed by the whole rock's crystals
+                BottomHalf = CreateHalf("Piece", Geometry.Bottom, out var pieceRenderer);
+                TopHalf = null;
+                BottomColliderMesh = HullMesh("Piece_Collider", Geometry.HullPoints);
+                TopColliderMesh = null;
+                _ownedMeshes.Add(BottomColliderMesh);
+                BottomShellRenderer = pieceRenderer;
+                TopShellRenderer = null;
+                RebuildCrystals();
+                ApplyShellProperties();
+                SetCrystalsVisible(true);
+                return;
+            }
             Geometry = GeodeMeshBuilder.Build(geology);
             Condition.EnsureSize(Geometry.Crystals.Count);
-            _mpb ??= new MaterialPropertyBlock();
 
             BottomHalf = CreateHalf("BottomHalf", Geometry.Bottom, out var bottomRenderer);
             TopHalf = CreateHalf("TopHalf", Geometry.Top, out var topRenderer);
@@ -121,6 +161,27 @@ namespace GeodeEmpire.Specimens
             if (Condition.Opened) RebuildCrystals();
             ApplyShellProperties();
             SetCrystalsVisible(Condition.Opened);
+        }
+
+        /// <summary>Update the cut-face finish (polishing) without rebuilding.</summary>
+        public void SetPolish(float polish)
+        {
+            Polish = Mathf.Clamp01(polish);
+            if (Geology != null) ApplyShellProperties();
+        }
+
+        /// <summary>A convex-hull source mesh from a point cloud (PhysX takes the hull of the vertices; the triangles only need to exist).</summary>
+        private static Mesh HullMesh(string name, Vector3[] points)
+        {
+            var m = new Mesh { name = name };
+            if (points == null || points.Length < 4) points = new[] { new Vector3(-0.01f, 0f, -0.01f), new Vector3(0.01f, 0f, -0.01f), new Vector3(0f, 0f, 0.01f), new Vector3(0f, 0.02f, 0f) };
+            m.vertices = points;
+            var tris = new List<int>();
+            for (int i = 1; i + 1 < points.Length; i++) { tris.Add(0); tris.Add(i); tris.Add(i + 1); }
+            m.SetTriangles(tris, 0);
+            m.RecalculateNormals();
+            m.RecalculateBounds();
+            return m;
         }
 
         private bool _crystalsBuilt;
@@ -169,17 +230,26 @@ namespace GeodeEmpire.Specimens
             for (int i = _ownedMeshes.Count - 1; i >= 0; i--)
                 if (_ownedMeshes[i] != null && _ownedMeshes[i].name.Contains("Crystals")) { DestroyObj(_ownedMeshes[i]); _ownedMeshes.RemoveAt(i); }
 
-            CreateCrystalObject(BottomHalf, false, false);
-            CreateCrystalObject(BottomHalf, false, true);
-            CreateCrystalObject(TopHalf, true, false);
-            CreateCrystalObject(TopHalf, true, true);
+            if (IsPiece)
+            {
+                // a piece keeps every crystal it contains on its one body, whichever half of the rock they grew in
+                CreateCrystalObject(BottomHalf, false, false, true);
+                CreateCrystalObject(BottomHalf, false, true, true);
+            }
+            else
+            {
+                CreateCrystalObject(BottomHalf, false, false);
+                CreateCrystalObject(BottomHalf, false, true);
+                CreateCrystalObject(TopHalf, true, false);
+                CreateCrystalObject(TopHalf, true, true);
+            }
             ApplyCrystalProperties();
             _crystalsBuilt = true;
         }
 
-        private void CreateCrystalObject(Transform parent, bool top, bool secondary)
+        private void CreateCrystalObject(Transform parent, bool top, bool secondary, bool anyHalf = false)
         {
-            var mesh = CombineCrystals(top, secondary);
+            var mesh = CombineCrystals(top, secondary, anyHalf);
             if (mesh == null) return;
             _ownedMeshes.Add(mesh);
             var go = new GameObject((top ? "Top" : "Bottom") + (secondary ? "SecondaryCrystals" : "Crystals"));
@@ -192,13 +262,13 @@ namespace GeodeEmpire.Specimens
             _crystalRenderers.Add(mr);
         }
 
-        private Mesh CombineCrystals(bool top, bool secondary)
+        private Mesh CombineCrystals(bool top, bool secondary, bool anyHalf = false)
         {
             // size the buffers first so the combine never grows (a dense druzy carpet is ~600 crystals)
             int vCount = 0, iCount = 0;
             foreach (var c in Geometry.Crystals)
             {
-                if (c.TopHalf != top || c.Secondary != secondary) continue;
+                if ((!anyHalf && c.TopHalf != top) || c.Secondary != secondary) continue;
                 var d = _lib.GetMeshData(c.Archetype);
                 if (d == null) continue;
                 vCount += d.Vertices.Length; iCount += d.Triangles.Length;
@@ -210,9 +280,10 @@ namespace GeodeEmpire.Specimens
             var cols = new List<Color>(vCount);
             var uvs = new List<Vector2>(vCount);
             var tris = new List<int>(iCount);
+            bool clipTop = !float.IsNaN(Geometry.ClipTopY), clipBottom = !float.IsNaN(Geometry.ClipBottomY);
             foreach (var c in Geometry.Crystals)
             {
-                if (c.TopHalf != top || c.Secondary != secondary) continue;
+                if ((!anyHalf && c.TopHalf != top) || c.Secondary != secondary) continue;
                 byte dmg = Condition.DamageAt(c.Index);
                 var data = _lib.GetMeshData(c.Archetype);
                 if (data == null) continue;
@@ -228,11 +299,17 @@ namespace GeodeEmpire.Specimens
                     var n = data.Normals[i];
                     bool cut = v.y > cutY;
                     if (cut) { v.y = cutY; n = Vector3.up; }
-                    verts.Add(m.MultiplyPoint3x4(v));
-                    norms.Add(nm.MultiplyVector(n).normalized);
+                    var wp = m.MultiplyPoint3x4(v);
+                    var wn = nm.MultiplyVector(n).normalized;
+                    // the saw's plane: anything past it is pressed flat onto the cut face, a frosted sawn facet
+                    bool sawn = false;
+                    if (clipTop && wp.y > Geometry.ClipTopY) { wp.y = Geometry.ClipTopY; wn = Vector3.up; sawn = true; }
+                    if (clipBottom && wp.y < Geometry.ClipBottomY) { wp.y = Geometry.ClipBottomY; wn = Vector3.down; sawn = true; }
+                    verts.Add(wp);
+                    norms.Add(wn);
                     float zone = Mathf.Clamp01(v.y / data.Height);
                     // fresh fracture faces read frosted/pale, and everything on a stub is pale
-                    bool pale = cut || dmg >= CrystalDamage.Missing;
+                    bool pale = cut || sawn || dmg >= CrystalDamage.Missing;
                     var col = pale ? new Color(Mathf.Min(1.5f, tint.r * 1.55f), Mathf.Min(1.5f, tint.g * 1.5f), Mathf.Min(1.5f, tint.b * 1.45f), 0f) : new Color(tint.r, tint.g, tint.b, zone);
                     cols.Add(col);
                     uvs.Add(new Vector2(v.x, v.z));
@@ -333,6 +410,10 @@ namespace GeodeEmpire.Specimens
             _mpb.SetFloat(StainId, g.Stain);
             float chipR = (Geometry != null ? Geometry.MeanEquatorRadius : 0.06f) * 0.2f;
             _mpb.SetVector(ChipId, new Vector4(g.ChipLongitude, g.ChipLatitude, chipR, g.HasNaturalChip ? 1f : 0f));
+            _mpb.SetFloat(PolishId, Polish);
+            _mpb.SetVector(CutPlaneId, _cutPlane);
+            _mpb.SetVector(CutFeedId, _cutFeed);
+            _mpb.SetFloat(CutShowId, _cutShow);
             if (TopShellRenderer != null) TopShellRenderer.SetPropertyBlock(_mpb);
             if (BottomShellRenderer != null) BottomShellRenderer.SetPropertyBlock(_mpb);
         }
@@ -399,7 +480,7 @@ namespace GeodeEmpire.Specimens
             ApplyCrystalProperties();
         }
 
-        /// <summary>Damage fraction weighted by crystal size: what the appraisal sees.</summary>
+        /// <summary>Damage fraction weighted by crystal size: what the appraisal sees (a piece's sawn crystals are its cut, not damage).</summary>
         public float CrystalDamageFraction()
         {
             if (Geometry == null || Geometry.Crystals.Count == 0) return 0f;
@@ -412,6 +493,20 @@ namespace GeodeEmpire.Specimens
                 lost += w * (d == CrystalDamage.Chipped ? 0.3f : d == CrystalDamage.Broken ? 0.7f : d >= CrystalDamage.Missing ? 1f : 0f);
             }
             return total > 0f ? lost / total : 0f;
+        }
+
+        /// <summary>Crystals within this distance of a piece-frame height, for the saw's chipping along the kerf.</summary>
+        public List<int> CrystalsNearPlane(float y, float distance)
+        {
+            var list = new List<int>();
+            if (Geometry == null) return list;
+            foreach (var c in Geometry.Crystals)
+            {
+                float top = c.Position.y + (c.Rotation * Vector3.up).y * c.Height;
+                float lo = Mathf.Min(c.Position.y, top), hi = Mathf.Max(c.Position.y, top);
+                if (y > lo - distance && y < hi + distance) list.Add(c.Index);
+            }
+            return list;
         }
 
         private void OnDestroy()

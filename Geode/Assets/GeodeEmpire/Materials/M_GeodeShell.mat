@@ -39,10 +39,12 @@ Material:
     - _CavityDruzy: 0
     - _CavitySmoothness: 0.35
     - _CrackFade: 1
+    - _CutShow: 0
     - _Dirt: 0
     - _Highlight: 0
     - _HintAmount: 0
     - _ImpactCount: 0
+    - _Polish: 0
     - _SeamVisible: 0.4
     - _Stain: 0
     - _SurfR: 0.06
@@ -55,6 +57,8 @@ Material:
     - _CavityColor: {r: 0.7, g: 0.68, b: 0.6399999, a: 1}
     - _CavityCrystalColor: {r: 0.9, g: 0.85, b: 0.95, a: 1}
     - _Chip: {r: 0, g: 0, b: 0, a: 0}
+    - _CutFeed: {r: 1, g: 0, b: 0, a: -10}
+    - _CutPlane: {r: 0, g: 1, b: 0, a: 0}
     - _HintColor: {r: 0.7, g: 0.5, b: 0.9, a: 1}
     - _RimColor: {r: 0.6, g: 0.56999993, b: 0.53, a: 1}
     - _RockColor: {r: 0.5, g: 0.45999992, b: 0.41999996, a: 1}

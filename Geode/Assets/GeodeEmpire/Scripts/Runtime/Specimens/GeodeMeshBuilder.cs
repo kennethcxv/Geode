@@ -23,6 +23,8 @@ namespace GeodeEmpire.Specimens
         public float Latitude;      // 0 at fracture plane .. 1 at pole
         public float Footprint;     // approx radius (m)
         public float Height;        // m
+        /// <summary>The saw took the top off this crystal (sawn pieces only).</summary>
+        public bool Truncated;
     }
 
     public sealed class GeodeHalfGeometry
@@ -93,6 +95,45 @@ namespace GeodeEmpire.Specimens
         public float BottomY;
         public float TopY;
         public int Longitudes;
+        /// <summary>Set for sawn pieces: the shape that was cut, and what the cut exposed.</summary>
+        public PieceShape Piece;
+        public bool IsPiece;
+        /// <summary>Rotation applied to the specimen frame so the piece's primary cut face points up (+Y).</summary>
+        public Quaternion PieceRotation = Quaternion.identity;
+        /// <summary>Crystal weight kept by this piece as a fraction of the whole specimen's, with truncated crystals at 40%.</summary>
+        public float RetainedCrystalFraction = 1f;
+        /// <summary>0..1: how much of the main cavity's cross-section the primary cut face opens (0 = solid face).</summary>
+        public float CavityOpening;
+        /// <summary>0..1: how central the primary cut runs through the main cavity (1 = through its centre).</summary>
+        public float CutSymmetry = 1f;
+        /// <summary>Area of the primary cut face relative to the specimen's central cross-section.</summary>
+        public float FaceAreaFraction;
+        /// <summary>True when the piece contains any cavity wall at all.</summary>
+        public bool HasCavity = true;
+        /// <summary>Piece frame heights of the cut faces (NaN when that end is natural): crystals are clipped to them.</summary>
+        public float ClipTopY = float.NaN, ClipBottomY = float.NaN;
+        /// <summary>Coarse exterior point set for the convex collider of a piece.</summary>
+        public Vector3[] HullPoints;
+    }
+
+    /// <summary>
+    /// A sawn piece: the part of the specimen between two parallel planes normal to Normal (specimen-local),
+    /// at heights Lo and Hi along it. A missing end (HasLo/HasHi false) is the rock's natural outside.
+    /// Every cut of a piece keeps the same Normal, so a lineage is just a list of heights.
+    /// </summary>
+    [Serializable]
+    public struct PieceShape
+    {
+        public Vector3 Normal;
+        public float Lo, Hi;
+        public bool HasLo, HasHi;
+
+        public static PieceShape Below(Vector3 n, float h) => new PieceShape { Normal = n.normalized, Hi = h, HasHi = true, Lo = -1f, HasLo = false };
+        public static PieceShape Above(Vector3 n, float h) => new PieceShape { Normal = n.normalized, Lo = h, HasLo = true, Hi = 1f, HasHi = false };
+        public bool IsSlab => HasLo && HasHi;
+        /// <summary>The outward normal of the face that should point up on a shelf: the primary cut face.</summary>
+        public Vector3 UpNormal => HasHi ? Normal : -Normal;
+        public float Thickness => IsSlab ? Hi - Lo : float.PositiveInfinity;
     }
 
     /// <summary>
@@ -187,6 +228,327 @@ namespace GeodeEmpire.Specimens
         {
             float cl = Mathf.Cos(latRad);
             return new Vector3(Mathf.Cos(lonRad) * cl, sign * Mathf.Sin(latRad), Mathf.Sin(lonRad) * cl);
+        }
+
+        // ------------------------------------------------------------------------------------
+        // Sawn pieces
+        // ------------------------------------------------------------------------------------
+        /// <summary>Sawn cut faces carry this in uv2.y so the shell shader draws a flat sawn face instead of a fracture.</summary>
+        public const float SawnFlag = -2f;
+        public const int PieceRows = 16;
+
+        /// <summary>
+        /// Build the part of the specimen between the piece's planes. The shell is walked in rings of constant height
+        /// along the cut normal, each ring found by marching rays out of the ring's centre until they leave the shell
+        /// (and the cavity), so any cut through the same rock lands on exactly the same surfaces the hammer halves show.
+        /// Geometry is returned in the piece frame: the primary cut face points +Y so it rests face-up like a half.
+        /// </summary>
+        public static GeodeGeometry BuildPiece(SpecimenGeology g, PieceShape piece)
+        {
+            var shape = new Shape(g);
+            Vector3 n = piece.Normal.normalized;
+            Vector3 lobe0 = g.LobeCenters != null && g.LobeCenters.Length > 0 ? g.LobeCenters[0] : Vector3.zero;
+            float lobeR = g.LobeRadii != null && g.LobeRadii.Length > 0 ? g.LobeRadii[0] : g.Size * g.CavityFraction;
+            Vector3 u1 = Vector3.Cross(n, Mathf.Abs(n.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
+            Vector3 u2 = Vector3.Cross(n, u1).normalized;
+            float topR = shape.Outer(n), botR = shape.Outer(-n);
+            float hMin = piece.HasLo ? piece.Lo : -botR * 0.995f;
+            float hMax = piece.HasHi ? piece.Hi : topR * 0.995f;
+            if (hMax - hMin < 0.004f) { hMin = (hMin + hMax) * 0.5f - 0.002f; hMax = hMin + 0.004f; }
+            bool poleBottom = !piece.HasLo, poleTop = !piece.HasHi;
+            int N = Longitudes, M = PieceRows;
+            var geo = new GeodeGeometry { Longitudes = N, IsPiece = true, Piece = piece };
+            // rotate into the piece frame: primary cut face up
+            var rot = Quaternion.FromToRotation(piece.UpNormal, Vector3.up);
+            geo.PieceRotation = rot;
+
+            // ring heights: eased toward a pole end so the cap stays round, linear between two cuts
+            var heights = new float[M + 1];
+            for (int k = 0; k <= M; k++)
+            {
+                float t = k / (float)M;
+                float e;
+                if (poleBottom && poleTop) e = 0.5f - 0.5f * Mathf.Cos(t * Mathf.PI);
+                else if (poleBottom) e = 1f - Mathf.Cos(t * Mathf.PI * 0.5f);
+                else if (poleTop) e = Mathf.Sin(t * Mathf.PI * 0.5f);
+                else e = t;
+                heights[k] = Mathf.Lerp(hMin, hMax, e);
+            }
+
+            var outer = new Vector3[M + 1, N];
+            var inner = new Vector3[M + 1, N];
+            var hasCav = new bool[M + 1];
+            var ringCenter = new Vector3[M + 1];
+            bool anyCavity = false;
+            for (int k = 0; k <= M; k++)
+            {
+                float h = heights[k];
+                // ring centre: on the plane, pulled toward the main lobe where the shell is wide, on the axis near the ends
+                Vector3 F = n * h;
+                Vector3 lobeOff = lobe0 - n * Vector3.Dot(lobe0, n);
+                float wide = Mathf.Clamp01(1f - Mathf.Abs(h) / (0.75f * (h >= 0f ? topR : botR)));
+                Vector3 C = F + lobeOff * wide;
+                // the centre must be inside the shell: pull it back toward the axis until it is
+                for (int guard = 0; guard < 6 && C.magnitude > 1e-5f && C.magnitude >= shape.Outer(C.normalized) * 0.9f; guard++) C = Vector3.Lerp(C, F, 0.5f);
+                ringCenter[k] = C;
+                bool cavHere = false;
+                for (int i = 0; i < N; i++)
+                {
+                    float lon = i / (float)N * Mathf.PI * 2f;
+                    Vector3 u = Mathf.Cos(lon) * u1 + Mathf.Sin(lon) * u2;
+                    float sOut = MarchOut(C, u, shape, false, g.Size * 3f);
+                    outer[k, i] = C + u * sOut;
+                    float sIn = MarchOut(C, u, shape, true, sOut);
+                    if (sIn > 0f) cavHere = true;
+                    inner[k, i] = C + u * Mathf.Max(0f, sIn);
+                }
+                hasCav[k] = cavHere;
+                if (cavHere) anyCavity = true;
+            }
+            geo.HasCavity = anyCavity;
+
+            var verts = new List<Vector3>((M + 1) * N * 2 + N * (RimRings + 1) * 2 + 8);
+            var uvs = new List<Vector2>(verts.Capacity);
+            var uv2 = new List<Vector2>(verts.Capacity);
+            var cols = new List<Color>(verts.Capacity);
+            var tris = new List<int>(verts.Capacity * 6);
+
+            // ---- exterior ---------------------------------------------------------------------
+            int extBase = verts.Count;
+            for (int k = 0; k <= M; k++)
+                for (int i = 0; i < N; i++)
+                {
+                    var p = outer[k, i];
+                    verts.Add(rot * p);
+                    uvs.Add(new Vector2(i / (float)N, k / (float)M));
+                    uv2.Add(SpecimenSurfaceCoord(p));
+                    cols.Add(new Color(1f, 0f, 0f, g.Weathering));
+                }
+            var extTris = new List<int>();
+            RingStrips(extTris, extBase, N, M);
+            if (poleBottom)
+            {
+                int pole = verts.Count;
+                var pp = -n * botR; verts.Add(rot * pp); uvs.Add(new Vector2(0.5f, 0f)); uv2.Add(SpecimenSurfaceCoord(pp)); cols.Add(new Color(1f, 0f, 0f, g.Weathering));
+                for (int i = 0; i < N; i++) { extTris.Add(extBase + i); extTris.Add(pole); extTris.Add(extBase + (i + 1) % N); }
+            }
+            if (poleTop)
+            {
+                int pole = verts.Count;
+                var pp = n * topR; verts.Add(rot * pp); uvs.Add(new Vector2(0.5f, 1f)); uv2.Add(SpecimenSurfaceCoord(pp)); cols.Add(new Color(1f, 0f, 0f, g.Weathering));
+                for (int i = 0; i < N; i++) { extTris.Add(extBase + M * N + i); extTris.Add(extBase + M * N + (i + 1) % N); extTris.Add(pole); }
+            }
+            OrientSurface(verts, extTris, (a, nn) => Vector3.Dot(nn, a - rot * ringCenter[M / 2]) > 0f);
+            tris.AddRange(extTris);
+
+            // ---- cavity ------------------------------------------------------------------------
+            if (anyCavity)
+            {
+                int cavBase = verts.Count;
+                for (int k = 0; k <= M; k++)
+                    for (int i = 0; i < N; i++)
+                    {
+                        var p = inner[k, i];
+                        verts.Add(rot * p);
+                        uvs.Add(new Vector2(i / (float)N, k / (float)M));
+                        uv2.Add(SpecimenSurfaceCoord(p));
+                        cols.Add(new Color(0f, 1f, 0f, Mathf.Abs(k / (float)M - 0.5f) * 2f));
+                    }
+                var cavTris = new List<int>();
+                RingStrips(cavTris, cavBase, N, M);
+                // pole ends of the cavity close on the cavity's own pole point
+                if (poleBottom)
+                {
+                    int pole = verts.Count;
+                    var pp = -n * shape.Inner(-n, botR); verts.Add(rot * pp); uvs.Add(new Vector2(0.5f, 0f)); uv2.Add(SpecimenSurfaceCoord(pp)); cols.Add(new Color(0f, 1f, 0f, 1f));
+                    for (int i = 0; i < N; i++) { cavTris.Add(cavBase + i); cavTris.Add(pole); cavTris.Add(cavBase + (i + 1) % N); }
+                }
+                if (poleTop)
+                {
+                    int pole = verts.Count;
+                    var pp = n * shape.Inner(n, topR); verts.Add(rot * pp); uvs.Add(new Vector2(0.5f, 1f)); uv2.Add(SpecimenSurfaceCoord(pp)); cols.Add(new Color(0f, 1f, 0f, 1f));
+                    for (int i = 0; i < N; i++) { cavTris.Add(cavBase + M * N + i); cavTris.Add(cavBase + M * N + (i + 1) % N); cavTris.Add(pole); }
+                }
+                OrientSurface(verts, cavTris, (a, nn) => Vector3.Dot(nn, a - rot * lobe0) < 0f);
+                tris.AddRange(cavTris);
+            }
+
+            // ---- cut faces: flat rings from the outer edge in to the cavity edge (or the centre) -------------
+            float faceArea = 0f;
+            if (piece.HasHi) faceArea = Mathf.Max(faceArea, CutFace(verts, uvs, uv2, cols, tris, outer, inner, ringCenter, M, N, rot, n, +1f, hasCav[M] && anyCavity));
+            if (piece.HasLo) CutFace(verts, uvs, uv2, cols, tris, outer, inner, ringCenter, 0, N, rot, n, -1f, hasCav[0] && anyCavity);
+
+            var half = new GeodeHalfGeometry
+            {
+                IsTop = false,
+                Vertices = verts.ToArray(), UVs = uvs.ToArray(), UV2 = uv2.ToArray(), Colors = cols.ToArray(), Triangles = tris.ToArray(),
+                EquatorOuterRadius = new float[N], EquatorY = new float[N],
+            };
+            geo.Bottom = half;
+            geo.Top = null;
+
+            // ---- hull points for the collider (a coarse subset of the exterior and the cut rings) -----------
+            {
+                var hull = new List<Vector3>();
+                for (int k = 0; k <= M; k += 2) for (int i = 0; i < N; i += 4) hull.Add(rot * outer[k, i]);
+                for (int i = 0; i < N; i += 4) { hull.Add(rot * outer[M, i]); hull.Add(rot * outer[0, i]); }
+                if (poleBottom) hull.Add(rot * (-n * botR));
+                if (poleTop) hull.Add(rot * (n * topR));
+                geo.HullPoints = hull.ToArray();
+                // clip planes in the piece frame
+                bool upIsN = Vector3.Dot(piece.UpNormal, n) > 0f;
+                geo.ClipTopY = piece.HasHi && upIsN ? piece.Hi : piece.HasLo && !upIsN ? -piece.Lo : float.NaN;
+                geo.ClipBottomY = piece.IsSlab ? (upIsN ? piece.Lo : -piece.Hi) : float.NaN;
+            }
+            float maxR = 0f, sumEq = 0f, sumCav = 0f;
+            int mid = M / 2;
+            for (int i = 0; i < N; i++) { sumEq += (outer[mid, i] - ringCenter[mid]).magnitude; sumCav += (inner[mid, i] - ringCenter[mid]).magnitude; }
+            foreach (var v in half.Vertices) maxR = Mathf.Max(maxR, v.magnitude);
+            geo.MaxRadius = maxR;
+            geo.MeanEquatorRadius = sumEq / N;
+            geo.MeanCavityRadius = sumCav / N;
+            float lowest = float.MaxValue, highest = float.MinValue;
+            foreach (var v in half.Vertices) { lowest = Mathf.Min(lowest, v.y); highest = Mathf.Max(highest, v.y); }
+            geo.BottomY = lowest; geo.TopY = highest;
+
+            // ---- crystals: those rooted inside the slab, rotated into the piece frame; the truncated ones marked ----
+            var all = PlaceCrystals(g, shape, MeanCavity(g, shape));
+            var kept = new List<CrystalInstance>();
+            float wAll = 0f, wKept = 0f;
+            foreach (var c in all)
+            {
+                float w = c.Height * c.Height * (c.Centerpiece ? 4f : 1f);
+                wAll += w;
+                float d = Vector3.Dot(c.Position, n);
+                if ((piece.HasLo && d < piece.Lo) || (piece.HasHi && d > piece.Hi)) continue;
+                var inst = c;
+                inst.Position = rot * c.Position;
+                inst.Rotation = rot * c.Rotation;
+                // tip past a cut plane: the saw took the top off it
+                Vector3 tip = c.Position + (c.Rotation * Vector3.up) * c.Height;
+                float dt = Vector3.Dot(tip, n);
+                bool cut = (piece.HasHi && dt > piece.Hi) || (piece.HasLo && dt < piece.Lo);
+                inst.Truncated = cut;
+                wKept += cut ? w * 0.4f : w;
+                kept.Add(inst);
+            }
+            geo.Crystals = kept;
+            geo.RetainedCrystalFraction = wAll > 0f ? wKept / wAll : 1f;
+
+            // ---- what the primary face shows -----------------------------------------------------------
+            {
+                int k = piece.HasHi ? M : 0;
+                float h = heights[k];
+                float dLobe = Vector3.Dot(lobe0, n) - h;
+                float opening = hasCav[k] && lobeR > 0f ? Mathf.Sqrt(Mathf.Max(0f, lobeR * lobeR - dLobe * dLobe)) / lobeR : 0f;
+                geo.CavityOpening = Mathf.Clamp01(opening);
+                geo.CutSymmetry = Mathf.Clamp01(1f - Mathf.Abs(dLobe) / Mathf.Max(0.001f, lobeR));
+                float area = 0f;
+                for (int i = 0; i < N; i++) { float ro = (outer[k, i] - ringCenter[k]).magnitude; area += ro * ro; }
+                area *= Mathf.PI / N;
+                geo.FaceAreaFraction = Mathf.Clamp01(area / (Mathf.PI * g.Size * g.Size));
+            }
+            return geo;
+        }
+
+        private static float MeanCavity(SpecimenGeology g, Shape shape)
+        {
+            float sumCav = 0f;
+            for (int i = 0; i < Longitudes; i++)
+            {
+                float lon = i / (float)Longitudes * Mathf.PI * 2f;
+                var d = Dir(0.3f, lon, -1f);
+                sumCav += shape.Inner(d, shape.Outer(d));
+            }
+            return sumCav / Longitudes;
+        }
+
+        /// <summary>Longitude fraction and signed latitude fraction of a specimen-frame point, the overlay's surface coordinates.</summary>
+        private static Vector2 SpecimenSurfaceCoord(Vector3 p)
+        {
+            float lon = Mathf.Atan2(p.z, p.x);
+            float u = (lon < 0f ? lon + Mathf.PI * 2f : lon) / (Mathf.PI * 2f);
+            float len = Mathf.Max(0.0001f, p.magnitude);
+            float v = Mathf.Asin(Mathf.Clamp(p.y / len, -1f, 1f)) / (Mathf.PI * 0.5f);
+            return new Vector2(u, v);
+        }
+
+        /// <summary>Distance along a ray from an interior point to where it leaves the shell (or, for cavity=true, the cavity; 0 if the start is outside it).</summary>
+        private static float MarchOut(Vector3 from, Vector3 u, Shape shape, bool cavity, float maxS)
+        {
+            float f0 = SurfaceGap(from, shape, cavity);
+            if (f0 >= 0f) return 0f;
+            float lo = 0f, hi = Mathf.Max(0.002f, maxS);
+            if (SurfaceGap(from + u * hi, shape, cavity) < 0f) return hi;
+            for (int it = 0; it < 18; it++)
+            {
+                float mid = (lo + hi) * 0.5f;
+                if (SurfaceGap(from + u * mid, shape, cavity) < 0f) lo = mid; else hi = mid;
+            }
+            return (lo + hi) * 0.5f;
+        }
+
+        /// <summary>Negative inside the surface, positive outside.</summary>
+        private static float SurfaceGap(Vector3 p, Shape shape, bool cavity)
+        {
+            float m = p.magnitude;
+            if (m < 1e-5f) return cavity ? -1f : -1f;
+            var d = p / m;
+            float ro = shape.Outer(d);
+            return cavity ? m - shape.Inner(d, ro) : m - ro;
+        }
+
+        private static void RingStrips(List<int> tris, int baseIndex, int N, int M)
+        {
+            for (int k = 0; k < M; k++)
+                for (int i = 0; i < N; i++)
+                {
+                    int i1 = (i + 1) % N;
+                    int a = baseIndex + k * N + i, b = baseIndex + k * N + i1;
+                    int c = baseIndex + (k + 1) * N + i1, d = baseIndex + (k + 1) * N + i;
+                    tris.Add(a); tris.Add(b); tris.Add(c);
+                    tris.Add(a); tris.Add(c); tris.Add(d);
+                }
+        }
+
+        /// <summary>A sawn face at ring k: RimRings flat rings from the outer edge to the cavity edge (or to the centre point). Returns its area.</summary>
+        private static float CutFace(List<Vector3> verts, List<Vector2> uvs, List<Vector2> uv2, List<Color> cols, List<int> tris,
+            Vector3[,] outer, Vector3[,] inner, Vector3[] centers, int k, int N, Quaternion rot, Vector3 n, float sign, bool cavity)
+        {
+            int rimBase = verts.Count;
+            float area = 0f;
+            for (int b = 0; b <= RimRings; b++)
+            {
+                float t = b / (float)RimRings;
+                for (int i = 0; i < N; i++)
+                {
+                    Vector3 o = outer[k, i];
+                    Vector3 q = cavity ? inner[k, i] : centers[k];
+                    Vector3 p = Vector3.Lerp(o, q, t);
+                    verts.Add(rot * p);
+                    uvs.Add(new Vector2(i / (float)N, t));
+                    uv2.Add(new Vector2(i / (float)N, SawnFlag));
+                    cols.Add(new Color(0f, 0f, 1f, t));
+                    if (b == 0) { float ro = (o - centers[k]).magnitude, ri = (q - centers[k]).magnitude; area += (ro * ro - ri * ri); }
+                }
+            }
+            area *= Mathf.PI / N;
+            var rimTris = new List<int>();
+            for (int b = 0; b < RimRings; b++)
+                for (int i = 0; i < N; i++)
+                {
+                    int i1 = (i + 1) % N;
+                    int a = rimBase + b * N + i, bb = rimBase + b * N + i1;
+                    int c = rimBase + (b + 1) * N + i1, dd = rimBase + (b + 1) * N + i;
+                    rimTris.Add(a); rimTris.Add(bb); rimTris.Add(c);
+                    rimTris.Add(a); rimTris.Add(c); rimTris.Add(dd);
+                }
+            // faces point away from the piece: the top ring's face along +normal, the bottom ring's along -normal
+            // (both expressed in the piece frame through rot)
+            Vector3 faceN = rot * (n * sign);
+            OrientSurface(verts, rimTris, (a, nn) => Vector3.Dot(nn, faceN) > 0f);
+            tris.AddRange(rimTris);
+            return Mathf.Max(0f, area);
         }
 
         public static GeodeGeometry Build(SpecimenGeology g)

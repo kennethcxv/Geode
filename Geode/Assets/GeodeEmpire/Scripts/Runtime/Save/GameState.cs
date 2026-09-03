@@ -12,6 +12,12 @@ namespace GeodeEmpire.Save
         SaleSlot = 9,
         /// <summary>In the wash tub being scrubbed.</summary>
         WashTub = 10,
+        /// <summary>Sawn into pieces: the record stays as the lineage's parent, nothing spawns for it.</summary>
+        Cut = 11,
+        /// <summary>Clamped in the saw (LocationIndex unused).</summary>
+        Saw = 12,
+        /// <summary>On the polishing lap.</summary>
+        Lap = 13,
     }
 
     /// <summary>Career state of one specimen. Geology is regenerated from Seed; nothing here rerolls it.</summary>
@@ -48,15 +54,36 @@ namespace GeodeEmpire.Save
         public bool HasOpenPose;
         public Vector3 OpenTopLocalPos;
         public Quaternion OpenTopLocalRot = Quaternion.identity;
+        // saw lineage: a piece shares its parent's seed (the geology) and carries the planes that bound it
+        public bool IsPiece;
+        public PieceShape Piece;
+        public string ParentId;
+        public int CutIndex;
+        /// <summary>What the cut exposed, captured when the piece was made so value never needs the geometry.</summary>
+        public float PieceRetained = 1f, PieceOpening, PieceSymmetry = 1f, PieceFaceArea;
+        /// <summary>0..1 finish on the cut face (only pieces can be polished).</summary>
+        public float Polish;
+        /// <summary>Which tool opened it, for the records ("hammer", "saw").</summary>
+        public string ProcessedBy = "";
+        // a cut in progress: the committed plane and how far the blade has gone (0..1), so a reload resumes, never rerolls
+        public bool CutCommitted;
+        public Vector3 CutNormal;
+        public float CutHeight, CutProgress;
+        public float CutYaw, CutRoll, CutOffset;
 
         [NonSerialized] private SpecimenGeology _geology;
         public SpecimenGeology Geology => _geology ??= SpecimenGenerator.Generate(Seed);
 
-        public string DisplayName => !string.IsNullOrEmpty(CustomName) ? CustomName : Valuation.DescriptiveName(Geology);
+        public string DisplayName => !string.IsNullOrEmpty(CustomName) ? CustomName : IsPiece ? Valuation.PieceName(Geology, Piece, Polish, PieceOpening) : Valuation.DescriptiveName(Geology);
         public bool IsOpened => Condition != null && Condition.Opened;
 
         /// <summary>Appraised value when known, otherwise the damaged value the dealer would see (never the pristine base value).</summary>
-        public float EstimatedValue() => Appraised && AppraisedValue > 0f ? AppraisedValue : Valuation.DamagedValue(Geology, DamageFraction, ShellDamage);
+        public float EstimatedValue() => Appraised && AppraisedValue > 0f ? AppraisedValue : PristineForSale();
+
+        /// <summary>The value a fresh appraisal would give right now.</summary>
+        public float PristineForSale() => IsPiece
+            ? Valuation.PieceValue(Geology, Piece, PieceRetained, PieceOpening, PieceSymmetry, PieceFaceArea, Polish, DamageFraction, ShellDamage)
+            : Valuation.DamagedValue(Geology, DamageFraction, ShellDamage);
     }
 
     [Serializable]
@@ -117,6 +144,20 @@ namespace GeodeEmpire.Save
         public string BiggestRetailSaleName;
         public int CustomersServed;
         public int CustomersLeftEmptyHanded;
+        // processing (V4)
+        public int SawCuts;
+        public int SlabsCut;
+        public int PiecesPolished;
+        public float BladeWearSpent;
+        public float HighestValueSawResult;
+        public string HighestValueSawResultName;
+        public float HighestValueHammerResult;
+        public string HighestValueHammerResultName;
+        public float BestPolishedValue;
+        public string BestPolishedName;
+        public float LargestSlabFaceCm2;
+        public string LargestSlabName;
+        public int RocksWashed;
     }
 
     /// <summary>Whole career save. Versioned; new fields get sensible defaults on load.</summary>
@@ -145,6 +186,10 @@ namespace GeodeEmpire.Save
         public bool PremiumInviteShown;
         public bool SliceTeaseShown;
         public int Prestige;
+        /// <summary>Workshop stage: 0 = the V3 garage, 1 = the Stage-2 lapidary expansion.</summary>
+        public int WorkshopStage;
+        /// <summary>Diamond blade wear 0..1; a worn blade cuts slowly and chips, a new one is bought on the tablet.</summary>
+        public float BladeWear;
 
         public SpecimenRecord FindSpecimen(string id)
         {

@@ -27,6 +27,7 @@ namespace GeodeEmpire.Specimens
         public float Radius => Visual != null && Visual.Geometry != null ? Visual.Geometry.MaxRadius : 0.06f;
 
         public string ShortName => IsOpened ? Record.DisplayName : $"rock ({Geology.MassKg:F1} kg)";
+        public bool IsPiece => Record.IsPiece;
 
         public static SpecimenEntity Create(SpecimenRecord record, SpecimenAssetLibrary lib)
         {
@@ -35,9 +36,10 @@ namespace GeodeEmpire.Specimens
             var e = go.AddComponent<SpecimenEntity>();
             e.Record = record;
             e.Visual = go.AddComponent<SpecimenVisual>();
-            e.Visual.Build(record.Geology, record.Condition, lib);
-            // a worked rock shows its chips and cracks wherever it is, not only on the bench
-            e.Visual.SetCrackState(record.SectorStress, record.Impacts, 0.55f, record.IsOpened ? 0.35f : 1f);
+            if (record.IsPiece) e.Visual.Build(record.Geology, record.Condition, lib, record.Piece, record.Polish);
+            else e.Visual.Build(record.Geology, record.Condition, lib);
+            // a worked rock shows its chips and cracks wherever it is, not only on the bench; a sawn piece has no seam
+            e.Visual.SetCrackState(record.SectorStress, record.Impacts, record.IsPiece ? 0f : 0.55f, record.IsOpened ? 0.35f : 1f);
             e.Body = go.AddComponent<Rigidbody>();
             e.Body.mass = Mathf.Clamp(record.Geology.MassKg, 0.2f, 6f);
             e.Body.interpolation = RigidbodyInterpolation.None;
@@ -150,7 +152,8 @@ namespace GeodeEmpire.Specimens
         /// <summary>Arrange halves for an opened specimen: top half hinged open beside the bottom half.</summary>
         public void ApplyOpenPose()
         {
-            if (Visual == null || Visual.TopHalf == null) return;
+            if (Visual == null) return;
+            if (Visual.TopHalf == null) { Visual.SetCrystalsVisible(true); return; }   // a sawn piece is one body
             if (IsOpened)
             {
                 Visual.SetCrystalsVisible(true);
