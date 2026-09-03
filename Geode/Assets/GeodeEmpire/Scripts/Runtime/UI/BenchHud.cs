@@ -11,7 +11,8 @@ namespace GeodeEmpire.UI
     {
         private CrackingBench _bench;
         private VisualElement _root, _reticle, _panel, _forceFill, _progressFill, _progressRow, _result;
-        private Label _title, _cracks, _hint, _resultName, _resultNote, _resultPrompt, _zone;
+        private Label _title, _cracks, _hint, _resultName, _resultNote, _resultPrompt, _zone, _seat;
+        private string _lastSeat = "";
         private int _lastZone = -1;
         private float _flash;
         private int _lastCracks = -1;
@@ -52,6 +53,7 @@ namespace GeodeEmpire.UI
             var pbg = UiKit.Box(_progressRow, "meter-bg");
             _progressFill = UiKit.Box(pbg, "meter-fill");
             _cracks = UiKit.Label(_panel, "", "");
+            _seat = UiKit.Label(_panel, "", "muted");
             _hint = UiKit.Label(_panel, "", "bench-hint");
             _hint.style.whiteSpace = WhiteSpace.Normal;
             _panel.style.display = DisplayStyle.None;
@@ -135,6 +137,8 @@ namespace GeodeEmpire.UI
             bool lamp = _bench.HasLamp;
             _progressRow.style.display = lamp ? DisplayStyle.Flex : DisplayStyle.None;
             if (lamp) _progressFill.style.width = Length.Percent(_bench.Model.Progress() * 100f);
+            string seat = "Seat: " + Workshop.Preparation.SeatWord(_bench.Stability) + (_bench.ClampClosed ? "  •  clamped" : _bench.ClampOwned ? "  •  clamp open" : "") + (_bench.Cleanliness < 0.5f ? "  •  seam hidden under clay" : "");
+            if (seat != _lastSeat) { _lastSeat = seat; _seat.text = seat; _seat.style.color = _bench.Stability < StressModel.UnstableBelow ? new Color(1f, 0.55f, 0.35f) : _bench.Stability < 0.8f ? new Color(1f, 0.85f, 0.5f) : new Color(0.75f, 0.75f, 0.72f); }
             int cracks = _bench.Model.CrackedCount();
             if (cracks != _lastCracks)
             {
@@ -147,10 +151,13 @@ namespace GeodeEmpire.UI
             else if (_bench.LastResult.SurfaceChip && _flash > 0.5f) state = 8;
             else if (_bench.LastResult.Lucky && _flash > 0.5f) state = 9;
             else if (_bench.LastResult.Overstrike && _flash > 0.5f) state = 6;
-            else if (_bench.Model != null && _bench.Model.Unstable && _flash > 0.5f && _bench.LastResult.Wobbled) state = 10;
+            else if (_bench.LastResult.Wobbled && _flash > 0.5f) state = _bench.Rock != null && _bench.Rock.Geology.SizeClass == SizeClass.Oversized && !_bench.HasHeavyCradle ? 10 : 13;
             else if (!_bench.AimValid) state = 1;
             else if (_bench.Charge >= CrackingBench.ForceFirm) state = 2;
             else if (_bench.Charge > 0.02f) state = 3;
+            else if (_bench.Cleanliness < 0.5f) state = 12;
+            else if (_bench.ClampOwned && !_bench.ClampClosed) state = 14;
+            else if (_bench.ChipSector >= 0 && _bench.AimSector == _bench.ChipSector && !_bench.Model.IsCracked(_bench.ChipSector)) state = 11;
             else if (_bench.Placement < 0.5f) state = 7;
             else state = 4;
             if (state != _lastHintState || ((state == 4 || state == 7) && GameInput.Scheme != _lastScheme))
@@ -167,7 +174,11 @@ namespace GeodeEmpire.UI
                     8 => "The chisel skated and took a flake off. Set it squarely and strike again.",
                     9 => "The crack ran along a weak line: that segment gave more than the blow deserved.",
                     10 => "Too big for this cradle: it rocks under every blow. A heavy cradle would hold it.",
-                    _ => $"Hold {GameInput.Glyph("Strike")} to wind up  •  {GameInput.Glyph("Rotate")} rotate  •  {GameInput.Glyph("Back")} leave",
+                    11 => "A natural chip on the seam: the shell is already started here.",
+                    12 => "Caked in clay: the seam is hidden. Wash it first, or work round the middle by eye.",
+                    13 => $"It shifted on the cradle and the blow lost energy. Seat it firmer: {GameInput.Glyph("Move")} tilts the rock.",
+                    14 => $"Close the bench clamp [{GameInput.Glyph("Interact")}] once the rock sits how you want it: it holds the shell firm.",
+                    _ => $"Hold {GameInput.Glyph("Strike")} to wind up  •  {GameInput.Glyph("Rotate")} rotate  •  {GameInput.Glyph("Move")} tilt  •  {GameInput.Glyph("Back")} leave",
                 };
             }
         }

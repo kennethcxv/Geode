@@ -16,6 +16,7 @@ Shader "GeodeEmpire/Crystal"
         _ZoningStrength("Zoning", Range(0, 1)) = 0.4
         _Inclusions("Inclusions", Range(0, 1)) = 0.2
         _Highlight("Highlight", Range(0, 1)) = 0
+        _Dust("Dust", Range(0, 1)) = 0
         _NoiseTex("Noise", 2D) = "gray" {}
     }
     SubShader
@@ -26,7 +27,7 @@ Shader "GeodeEmpire/Crystal"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         CBUFFER_START(UnityPerMaterial)
             float4 _BaseColor, _DeepColor, _ZoneColor, _RimColor;
-            float _Smoothness, _Metallic, _Translucency, _RimPower, _RimStrength, _Sparkle, _SparkleScale, _ZoningStrength, _Inclusions, _Highlight;
+            float _Smoothness, _Metallic, _Translucency, _RimPower, _RimStrength, _Sparkle, _SparkleScale, _ZoningStrength, _Inclusions, _Highlight, _Dust;
             float4 _NoiseTex_ST;
         CBUFFER_END
         TEXTURE2D(_NoiseTex); SAMPLER(sampler_NoiseTex);
@@ -110,6 +111,11 @@ Shader "GeodeEmpire/Crystal"
                 float baseAO = lerp(0.5, 1.0, smoothstep(0.0, 0.8, IN.color.a));
                 float inc = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 7.0 + IN.positionOS.y * 2.3).r;
                 body = lerp(body, surf * 1.05, _Inclusions * inc * 0.8);
+                // rock dust from the break sits in the cavity until it is rinsed: a grey matte film, patchy with the noise
+                float dustN = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xy * 9.0 + IN.positionOS.z * 4.0).r;
+                float dust = saturate(_Dust) * saturate(0.45 + 0.7 * dustN);
+                float luma = dot(body, float3(0.3, 0.59, 0.11));
+                body = lerp(body, float3(luma, luma, luma) * 0.6 + float3(0.22, 0.21, 0.19), dust * 0.75);
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = IN.positionWS;
@@ -126,7 +132,7 @@ Shader "GeodeEmpire/Crystal"
                 s.albedo = body;
                 s.metallic = _Metallic;
                 s.specular = half3(0, 0, 0);
-                s.smoothness = _Smoothness;
+                s.smoothness = _Smoothness * (1.0 - 0.7 * dust);
                 s.occlusion = baseAO;
                 s.alpha = 1.0;
                 s.normalTS = half3(0, 0, 1);
@@ -141,6 +147,7 @@ Shader "GeodeEmpire/Crystal"
                 emis += sp * mainLight.color * (0.35 + spec * 1.5) * mainLight.shadowAttenuation;
                 float back = pow(saturate(dot(-mainLight.direction, V) * 0.5 + 0.5), 5.0) * _Translucency * 0.4;
                 emis += back * deep * mainLight.color * mainLight.shadowAttenuation;
+                emis *= 1.0 - 0.85 * dust;
                 emis += _Highlight * float3(1.0, 0.92, 0.7) * 0.28;
                 s.emission = emis;
 

@@ -27,6 +27,7 @@ namespace GeodeEmpire.Workshop
             new Step { Id = "strike", Text = "Set the chisel on the seam that runs around the middle of the rock (it snaps on when you are close). Hold {Strike} to wind up, release to strike.", DoneBy = "first_strike" },
             new Step { Id = "open_rock", Text = "Each strike chips the shell where the chisel stood. Turn the rock with {Rotate} and work around the whole ring: a careful tap is safe, a heavy blow is fast but can break the crystals inside.", DoneBy = "rock_opened" },
             new Step { Id = "take_specimen", Text = "Take a look, then pick the specimen up.", DoneBy = "specimen_picked" },
+            new Step { Id = "rinse", Text = "Fresh from the break the inside is dusty. Dunk it in the wash tub: the dust goes and the colour comes up.", DoneBy = "rinsed" },
             new Step { Id = "sort", Text = "Ordinary pieces go in the dealer outbox. Anything promising: weigh it on the appraisal scale.", DoneBy = "specimen_sorted" },
             new Step { Id = "appraise", Text = "The scale explains what makes a piece valuable. Keep favourites in the display cabinet, or sell them.", DoneBy = "appraised" },
             new Step { Id = "ship", Text = "When the outbox has a few pieces, press the dealer intercom to sell them.", DoneBy = "shipped" },

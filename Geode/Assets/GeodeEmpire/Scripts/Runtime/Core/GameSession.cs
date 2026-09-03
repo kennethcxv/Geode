@@ -296,6 +296,7 @@ namespace GeodeEmpire.Core
                 };
                 r.Condition.Opened = true;
                 r.Condition.Cleaned = 1f;   // the slurry washes the piece
+                r.Condition.Rinsed = true;
                 // damage as the appraisal sees it, from the piece's own crystals
                 float total = 0f, lost = 0f;
                 foreach (var c in geo.Crystals)

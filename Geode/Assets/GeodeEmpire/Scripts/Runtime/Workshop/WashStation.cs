@@ -60,6 +60,22 @@ namespace GeodeEmpire.Workshop
             VFX.EffectsFactory.Instance?.Impact(e.transform.position + Vector3.up * 0.02f, Vector3.up, 0.2f);
             if (e.Visual != null) e.Visual.SetWet(1f);   // dunked: darker and glossy until it dries
             Tutorial.Notify("rock_in_tub");
+            // a freshly opened rock: the dust of the break rinses off and the interior comes up in full colour
+            if (e.IsOpened && !e.IsPiece && e.Record.Condition != null && !e.Record.Condition.Rinsed)
+            {
+                e.Record.Condition.Rinsed = true;
+                if (e.Visual != null) e.Visual.RefreshCondition();
+                WorkshopAudio.Play("splash", e.transform.position, 0.5f, 1.25f);
+                VFX.EffectsFactory.Instance?.Glints(e.transform.position + Vector3.up * (e.Radius * 0.5f), e.Radius * 0.9f, 14, Color.white);
+                var session = GameSession.Instance;
+                if (session != null)
+                {
+                    session.State.Stats.RocksWashed++;
+                    session.Notify("Rinsed: the dust is off and the colour comes up.", NotificationKind.Success);
+                    session.QueueSave("rinsed");
+                }
+                Tutorial.Notify("rinsed");
+            }
         }
 
         private float Dirt(SpecimenEntity e) => e != null && e.Visual != null ? e.Visual.DirtRemaining : 0f;
@@ -138,6 +154,7 @@ namespace GeodeEmpire.Workshop
                 RestBrush();
                 WorkshopAudio.Play("splash", e.transform.position, 0.5f, 1.15f);
                 WorkshopAudio.Play("ui_click", e.transform.position, 0.4f, 1.3f);
+                if (GameSession.Instance != null) GameSession.Instance.State.Stats.RocksWashed++;
                 GameSession.Instance?.Notify("Clean. Turn it over and read the shell before you decide how to open it.", NotificationKind.Info);
                 Tutorial.Notify("washed");
                 GameSession.Instance?.QueueSave("washed");

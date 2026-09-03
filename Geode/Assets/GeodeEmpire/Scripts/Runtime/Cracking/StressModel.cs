@@ -25,11 +25,21 @@ namespace GeodeEmpire.Cracking
         /// <summary>Splitting wedge and lump hammer: a heavier bite on large rough, too much for thin shells.</summary>
         public bool Wedge;
         /// <summary>Rock too big for the cradle it sits on: it rocks under every blow.</summary>
-        public bool Unstable;
+        /// <summary>
+        /// How firmly the rock sits on its cradle, 0..1: a sphere in the sandbag ring is 1, an angular rock stood on a
+        /// corner or a boulder overhanging the small ring is low. Below <see cref="UnstableBelow"/> it counts as unstable.
+        /// </summary>
+        public float Stability = 1f;
+        public const float UnstableBelow = 0.35f;
+        public bool Unstable => Stability < UnstableBelow;
         /// <summary>Mean radius (m). Bigger shells need more work all the way round.</summary>
         public float Radius = 0.065f;
         /// <summary>How well defined the natural seam is (0.3..1): a poor seam wastes part of every strike.</summary>
         public float SeamQuality = 1f;
+        /// <summary>Clay still on the shell, 0..1: it cushions the chisel and hides the seam.</summary>
+        public float Clay;
+        /// <summary>How readily the rind flakes under a glancing tap (weathered rinds crumble, banded skins do not).</summary>
+        public float SurfaceCrumble = 0.15f;
         /// <summary>Per-sector shell thickness multiplier (0.75..1.3); null = uniform.</summary>
         public float[] SectorThickness;
         public int StrikeCount;
@@ -115,12 +125,13 @@ namespace GeodeEmpire.Cracking
             float angle = Mathf.Clamp01(s.AngleFactor);
             float seam = Mathf.Lerp(0.8f, 1f, Mathf.Clamp01(SeamQuality));
 
-            // an oversized rock on the small cradle shifts under the blow: part of the energy goes into the wobble,
-            // and a hard swing can skid off entirely
-            if (Unstable && force > 0.3f)
+            // a rock that does not sit firmly shifts under the blow: part of the energy goes into the wobble, and a
+            // hard swing can skid off entirely. A firm seat never wobbles; a rocking one moves under a careful tap.
+            float stability = Mathf.Clamp01(Stability);
+            if (stability < 0.95f && force > 0.3f + 0.6f * stability)
             {
                 r.Wobbled = true;
-                if (force > 0.55f && rng.Chance(0.3f))
+                if (force > 0.55f && rng.Chance(Mathf.Lerp(0.3f, 0.04f, stability)))
                 {
                     r.Slipped = true;
                     r.StressAdded = 0f;
@@ -154,13 +165,14 @@ namespace GeodeEmpire.Cracking
             if (Wedge && big) toolMult *= 1.35f;
             float clampMult = Clamped ? 1.1f : 1f;
             float sizeMult = 1f / SizeEffort;
-            if (Unstable) sizeMult *= 0.6f;
+            sizeMult *= Mathf.Lerp(0.6f, 1f, stability);
             float baseStress = 1.9f * force * (0.4f + 0.6f * angle) * placement * seam * thicknessMult * toolMult * clampMult * sizeMult / Mathf.Max(0.5f, Toughness);
+            baseStress *= Mathf.Lerp(1f, 0.8f, Mathf.Clamp01(Clay));   // a caked shell takes the blow softly
 
             // geology answers the blow: the same strike bites a little differently every time
             float bite = rng.Range(0.78f, 1.22f);
             // a soft, badly angled tap can skate and just take a flake off the shell
-            if (!wasCracked && angle < 0.55f && force < 0.5f && rng.Chance(0.15f))
+            if (!wasCracked && angle < 0.55f && force < 0.5f && rng.Chance(Mathf.Clamp01(SurfaceCrumble) * (1f + Clay)))
             {
                 r.SurfaceChip = true;
                 bite *= 0.3f;
@@ -206,7 +218,7 @@ namespace GeodeEmpire.Cracking
             if (r.Overstrike) chance *= 1.7f;
             if (FineChisel) chance *= 0.7f;
             if (Wedge && big) chance *= 1f + 0.6f * thin;   // the wedge drives too deep into a thin shell
-            if (Unstable) chance *= 1.4f;
+            chance *= Mathf.Lerp(1.4f, 1f, stability);
             if (r.SurfaceChip) chance *= 0.25f;
             if (force < 0.35f) chance *= 0.1f;
             else if (force < 0.55f) chance *= 0.45f;

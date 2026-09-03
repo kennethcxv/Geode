@@ -23,6 +23,8 @@ namespace GeodeEmpire.Specimens
         public float ShellChipping;   // 0..1 exterior/rim chipping
         /// <summary>How much of the clay coating has been scrubbed off (0 = as delivered, 1 = clean).</summary>
         public float Cleaned;
+        /// <summary>An opened rock's interior is dusty from the break until it is rinsed in the tub; sawn pieces come off the blade rinsed.</summary>
+        public bool Rinsed;
 
         public byte DamageAt(int crystalIndex)
         {
@@ -48,6 +50,7 @@ namespace GeodeEmpire.Specimens
                 CrystalDamage = CrystalDamage == null ? Array.Empty<byte>() : (byte[])CrystalDamage.Clone(),
                 ShellChipping = ShellChipping,
                 Cleaned = Cleaned,
+                Rinsed = Rinsed,
             };
         }
     }

@@ -97,6 +97,9 @@ namespace GeodeEmpire.Interaction
                 case ZoneKind.Scale:
                     // the whole specimen is weighed: opened flat if the platform takes it, propped if not, closed up for the big ones
                     return Fits(e, DisplayPose.Natural) ? DisplayPose.Natural : Fits(e, DisplayPose.Clamshell) ? DisplayPose.Clamshell : DisplayPose.Closed;
+                case ZoneKind.Wash:
+                    // an opened rock is dunked for a rinse: propped in the sink, or closed up if it is a big one
+                    return Fits(e, DisplayPose.Clamshell) ? DisplayPose.Clamshell : DisplayPose.Closed;
                 default:
                     return DisplayPose.Natural;
             }
@@ -168,7 +171,7 @@ namespace GeodeEmpire.Interaction
             if (opened && !AcceptsOpened) return "Unopened rocks only";
             if (!opened && !AcceptsUnopened) return Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot ? "Crack it open first" : "Opened specimens only";
             if (Kind == ZoneKind.SaleSlot && !e.Record.Appraised) return "Appraise it first: the scale sets the price";
-            if (Kind == ZoneKind.Wash && e.Visual != null && e.Visual.DirtRemaining < 0.04f) return "Already clean";
+            if (Kind == ZoneKind.Wash && e.Visual != null && e.Visual.DirtRemaining < 0.04f && !(opened && !e.IsPiece && e.Record.Condition != null && !e.Record.Condition.Rinsed)) return "Already clean";
             if (ExtraRefusal != null) { string why = ExtraRefusal(e); if (why != null) return why; }
             string fit = FitRefusal(e);
             if (fit != null) return fit;

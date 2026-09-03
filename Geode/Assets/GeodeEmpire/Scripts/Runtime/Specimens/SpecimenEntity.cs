@@ -142,6 +142,42 @@ namespace GeodeEmpire.Specimens
         private float _bottomLowest = float.NaN;
 
         /// <summary>
+        /// How the closed rock stands under a rotation: hull height, and the half-width of its base where a cradle ring
+        /// touches it (the narrower horizontal extent of the hull vertices in a band just above the lowest point).
+        /// </summary>
+        public void SupportProfile(Quaternion rotation, float bandHeight, out float height, out float baseHalfWidth)
+        {
+            SupportProfileOf(Visual != null ? Visual.BottomColliderMesh : null, IsOpened || Visual == null ? null : Visual.TopColliderMesh, rotation, bandHeight, out height, out baseHalfWidth);
+        }
+
+        public static void SupportProfileOf(Mesh bottom, Mesh top, Quaternion rotation, float bandHeight, out float height, out float baseHalfWidth)
+        {
+            height = 0.1f; baseHalfWidth = 0.05f;
+            var vb = bottom != null ? bottom.vertices : null;
+            var vt = top != null ? top.vertices : null;
+            if ((vb == null || vb.Length == 0) && (vt == null || vt.Length == 0)) return;
+            float lowest = float.MaxValue, highest = float.MinValue;
+            void Span(Vector3[] vs) { if (vs == null) return; for (int i = 0; i < vs.Length; i++) { float y = (rotation * vs[i]).y; if (y < lowest) lowest = y; if (y > highest) highest = y; } }
+            Span(vb); Span(vt);
+            height = Mathf.Max(0.01f, highest - lowest);
+            float minX = float.MaxValue, maxX = float.MinValue, minZ = float.MaxValue, maxZ = float.MinValue;
+            float lo = lowest + bandHeight - 0.008f, hi = lowest + bandHeight + 0.008f;
+            void Band(Vector3[] vs)
+            {
+                if (vs == null) return;
+                for (int i = 0; i < vs.Length; i++)
+                {
+                    var p = rotation * vs[i];
+                    if (p.y < lo || p.y > hi) continue;
+                    if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x; if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
+                }
+            }
+            Band(vb); Band(vt);
+            if (minX == float.MaxValue) { baseHalfWidth = 0.004f; return; }   // nothing at that height: a point of contact
+            baseHalfWidth = 0.5f * Mathf.Min(maxX - minX, maxZ - minZ);
+        }
+
+        /// <summary>
         /// How far above a surface the pivot must sit so the rock rests on it: the bottom hull's real lowest lump, not
         /// the pole, so nothing sinks into cradles, trays or shelves.
         /// </summary>

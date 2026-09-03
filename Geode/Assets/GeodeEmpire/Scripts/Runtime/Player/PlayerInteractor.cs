@@ -190,8 +190,16 @@ namespace GeodeEmpire.Player
             float solidMass = 4f / 3f * Mathf.PI * r * r * r * g.Axes.x * g.Axes.y * g.Axes.z * 2650f * g.Family.ShellToughness;
             float ratio = g.MassKg / Mathf.Max(0.01f, solidMass);
             string weight = ratio < 0.55f ? "light for its size" : ratio < 0.8f ? "average weight" : "heavy for its size";
-            string dirt = e.Visual != null && e.Visual.DirtRemaining > 0.35f ? "caked in clay" : e.Visual != null && e.Visual.DirtRemaining > 0.08f ? "dusty" : "clean";
-            return $"{SpecimenGeology.SizeWord(g.SizeClass)} rock, {weight}, {dirt}";
+            float dirtLeft = e.Visual != null ? e.Visual.DirtRemaining : 0f;
+            string dirt = dirtLeft > 0.35f ? "caked in clay" : dirtLeft > 0.08f ? "dusty" : "clean";
+            string reading = $"{SpecimenGeology.SizeWord(g.SizeClass)} rock, {weight}, {dirt}";
+            // a clean shell shows its seam, chips, staining and any mineral showing through
+            if (dirtLeft <= 0.1f)
+            {
+                var notes = GeodeEmpire.Workshop.Preparation.ShellNotes(g);
+                if (notes.Count > 0) reading += "  •  " + string.Join(", ", notes);
+            }
+            return reading;
         }
 
         private void EndInspect()

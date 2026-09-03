@@ -37,6 +37,7 @@ Shader "GeodeEmpire/GeodeShell"
         _CutFeed("Cut Feed", Vector) = (1, 0, 0, -10)
         _CutShow("Cut Preview", Range(0, 1)) = 0
         _Wet("Wetness", Range(0, 1)) = 0
+        _Dust("Dust", Range(0, 1)) = 0
     }
     SubShader
     {
@@ -62,6 +63,7 @@ Shader "GeodeEmpire/GeodeShell"
             float4 _CutFeed;            // object-space feed axis xyz; w = how far along it the kerf has reached
             float _CutShow;             // 0 hidden, 1 preview line drawn
             float _Wet;                 // fresh from the tub or the saw: darker, richer, with a water sheen; dries off
+            float _Dust;                // rock dust on a freshly broken interior until it is rinsed
         CBUFFER_END
         // fracture overlay arrays: kept outside the per-material block so property-block arrays reach them
         float _SectorCrack[16];         // seam stress per sector, >= 1 is an open crack
@@ -355,9 +357,12 @@ Shader "GeodeEmpire/GeodeShell"
                 float rindT = smoothstep(0.02, 0.2, c.a);
                 rim = lerp(ext * 0.9, rim, rindT);
                 rim *= lerp(0.8, 1.0, mottle);
-                // chips torn out of the rim by the chisel: pale bruised patches with dark edges on the cut face
-                rim = lerp(rim, rim * float3(0.9, 0.88, 0.85) + 0.12, crackFrost * 0.6);
-                rim = lerp(rim, rim * 0.35, crackDark * 0.8);
+                // chips torn out of the rim by the chisel: pale bruised patches with dark edges, only along the outer
+                // edge of the broken face (every strike sits on the seam latitude, so without this the marks would
+                // sweep across the whole face as wedges)
+                float edgeBruise = 1.0 - rindT;
+                rim = lerp(rim, rim * float3(0.9, 0.88, 0.85) + 0.12, crackFrost * 0.6 * edgeBruise);
+                rim = lerp(rim, rim * 0.35, crackDark * 0.8 * edgeBruise);
                 float sawnSmooth = 0.0;
                 if (sawn)
                 {
@@ -383,6 +388,9 @@ Shader "GeodeEmpire/GeodeShell"
                 float dzFacet = saturate(dz1 * 0.6 + dz2 * 0.6);
                 float3 druzyCol = _CavityCrystalColor.rgb * lerp(0.55, 1.15, dzFacet);
                 cav = lerp(cav, druzyCol, _CavityDruzy * c.g);
+                // dust from the break lies in the cavity until the rinse: grey, matte, patchy
+                float dustAmt = saturate(_Dust) * saturate(0.4 + 0.8 * dz2);
+                cav = lerp(cav, float3(0.42, 0.4, 0.37), dustAmt * 0.6);
 
                 // wet: water darkens and saturates the stone and lays a sheen over it; a fresh sawn face carries a film
                 // of grey coolant slurry until it dries
@@ -392,7 +400,7 @@ Shader "GeodeEmpire/GeodeShell"
                 albedo = lerp(albedo, albedo * albedo * 1.35 + albedo * 0.15, wet * 0.6);
                 float extSmooth = texFam == 1 ? 0.24 : texFam == 3 ? 0.1 : 0.18;
                 extSmooth = lerp(extSmooth, 0.06, dirtMask) + chipAmt * 0.3;
-                float smooth = extSmooth * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * c.g + (sawn ? sawnSmooth : 0.16) * c.b;
+                float smooth = extSmooth * c.r + lerp(_CavitySmoothness, 0.75, _CavityDruzy) * (1.0 - 0.6 * dustAmt) * c.g + (sawn ? sawnSmooth : 0.16) * c.b;
                 smooth += (grain - 0.5) * (sawn ? 0.02 : 0.1) + crackFrost * 0.06 * c.r;
                 smooth = lerp(smooth, max(smooth, 0.72 + 0.1 * grain), wet);
 

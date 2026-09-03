@@ -121,6 +121,8 @@ namespace GeodeEmpire.Core
 
         private IEnumerator Strike(float holdSeconds)
         {
+            var bench = Find<CrackingBench>();
+            if (bench != null && bench.Active && bench.ClampOwned && !bench.ClampClosed) { yield return Interact(); yield return new WaitForSeconds(0.5f); L($"  clamp closed: seat={bench.Stability:F2}"); }
             if (UseGamepad)
             {
                 D.PadState(Vector2.zero, Vector2.zero, 0f, 1f);
@@ -456,6 +458,140 @@ namespace GeodeEmpire.Core
             D.SetMouseButton(1, false);
             yield return new WaitForSeconds(0.2f);
             L(Core.CollisionAudit.Report("wash end"));
+            Phase = "done";
+            Running = false;
+        }
+
+        /// <summary>
+        /// V5 prep: the dirtiest rock in the crate goes to the bench caked (seam hidden, strikes land poorly), is tilted on
+        /// the cradle (seat quality read from the hull), washed, cracked clean, then rinsed in the tub for the full colour.
+        /// </summary>
+        public void RunPrepRock(string style = "careful") { if (!Running) StartCoroutine(PrepRock(style)); }
+
+        private IEnumerator PrepRock(string style)
+        {
+            Running = true;
+            Phase = "prep";
+            L($"== PrepRock ({style}) cash={S.State.Cash}");
+            if (S.Crates.Count == 0) { S.BuyCrate("local", out string err); L("buy: " + (err ?? "ok")); yield return new WaitForSeconds(1.4f); }
+            CrateEntity crate = null;
+            foreach (var c in S.Crates.Values) if (!c.IsOpened || c.RemainingRocks > 0) { crate = c; break; }
+            if (crate == null) { L("no crate"); Running = false; yield break; }
+            if (!crate.IsOpened)
+            {
+                Vector3 cratePos = crate.transform.position;
+                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
+                yield return Walk(stand, 0.3f);
+                yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
+                yield return new WaitForSeconds(0.9f);
+            }
+            SpecimenEntity rock = null; float dirtiest = -1f;
+            foreach (var e in S.Entities.Values) if (!e.IsOpened && e.Record.Location == SpecimenLocation.InCrate && e.Visual.DirtRemaining > dirtiest) { dirtiest = e.Visual.DirtRemaining; rock = e; }
+            if (rock == null) { L("no rock"); Running = false; yield break; }
+            yield return FetchRock(rock);
+            if (P.Held == null) { L("could not pick up the rock"); Running = false; yield break; }
+            rock = P.Held;
+            var g = rock.Geology;
+            L($"rock {rock.Id} {g.Mineral} size={g.SizeClass} ext={g.Exterior} dirt={rock.Visual.DirtRemaining:F2} chip={g.HasNaturalChip}@{g.ChipLatitude:F2} seamQ={g.SeamQuality:F2} axes={g.Axes}");
+            D.SetMouseButton(1, true); yield return new WaitForSeconds(0.4f);
+            L($"hand (dirty): '{P.Prompt}'");
+            D.SetMouseButton(1, false); yield return new WaitForSeconds(0.2f);
+
+            // 1. caked rock at the bench: the seam is hidden, the chisel does not find it
+            Vector3 cradle = ZonePos(ZoneKind.Cradle);
+            Vector3 benchStand = new Vector3(cradle.x, 0f, cradle.z - 0.95f);
+            yield return RouteTo(benchStand, 0.25f);
+            yield return LookAndInteract(cradle, "Set on the cradle");
+            yield return new WaitForSeconds(1.0f);
+            var bench = Find<CrackingBench>();
+            if (!bench.Active) { L("bench not active"); Running = false; yield break; }
+            L($"bench: clean={bench.Cleanliness:F2} seat={bench.Stability:F2} ({Workshop.Preparation.SeatWord(bench.Stability)}) chipSector={bench.ChipSector} tilt={bench.TiltAngle:F0}");
+            Snap("prep_caked_bench");
+            float placeSum = 0f; int n = 0;
+            for (int i = 0; i < 3 && bench.Active && !bench.Opened; i++)
+            {
+                yield return AimCursor(bench, bench.SeamCursorHint() + new Vector2(0f, -0.022f));   // a finger below the (hidden) seam
+                yield return Strike(0.35f);
+                var r = bench.LastResult; placeSum += r.Placement; n++;
+                L($"  caked strike {i + 1}: sector={r.Sector} place={r.Placement:F2} added={r.StressAdded:F2} chip={r.SurfaceChip} wobbled={r.Wobbled} slip={r.Slipped}");
+                yield return Rotate(0.3f, 1);
+                while (bench.Revealing) yield return null;
+            }
+            L($"caked placement avg={(n > 0 ? placeSum / n : 0f):F2}");
+            // 2. seat it: tilt forward, read the seat, tilt back
+            float seat0 = bench.Stability, tilt0 = bench.TiltAngle;
+            D.KeyDown(Key.W); yield return new WaitForSeconds(0.45f); D.KeyUp(); yield return null;
+            L($"tilt W: seat {seat0:F2} -> {bench.Stability:F2} tilt {tilt0:F0} -> {bench.TiltAngle:F0}");
+            Snap("prep_tilted");
+            D.KeyDown(Key.S); yield return new WaitForSeconds(0.45f); D.KeyUp(); yield return null;
+            L($"tilt S: seat={bench.Stability:F2} tilt={bench.TiltAngle:F0}");
+            D.KeyDown(Key.A); yield return new WaitForSeconds(0.3f); D.KeyUp(); yield return null;
+            L($"tilt A: seat={bench.Stability:F2} tilt={bench.TiltAngle:F0}");
+            L(Core.CollisionAudit.Report("tilted on cradle"));
+            // 3. leave with the rock, wash it, come back
+            if (bench.Active) { if (UseGamepad) yield return D.PadTap(GamepadButton.East, 0.1f); else yield return D.Tap(Key.Escape, 0.1f); }
+            yield return new WaitForSeconds(0.3f);
+            if (CursorController.InMenu) { if (UseGamepad) yield return D.PadTap(GamepadButton.Start, 0.1f); else yield return D.Tap(Key.Escape, 0.1f); yield return new WaitForSeconds(0.3f); }
+            yield return LookAndInteract(cradle, "Pick up");
+            L($"left bench: held={(P.Held != null ? P.Held.Id : "none")} active={bench.Active}");
+            if (P.Held == null) { Running = false; yield break; }
+            Vector3 tub = ZonePos(ZoneKind.Wash);
+            yield return RouteTo(new Vector3(tub.x, 0f, tub.z - 0.9f), 0.25f);
+            yield return LookAndInteract(tub, "Dunk in");
+            yield return new WaitForSeconds(0.4f);
+            D.LookAt(tub + Vector3.up * 0.05f); yield return new WaitForSeconds(0.2f);
+            D.KeyDown(Key.E);
+            float t0 = Time.time;
+            while (rock.Visual.DirtRemaining > 0.02f && Time.time - t0 < 8f) yield return null;
+            D.KeyUp(); yield return new WaitForSeconds(0.3f);
+            L($"washed in {Time.time - t0:F1}s dirt={rock.Visual.DirtRemaining:F2}");
+            yield return LookAndInteract(tub, "Take");
+            D.SetMouseButton(1, true); yield return new WaitForSeconds(0.4f);
+            L($"hand (clean): '{P.Prompt}'");
+            D.SetMouseButton(1, false); yield return new WaitForSeconds(0.2f);
+            yield return RouteTo(benchStand, 0.25f);
+            yield return LookAndInteract(cradle, "Set on the cradle");
+            yield return new WaitForSeconds(1.0f);
+            L($"bench again: clean={bench.Cleanliness:F2} seat={bench.Stability:F2} ({Workshop.Preparation.SeatWord(bench.Stability)}) stressAtChip={(bench.ChipSector >= 0 ? bench.Model.Stress[bench.ChipSector] : -1f):F2}");
+            Snap("prep_clean_bench");
+            // 4. crack it
+            int strikes = 0; placeSum = 0f; n = 0;
+            float hold = style == "careless" ? 1.0f : 0.5f;
+            while (bench.Active && !bench.Opened && !bench.Revealing && strikes < 60)
+            {
+                var hint = bench.SeamCursorHint() + new Vector2(0f, strikes < 3 ? -0.022f : Random.Range(-0.015f, 0.015f));   // the first few aim as low as the caked ones did
+                yield return AimCursor(bench, hint);
+                yield return Strike(hold);
+                strikes++;
+                var r = bench.LastResult; placeSum += r.Placement; n++;
+                if (strikes <= 3 || r.Opened) L($"  clean strike {strikes}: sector={r.Sector} place={r.Placement:F2} added={r.StressAdded:F2} cracks={r.CracksTotal} wobbled={r.Wobbled} open={r.Opened}");
+                yield return Rotate(0.42f, 1);
+                while (bench.Revealing) yield return null;
+            }
+            yield return new WaitForSeconds(2.0f);
+            L($"opened={bench.Opened} strikes={strikes} placement avg={(n > 0 ? placeSum / n : 0f):F2} note='{bench.ResultNote}' dust={rock.Visual.Dust:F0}");
+            Snap("prep_opened_dusty");
+            {
+                Vector3 c = rock.transform.position;
+                DevDriver.CaptureFrom(c + new Vector3(0.12f, 0.32f, -0.3f), c + Vector3.up * 0.03f, 34f, SnapDir + "/prep_close_dusty.png");
+            }
+            if (!bench.Opened) { Running = false; yield break; }
+            yield return Interact();
+            yield return new WaitForSeconds(0.3f);
+            // 5. rinse the opened rock
+            yield return RouteTo(new Vector3(tub.x, 0f, tub.z - 0.9f), 0.25f);
+            yield return LookAndInteract(tub, "Dunk in");
+            yield return new WaitForSeconds(0.6f);
+            L($"rinsed={rock.Record.Condition.Rinsed} dust={rock.Visual.Dust:F0} wet={rock.Visual.Wetness:F2} loc={rock.Record.Location} pose ok={(rock.Zone != null)}");
+            {
+                Vector3 c = rock.transform.position;
+                DevDriver.CaptureFrom(c + new Vector3(0.04f, 0.5f, -0.16f), c + Vector3.up * 0.03f, 34f, SnapDir + "/prep_close_rinsed.png");   // over the sink rim, looking down
+            }
+            D.LookAt(tub + Vector3.up * 0.05f); yield return new WaitForSeconds(0.3f);
+            Snap("prep_rinsed");
+            L(Core.CollisionAudit.Report("rinsed in tub"));
+            yield return LookAndInteract(tub, "Take");
+            L($"held after rinse={(P.Held != null ? P.Held.Record.DisplayName : "none")}");
             Phase = "done";
             Running = false;
         }

@@ -63,6 +63,7 @@ namespace GeodeEmpire.Specimens
         private static readonly int ChipId = Shader.PropertyToID("_Chip");
         private static readonly int PolishId = Shader.PropertyToID("_Polish");
         private static readonly int WetId = Shader.PropertyToID("_Wet");
+        private static readonly int DustId = Shader.PropertyToID("_Dust");
 
         /// <summary>Transient: 1 straight out of the wash tub or off the saw, drying back to 0 over ~45 s. Never saved, never valued.</summary>
         public float Wetness { get; private set; }
@@ -87,7 +88,10 @@ namespace GeodeEmpire.Specimens
         public float DirtRemaining => Geology != null && Condition != null ? Mathf.Clamp01(Geology.Dirt * (1f - Condition.Cleaned)) : 0f;
 
         /// <summary>Re-apply condition-driven shell properties (after scrubbing).</summary>
-        public void RefreshCondition() { if (Geology != null) ApplyShellProperties(); }
+        public void RefreshCondition() { if (Geology != null) { ApplyShellProperties(); ApplyCrystalProperties(); } }
+
+        /// <summary>Rock dust on a freshly opened interior: 1 until the rock is rinsed. Pieces come off the saw rinsed.</summary>
+        public float Dust => Condition != null && Condition.Opened && !Condition.Rinsed && !IsPiece ? 1f : 0f;
 
         private static readonly int CutPlaneId = Shader.PropertyToID("_CutPlane");
         private static readonly int CutFeedId = Shader.PropertyToID("_CutFeed");
@@ -436,6 +440,7 @@ namespace GeodeEmpire.Specimens
             _mpb.SetVector(ChipId, new Vector4(g.ChipLongitude, g.ChipLatitude, chipR, g.HasNaturalChip ? 1f : 0f));
             _mpb.SetFloat(PolishId, Polish);
             _mpb.SetFloat(WetId, Wetness);
+            _mpb.SetFloat(DustId, Dust);
             _mpb.SetVector(CutPlaneId, _cutPlane);
             _mpb.SetVector(CutFeedId, _cutFeed);
             _mpb.SetFloat(CutShowId, _cutShow);
@@ -491,6 +496,7 @@ namespace GeodeEmpire.Specimens
                 _mpb.SetFloat(ZoningId, secondary ? fam.ZoningBase : Geology.Zoning * Mathf.Lerp(0.6f, 1.1f, sat));
                 _mpb.SetFloat(InclusionsId, Mathf.Clamp01(fam.Inclusions * (1f - clarity * 0.9f) + (1f - clarity) * 0.25f));
                 _mpb.SetFloat(HighlightId, _highlight);
+                _mpb.SetFloat(DustId, Dust);
                 r.SetPropertyBlock(_mpb);
             }
         }

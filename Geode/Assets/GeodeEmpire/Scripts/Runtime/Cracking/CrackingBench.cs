@@ -46,7 +46,7 @@ namespace GeodeEmpire.Cracking
                 var occ = Cradle != null ? Cradle.First : null;
                 if (occ != null && !Active) Cradle.Place(occ, true);
             }
-            if (_model != null) _model.Unstable = _rock != null && _rock.Geology.SizeClass == SizeClass.Oversized && !heavy;
+            if (_model != null && _rock != null && Active) UpdateSeat();
         }
 
         // tool geometry (metres). Chisel: tip at its origin, cap at +Y ChiselLength. Hammer: origin at the handle
@@ -86,6 +86,36 @@ namespace GeodeEmpire.Cracking
         public StressModel.StrikeResult LastResult => _lastResult;
         public int DamageEventsThisRock => _damageThisRock;
         public string ResultNote { get; private set; } = "";
+
+        // ---- specimen-specific preparation (V5) ----
+        /// <summary>How firmly the rock sits on the cradle for its current pose, 0..1 (see <see cref="Workshop.Preparation.Stability"/>).</summary>
+        public float Stability { get; private set; } = 1f;
+        /// <summary>Seam sector of a natural chip that gives the crack a start, or -1.</summary>
+        public int ChipSector { get; private set; } = -1;
+        /// <summary>Seam sector under the cursor while aiming, or -1.</summary>
+        public int AimSector { get; private set; } = -1;
+        /// <summary>1 = clean shell, 0 = the seam is hidden under clay (wash it, or work by eye).</summary>
+        public float Cleanliness => _rock != null && _rock.Visual != null ? Workshop.Preparation.Cleanliness(_rock.Visual.DirtRemaining) : 1f;
+        /// <summary>Degrees the rock is tilted off upright on the cradle.</summary>
+        public float TiltAngle => _rock != null ? Vector3.Angle(_rock.transform.up, Vector3.up) : 0f;
+        [NonSerialized] public float TiltSpeed = 55f, TiltLimit = 40f;
+        /// <summary>The bench clamp (upgrade) is closed by the player each time a rock is set: only then does it hold.</summary>
+        public bool ClampOwned => GameSession.Instance != null && GameSession.Instance.State != null && UpgradeCatalog.Has(GameSession.Instance.State, UpgradeCatalog.BenchClamp);
+        public bool ClampClosed { get; private set; }
+
+        public void CloseClamp()
+        {
+            if (!Active || ClampClosed || !ClampOwned || _rock == null) return;
+            ClampClosed = true;
+            if (_model != null) _model.Clamped = true;
+            UpdateSeat();
+            WorkshopAudio.Play("clamp", _rock.transform.position, 0.8f, 1.05f);
+            Haptics.Pulse(0.25f, 0.15f, 0.07f);
+            _rockKick = 0.6f;
+        }
+        private Quaternion _rockRotBase = Quaternion.identity;
+        private float _wobble;
+        private Vector3 _wobbleAxis = Vector3.right;
 
         /// <summary>
         /// Test/tutorial hook: viewport position of a seam point. Default is the near-right flank (the working spot a
@@ -259,28 +289,36 @@ namespace GeodeEmpire.Cracking
             var fam = g.Family;
             _model = new StressModel
             {
-                Toughness = fam.ShellToughness,
+                Toughness = fam.ShellToughness * (g.Texture == ExteriorTexture.Volcanic ? 1.15f : 1f),
+                SurfaceCrumble = g.Texture switch { ExteriorTexture.Weathered => 0.35f, ExteriorTexture.Coarse => 0.15f, ExteriorTexture.Banded => 0.05f, _ => 0.2f },
+                Clay = 1f - Workshop.Preparation.Cleanliness(e.Visual != null ? e.Visual.DirtRemaining : 0f),
                 ShellThickness = g.ShellThickness,
                 Fragility = fam.Fragility,
                 FineChisel = UpgradeCatalog.Has(session.State, UpgradeCatalog.FineChisel),
-                Clamped = UpgradeCatalog.Has(session.State, UpgradeCatalog.BenchClamp),
+                Clamped = false,   // the clamp holds once the player closes it (CloseClamp)
                 Wedge = UpgradeCatalog.Has(session.State, UpgradeCatalog.Wedge),
                 Radius = e.Visual != null && e.Visual.Geometry != null ? e.Visual.Geometry.MeanEquatorRadius : g.Size,
                 SeamQuality = g.SeamQuality,
                 SectorThickness = g.SectorThickness,
-                Unstable = g.SizeClass == SizeClass.Oversized && !UpgradeCatalog.Has(session.State, UpgradeCatalog.HeavyCradle),
             };
             _model.CopyFrom(e.Record.SectorStress);
             _model.StrikeCount = e.Record.StrikeCount;
+            // a natural chip on the seam has already started the shell: the first crack comes easier there
+            ChipSector = Workshop.Preparation.ChipSector(g);
+            if (ChipSector >= 0 && e.Record.StrikeCount == 0) _model.Stress[ChipSector] = Mathf.Max(_model.Stress[ChipSector], Workshop.Preparation.ChipStartStress);
             _rng = new SeededRandom(SeededRandom.Combine(e.Record.Seed, (ulong)(e.Record.StrikeCount + 1) * 31UL));
             if (!e.Record.ProcessingStarted)
             {
                 e.Record.ProcessingStarted = true;
                 session.FlushSave("bench-enter");
             }
-            RefreshCrackVisual();
             _rockYaw = 0f;
             _rockBasePos = _rock.transform.position;
+            _rockRotBase = _rock.transform.rotation;
+            _wobble = 0f;
+            ClampClosed = false;
+            UpdateSeat();
+            RefreshCrackVisual();
             _jolt = 0f; _rockKick = 0f;
             _cursor = new Vector2(0.5f, 0.52f);
             FrameRock();
@@ -331,7 +369,43 @@ namespace GeodeEmpire.Cracking
         private void RefreshCrackVisual()
         {
             if (_rock == null || _rock.Visual == null) return;
-            _rock.Visual.SetCrackState(_model != null ? _model.Stress : _rock.Record.SectorStress, _rock.Record.Impacts, HasLamp ? 1f : 0.55f, Opened ? 0.35f : 1f);
+            // clay hides the seam guide (and blunts the chisel's snap onto it): a wash shows the shell
+            _rock.Visual.SetCrackState(_model != null ? _model.Stress : _rock.Record.SectorStress, _rock.Record.Impacts, (HasLamp ? 1f : 0.55f) * Cleanliness, Opened ? 0.35f : 1f);
+        }
+
+        /// <summary>Tilt the rock on the cradle (move input): pitch about the player's right, roll about their forward.</summary>
+        private void Tilt(Vector2 input)
+        {
+            if (_rock == null || _cam == null) return;
+            Vector3 camFlat = _cam.transform.forward; camFlat.y = 0f; camFlat.Normalize();
+            Vector3 camRight = Vector3.Cross(Vector3.up, camFlat).normalized;
+            var delta = Quaternion.AngleAxis(input.y * TiltSpeed, camRight) * Quaternion.AngleAxis(-input.x * TiltSpeed, camFlat);
+            var next = delta * _rockRotBase;
+            if (Vector3.Angle(next * Vector3.up, Vector3.up) > TiltLimit) return;
+            _rockRotBase = next;
+            _rock.transform.rotation = next;
+            ReseatRock();
+        }
+
+        /// <summary>The rock rests on its real lowest lump for its pose, centred on the cradle.</summary>
+        private void ReseatRock()
+        {
+            Vector3 anchor = CradleCenter.position;
+            _rock.transform.position = new Vector3(anchor.x, anchor.y - _rock.LowestPointOffset(_rock.transform.rotation), anchor.z);
+            _rockBasePos = _rock.transform.position;
+            UpdateSeat();
+        }
+
+        /// <summary>Seat quality from how the hull stands on the ring it is in, the clamp and the cradle size.</summary>
+        private void UpdateSeat()
+        {
+            if (_rock == null || _model == null) return;
+            var session = GameSession.Instance;
+            var g = _rock.Geology;
+            bool heavy = HasHeavyCradle;
+            _rock.SupportProfile(_rock.transform.rotation, Workshop.Preparation.RingContactHeight, out float h, out float w);
+            Stability = Workshop.Preparation.Stability(h, w, _rock.Radius, heavy ? 0.14f : 0.085f, g.SizeClass == SizeClass.Oversized && !heavy, ClampClosed);
+            _model.Stability = Stability;
         }
 
         /// <summary>Dev diagnostics: record why the bench was left.</summary>
@@ -384,19 +458,33 @@ namespace GeodeEmpire.Cracking
             }
 
             if (GameInput.BackPressed && !_swinging) { Exit(); return; }
+            if (GameInput.InteractPressed && !_swinging && !_charging && ClampOwned && !ClampClosed) CloseClamp();
 
             // rotate the rock on the cradle
             float rot = GameInput.Rotate * 95f * dt + GameInput.Scroll.y * 0.12f;
             if (Mathf.Abs(rot) > 0.0001f && !_swinging)
             {
                 _rockYaw += rot;
+                _rock.transform.rotation = _rockRotBase;
                 _rock.transform.RotateAround(CradleCenter.position, Vector3.up, rot);
+                _rockRotBase = _rock.transform.rotation;
                 _rockBasePos = _rock.transform.position;
             }
+            // seat the rock: the move keys / left stick tip it on the cradle, so an awkward rock can be stood on a
+            // flatter face; a tilt within the limit keeps the seam workable
+            Vector2 mv = GameInput.Move;
+            if (!_swinging && mv.sqrMagnitude > 0.09f) Tilt(mv * dt);
 
-            // the rock takes the hit: a tiny settle into the cradle that springs back
+            // the rock takes the hit: a tiny settle into the cradle that springs back, and a rock that does not sit
+            // firmly visibly rocks on the ring after a blow
             _rockKick = Mathf.MoveTowards(_rockKick, 0f, dt * 9f);
             _rock.transform.position = _rockBasePos + Vector3.down * (0.0025f * _rockKick);
+            if (_wobble > 0f)
+            {
+                _wobble = Mathf.MoveTowards(_wobble, 0f, dt * 2.2f);
+                _rock.transform.rotation = Quaternion.AngleAxis(Mathf.Sin(Time.time * 24f) * 3.5f * _wobble, _wobbleAxis) * _rockRotBase;
+            }
+            else if (_rock.transform.rotation != _rockRotBase) _rock.transform.rotation = _rockRotBase;
             _jolt = Mathf.MoveTowards(_jolt, 0f, dt * 11f);
 
             // virtual cursor
@@ -454,6 +542,8 @@ namespace GeodeEmpire.Cracking
             float lon = Mathf.Atan2(local.z, local.x);
             float offset = local.y / Mathf.Max(0.01f, geo.MaxRadius);
             float snap = 1f - Mathf.SmoothStep(0.10f, 0.26f, Mathf.Abs(offset));
+            snap *= Mathf.Lerp(0.3f, 1f, Cleanliness);   // under clay the seam cannot be seen, so the chisel finds it less
+            AimSector = StressModel.SectorOf(lon);
             Vector3 aimLocal = local;
             if (snap > 0f)
             {
@@ -584,6 +674,12 @@ namespace GeodeEmpire.Cracking
 
             _jolt = Mathf.Clamp01(0.4f + force);
             _rockKick = Mathf.Clamp01(0.3f + force * 0.8f * (result.Wobbled ? 2.2f : 1f));
+            if (result.Wobbled)
+            {
+                _wobble = Mathf.Clamp01(0.5f + force) * Mathf.Lerp(1f, 0.35f, Stability);
+                _wobbleAxis = Vector3.Cross(Vector3.up, _toolRadial).normalized;
+                if (_wobbleAxis.sqrMagnitude < 0.5f) _wobbleAxis = Vector3.right;
+            }
 
             // feedback
             float ringFrac = result.CracksTotal / (float)StressModel.Sectors;
