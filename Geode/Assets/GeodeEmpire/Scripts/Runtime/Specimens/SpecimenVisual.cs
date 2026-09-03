@@ -96,6 +96,12 @@ namespace GeodeEmpire.Specimens
         private static readonly int CutPlaneId = Shader.PropertyToID("_CutPlane");
         private static readonly int CutFeedId = Shader.PropertyToID("_CutFeed");
         private static readonly int CutShowId = Shader.PropertyToID("_CutShow");
+        private static readonly int CutDepthId = Shader.PropertyToID("_CutDepth");
+        private static readonly int CutDoneId = Shader.PropertyToID("_CutDone");
+        private Vector4 _cutDepth = new Vector4(0f, 1f, 0f, 100f), _cutDone = new Vector4(0f, 1f, 0f, -100f);
+
+        /// <summary>Saw: how far up the rock the kerf reaches (up axis xyz, limit w) and a region already cut (w below -9: none).</summary>
+        public void SetCutMasks(Vector4 depth, Vector4 done) { _cutDepth = depth; _cutDone = done; if (Geology != null) ApplyShellProperties(); }
         private Vector4 _cutPlane = new Vector4(0f, 1f, 0f, 0f), _cutFeed = new Vector4(1f, 0f, 0f, -10f);
         private float _cutShow;
 
@@ -444,6 +450,8 @@ namespace GeodeEmpire.Specimens
             _mpb.SetVector(CutPlaneId, _cutPlane);
             _mpb.SetVector(CutFeedId, _cutFeed);
             _mpb.SetFloat(CutShowId, _cutShow);
+            _mpb.SetVector(CutDepthId, _cutDepth);
+            _mpb.SetVector(CutDoneId, _cutDone);
             if (TopShellRenderer != null) TopShellRenderer.SetPropertyBlock(_mpb);
             if (BottomShellRenderer != null) BottomShellRenderer.SetPropertyBlock(_mpb);
         }

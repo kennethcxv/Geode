@@ -67,6 +67,8 @@ namespace GeodeEmpire.EditorTools
             var glass = Lit("M_Glass", null, new Color(0.7f, 0.85f, 0.95f, 0.18f), 0.95f, 0f, 1f);
             SetTransparent(Lit("M_Water", null, new Color(0.24f, 0.36f, 0.4f, 0.72f), 0.96f, 0f, 1f));
             Lit("M_MachinePaint", "T_Metal", new Color(0.56f, 0.62f, 0.58f), 0.55f, 0.15f, 1f);
+            Lit("M_Dial", null, new Color(0.92f, 0.9f, 0.84f), 0.35f, 0f, 1f);
+            Lit("M_BladeRim", "T_Metal", new Color(0.3f, 0.29f, 0.28f), 0.3f, 0.6f, 1f);
             // V5 hero-asset materials: real material separation on the rebuilt props
             Lit("M_Leather", "T_Cardboard", new Color(0.34f, 0.23f, 0.16f), 0.38f, 0f, 2.5f);
             Lit("M_Stainless", "T_Metal", new Color(0.8f, 0.81f, 0.83f), 0.7f, 0.6f, 1f);
@@ -849,17 +851,23 @@ namespace GeodeEmpire.EditorTools
             var teaser = Prop("prop_saw_teaser", sawRoot, Vector3.zero, 180f, "M_Tarp,M_Rope");
             var machine = new GameObject("Machine").transform;
             machine.SetParent(sawRoot, false);
-            var sawBody = Prop("prop_saw_station", machine, Vector3.zero, 0f, "M_MachinePaint,M_Water,M_Glass,M_Rubber,M_Red", collider: true);
-            var blade = Prop("prop_saw_blade", machine, new Vector3(0f, 1.06f, 0.05f), 0f, "M_Metal,M_MetalDark", collider: false);
-            var vise = Prop("prop_saw_vise", machine, new Vector3(0.42f, 0.915f, 0f), 0f, "M_MachinePaint,M_Rubber", collider: true);
-            var jaw = Prop("prop_saw_jaw", vise.transform, new Vector3(0f, 0.02f, 0.13f), 0f, "M_MachinePaint,M_Rubber", collider: false);
+            // 14-inch saw (see gen_props.py saw family): blade plane z 0.05, arbor y 1.113; the carriage vise rides the
+            // operator side of the blade (z -0.056) and its jaws squeeze along X, so the carriage never crosses the blade
+            var sawBody = Prop("prop_saw_station", machine, Vector3.zero, 0f, "M_MachinePaint,M_Water,M_Glass,M_Rubber,M_Red,M_Steel,M_Dial", collider: true);
+            var blade = Prop("prop_saw_blade", machine, new Vector3(0f, 1.113f, 0.05f), 0f, "M_Metal,M_MetalDark,M_BladeRim", collider: false);
+            var vise = Prop("prop_saw_vise", machine, new Vector3(0.42f, 0.915f, -0.056f), 0f, "M_MachinePaint,M_Rubber,M_Steel", collider: true);
+            var jaw = Prop("prop_saw_jaw", vise.transform, new Vector3(0.04f, 0.02f, 0f), 0f, "M_MachinePaint,M_Rubber,M_Steel", collider: false);
+            var wheel = Prop("prop_saw_wheel", vise.transform, new Vector3(0.26f, 0.08f, 0f), 0f, "M_Steel,M_PlasticDark", collider: false);
+            var needle = Prop("prop_saw_needle", machine, new Vector3(-0.385f, 0.71f, -0.396f), 0f, "M_Red", collider: false);
+            var valve = Prop("prop_saw_valve", machine, new Vector3(0.42f, 1.18f, 0.24f), 0f, "M_Steel,M_Red", collider: false);
+            var nozzle = new GameObject("Nozzle").transform; nozzle.SetParent(machine, false); nozzle.localPosition = new Vector3(0f, 1.113f + 0.178f + 0.07f, 0.05f);
             var outTrayProp = Prop("prop_tray", machine, new Vector3(-0.8f, 0.85f, 0.0f), 90f, "M_PlasticBlue", collider: true, scale: new Vector3(1.4f, 1f, 1.4f));   // on the side table, long side along the table
             var sawCam = new GameObject("SawCamera").transform;
             sawCam.SetParent(sawRoot, false);
             var sawLight = MakeLight(machine, "SawLight", new Vector3(0.1f, 1.75f, -0.35f), new Vector3(72f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 0.8f, 2.2f, 58f, false);
             MakeLight(sawRoot, "SawBayLamp", new Vector3(-0.5f, 2.2f, -0.3f), Vector3.zero, LightType.Point, new Color(1f, 0.93f, 0.82f), 1.0f, 3.2f, 0f, false);
             sawLight.enabled = false;
-            var clampZone = Support(Zone(sawRoot, "ClampZone", new Vector3(0.42f, 0.935f, 0.05f), ZoneKind.Saw, "the saw clamp", 1, true, true, new Vector3(0.3f, 0.26f, 0.34f)), 0.13f, 0.13f);
+            var clampZone = Support(Zone(sawRoot, "ClampZone", new Vector3(0.36f, 0.935f, -0.02f), ZoneKind.Saw, "the saw clamp", 1, true, true, new Vector3(0.36f, 0.3f, 0.4f)), 0.16f, 0.16f);   // over the sled's far end; the station poses the rock at the blade
             clampZone.SetHighlightRenderers(vise.GetComponentsInChildren<Renderer>());
             var clampAnchor = new GameObject("Anchor").transform; clampAnchor.SetParent(clampZone.transform, false); clampZone.Anchor = clampAnchor;
             var sawTray = Support(Zone(machine, "SawTray", new Vector3(-0.8f, 0.867f, 0.0f), ZoneKind.SawTray, "the saw tray", 2, true, false, new Vector3(0.46f, 0.16f, 0.66f)), 0.22f, 0.32f, packed: true);
@@ -869,6 +877,7 @@ namespace GeodeEmpire.EditorTools
             var saw = sawRoot.gameObject.AddComponent<Lapidary.SawStation>();
             saw.Clamp = clampZone; saw.OutTray = sawTray;
             saw.Vise = vise.transform; saw.Jaw = jaw.transform; saw.Blade = blade.transform;
+            saw.Wheel = wheel.transform; saw.Needle = needle.transform; saw.Valve = valve.transform; saw.Nozzle = nozzle;
             saw.CameraAnchor = sawCam; saw.Teaser = teaser; saw.Machine = machine.gameObject; saw.TaskLight = sawLight;
             saw.SetHighlightRenderers(vise.GetComponentsInChildren<Renderer>());
             machine.gameObject.SetActive(false);

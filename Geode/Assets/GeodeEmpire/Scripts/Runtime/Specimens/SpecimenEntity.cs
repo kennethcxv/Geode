@@ -150,6 +150,22 @@ namespace GeodeEmpire.Specimens
             SupportProfileOf(Visual != null ? Visual.BottomColliderMesh : null, IsOpened || Visual == null ? null : Visual.TopColliderMesh, rotation, bandHeight, out height, out baseHalfWidth);
         }
 
+        /// <summary>Axis-aligned bounds of the hull (collider meshes) under a rotation, about the pivot: what a vise or a cradle sees.</summary>
+        public void HullBoundsFor(Quaternion rotation, out Vector3 min, out Vector3 max)
+        {
+            var lo = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue); var hi = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+            void Span(Mesh m)
+            {
+                if (m == null) return;
+                var vs = m.vertices;
+                for (int i = 0; i < vs.Length; i++) { var p = rotation * vs[i]; lo = Vector3.Min(lo, p); hi = Vector3.Max(hi, p); }
+            }
+            Span(Visual != null ? Visual.BottomColliderMesh : null);
+            if (!IsOpened && Visual != null) Span(Visual.TopColliderMesh);
+            if (lo.x == float.MaxValue) { float r = Radius; lo = new Vector3(-r, -r, -r); hi = new Vector3(r, r, r); }
+            min = lo; max = hi;
+        }
+
         public static void SupportProfileOf(Mesh bottom, Mesh top, Quaternion rotation, float bandHeight, out float height, out float baseHalfWidth)
         {
             height = 0.1f; baseHalfWidth = 0.05f;

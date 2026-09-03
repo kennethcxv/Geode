@@ -163,6 +163,7 @@ namespace GeodeEmpire.Audio
             _bank["saw_grind"] = new[] { LoopClip(Grind(seed: 410)) };
             _bank["clamp"] = Variants(2, i => Impact(0.14f, 640f + i * 60f, 0.7f, 0.1f, 0.35f, 4f, seed: 420 + (ulong)i));
             _bank["cut_through"] = Variants(1, i => CutThrough(seed: 430));
+            _bank["coolant_hiss"] = new[] { LoopClip(Hiss(seed: 435)) };
             _bank["lap_motor"] = new[] { LoopClip(Motor(seed: 440, hum: 150f, whine: 0.35f)) };
             _bank["lap_contact"] = new[] { LoopClip(Grind(seed: 450, fine: true)) };
             _bank["ambience"] = new[] { Ambience(seed: 300) };
@@ -196,6 +197,27 @@ namespace GeodeEmpire.Audio
         }
 
         /// <summary>Diamond blade in stone: a wide hiss with a gritty rumble underneath. Loop-safe.</summary>
+        /// <summary>Coolant on a spinning blade: a soft filtered hiss with a fine drip patter.</summary>
+        private static float[] Hiss(ulong seed)
+        {
+            float duration = 1.0f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f, hp = 0f, prev = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.35f;
+                hp = lp - prev; prev = lp;
+                float drip = rng.NextFloat() < 0.004f ? (rng.NextFloat() - 0.5f) * 0.9f : 0f;
+                d[i] = Mathf.Clamp((hp * 1.6f + lp * 0.25f + drip) * 0.5f, -1f, 1f);
+            }
+            int x = 2000;
+            for (int i = 0; i < x; i++) { float a = i / (float)x; int j = n - x + i; d[j] = d[j] * (1f - a) + d[i] * a; }
+            return d;
+        }
+
         private static float[] Grind(ulong seed, bool fine = false)
         {
             float duration = 1.0f;

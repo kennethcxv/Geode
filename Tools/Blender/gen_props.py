@@ -816,47 +816,69 @@ def price_card(rng):
 # ---------------------------------------------------------------------------
 # Lapidary saw bay
 # ---------------------------------------------------------------------------
+# ---- 14-inch trim saw ---------------------------------------------------------------------------------------
+# Layout (Blender: X = feed axis, +Y away from the operator, Z up; Unity: X, Z, Y). Blade plane XZ at y=SAW_BLADE_Y,
+# arbor at z=SAW_ARBOR_Z. The carriage vise rides the rails on the operator side (y < blade) and feeds toward -X;
+# the rock is clamped by its near half between two jaws that squeeze ALONG X, and overhangs across the blade plane,
+# so nothing on the carriage ever crosses the blade. Behind the blade the arbor runs to a compact pillow-block
+# bearing whose underside sits above the tallest rock the blade can pass (arbor - flange radius), the motor and
+# belt live higher and further back, the hood covers the top half of the blade only.
+SAW_BLADE_R = 0.178      # 14-inch diamond blade
+SAW_BLADE_Y = 0.05       # blade plane (Unity z)
+SAW_RAIL_TOP = 0.915
+SAW_SLED_TOP = 0.02
+SAW_ARBOR_Z = SAW_RAIL_TOP + SAW_SLED_TOP + SAW_BLADE_R    # 1.113: the rim just reaches the sled top
+SAW_FLANGE_R = 0.032
+
+
 def saw_station(rng):
-    """10-inch trim saw on a steel cabinet. Slot 0 painted steel, slot 1 coolant surface, slot 2 clear guard,
-    slot 3 rubber. Blade plane is XZ at x=0, arbor at (0, 0.05, 1.06); the vise rides the rails (top z=0.915) on the
-    +X side and feeds toward -X; the operator stands at -Y. Cabinet 1.1 x 0.64, origin at base centre."""
+    """14-inch trim saw on a steel cabinet. Slot 0 painted steel, slot 1 coolant surface, slot 2 clear guard,
+    slot 3 rubber, slot 4 red control, slot 5 bare steel, slot 6 meter dial (white). Cabinet 1.1 x 0.64, origin
+    at base centre; rails top z=0.915 at y -0.136 and -0.276 (operator side of the blade, under the vise's shoes); blade plane y=0.05."""
     bm = bmesh.new()
     box(bm, (1.1, 0.64, 0.8), (0, 0, 0.42), bevel=0.016, segments=3)
     for sx in (-1, 1):
         for sy in (-1, 1):
             add(bm, hq.lathe([(0, 0), (0.03, 0), (0.032, 0.01), (0.028, 0.02), (0, 0.02)], segments=24), T(sx * 0.48, sy * 0.25, 0.0), mat=3)
-    add(bm, hq.rbox((0.5, 0.01, 0.5), (0, -0.318, 0.32), bevel=0.004, segments=2), mat=0)           # door
-    add(bm, hq.tube([(0.2, -0.324, 0.33), (0.2, -0.345, 0.33), (0.2, -0.348, 0.33), (0.2, -0.348, 0.42), (0.2, -0.345, 0.42), (0.2, -0.324, 0.42)], 0.007, segments=12), mat=0)
+    # front door with a recessed panel line, pull and hinges
+    add(bm, hq.rbox((0.5, 0.01, 0.5), (0, -0.318, 0.32), bevel=0.004, segments=2), mat=0)
+    add(bm, hq.tube([(0.2, -0.324, 0.33), (0.2, -0.345, 0.33), (0.2, -0.348, 0.33), (0.2, -0.348, 0.42), (0.2, -0.345, 0.42), (0.2, -0.324, 0.42)], 0.007, segments=12), mat=5)
     for z in (0.15, 0.5):
-        add(bm, hq.cyl(0.008, 0.05, segments=12, center=(0, 0, -0.025)), T(-0.26, -0.323, z), mat=0)  # hinges
-    # coolant pan with a rolled lip and the coolant surface
+        add(bm, hq.cyl(0.008, 0.05, segments=12, center=(0, 0, -0.025)), T(-0.26, -0.323, z), mat=5)
+    # coolant pan with a rolled lip, the coolant surface, drain spigot with a valve
     pan = hq.loft([hq.ring_rrect(1.12, 0.66, 0.05, 0.82, 32), hq.ring_rrect(1.12, 0.66, 0.05, 0.875, 32), hq.ring_rrect(1.14, 0.68, 0.055, 0.885, 32),
                    hq.ring_rrect(1.1, 0.64, 0.045, 0.885, 32), hq.ring_rrect(1.06, 0.6, 0.04, 0.83, 32)])
     add(bm, pan, mat=0, sharp=45)
     add(bm, hq.loft([hq.ring_rrect(1.06, 0.6, 0.04, 0.86, 32), hq.ring_rrect(1.06, 0.6, 0.04, 0.868, 32)]), mat=1, sharp=45)
-    add(bm, hq.lathe([(0, 0), (0.012, 0), (0.012, 0.05), (0, 0.05)], segments=16), T(0.5, 0.33, 0.83) @ R(-90, "X"), mat=0)   # drain spigot
+    add(bm, hq.lathe([(0, 0), (0.012, 0), (0.012, 0.05), (0, 0.05)], segments=16), T(0.5, 0.33, 0.83) @ R(-90, "X"), mat=5)
     add(bm, hq.knob(0.012, 0.012, segments=16), T(0.5, 0.39, 0.83) @ R(-90, "X"), mat=3)
-    # rails on stanchions
-    for sy in (-1, 1):
-        box(bm, (0.9, 0.05, 0.03), (0.1, sy * 0.16, 0.9), bevel=0.005, segments=3)
-        for sx in (-0.33, 0.53):
-            box(bm, (0.04, 0.05, 0.03), (sx, sy * 0.16, 0.87), bevel=0.003)
-    # arbor housing, flange and blade hood
-    box(bm, (0.2, 0.2, 0.34), (0, 0.16, 1.05), bevel=0.02, segments=3)
-    add(bm, hq.cyl(0.02, 0.12, segments=32, center=(0, 0, 0)), T(0, 0.14, 1.06) @ R(90, "X"), mat=0)
-    add(bm, hq.lathe([(0, 0), (0.038, 0), (0.04, 0.003), (0.04, 0.012), (0.036, 0.015), (0, 0.015)], segments=32), T(0, 0.07, 1.06) @ R(90, "X"), mat=0)
-    hood = hq.lathe([(0.138, 0.0), (0.16, 0.0), (0.162, 0.004), (0.162, 0.05), (0.16, 0.054), (0.138, 0.054), (0.138, 0.048), (0.154, 0.048), (0.154, 0.006), (0.138, 0.006)], segments=64, loop=True)
-    for v in list(hood.verts):
-        pass
-    # keep only the upper arc of the hood (10..170 degrees) by deleting the lower verts
-    hood_bm = hood
-    lower = [v for v in hood_bm.verts if math.degrees(math.atan2(v.co.y, v.co.x)) % 360 > 175 or math.degrees(math.atan2(v.co.y, v.co.x)) % 360 < 5]
-    bmesh.ops.delete(hood_bm, geom=lower, context="VERTS")
-    add(bm, hood_bm, T(0, 0.077, 1.06) @ R(90, "X"), mat=0, sharp=45)
-    box(bm, (0.04, 0.06, 0.15), (0, 0.06, 1.3), bevel=0.005, segments=2)
-    add(bm, hq.knob(0.014, 0.02, segments=24, ridges=12), T(0, 0.05, 1.235), mat=3)
-    # motor with end bells and cooling fins, belt cover to the arbor
-    motor = hq.lathe([(0, 0), (0.09, 0), (0.105, 0.015), (0.108, 0.05), (0.108, 0.22), (0.105, 0.255), (0.09, 0.27), (0.05, 0.275), (0, 0.275)], segments=48)
+    # rails on stanchions, operator side of the blade, under the vise's shoes (the vise centre sits at blade - 0.106)
+    for y in (SAW_BLADE_Y - 0.106 - 0.08, SAW_BLADE_Y - 0.106 - 0.22):
+        box(bm, (1.1, 0.04, 0.03), (0.0, y, 0.9), bevel=0.005, segments=3, mat=5)
+        for sx in (-0.45, 0.0, 0.45):
+            box(bm, (0.04, 0.05, 0.03), (sx, y, 0.87), bevel=0.003)
+    # arbor: shaft from the blade back to a pillow block bearing, belt pulley behind it
+    add(bm, hq.cyl(0.014, 0.23, segments=32, center=(0, 0, 0)), T(0, SAW_BLADE_Y + 0.22, SAW_ARBOR_Z) @ R(90, "X"), mat=5)   # shaft: from just before the blade back to the pulley
+    add(bm, hq.lathe([(0, 0), (SAW_FLANGE_R - 0.002, 0), (SAW_FLANGE_R, 0.003), (SAW_FLANGE_R, 0.012), (SAW_FLANGE_R - 0.004, 0.015), (0, 0.015)], segments=48), T(0, SAW_BLADE_Y + 0.018, SAW_ARBOR_Z) @ R(90, "X"), mat=5)
+    # pillow block: housing no deeper below the arbor than the flange radius, so a rock the blade can pass clears it
+    pb = hq.rbox((0.09, 0.08, 2 * SAW_FLANGE_R), (0, 0, 0), bevel=0.006, segments=3)
+    add(bm, pb, T(0, SAW_BLADE_Y + 0.15, SAW_ARBOR_Z), mat=0)
+    add(bm, hq.lathe([(0, 0), (0.03, 0), (0.03, 0.01), (0, 0.01)], segments=32), T(0, SAW_BLADE_Y + 0.105, SAW_ARBOR_Z) @ R(90, "X"), mat=5)   # bearing cap
+    for sx in (-1, 1):
+        add(bm, hq.hex_bolt(0.006, 0.005), T(sx * 0.03, SAW_BLADE_Y + 0.15, SAW_ARBOR_Z + SAW_FLANGE_R), mat=5)
+    # bearing pedestal rising from the cabinet behind the pan, its foot outside the rock path
+    box(bm, (0.09, 0.08, 0.2), (0, SAW_BLADE_Y + 0.15, SAW_ARBOR_Z + 0.1 + SAW_FLANGE_R), bevel=0.006, segments=2)
+    box(bm, (0.5, 0.06, 0.05), (-0.12, SAW_BLADE_Y + 0.15, SAW_ARBOR_Z + 0.2 + SAW_FLANGE_R + 0.025), bevel=0.006, segments=2)   # top beam to the motor bracket
+    add(bm, hq.lathe([(0, 0), (0.05, 0), (0.052, 0.004), (0.052, 0.028), (0.05, 0.032), (0, 0.032)], segments=48), T(0, SAW_BLADE_Y + 0.235, SAW_ARBOR_Z) @ R(90, "X"), mat=5)   # arbor pulley
+    # blade hood: top half of the blade, a shell with a lip, hanging from the top beam
+    hood = hq.lathe([(SAW_BLADE_R + 0.012, 0.0), (SAW_BLADE_R + 0.03, 0.0), (SAW_BLADE_R + 0.032, 0.004), (SAW_BLADE_R + 0.032, 0.05), (SAW_BLADE_R + 0.03, 0.054), (SAW_BLADE_R + 0.012, 0.054), (SAW_BLADE_R + 0.012, 0.048), (SAW_BLADE_R + 0.028, 0.048), (SAW_BLADE_R + 0.028, 0.006), (SAW_BLADE_R + 0.012, 0.006)], segments=96, loop=True)
+    lower = [v for v in hood.verts if math.degrees(math.atan2(v.co.y, v.co.x)) % 360 > 172 or math.degrees(math.atan2(v.co.y, v.co.x)) % 360 < 8]
+    bmesh.ops.delete(hood, geom=lower, context="VERTS")
+    add(bm, hood, T(0, SAW_BLADE_Y + 0.027, SAW_ARBOR_Z) @ R(90, "X"), mat=0, sharp=45)
+    box(bm, (0.04, 0.054, 0.06), (0, SAW_BLADE_Y, SAW_ARBOR_Z + SAW_BLADE_R + 0.06), bevel=0.004, segments=2)                                    # hood hanger
+    box(bm, (0.04, 0.16, 0.03), (0, SAW_BLADE_Y + 0.08, SAW_ARBOR_Z + SAW_BLADE_R + 0.075), bevel=0.004, segments=2)
+    # motor high and back on a bracket, belt cover from the motor pulley down to the arbor pulley
+    motor = hq.lathe([(0, 0), (0.09, 0), (0.105, 0.015), (0.108, 0.05), (0.108, 0.22), (0.105, 0.255), (0.09, 0.27), (0.05, 0.275), (0, 0.275)], segments=56)
     for v in motor.verts:
         if 0.06 < v.co.z < 0.21:
             r = math.hypot(v.co.x, v.co.y)
@@ -865,19 +887,24 @@ def saw_station(rng):
                 s = 1.0 + 0.04 * k
                 v.co.x *= s
                 v.co.y *= s
-    add(bm, motor, T(-0.5, 0.2, 1.02) @ R(90, "Y"), mat=0, sharp=50)
-    box(bm, (0.12, 0.1, 0.06), (-0.36, 0.2, 1.155), bevel=0.006, segments=2)                         # junction box
-    box(bm, (0.5, 0.05, 0.2), (-0.22, 0.31, 1.06), bevel=0.012, segments=3)                          # belt cover
-    add(bm, hq.lathe([(0, 0), (0.05, 0), (0.05, 0.03), (0, 0.03)], segments=32), T(-0.36, 0.28, 1.02) @ R(90, "X"), mat=0)   # pulley
-    # switch box: rocker and a red stop button
-    box(bm, (0.12, 0.06, 0.14), (-0.42, -0.35, 0.7), bevel=0.006, segments=3)                         # switch box on the cabinet face
-    add(bm, hq.rbox((0.03, 0.01, 0.04), (0, 0, 0), bevel=0.003), T(-0.42, -0.385, 0.73), mat=3)
-    add(bm, hq.lathe([(0, 0), (0.016, 0), (0.018, 0.006), (0.016, 0.012), (0, 0.012)], segments=24), T(-0.42, -0.382, 0.68) @ R(-90, "X"), mat=4)
-    # coolant feed: hose from the cabinet back over the housing to a nozzle at the top of the blade
-    hose = hq.bezier((0.16, 0.3, 0.86), (0.2, 0.32, 1.25), (0.05, 0.12, 1.3), (0.0, 0.04, 1.22), 24)
+    add(bm, motor, T(-0.62, SAW_BLADE_Y + 0.235, SAW_ARBOR_Z + 0.16) @ R(90, "Y"), mat=0, sharp=50)
+    box(bm, (0.12, 0.1, 0.06), (-0.5, SAW_BLADE_Y + 0.235, SAW_ARBOR_Z + 0.29), bevel=0.006, segments=2)                  # junction box
+    box(bm, (0.3, 0.14, 0.04), (-0.5, SAW_BLADE_Y + 0.235, SAW_ARBOR_Z + 0.03), bevel=0.006, segments=2)                   # motor cradle
+    box(bm, (0.04, 0.06, 0.3), (-0.5, SAW_BLADE_Y + 0.15, SAW_ARBOR_Z - 0.12), bevel=0.005, segments=2)                     # bracket post to the pan
+    add(bm, hq.rbox((0.42, 0.05, 0.22), (0, 0, 0), bevel=0.012, segments=3), T(-0.22, SAW_BLADE_Y + 0.235, SAW_ARBOR_Z + 0.08) @ R(-20, "Y"), mat=0)   # belt cover
+    add(bm, hq.lathe([(0, 0), (0.04, 0), (0.04, 0.03), (0, 0.03)], segments=32), T(-0.44, SAW_BLADE_Y + 0.235, SAW_ARBOR_Z + 0.16) @ R(90, "X"), mat=5)  # motor pulley
+    # switch box on the cabinet face: rocker, red stop, the load meter dial (the needle is prop_saw_needle)
+    box(bm, (0.18, 0.06, 0.16), (-0.42, -0.35, 0.7), bevel=0.006, segments=3)
+    add(bm, hq.rbox((0.03, 0.01, 0.04), (0, 0, 0), bevel=0.003), T(-0.47, -0.385, 0.73), mat=3)
+    add(bm, hq.lathe([(0, 0), (0.016, 0), (0.018, 0.006), (0.016, 0.012), (0, 0.012)], segments=24), T(-0.47, -0.382, 0.68) @ R(-90, "X"), mat=4)
+    add(bm, hq.lathe([(0, 0), (0.03, 0), (0.032, 0.003), (0.032, 0.012), (0.029, 0.014), (0, 0.014)], segments=48), T(-0.385, -0.394, 0.71) @ R(-90, "X"), mat=5)   # meter bezel
+    add(bm, hq.lathe([(0, 0), (0.026, 0), (0.026, 0.002), (0, 0.002)], segments=48), T(-0.385, -0.394, 0.71) @ R(-90, "X"), mat=6)                            # dial face
+    # coolant feed: a riser from the pump in the cabinet, a valve body on it (lever is prop_saw_valve), hose to the nozzle at the top of the blade
+    add(bm, hq.cyl(0.007, 0.5, segments=14, center=(0, 0, 0)), T(0.42, 0.24, 0.885), mat=5)
+    add(bm, hq.lathe([(0, 0), (0.014, 0), (0.014, 0.03), (0, 0.03)], segments=20), T(0.42, 0.24, 1.15), mat=5)         # valve body
+    hose = hq.bezier((0.42, 0.24, 1.385), (0.42, 0.24, 1.5), (0.12, SAW_BLADE_Y + 0.02, 1.48), (0.0, SAW_BLADE_Y, SAW_ARBOR_Z + SAW_BLADE_R + 0.105), 28)
     add(bm, hq.tube(hose, 0.006, segments=12), mat=3)
-    add(bm, hq.lathe([(0, 0), (0.008, 0), (0.008, 0.03), (0.004, 0.035), (0, 0.035)], segments=16), T(0, 0.04, 1.22) @ R(180, "X"), mat=0)
-    add(bm, hq.knob(0.01, 0.01, segments=16), T(0.16, 0.3, 0.86) @ R(-90, "X"), mat=3)
+    add(bm, hq.lathe([(0, 0), (0.008, 0), (0.008, 0.03), (0.004, 0.035), (0, 0.035)], segments=16), T(0, SAW_BLADE_Y, SAW_ARBOR_Z + SAW_BLADE_R + 0.105) @ R(180, "X"), mat=5)  # nozzle, pointing down at the rim
     # side table on the -X side: a steel shelf on two brackets, where the cut pieces are laid out (top z=0.85)
     box(bm, (0.55, 0.75, 0.02), (-0.8, 0.0, 0.84), bevel=0.004, segments=2)
     box(bm, (0.55, 0.03, 0.03), (-0.8, -0.36, 0.815), bevel=0.003)
@@ -888,59 +915,154 @@ def saw_station(rng):
         box(bm, (0.04, 0.05, 0.1), (-0.55, y, 0.45), bevel=0.004)
     for x in (-1.0, -0.62):
         for y in (-0.25, 0.25):
-            add(bm, hq.hex_bolt(0.006, 0.004), T(x, y, 0.85), mat=0)
+            add(bm, hq.hex_bolt(0.006, 0.004), T(x, y, 0.85), mat=5)
     # splash guard behind the blade, in a frame
-    add(bm, hq.rbox((0.6, 0.006, 0.42), (0, 0.26, 1.09), bevel=0.002), mat=2)
+    add(bm, hq.rbox((0.6, 0.006, 0.42), (0, 0.3, 1.1), bevel=0.002), mat=2)
     for sx in (-1, 1):
-        box(bm, (0.02, 0.02, 0.44), (sx * 0.3, 0.26, 1.09), bevel=0.003)
-    box(bm, (0.62, 0.02, 0.02), (0, 0.26, 1.31), bevel=0.003)
-    cols = [ColBox((1.14, 0.68, 0.885), (0, 0, 0.4425)), ColBox((0.55, 0.77, 0.05), (-0.8, 0.0, 0.83)), ColBox((0.2, 0.2, 0.34), (0, 0.16, 1.05)), ColBox((0.28, 0.28, 0.24), (-0.36, 0.2, 1.02)),
-            ColBox((0.34, 0.06, 0.18), (0, 0.05, 1.14)), ColBox((0.62, 0.02, 0.44), (0, 0.26, 1.09)), ColBox((0.12, 0.06, 0.14), (-0.42, -0.35, 0.7))]
+        box(bm, (0.02, 0.02, 0.44), (sx * 0.3, 0.3, 1.1), bevel=0.003)
+    box(bm, (0.62, 0.02, 0.02), (0, 0.3, 1.32), bevel=0.003)
+    cols = [ColBox((1.14, 0.68, 0.885), (0, 0, 0.4425)), ColBox((0.55, 0.77, 0.05), (-0.8, 0.0, 0.83)),
+            ColBox((0.09, 0.08, 0.26), (0, SAW_BLADE_Y + 0.15, SAW_ARBOR_Z + 0.1)), ColBox((0.5, 0.06, 0.05), (-0.12, SAW_BLADE_Y + 0.15, SAW_ARBOR_Z + 0.2 + SAW_FLANGE_R + 0.025)),
+            ColBox((0.28, 0.28, 0.26), (-0.62, SAW_BLADE_Y + 0.235, SAW_ARBOR_Z + 0.16)), ColBox((0.42, 0.05, 0.22), (-0.22, SAW_BLADE_Y + 0.235, SAW_ARBOR_Z + 0.08)),
+            ColBox((0.62, 0.02, 0.44), (0, 0.3, 1.1)), ColBox((0.18, 0.06, 0.16), (-0.42, -0.35, 0.7)), ColBox((0.04, 0.16, 0.06), (0, SAW_BLADE_Y + 0.08, SAW_ARBOR_Z + SAW_BLADE_R + 0.06))]
     return bm, cols
 
 
 def saw_blade(rng):
-    """Diamond blade, 250 mm: thin plate with a raised diamond rim, flanges and an arbor nut (slot 1). Origin at the
-    axle; spins about its own Y (Unity Z)."""
+    """Diamond blade, 356 mm (14 in): thin plate with a raised diamond rim (slot 2 dark segment), flanges and an
+    arbor nut (slot 1). Origin at the axle; spins about its own Y (Unity Z)."""
     bm = bmesh.new()
-    disc = hq.lathe([(0, 0), (0.118, 0), (0.118, 0.0016), (0, 0.0016)], segments=96, center=(0, 0, -0.0008))
+    disc = hq.lathe([(0, 0), (SAW_BLADE_R - 0.008, 0), (SAW_BLADE_R - 0.008, 0.0016), (0, 0.0016)], segments=128, center=(0, 0, -0.0008))
     add(bm, disc, R(90, "X"), mat=0)
-    rim = hq.lathe([(0.116, -0.0011), (0.125, -0.0011), (0.125, 0.0011), (0.116, 0.0011)], segments=96, loop=True)
-    add(bm, rim, R(90, "X"), mat=0)
+    rim = hq.lathe([(SAW_BLADE_R - 0.01, -0.0012), (SAW_BLADE_R, -0.0012), (SAW_BLADE_R, 0.0012), (SAW_BLADE_R - 0.01, 0.0012)], segments=128, loop=True)
+    add(bm, rim, R(90, "X"), mat=2)
     for s in (-1, 1):
-        add(bm, hq.lathe([(0, 0), (0.028, 0), (0.03, 0.002), (0.03, 0.007), (0.028, 0.009), (0, 0.009)], segments=32), R(90, "X") @ T(0, 0, s * 0.001 - (0.009 if s < 0 else 0)), mat=1)
-    add(bm, hq.hex_bolt(0.012, 0.009), R(90, "X") @ T(0, 0, 0.01), mat=1)
+        add(bm, hq.lathe([(0, 0), (SAW_FLANGE_R - 0.003, 0), (SAW_FLANGE_R, 0.003), (SAW_FLANGE_R, 0.008), (SAW_FLANGE_R - 0.003, 0.01), (0, 0.01)], segments=48), R(90, "X") @ T(0, 0, s * 0.001 - (0.01 if s < 0 else 0)), mat=1)
+    add(bm, hq.hex_bolt(0.012, 0.009), R(90, "X") @ T(0, 0, 0.011), mat=1)
     return bm, None
 
 
+SAW_VISE_LEN = 0.42       # sled length along X
+SAW_VISE_DEPTH = 0.2      # jaw depth along Y (all of it on the operator side of the blade)
+SAW_SLED_NEAR = -0.25     # the sled plate runs from here (operator side) to +0.1: its shoes ride rails at y -0.08 and -0.22
+SAW_FIXED_JAW_X = -0.16   # fixed jaw pad face, vise-local X (leading side)
+
+
 def saw_vise(rng):
-    """Carriage vise: sled plate with rail shoes, fixed jaw at -Y with a rubber pad (slot 1), lead screw and a
-    spoked hand wheel at +Y. 0.26 (X) x 0.34 (Y), origin at base centre; the moving jaw is prop_saw_jaw."""
+    """Carriage vise: sled plate with rail shoes, a fixed jaw at -X with a rubber pad (slot 1), bare steel screw and bosses (slot 2), a lead screw along X
+    (jaws 9 cm tall: they grip a rock's lower half and leave it in view from the operator's side)
+    to a bearing block at +X (the wheel is prop_saw_wheel, the moving jaw prop_saw_jaw). The jaws squeeze along the
+    feed axis and hold the rock's near half; the whole vise sits on the operator side of the blade.
+    0.42 (X) x 0.2 (Y), origin at base centre."""
     bm = bmesh.new()
-    box(bm, (0.26, 0.34, 0.02), (0, 0, 0.01), bevel=0.004, segments=3)
+    sled_depth = 0.1 - SAW_SLED_NEAR
+    box(bm, (SAW_VISE_LEN, sled_depth, 0.02), (0, (0.1 + SAW_SLED_NEAR) * 0.5, 0.01), bevel=0.004, segments=3)
+    for y in (-0.08, -0.22):
+        box(bm, (SAW_VISE_LEN, 0.05, 0.03), (0, y, 0.035), bevel=0.004, segments=2)          # rail shoes, on the operator side of the jaws
+    # fixed jaw: a stout plate, its pad facing +X
+    box(bm, (0.026, SAW_VISE_DEPTH - 0.02, 0.09), (SAW_FIXED_JAW_X - 0.013, 0, 0.065), bevel=0.004, segments=3)
+    add(bm, hq.rbox((0.008, SAW_VISE_DEPTH - 0.04, 0.07), (SAW_FIXED_JAW_X + 0.004, 0, 0.065), bevel=0.002), mat=1)
     for sy in (-1, 1):
-        box(bm, (0.26, 0.05, 0.03), (0, sy * 0.145, 0.035), bevel=0.004, segments=2)
-    box(bm, (0.2, 0.026, 0.13), (0, -0.11, 0.085), bevel=0.004, segments=3)
-    add(bm, hq.rbox((0.18, 0.008, 0.11), (0, -0.094, 0.085), bevel=0.002), mat=1)
-    box(bm, (0.07, 0.03, 0.14), (0, 0.155, 0.09), bevel=0.004, segments=2)
-    add(bm, hq.cyl(0.008, 0.27, segments=20, center=(0, 0, 0)), T(0, -0.07, 0.1) @ R(-90, "X"), mat=0)
-    for k in range(12):
-        add(bm, hq.torus(0.0082, 0.0012, seg_major=20, seg_minor=6), T(0, 0.02 + k * 0.01, 0.1) @ R(90, "X"), mat=0, sharp=70)
-    add(bm, hq.handwheel(0.036, 0.005, spokes=3, hub_r=0.012), T(0, 0.205, 0.1) @ R(-90, "X"), mat=0)
-    add(bm, hq.knob(0.006, 0.02, segments=16), T(0.028, 0.208, 0.1) @ R(-90, "X"), mat=1)
-    for sx in (-1, 1):
-        add(bm, hq.hex_bolt(0.006, 0.004), T(sx * 0.07, -0.11, 0.02), mat=0)
-    return bm, [ColBox((0.26, 0.34, 0.02), (0, 0, 0.01)), ColBox((0.26, 0.05, 0.03), (0, -0.145, 0.035)), ColBox((0.26, 0.05, 0.03), (0, 0.145, 0.035)),
-                ColBox((0.2, 0.034, 0.13), (0, -0.108, 0.085)), ColBox((0.07, 0.03, 0.14), (0, 0.155, 0.09))]
+        box(bm, (0.05, 0.02, 0.06), (SAW_FIXED_JAW_X - 0.04, sy * 0.06, 0.05), bevel=0.003)   # gussets
+    # lead screw along X from the fixed jaw side to the bearing block at +X, wheel boss outside it
+    box(bm, (0.03, 0.08, 0.09), (0.195, 0, 0.065), bevel=0.004, segments=2)
+    add(bm, hq.cyl(0.008, 0.36, segments=20, center=(0, 0, -0.18)), T(0.02, 0, 0.06) @ R(90, "Y"), mat=2)
+    for k in range(14):
+        add(bm, hq.torus(0.0082, 0.0012, seg_major=20, seg_minor=6), T(-0.1 + k * 0.02, 0, 0.06) @ R(90, "Y"), mat=2, sharp=70)
+    add(bm, hq.cyl(0.012, 0.03, segments=24, center=(0, 0, -0.015)), T(0.225, 0, 0.06) @ R(90, "Y"), mat=2)   # wheel boss
+    for sx in (-0.15, 0.15):
+        for sy in (-0.06, 0.06):
+            add(bm, hq.hex_bolt(0.006, 0.004), T(sx, sy, 0.02), mat=2)
+    return bm, [ColBox((SAW_VISE_LEN, 0.1 - SAW_SLED_NEAR, 0.02), (0, (0.1 + SAW_SLED_NEAR) * 0.5, 0.01)), ColBox((SAW_VISE_LEN, 0.05, 0.03), (0, -0.08, 0.035)), ColBox((SAW_VISE_LEN, 0.05, 0.03), (0, -0.22, 0.035)),
+                ColBox((0.034, SAW_VISE_DEPTH - 0.02, 0.09), (SAW_FIXED_JAW_X - 0.009, 0, 0.065)), ColBox((0.03, 0.08, 0.09), (0.195, 0, 0.065))]
 
 
 def saw_jaw(rng):
-    """Moving vise jaw with a rubber pad (slot 1) on its -Y face. Origin at base centre; slides along Y."""
+    """Moving vise jaw with a rubber pad (slot 1), bare steel screw and bosses (slot 2) on its -X face and a bronze nut riding the lead screw. Origin at
+    base centre; slides along X."""
     bm = bmesh.new()
-    box(bm, (0.2, 0.026, 0.13), (0, 0.013, 0.085), bevel=0.004, segments=3)
-    add(bm, hq.rbox((0.18, 0.008, 0.11), (0, -0.004, 0.085), bevel=0.002), mat=1)
-    box(bm, (0.08, 0.04, 0.02), (0, 0.02, 0.01), bevel=0.003)
-    add(bm, hq.cyl(0.01, 0.02, segments=20, center=(0, 0, 0)), T(0, 0.026, 0.1) @ R(-90, "X"), mat=0)
+    box(bm, (0.026, SAW_VISE_DEPTH - 0.02, 0.09), (0.013, 0, 0.065), bevel=0.004, segments=3)
+    add(bm, hq.rbox((0.008, SAW_VISE_DEPTH - 0.04, 0.07), (-0.004, 0, 0.065), bevel=0.002), mat=1)
+    box(bm, (0.04, 0.09, 0.02), (0.02, 0, 0.01), bevel=0.003)
+    add(bm, hq.cyl(0.011, 0.03, segments=24, center=(0, 0, -0.015)), T(0.028, 0, 0.06) @ R(90, "Y"), mat=2)
+    return bm, None
+
+
+def saw_wheel(rng):
+    """Vise handwheel: three-spoke wheel with a turned rim and a revolving handle; axis along X (it turns about X).
+    Origin at the hub centre."""
+    bm = bmesh.new()
+    add(bm, hq.handwheel(0.045, 0.006, spokes=3, hub_r=0.014, seg_major=64), R(90, "Y"), mat=0)
+    add(bm, hq.knob(0.006, 0.024, segments=16), T(0.006, 0.034, 0) @ R(90, "Y"), mat=1)
+    return bm, None
+
+
+def saw_needle(rng):
+    """Ammeter needle: a tapered pointer on a hub, lying in the dial plane (XZ, facing -Y). Rotates about Y.
+    Origin at the pivot; the needle points +Z at rest."""
+    bm = bmesh.new()
+    add(bm, hq.cyl(0.004, 0.003, segments=20, center=(0, 0, 0)), R(90, "X"), mat=0)
+    add(bm, hq.rbox((0.0022, 0.0012, 0.024), (0, -0.0015, 0.012), bevel=0.0004, segments=1), mat=0)
+    add(bm, hq.rbox((0.0015, 0.0012, 0.006), (0, -0.0015, 0.027), bevel=0.0003, segments=1), mat=0)
+    return bm, None
+
+
+def saw_valve(rng):
+    """Coolant valve lever: a quarter-turn handle on the riser; turns about Z. Origin at the stem; closed lies along +X."""
+    bm = bmesh.new()
+    add(bm, hq.cyl(0.006, 0.014, segments=16, center=(0, 0, 0.007)), mat=0)
+    add(bm, hq.rbox((0.05, 0.01, 0.006), (0.025, 0, 0.012), bevel=0.002, segments=2), mat=1)
+    return bm, None
+
+
+# ---- geode cracker (chain splitter) --------------------------------------------------------------------------
+def cracker(rng):
+    """Geode cracker on a stand: a soil-pipe-cutter-style chain splitter. Slot 0 painted steel, slot 1 bare steel,
+    slot 2 rubber, slot 3 dial face. A 0.5 x 0.42 base plate on a welded stand (top of the plate z=0.9), two rubber
+    V-rails the rock rests on (crest z=0.94, 0.16 apart along X), a rear post carrying the chain anchor and the
+    ratchet head with a pressure gauge; the lever is prop_cracker_lever (pivot on the head), the chain is built at
+    runtime round the rock. Origin at base centre; operator at -Y."""
+    bm = bmesh.new()
+    # stand: four legs, a shelf, the top plate
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            box(bm, (0.04, 0.04, 0.87), (sx * 0.22, sy * 0.18, 0.435), bevel=0.004, segments=2)
+    box(bm, (0.5, 0.42, 0.03), (0, 0, 0.885), bevel=0.005, segments=3)
+    box(bm, (0.46, 0.38, 0.02), (0, 0, 0.3), bevel=0.004, segments=2)
+    for sy in (-1, 1):
+        box(bm, (0.5, 0.03, 0.04), (0, sy * 0.185, 0.85), bevel=0.003)
+    # rubber V-rails: the rock sits across them, the chain plane between
+    for sx in (-1, 1):
+        add(bm, hq.rbox((0.03, 0.34, 0.04), (0, 0, 0), bevel=0.006, segments=2), T(sx * 0.08, 0, 0.92) @ R(sx * 18, "Y"), mat=2)
+    # rear post and the ratchet head: a boxy housing with the chain anchor drum and a gauge on its face
+    box(bm, (0.08, 0.08, 0.46), (0, 0.17, 1.13), bevel=0.006, segments=3)
+    box(bm, (0.16, 0.12, 0.12), (0, 0.12, 1.38), bevel=0.008, segments=3)
+    add(bm, hq.lathe([(0, 0), (0.028, 0), (0.03, 0.004), (0.03, 0.03), (0.028, 0.034), (0, 0.034)], segments=40), T(0, 0.055, 1.36) @ R(90, "X"), mat=1)   # anchor drum
+    add(bm, hq.cyl(0.006, 0.05, segments=12, center=(0, 0, 0)), T(0.055, 0.06, 1.36) @ R(90, "X"), mat=1)                                               # ratchet pawl pin
+    add(bm, hq.lathe([(0, 0), (0.026, 0), (0.028, 0.003), (0.028, 0.01), (0.025, 0.012), (0, 0.012)], segments=40), T(-0.045, 0.058, 1.4) @ R(-90, "X"), mat=1)   # gauge bezel
+    add(bm, hq.lathe([(0, 0), (0.022, 0), (0.022, 0.002), (0, 0.002)], segments=40), T(-0.045, 0.057, 1.4) @ R(-90, "X"), mat=3)                             # gauge face
+    box(bm, (0.03, 0.03, 0.05), (0.065, 0.12, 1.33), bevel=0.003)                                                                                     # lever pivot boss
+    add(bm, hq.cyl(0.012, 0.06, segments=20, center=(0, 0, -0.03)), T(0.08, 0.12, 1.33) @ R(90, "Y"), mat=1)                                           # lever pivot pin
+    for sx in (-1, 1):
+        add(bm, hq.hex_bolt(0.006, 0.005), T(sx * 0.06, 0.12, 1.445), mat=1)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            add(bm, hq.hex_bolt(0.007, 0.005), T(sx * 0.21, sy * 0.17, 0.9), mat=1)
+    cols = [ColBox((0.5, 0.42, 0.03), (0, 0, 0.885)), ColBox((0.46, 0.38, 0.02), (0, 0, 0.3)), ColBox((0.08, 0.08, 0.46), (0, 0.17, 1.13)), ColBox((0.16, 0.12, 0.12), (0, 0.12, 1.38)),
+            ColBox((0.03, 0.34, 0.05), (-0.08, 0, 0.92)), ColBox((0.03, 0.34, 0.05), (0.08, 0, 0.92))]
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            cols.append(ColBox((0.04, 0.04, 0.87), (sx * 0.22, sy * 0.18, 0.435)))
+    return bm, cols
+
+
+def cracker_lever(rng):
+    """Ratchet lever for the geode cracker: a steel bar with a rubber grip, pivot at the origin, lying along +X and
+    rising toward +Z at rest; pumps about Y."""
+    bm = bmesh.new()
+    add(bm, hq.cyl(0.011, 0.02, segments=20, center=(0, 0, -0.01)), R(90, "X"), mat=1)                        # hub
+    add(bm, hq.rbox((0.34, 0.02, 0.028), (0.17, 0, 0), bevel=0.004, segments=2), R(-35, "Y"), mat=0)          # bar
+    add(bm, hq.lathe([(0, 0), (0.013, 0), (0.015, 0.004), (0.015, 0.1), (0.013, 0.104), (0, 0.104)], segments=24), T(0.24, 0, 0) @ R(-35, "Y") @ R(90, "Y"), mat=2)   # grip
     return bm, None
 
 
@@ -980,7 +1102,7 @@ def polish_disc(rng):
 
 def wash_tub(rng):
     """Cleaning station: a deep utility sink on a steel stand with a gooseneck tap and a drain hose. Slot 0 stand
-    (steel), slot 1 water surface, slot 2 sink (moulded plastic), slot 3 brass tap. Tub rim at 0.83, water at 0.8.
+    (steel), slot 1 water surface, slot 2 sink (moulded plastic), slot 3 brass tap. Tub rim at 0.83, water at 0.706 (a shallow rinse basin).
     0.64 x 0.5, origin at base centre; operator at -Y."""
     bm = bmesh.new()
     for x in (-0.28, 0.28):
@@ -999,7 +1121,8 @@ def wash_tub(rng):
                     hq.ring_rrect(w + 0.02, d + 0.02, 0.07, 0.83, 32), hq.ring_rrect(w - 0.04, d - 0.04, 0.05, 0.83, 32),
                     hq.ring_rrect(w - 0.05, d - 0.05, 0.045, 0.81, 32), hq.ring_rrect(w - 0.1, d - 0.1, 0.04, 0.65, 32)])
     add(bm, sink, mat=2, sharp=45)
-    add(bm, hq.loft([hq.ring_rrect(w - 0.052, d - 0.052, 0.045, 0.798, 32), hq.ring_rrect(w - 0.052, d - 0.052, 0.045, 0.804, 32)]), mat=1, sharp=45)
+    # a few centimetres of rinse water in the bottom of the sink, so a rock stands proud of it and can be seen
+    add(bm, hq.loft([hq.ring_rrect(w - 0.088, d - 0.088, 0.042, 0.7, 32), hq.ring_rrect(w - 0.088, d - 0.088, 0.042, 0.706, 32)]), mat=1, sharp=45)
     # gooseneck tap on the back rim
     add(bm, hq.lathe([(0, 0), (0.028, 0), (0.03, 0.004), (0.03, 0.02), (0.02, 0.026), (0.013, 0.03), (0, 0.03)], segments=32), T(0.14, 0.2, 0.83), mat=3)
     neck = hq.bezier((0.14, 0.2, 0.86), (0.14, 0.2, 1.1), (0.14, 0.0, 1.1), (0.14, 0.02, 0.98), 20)
@@ -1146,6 +1269,11 @@ PROPS = [
     ("prop_saw_blade", saw_blade, 242),
     ("prop_saw_vise", saw_vise, 243),
     ("prop_saw_jaw", saw_jaw, 244),
+    ("prop_saw_wheel", saw_wheel, 252),
+    ("prop_saw_needle", saw_needle, 253),
+    ("prop_saw_valve", saw_valve, 254),
+    ("prop_cracker", cracker, 255),
+    ("prop_cracker_lever", cracker_lever, 256),
     ("prop_polish_lap", polish_lap, 245),
     ("prop_polish_disc", polish_disc, 246),
     ("prop_wash_tub", wash_tub, 247),
@@ -1156,7 +1284,7 @@ PROPS = [
 ]
 
 # props whose origin is not the base centre (tool tips, ceiling attachment, blade axle)
-KEEP_ORIGIN = {"prop_pendant_lamp", "prop_saw_blade", "prop_chisel", "prop_chisel_fine", "prop_wedge", "prop_wall_clock"}
+KEEP_ORIGIN = {"prop_pendant_lamp", "prop_saw_blade", "prop_chisel", "prop_chisel_fine", "prop_wedge", "prop_wall_clock", "prop_saw_wheel", "prop_saw_needle", "prop_saw_valve", "prop_cracker_lever"}
 KEEP_XY = {"prop_hammer", "prop_loupe", "prop_price_card", "prop_tablet", "prop_label_stand", "prop_scale_station", "prop_pegboard", "prop_window_frame", "prop_task_lamp"}
 MAX_VERTS = 40000
 

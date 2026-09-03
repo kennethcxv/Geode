@@ -6,14 +6,18 @@ using GeodeEmpire.Specimens;
 
 namespace GeodeEmpire.UI
 {
-    /// <summary>Saw-view overlay: the plan (yaw, roll, across), the cost of the cut, the blade load and progress, the result.</summary>
+    /// <summary>
+    /// Saw-view overlay, physical-first: the plan (turn, tilt, across), what the cut will cost, the blade and the
+    /// coolant valve, then a short line while cutting. The load is read off the machine's meter, not a HUD bar.
+    /// </summary>
     public sealed class SawHud : MonoBehaviour
     {
         private SawStation _saw;
-        private VisualElement _root, _panel, _loadFill, _progressFill, _loadRow, _progressRow, _result;
-        private Label _mode, _plan, _estimate, _blade, _hint, _resultName, _resultNote, _resultPrompt, _loadLabel;
+        private VisualElement _root, _panel, _result;
+        private Label _mode, _plan, _estimate, _blade, _coolant, _progress, _hint, _resultName, _resultNote, _resultPrompt;
         private int _lastHint = -1;
         private ControlScheme _lastScheme;
+        private string _lastCoolant = "", _lastBlade = "";
 
         private void Start()
         {
@@ -27,23 +31,11 @@ namespace GeodeEmpire.UI
             _plan = UiKit.Label(_panel, "", "");
             _estimate = UiKit.Label(_panel, "", "muted");
             _blade = UiKit.Label(_panel, "", "muted");
-            _loadRow = UiKit.Box(_panel);
-            var lr = UiKit.Box(_loadRow, "row"); lr.style.justifyContent = Justify.SpaceBetween;
-            UiKit.Label(lr, "Blade load", "muted");
-            _loadLabel = UiKit.Label(lr, "", "muted");
-            var lbg = UiKit.Box(_loadRow, "meter-bg");
-            _loadFill = UiKit.Box(lbg, "meter-fill", "meter-fill-force");
-            var red = UiKit.Box(lbg);
-            red.style.position = Position.Absolute; red.style.left = Length.Percent(70f); red.style.top = 0; red.style.bottom = 0; red.style.right = 0;
-            red.style.backgroundColor = new Color(0.9f, 0.35f, 0.3f, 0.18f); red.pickingMode = PickingMode.Ignore;
-            _progressRow = UiKit.Box(_panel);
-            UiKit.Label(_progressRow, "Cut", "muted");
-            var pbg = UiKit.Box(_progressRow, "meter-bg");
-            _progressFill = UiKit.Box(pbg, "meter-fill");
+            _coolant = UiKit.Label(_panel, "", "muted");
+            _progress = UiKit.Label(_panel, "", "muted");
             _hint = UiKit.Label(_panel, "", "bench-hint");
             _hint.style.whiteSpace = WhiteSpace.Normal;
             _panel.style.display = DisplayStyle.None;
-
             _result = UiKit.Box(_root, "card");
             _result.style.position = Position.Absolute;
             _result.style.left = Length.Percent(50); _result.style.top = Length.Percent(78);
@@ -53,7 +45,6 @@ namespace GeodeEmpire.UI
             _resultNote = UiKit.Label(_result, "", "appraisal-line", "accent");
             _resultPrompt = UiKit.Label(_result, "", "muted");
             _result.style.display = DisplayStyle.None;
-
             _saw.Entered += OnEntered;
             _saw.Exited += OnExited;
             _saw.Finished += OnFinished;
@@ -67,7 +58,7 @@ namespace GeodeEmpire.UI
 
         private void OnEntered()
         {
-            _lastHint = -1;
+            _lastHint = -1; _lastCoolant = ""; _lastBlade = "";
             HudController.Instance.SetFreeRoamVisible(false);
             _panel.style.display = DisplayStyle.Flex;
             _result.style.display = DisplayStyle.None;
@@ -95,33 +86,36 @@ namespace GeodeEmpire.UI
         {
             if (_saw == null || !_saw.Active || _saw.State == SawStation.Phase.Done) return;
             bool orient = _saw.State == SawStation.Phase.Orient;
-            _mode.text = orient ? (_saw.CanRotate ? "Set the cut" : "Set the cut (parallel to the face)") : _saw.Feeding ? "Feeding" : "Clamped  •  motor running";
-            _plan.text = orient || true ? $"Turn {_saw.Yaw:F0}°   Tilt {_saw.Roll:F0}°   Across {_saw.Offset * 1000f:+0;-0;0} mm" : "";
+            bool pad = GameInput.UsingGamepad;
+            bool tooTall = orient && !_saw.FitsUnderArbor;
+            _mode.text = orient ? (tooTall ? "Too tall in this pose" : _saw.CanRotate ? "Set the cut" : "Set the cut (parallel to the face)")
+                : _saw.Feeding ? "Feeding" : "Clamped  •  motor running";
+            _plan.text = $"Turn {_saw.Yaw:F0}°   Tilt {_saw.Roll:F0}°   Across {_saw.Offset * 1000f:+0;-0;0} mm" + (orient ? $"   •   {_saw.RockHeight * 100f:F0} cm high (the arbor passes {_saw.MaxPassHeight * 100f:F0})" : "");
             _saw.Estimate(out float secs, out float wear, out float cost);
-            _estimate.text = orient ? $"About {secs:F0} s  •  blade wear {Mathf.RoundToInt(wear * 100f)}% (≈ {UiKit.Money(cost)})" : $"{Mathf.RoundToInt(_saw.Progress * 100f)}% through";
+            _estimate.text = orient ? $"About {secs:F0} s  •  blade wear {Mathf.RoundToInt(wear * 100f)}% (≈ {UiKit.Money(cost)})" : "";
+            _estimate.style.display = orient ? DisplayStyle.Flex : DisplayStyle.None;
             float bw = _saw.BladeWear;
-            _blade.text = $"Blade {Mathf.RoundToInt((1f - bw) * 100f)}% left" + (_saw.BladeDull ? "  •  dull" : "") + (_saw.ThinBlade ? "  •  thin kerf" : "") + (_saw.Coolant ? "  •  coolant" : "");
-            _loadRow.style.display = orient ? DisplayStyle.None : DisplayStyle.Flex;
-            _progressRow.style.display = orient ? DisplayStyle.None : DisplayStyle.Flex;
-            if (!orient)
-            {
-                float load = Mathf.Clamp01(_saw.Load / 1.4f);
-                _loadFill.style.width = Length.Percent(load * 100f);
-                _loadFill.style.backgroundColor = _saw.Overload > 0.05f ? new Color(0.92f, 0.36f, 0.3f) : new Color(0.91f, 0.59f, 0.35f);
-                _loadLabel.text = _saw.Overload > 0.05f ? "BOGGING" : _saw.Load > 0.5f ? "cutting" : "";
-                _progressFill.style.width = Length.Percent(_saw.Progress * 100f);
-            }
-            int hint = orient ? (_saw.CanRotate ? 1 : 2) : _saw.Overload > 0.05f ? 4 : _saw.Feeding ? 3 : 5;
+            string bladeText = $"Blade {Mathf.RoundToInt((1f - bw) * 100f)}% left" + (_saw.BladeDull ? "  •  dull" : "") + (_saw.ThinForCut ? "  •  thin kerf" : "  •  standard kerf") + (_saw.ThinBladeOwned && orient ? $"   [{GameInput.Glyph("Loupe")}] swap" : "");
+            if (bladeText != _lastBlade) { _lastBlade = bladeText; _blade.text = bladeText; }
+            string coolantText = $"Coolant valve: {_saw.CoolantWord}   [{GameInput.Glyph("Drop")}] {(_saw.CoolantOpen ? "close" : "open")}";
+            if (coolantText != _lastCoolant) { _lastCoolant = coolantText; _coolant.text = coolantText; _coolant.style.color = _saw.CoolantOpen ? new Color(0.75f, 0.75f, 0.72f) : new Color(1f, 0.7f, 0.45f); }
+            bool cutting = _saw.State == SawStation.Phase.Cutting;
+            _progress.style.display = cutting ? DisplayStyle.Flex : DisplayStyle.None;
+            if (cutting) _progress.text = $"{Mathf.RoundToInt(_saw.Progress * 100f)}% through" + (_saw.Overload > 0.05f ? "  •  the meter is in the red" : _saw.Load > 0.5f ? "  •  cutting" : "") + (_saw.Grip < 0.85f ? "  •  loose in the jaws" : "");
+            int hint = orient ? (tooTall ? 7 : _saw.CanRotate ? (!_saw.CoolantOpen ? 6 : 1) : 2)
+                : _saw.Overload > 0.05f ? 4 : !_saw.CoolantOpen && _saw.Feeding ? 9 : _saw.Feeding ? 3 : 5;
             if (hint != _lastHint || GameInput.Scheme != _lastScheme)
             {
                 _lastHint = hint; _lastScheme = GameInput.Scheme;
-                bool pad = GameInput.UsingGamepad;
                 _hint.text = hint switch
                 {
                     1 => $"{GameInput.Glyph("Rotate")} turn   {(pad ? "RS ↕" : "Mouse ↕")} tilt   {(pad ? "LS ↔" : "A / D")} slide across   [{GameInput.Glyph("Interact")}] clamp and start   [{GameInput.Glyph("Back")}] leave",
-                    2 => $"A piece rides flat on the jaw: {(pad ? "LS ↔" : "A / D")} to set the depth   [{GameInput.Glyph("Interact")}] clamp and start   [{GameInput.Glyph("Back")}] leave",
-                    3 => "Feeding: ease off through thick stone if the load runs into the red",
-                    4 => "The blade is bogging: let go a moment, it clears the slurry and the load drops",
+                    2 => $"A piece stands on edge, face to the blade: {(pad ? "LS ↔" : "A / D")} to set the depth   [{GameInput.Glyph("Interact")}] clamp and start   [{GameInput.Glyph("Back")}] leave",
+                    3 => "Feeding: ease off through thick stone when the meter climbs into the red",
+                    4 => "The blade is bogging: let go a moment, it clears the slurry and the meter drops",
+                    6 => $"The coolant valve is closed: a dry cut chips and eats the blade. [{GameInput.Glyph("Drop")}] opens it.   {GameInput.Glyph("Rotate")} turn   {(pad ? "LS ↔" : "A / D")} across   [{GameInput.Glyph("Interact")}] clamp",
+                    7 => $"The rock would hit the arbor: tilt it flatter ({(pad ? "RS ↕" : "Mouse ↕")}) or turn it ({GameInput.Glyph("Rotate")}) until it passes under. Anything taller waits for a bigger saw.",
+                    9 => "Cutting dry: the blade is heating and chipping. Open the valve.",
                     _ => $"Hold {GameInput.Glyph("Strike")} to feed the carriage   ({GameInput.Glyph("Sprint")} with it for a fast feed)",
                 };
             }

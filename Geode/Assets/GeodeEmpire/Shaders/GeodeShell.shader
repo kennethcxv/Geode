@@ -36,6 +36,8 @@ Shader "GeodeEmpire/GeodeShell"
         _CutPlane("Cut Plane", Vector) = (0, 1, 0, 0)
         _CutFeed("Cut Feed", Vector) = (1, 0, 0, -10)
         _CutShow("Cut Preview", Range(0, 1)) = 0
+        _CutDepth("Cut Depth", Vector) = (0, 1, 0, 100)
+        _CutDone("Cut Done", Vector) = (0, 1, 0, -100)
         _Wet("Wetness", Range(0, 1)) = 0
         _Dust("Dust", Range(0, 1)) = 0
     }
@@ -62,6 +64,8 @@ Shader "GeodeEmpire/GeodeShell"
             float4 _CutPlane;           // object-space plane: normal xyz, height w
             float4 _CutFeed;            // object-space feed axis xyz; w = how far along it the kerf has reached
             float _CutShow;             // 0 hidden, 1 preview line drawn
+            float4 _CutDepth;           // object-space up axis xyz of the current pass; w = the projection the kerf reaches up to (one blade pass)
+            float4 _CutDone;            // a region already cut (up axis xyz, limit w; w < -9: none)
             float _Wet;                 // fresh from the tub or the saw: darker, richer, with a water sheen; dries off
             float _Dust;                // rock dust on a freshly broken interior until it is rinsed
         CBUFFER_END
@@ -341,7 +345,11 @@ Shader "GeodeEmpire/GeodeShell"
                     float dPlane = abs(dot(IN.positionOS, _CutPlane.xyz) - _CutPlane.w);
                     float along = dot(IN.positionOS, _CutFeed.xyz);
                     float guide = (1.0 - smoothstep(0.0009, 0.0018, dPlane)) * _CutShow;
-                    float kerf = (1.0 - smoothstep(0.0014, 0.0022, dPlane)) * step(along, _CutFeed.w) * _CutShow;
+                    // the kerf: as far along as the blade has reached, no higher than the blade passes in this pass,
+                    // plus whatever a previous pass already cut (a turned-over rock keeps its first kerf)
+                    float depthNow = step(dot(IN.positionOS, _CutDepth.xyz), _CutDepth.w) * step(along, _CutFeed.w);
+                    float depthDone = step(dot(IN.positionOS, _CutDone.xyz), _CutDone.w);
+                    float kerf = (1.0 - smoothstep(0.0014, 0.0022, dPlane)) * saturate(depthNow + depthDone) * _CutShow;
                     ext = lerp(ext, float3(0.95, 0.92, 0.8), guide * 0.85);
                     ext = lerp(ext, float3(0.08, 0.075, 0.07), kerf);
                 }

@@ -72,6 +72,9 @@ namespace GeodeEmpire.Save
         public Vector3 CutNormal;
         public float CutHeight, CutProgress;
         public float CutYaw, CutRoll, CutOffset;
+        // V5 saw: which blade profile was on for the cut, and any step the face picked up (the rock shifting in the jaws)
+        public bool CutThin;
+        public float CutFaceStep;
 
         [NonSerialized] private SpecimenGeology _geology;
         public SpecimenGeology Geology => _geology ??= SpecimenGenerator.Generate(Seed);

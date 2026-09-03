@@ -7,8 +7,8 @@ namespace GeodeEmpire.VFX
     {
         public static EffectsFactory Instance { get; private set; }
 
-        private ParticleSystem _dust, _chips, _glints, _motes;
-        private Material _dustMat, _chipMat, _glintMat;
+        private ParticleSystem _dust, _chips, _glints, _motes, _stream, _slurry;
+        private Material _dustMat, _chipMat, _glintMat, _waterMat, _slurryMat;
         private static Texture2D _softCircle, _sparkle;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -108,6 +108,19 @@ namespace GeodeEmpire.VFX
             var gcol = _glints.colorOverLifetime; gcol.enabled = true; gcol.color = new ParticleSystem.MinMaxGradient(FlashGradient());
             var gsz = _glints.sizeOverLifetime; gsz.enabled = true; gsz.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.2f), new Keyframe(0.3f, 1f), new Keyframe(1f, 0f)));
 
+            // coolant: a clear stream falling from the nozzle, and the grey slurry a wet blade throws off the stone
+            _waterMat = ParticleMaterial(SoftCircle(), new Color(0.7f, 0.82f, 0.9f, 0.55f), false);
+            _slurryMat = ParticleMaterial(SoftCircle(), new Color(0.42f, 0.4f, 0.36f, 0.7f), false);
+            _stream = MakeSystem("CoolantStream", _waterMat, maxParticles: 240);
+            var sm = _stream.main; sm.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.4f); sm.startSpeed = 0f;
+            sm.startSize = new ParticleSystem.MinMaxCurve(0.004f, 0.008f); sm.gravityModifier = 1.0f;
+            var scol = _stream.colorOverLifetime; scol.enabled = true; scol.color = new ParticleSystem.MinMaxGradient(FadeGradient(0.6f));
+            _slurry = MakeSystem("Slurry", _slurryMat, maxParticles: 260);
+            var slm = _slurry.main; slm.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.6f); slm.startSpeed = new ParticleSystem.MinMaxCurve(0.5f, 1.3f);
+            slm.startSize = new ParticleSystem.MinMaxCurve(0.003f, 0.009f); slm.gravityModifier = 1.3f;
+            var slc = _slurry.collision; slc.enabled = true; slc.type = ParticleSystemCollisionType.World; slc.bounce = 0.05f; slc.dampen = 0.7f; slc.lifetimeLoss = 0.5f;
+            var slcol = _slurry.colorOverLifetime; slcol.enabled = true; slcol.color = new ParticleSystem.MinMaxGradient(FadeGradient(0.75f));
+
             _motes = MakeSystem("Motes", _dustMat, maxParticles: 60);
             var mm = _motes.main; mm.startLifetime = new ParticleSystem.MinMaxCurve(6f, 10f); mm.startSpeed = new ParticleSystem.MinMaxCurve(0.01f, 0.04f);
             mm.startSize = new ParticleSystem.MinMaxCurve(0.006f, 0.014f); mm.gravityModifier = -0.002f; mm.loop = true; mm.startColor = new Color(1f, 0.95f, 0.85f, 0.18f);
@@ -171,6 +184,34 @@ namespace GeodeEmpire.VFX
         {
             Burst(_dust, position, normal + Vector3.up * 0.3f, Mathf.RoundToInt(3 + force * 9f), 0.35f + force * 0.5f, 0.8f);
             Burst(_chips, position, normal + Vector3.up * 0.5f, Mathf.RoundToInt(1 + force * 6f), 0.6f + force * 1.4f, 0.7f);
+        }
+
+        /// <summary>Coolant leaving the nozzle: a thin falling stream (amount 0.5 drip .. 1 flood).</summary>
+        public void CoolantStream(Vector3 nozzle, float amount)
+        {
+            var ep = new ParticleSystem.EmitParams();
+            int count = amount > 0.75f ? 3 : 1;
+            for (int i = 0; i < count; i++)
+            {
+                ep.position = nozzle + Random.insideUnitSphere * 0.002f;
+                ep.velocity = Vector3.down * Random.Range(0.15f, 0.35f) + Random.insideUnitSphere * 0.03f;
+                ep.startSize = Random.Range(0.004f, amount > 0.75f ? 0.009f : 0.006f);
+                _stream.Emit(ep, 1);
+            }
+        }
+
+        /// <summary>Grey slurry thrown off a wet cut: droplets in the blade's direction, a spatter round the contact.</summary>
+        public void Slurry(Vector3 position, Vector3 direction, float amount)
+        {
+            var ep = new ParticleSystem.EmitParams();
+            int count = Mathf.RoundToInt(2 + amount * 8f);
+            for (int i = 0; i < count; i++)
+            {
+                var dir = (direction * 0.6f + Vector3.up * 0.5f + Random.insideUnitSphere * 0.7f).normalized;
+                ep.position = position + Random.insideUnitSphere * 0.01f;
+                ep.velocity = dir * Random.Range(0.3f, 1.1f) * (0.5f + amount);
+                _slurry.Emit(ep, 1);
+            }
         }
 
         public void Split(Vector3 position, float radius, Vector3 cameraDir)

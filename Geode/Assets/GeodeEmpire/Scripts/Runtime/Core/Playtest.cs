@@ -600,9 +600,9 @@ namespace GeodeEmpire.Core
         /// V4 saw: buy the saw if needed, take an unopened rock to it, clamp, set a plan (yaw/roll/offset), commit, feed
         /// through (fast when asked), read the pieces, take the better one to the scale. Logs times, chips, wear, values.
         /// </summary>
-        public void RunSawCut(float yaw = 0f, float roll = 0f, float offset = 0f, bool fast = false) { if (!Running) StartCoroutine(SawCut(yaw, roll, offset, fast)); }
+        public void RunSawCut(float yaw = 0f, float roll = 0f, float offset = 0f, bool fast = false, bool tall = false, bool dry = false) { if (!Running) StartCoroutine(SawCut(yaw, roll, offset, fast, tall, dry)); }
 
-        private IEnumerator SawCut(float yaw, float roll, float offset, bool fast)
+        private IEnumerator SawCut(float yaw, float roll, float offset, bool fast, bool tall = false, bool dry = false)
         {
             Running = true;
             Phase = "saw";
@@ -615,7 +615,7 @@ namespace GeodeEmpire.Core
                 L("bought saw: " + (err ?? "ok") + " owned=" + saw.Owned);
                 yield return null;
             }
-            L($"== SawCut yaw={yaw} roll={roll} offset={offset} fast={fast} cash={S.State.Cash} blade={S.State.BladeWear:F2}");
+            L($"== SawCut yaw={yaw} roll={roll} offset={offset} fast={fast} tall={tall} dry={dry} cash={S.State.Cash} blade={S.State.BladeWear:F2}");
             if (S.Crates.Count == 0) { S.BuyCrate("local", out string err2); yield return new WaitForSeconds(1.4f); }
             CrateEntity crate = null;
             foreach (var c in S.Crates.Values) if (!c.IsOpened || c.RemainingRocks > 0) { crate = c; break; }
@@ -627,31 +627,98 @@ namespace GeodeEmpire.Core
                 yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                 yield return new WaitForSeconds(0.9f);
             }
-            // a medium or small unopened rock with a decent cavity, for a readable cut
+            // a medium or small unopened rock with a decent cavity, for a readable cut (or the tallest, for two passes)
             SpecimenEntity rock = null; float best = -1f;
             foreach (var e in S.Entities.Values)
             {
                 if (e.IsOpened || e.Record.Location != SpecimenLocation.InCrate) continue;
-                if (e.Geology.SizeClass == SizeClass.Oversized || e.Geology.SizeClass == SizeClass.Large) continue;
+                e.HullBoundsFor(Quaternion.identity, out var mn, out var mx);
+                float height = mx.y - mn.y;
+                if (tall)
+                {
+                    if (height <= saw.MaxPassHeight || height > 2f * saw.MaxPassHeight) continue;
+                    float scoreT = height;
+                    if (scoreT > best) { best = scoreT; rock = e; }
+                    continue;
+                }
+                if (e.Geology.SizeClass == SizeClass.Oversized || e.Geology.SizeClass == SizeClass.Large || height > saw.MaxPassHeight) continue;
                 float score = e.Geology.CavityFraction + (e.Geology.Tier >= QualityTier.Decent ? 0.3f : 0f);
                 if (score > best) { best = score; rock = e; }
             }
+            if (tall)
+            {
+                // a tall rock is staged on its own on the floor by the saw, clear of the crate crowd, so the pick-up is certain
+                if (rock != null) { L($"tall candidate in the crate: {rock.Id} (staging a clean one instead)"); rock = null; }
+                Vector3 spot = ZonePos(ZoneKind.Saw) + new Vector3(-0.5f, 0f, -1.1f); spot.y = 0f;
+                for (ulong seed = 5000; seed < 9000 && rock == null; seed++)
+                {
+                    var g = SpecimenGenerator.Generate(seed);
+                    if (g.SizeClass != SizeClass.Large || g.Cavity == CavityArchetype.Nodule) continue;
+                    var rec = S.CreateSpecimenRecord(seed, "local", "");
+                    rec.Location = SpecimenLocation.World;
+                    var ent = S.Spawn(rec, spot + Vector3.up * 0.2f, Quaternion.identity, false);
+                    ent.HullBoundsFor(Quaternion.identity, out var mn, out var mx);
+                    if (mx.y - mn.y > saw.MaxPassHeight && mx.y - mn.y < 2f * saw.MaxPassHeight)
+                    {
+                        rock = ent;
+                        ent.SetPose(spot + Vector3.up * ent.RestHeightOffset(false), Quaternion.identity);
+                        ent.SetStaticCollidable();
+                        rec.WorldPosition = ent.transform.position; rec.WorldRotation = ent.transform.rotation;
+                        L($"staged tall rock {rec.Id} {g.Mineral} {g.Cavity} height={(mx.y - mn.y):F3}");
+                    }
+                    else S.Despawn(ent);
+                }
+            }
             if (rock == null) { L("no suitable rock"); Running = false; yield break; }
             yield return FetchRock(rock);
+            if (P.Held != null && P.Held != rock)
+            {
+                // grabbed a neighbour in the crowd: put it back down and try once more
+                L($"picked a neighbour {P.Held.Id}: dropping it and retrying");
+                if (UseGamepad) yield return D.PadTap(GamepadButton.West, 0.1f); else yield return D.Tap(Key.G, 0.1f);
+                yield return new WaitForSeconds(0.4f);
+                yield return FetchRock(rock);
+            }
             if (P.Held == null) { L("could not pick up"); Running = false; yield break; }
+            if (P.Held != rock) L($"note: cutting {P.Held.Id} instead of {rock.Id}");
             rock = P.Held;
             L($"rock {rock.Id} {rock.Geology.Mineral} {rock.Geology.Cavity} size={rock.Geology.SizeClass} r={rock.Radius:F3} tier={rock.Geology.Tier} base=${rock.Geology.BaseValue}");
             Vector3 clamp = ZonePos(ZoneKind.Saw);
             yield return RouteTo(new Vector3(clamp.x - 0.15f, 0f, clamp.z - 0.95f), 0.25f);
+            { string why = saw.Clamp.RefusalReason(rock); if (why != null) L($"clamp refuses: '{why}' (lowest pose height {Lapidary.SawStation.LowestHeightOverPoses(rock) * 100f:F1} cm)"); }
             yield return LookAndInteract(clamp, "Clamp in");
             yield return new WaitForSeconds(0.8f);
-            L($"saw active={saw.Active} state={saw.State} rock={(saw.Rock != null ? saw.Rock.Id : "none")}");
-            if (!saw.Active) { Probe("saw"); Running = false; yield break; }
+            L($"saw active={saw.Active} state={saw.State} rock={(saw.Rock != null ? saw.Rock.Id : "none")} height={saw.RockHeight:F3} maxPass={saw.MaxPassHeight:F3} fits={saw.FitsUnderArbor} grip={saw.Grip:F2} prompt='{P.Prompt}'");
+            if (!saw.Active) { Probe("saw"); L("not clamped (refused?)"); Running = false; yield break; }
             Snap("saw_clamped");
+            // the coolant valve: open it the way a player does (the drop key), unless this is a deliberately dry cut
+            if (saw.CoolantOpen == dry) { if (UseGamepad) yield return D.PadTap(GamepadButton.West, 0.1f); else yield return D.Tap(Key.G, 0.1f); yield return new WaitForSeconds(0.2f); }
+            L($"coolant={saw.CoolantWord}");
             // set the plan through the real inputs where cheap (a few yaw taps), then exactly
             yield return Rotate(0.2f, 1);
             saw.SetPlan(yaw, roll, offset);
             yield return new WaitForSeconds(0.3f);
+            if (!saw.FitsUnderArbor)
+            {
+                // too tall as it lies: try turning it flatter, the way a player would
+                foreach (float r in new[] { 30f, 60f, 90f, -30f, -60f, -90f })
+                {
+                    saw.SetPlan(yaw, r, offset);
+                    L($"  too tall ({saw.RockHeight * 100f:F1} cm): tilt {r} -> {saw.RockHeight * 100f:F1} cm fits={saw.FitsUnderArbor}");
+                    if (saw.FitsUnderArbor) break;
+                }
+                if (!saw.FitsUnderArbor)
+                {
+                    Snap("saw_too_tall");
+                    yield return Interact();
+                    yield return new WaitForSeconds(0.3f);
+                    L($"commit refused as expected: state={saw.State} committed={saw.Committed}");
+                    if (UseGamepad) yield return D.PadTap(GamepadButton.East, 0.1f); else yield return D.Tap(Key.Escape, 0.1f);
+                    yield return new WaitForSeconds(0.3f);
+                    if (CursorController.InMenu) { if (UseGamepad) yield return D.PadTap(GamepadButton.Start, 0.1f); else yield return D.Tap(Key.Escape, 0.1f); yield return new WaitForSeconds(0.3f); }
+                    Phase = "done"; Running = false; yield break;
+                }
+            }
             saw.Estimate(out float secs, out float wear, out float cost);
             saw.PlanInRockFrame(out var n, out float h);
             L($"plan yaw={saw.Yaw} roll={saw.Roll} offset={saw.Offset * 1000f:F0}mm normal={n:F2} h={h * 1000f:F1}mm estimate {secs:F0}s wear={wear:F3} ${cost:F1}");
@@ -661,15 +728,25 @@ namespace GeodeEmpire.Core
             L($"committed={saw.Committed} state={saw.State} saved cut={rock.Record.CutCommitted}");
             saw.DevFeed = true; saw.DevFast = fast;
             float t0 = Time.time; float maxLoad = 0f; bool snapped = false;
-            while (saw.State == Lapidary.SawStation.Phase.Cutting && Time.time - t0 < 90f)
+            int probeAt = 1;
+            while (saw.State == Lapidary.SawStation.Phase.Cutting && Time.time - t0 < 120f)
             {
                 maxLoad = Mathf.Max(maxLoad, saw.Load);
-                if (!snapped && saw.Progress > 0.45f) { snapped = true; Snap("saw_cutting"); }
+                if (saw.Progress > probeAt * 0.25f && probeAt <= 3) { L($"  probe {saw.Probe()}"); probeAt++; }
+                if (!snapped && saw.Progress > 0.45f)
+                {
+                    snapped = true; Snap("saw_cutting");
+                    Vector3 c = saw.Rock.transform.position;
+                    DevDriver.CaptureFrom(c + new Vector3(0.05f, 0.28f, -0.42f), c + Vector3.up * 0.02f, 32f, SnapDir + "/saw_close_cut.png");
+                    DevDriver.CaptureFrom(c + new Vector3(0.02f, 0.5f, -0.06f), c, 30f, SnapDir + "/saw_close_top.png");
+                }
                 yield return null;
             }
             saw.DevFeed = false; saw.DevFast = false;
-            yield return new WaitForSeconds(1.5f);
-            L($"cut done in {Time.time - t0:F1}s state={saw.State} maxLoad={maxLoad:F2} chips={saw.ChipsThisCut} wear={saw.WearThisCut:F3} blade={S.State.BladeWear:F2} note='{saw.ResultNote}'");
+            float tw = Time.time;
+            while (string.IsNullOrEmpty(saw.ResultNote) && Time.time - tw < 4f) yield return null;
+            yield return new WaitForSeconds(0.3f);
+            L($"cut done in {Time.time - t0:F1}s state={saw.State} maxLoad={maxLoad:F2} chips={saw.ChipsThisCut} wear={saw.WearThisCut:F3} blade={S.State.BladeWear:F2} faceStep={saw.FaceStep * 1000f:F1}mm note='{saw.ResultNote}'");
             Snap("saw_result");
             var a = saw.PieceA; var b = saw.PieceB;
             if (a != null) L($"piece A {a.Id} {a.Record.DisplayName} value=${a.Record.PristineForSale()} retained={a.Record.PieceRetained:F2} opening={a.Record.PieceOpening:F2} sym={a.Record.PieceSymmetry:F2} face={a.Record.PieceFaceArea:F2} loc={a.Record.Location}");
@@ -689,6 +766,14 @@ namespace GeodeEmpire.Core
                 var ap = Find<AppraisalStation>();
                 L("appraised piece=" + (ap.Current != null && ap.Current.Record.Appraised) + " value=" + (ap.Current != null ? ap.Current.Record.AppraisedValue.ToString() : "") + " name=" + (ap.Current != null ? ap.Current.Record.DisplayName : ""));
                 Snap("saw_piece_appraisal");
+                // clear the scale so the next run can use it: the piece goes to the dealer outbox
+                yield return LookAndInteract(scale, "Take");
+                if (P.Held != null)
+                {
+                    Vector3 tray = ZonePos(ZoneKind.SellTray);
+                    yield return RouteTo(StandNear(tray), 0.3f);
+                    yield return LookAndInteract(tray, "Place in the dealer outbox");
+                }
             }
             L(RunSaveReloadCheck());
             Phase = "done";
