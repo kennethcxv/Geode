@@ -13,7 +13,7 @@ namespace GeodeEmpire.UI
     public sealed class TitleScreen : MonoBehaviour
     {
         private VisualElement _root, _menu, _confirm;
-        private Button _continue, _newGame, _settings, _quit;
+        private Button _continue, _newGame, _settings, _quit, _cancel;
         private static TitleScreen _instance;
 
         /// <summary>Put controller focus back on the title menu after the settings panel closes.</summary>
@@ -75,7 +75,7 @@ namespace GeodeEmpire.UI
             var row = UiKit.Box(panel, "row");
             var yes = UiKit.Button(row, "Erase and start over", StartNew, "btn-primary");
             yes.style.marginRight = 10;
-            UiKit.Button(row, "Cancel", () => { _confirm.style.display = DisplayStyle.None; _newGame.Focus(); }, "btn-ghost");
+            _cancel = UiKit.Button(row, "Cancel", CloseConfirm, "btn-ghost");
             _confirm.style.display = DisplayStyle.None;
             (hasSave ? _continue : _newGame).Focus();
         }
@@ -90,8 +90,20 @@ namespace GeodeEmpire.UI
         private void NewGame()
         {
             WorkshopAudio.Play2D("ui_click", 0.5f);
-            if (SaveSystem.Exists()) { _confirm.style.display = DisplayStyle.Flex; _confirm.Q<Button>()?.Focus(); }
+            if (SaveSystem.Exists())
+            {
+                // the safe answer has focus: a stray A press must never erase a career
+                _confirm.style.display = DisplayStyle.Flex;
+                _cancel.Focus();
+                _root.schedule.Execute(() => { if (_confirm.style.display == DisplayStyle.Flex) _cancel.Focus(); });
+            }
             else StartNew();
+        }
+
+        private void CloseConfirm()
+        {
+            _confirm.style.display = DisplayStyle.None;
+            _newGame.Focus();
         }
 
         private void StartNew()
@@ -106,7 +118,7 @@ namespace GeodeEmpire.UI
             var gp = UnityEngine.InputSystem.Gamepad.current;
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (_confirm.style.display == DisplayStyle.Flex && ((gp != null && gp.buttonEast.wasPressedThisFrame) || (kb != null && kb.escapeKey.wasPressedThisFrame)))
-                _confirm.style.display = DisplayStyle.None;
+                CloseConfirm();
         }
     }
 }

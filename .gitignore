@@ -84,3 +84,6 @@ __pycache__/
 # editor capture scratch (MCP capture_game_view writes under Assets/Output)
 /Geode/Assets/Output/
 /Geode/Assets/Output.meta
+
+# standalone builds
+/Geode/Build/

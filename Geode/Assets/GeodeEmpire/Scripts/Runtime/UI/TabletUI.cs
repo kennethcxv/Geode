@@ -379,6 +379,10 @@ namespace GeodeEmpire.UI
             Row("Most damaged", st.MostDamagedFraction > 0 ? $"{st.MostDamagedFraction * 100f:F0}%  ({st.MostDamagedName})" : "—");
             Row("Specimens kept", _s.State.DisplayedCount().ToString());
             Row("Specimens sold", st.SpecimensSold.ToString());
+            Row("Retail sales", st.RetailSales > 0 ? $"{st.RetailSales}  ({UiKit.Money(st.RetailRevenue)})" : "0");
+            Row("Best retail sale", st.BiggestRetailSale > 0 ? $"{UiKit.Money(st.BiggestRetailSale)}  ({st.BiggestRetailSaleName})" : "—");
+            Row("Customers served / left empty-handed", $"{st.CustomersServed} / {st.CustomersLeftEmptyHanded}");
+            Row("On sale now", _s.State.ForSaleCount().ToString());
             Row("Collection value", UiKit.Money(_s.State.CollectionValue()));
             Row("Mineral families discovered", _s.State.Encyclopedia.Count + " / " + MineralCatalog.All.Count);
         }

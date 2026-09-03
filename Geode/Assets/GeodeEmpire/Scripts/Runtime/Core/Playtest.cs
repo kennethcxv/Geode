@@ -35,6 +35,7 @@ namespace GeodeEmpire.Core
         {
             if (Instance != null) return Instance;
             var go = new GameObject("_Playtest");
+            DontDestroyOnLoad(go);          // title <-> workshop flows cross scene loads
             Instance = go.AddComponent<Playtest>();
             return Instance;
         }
@@ -652,6 +653,69 @@ namespace GeodeEmpire.Core
         }
 
         public void RunSettingsMatrix() { if (!Running) StartCoroutine(SettingsMatrix()); }
+
+        public void RunTitleFlow() { if (!Running) StartCoroutine(TitleFlow()); }
+
+        private static string SceneName => UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        private static string AnyFocused()
+        {
+            var doc = FindAnyObjectByType<UnityEngine.UIElements.UIDocument>();
+            return doc != null && doc.rootVisualElement != null ? UI.UiKit.FocusedText(doc.rootVisualElement) : "(no panel)";
+        }
+        private IEnumerator WaitScene(string name, float timeout = 15f)
+        {
+            float t = 0f;
+            while (SceneName != name && t < timeout) { t += Time.unscaledDeltaTime; yield return null; }
+            yield return new WaitForSecondsRealtime(1.2f);
+        }
+
+        /// <summary>
+        /// Title → Continue → workshop → pause → save and quit → title → New Game (cancel) → Continue, all on the pad.
+        /// The career must come back identical after the round trip.
+        /// </summary>
+        private IEnumerator TitleFlow()
+        {
+            Running = true;
+            Phase = "title";
+            UseGamepad = true;
+            var s = S;
+            float cash = s.State.Cash; int specimens = s.State.Specimens.Count;
+            s.FlushSave("test");
+            L($"== TitleFlow cash={cash} specimens={specimens}");
+            CursorController.Reset(); CursorController.EnterMenu();
+            UnityEngine.SceneManagement.SceneManager.LoadScene("Title");
+            yield return WaitScene("Title");
+            L($"title: scene={SceneName} focus={AnyFocused()} session={(GameSession.Instance == null ? "none" : "ALIVE")}");
+            yield return Pad(GamepadButton.South);            // Continue
+            yield return WaitScene("Workshop");
+            s = S;
+            L($"continue: scene={SceneName} cash={s.State.Cash} {Chk(Mathf.Approximately(s.State.Cash, cash))} specimens={s.State.Specimens.Count} {Chk(s.State.Specimens.Count == specimens)} entities={s.Entities.Count} gameplay={GameInput.GameplayEnabled} inMenu={CursorController.InMenu}");
+            yield return new WaitForSecondsRealtime(0.5f);
+            yield return Pad(GamepadButton.Start);
+            var pause = UI.PauseMenu.Instance;
+            L($"pause: open={pause.IsOpen} focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.DpadDown);
+            yield return Pad(GamepadButton.DpadDown);
+            L($"down twice: focus={pause.FocusedText}");
+            yield return Pad(GamepadButton.South);            // Save and quit to title
+            yield return WaitScene("Title");
+            L($"quit to title: scene={SceneName} focus={AnyFocused()} timeScale={Time.timeScale} session={(GameSession.Instance == null ? "none" : "ALIVE")}");
+            yield return Pad(GamepadButton.DpadDown);         // New Game
+            L($"down: focus={AnyFocused()}");
+            yield return Pad(GamepadButton.South);
+            L($"A on New Game: focus={AnyFocused()}");
+            yield return Pad(GamepadButton.East);             // cancel the erase
+            L($"B on confirm: focus={AnyFocused()}");
+            yield return Pad(GamepadButton.DpadUp);
+            yield return Pad(GamepadButton.South);            // Continue again
+            yield return WaitScene("Workshop");
+            s = S;
+            L($"continue again: scene={SceneName} cash={s.State.Cash} {Chk(Mathf.Approximately(s.State.Cash, cash))} specimens={s.State.Specimens.Count} {Chk(s.State.Specimens.Count == specimens)} forSale={s.State.ForSaleCount()} customers={(Retail.RetailShop.Instance != null ? Retail.RetailShop.Instance.Customers.Count : -1)}");
+            L(Core.CollisionAudit.Report("after title round trip"));
+            UseGamepad = false;
+            Phase = "done";
+            Running = false;
+        }
 
         /// <summary>
         /// Every visible setting: change it, confirm the thing that reads it changed, then confirm the file round-trips.
