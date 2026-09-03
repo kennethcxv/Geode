@@ -8,7 +8,7 @@ using GeodeEmpire.Specimens;
 
 namespace GeodeEmpire.Interaction
 {
-    public enum ZoneKind { Cradle, SellTray, Scale, DisplaySlot, Shelf, SaleSlot, Counter, Wash, Saw, SawTray, Lap, Rack }
+    public enum ZoneKind { Cradle, SellTray, Scale, DisplaySlot, Shelf, SaleSlot, Counter, Wash, Saw, SawTray, Lap, Rack, Cracker }
 
     /// <summary>
     /// A physical spot specimens can be placed into (and taken from). Trays hold several, slots hold one.
@@ -62,6 +62,7 @@ namespace GeodeEmpire.Interaction
             ZoneKind.Saw => SpecimenLocation.Saw,
             ZoneKind.Lap => SpecimenLocation.Lap,
             ZoneKind.Rack => SpecimenLocation.Rack,
+            ZoneKind.Cracker => SpecimenLocation.Cracker,
             _ => SpecimenLocation.World,
         };
 

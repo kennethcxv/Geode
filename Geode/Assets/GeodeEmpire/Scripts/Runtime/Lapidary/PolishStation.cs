@@ -28,6 +28,17 @@ namespace GeodeEmpire.Lapidary
 
         [NonSerialized] public float SecondsToPolish = 6.5f;
         [NonSerialized] public float SweepRadius = 0.07f;
+        /// <summary>Firm pressure (sprint held): faster, but soft or fragile stone chips at the edge if it is kept up.</summary>
+        public bool Pressing { get; private set; }
+        public float Heat => _heat;
+        public string LastNote { get; private set; } = "";
+        private float _heat, _pressTotal;
+        private Vector2 _sweepVel;
+
+        /// <summary>How fast a family takes a polish (hard stone is slow) and how high its gloss goes (hard stone shines).</summary>
+        public static float PolishRate(MineralFamily fam) => 1f / Mathf.Lerp(0.75f, 1.4f, Mathf.InverseLerp(0.6f, 1.5f, fam.ShellToughness));
+        public static float GlossCeiling(MineralFamily fam) => Mathf.Lerp(0.78f, 1f, Mathf.InverseLerp(0.6f, 1.5f, fam.ShellToughness));
+        public static bool NeedsCare(MineralFamily fam) => fam.Fragility > 0.6f || fam.ShellToughness < 0.8f;
 
         public bool Polishing { get; private set; }
         public SpecimenEntity Current => Lap != null ? Lap.First : null;
@@ -137,14 +148,32 @@ namespace GeodeEmpire.Lapidary
             return Owned && e != null && player.Held == null && e.Record.Polish < 0.98f;
         }
 
+        private float _noteUntil;
+
         public override string GetPrompt(PlayerInteractor player)
         {
             var e = Current;
             if (e == null) return "";
-            return Polishing ? $"Polishing  {Mathf.RoundToInt(e.Record.Polish * 100f)}%" + (_staticTime > 1.2f ? "  •  keep it moving" : "") : $"Polish the face  (hold)  {Mathf.RoundToInt(e.Record.Polish * 100f)}%";
+            if (Polishing)
+            {
+                string note = Time.time < _noteUntil ? "  •  " + LastNote : _staticTime > 1.2f ? "  •  keep it moving" : Pressing ? "  •  pressing" : "";
+                return $"Polishing  {Mathf.RoundToInt(e.Record.Polish * 100f)}%{note}";
+            }
+            var fam = e.Geology.Family;
+            string care = NeedsCare(fam) ? "  •  light hand" : "";
+            return $"Polish the face  (hold)  {Mathf.RoundToInt(e.Record.Polish * 100f)}%{care}";
         }
 
-        public override string GetHint(PlayerInteractor player) => Polishing ? $"{GameInput.Glyph("Look")} sweep the piece across the pad" : "Hold the piece on the spinning pad and keep it moving; the frost goes, the colour comes up";
+        public override string GetHint(PlayerInteractor player)
+        {
+            var e = Current;
+            var fam = e != null ? e.Geology.Family : null;
+            if (Polishing) return $"{GameInput.Glyph("Look")} sweep the piece across the pad   {GameInput.Glyph("Sprint")} press harder" + (fam != null && NeedsCare(fam) ? " (this stone chips if pushed)" : "");
+            if (fam == null) return "";
+            float rate = PolishRate(fam);
+            string speed = rate < 0.85f ? "hard stone: a slow polish, a deep shine" : rate > 1.15f ? "soft stone: a quick polish" : "takes a polish at an ordinary rate";
+            return $"Hold the piece on the spinning pad and keep it moving; the frost goes, the colour comes up. {char.ToUpper(speed[0]) + speed.Substring(1)}.";
+        }
 
         public override void Interact(PlayerInteractor player)
         {
@@ -180,23 +209,47 @@ namespace GeodeEmpire.Lapidary
                 if (tap) { Lap.Take(e); _player.PickUp(e); }
                 return;
             }
-            // sweep: the look input slides the piece around the pad
+            // sweep: the look input slides the piece around the pad, against the drag of the spinning pad, which
+            // pulls the piece round with it (a lag on the hand, and a tangential tug that grows with the speed)
             Vector2 look = GameInput.Look;
             Vector2 delta = GameInput.UsingGamepad ? look * 0.12f * dt : look * 0.0006f;
-            var next = Vector2.ClampMagnitude(_sweepPos + new Vector2(delta.x, delta.y), SweepRadius);
+            Vector2 tangent = new Vector2(-_sweepPos.y, _sweepPos.x).normalized * (0.018f * _rpm);
+            _sweepVel = Vector2.Lerp(_sweepVel, (delta / Mathf.Max(dt, 1e-4f)) + tangent, 1f - Mathf.Exp(-dt * 9f));
+            var next = Vector2.ClampMagnitude(_sweepPos + _sweepVel * dt, SweepRadius);
             float moved = (next - _sweepPos).magnitude;
             _sweepPos = next;
             _sweep = Mathf.Lerp(_sweep, Mathf.Clamp01(moved / (0.09f * dt + 1e-4f)), dt * 6f);
             _staticTime = moved < 0.0005f ? _staticTime + dt : 0f;
-            // the pad only bites once it is up to speed; moving the piece polishes evenly and faster
-            float rate = _rpm * (0.55f + 0.65f * _sweep) / SecondsToPolish;
+            var fam = e.Geology.Family;
+            Pressing = GameInput.SprintHeld;
+            // the pad only bites once it is up to speed; moving the piece polishes evenly and faster; pressing harder
+            // is faster still, but heats the face, and soft or fragile stone chips at its edge when pushed
+            float rate = _rpm * (0.55f + 0.65f * _sweep) * (Pressing ? 1.6f : 1f) * PolishRate(fam) / SecondsToPolish;
             var rec = e.Record;
             float before = rec.Polish;
             rec.Polish = Mathf.Clamp01(rec.Polish + rate * dt);
             _progressSincePress += rate * dt;
             // a piece held still on one spot for long dwells a little: nothing lost, just slower
             if (_staticTime > 2f) rec.Polish = Mathf.Clamp01(rec.Polish - dt * 0.01f);
+            _heat = Mathf.Clamp01(_heat + dt * (Pressing ? 0.28f : 0.06f) * _rpm - dt * 0.12f * (1f - _rpm * 0.5f));
+            if (Pressing && NeedsCare(fam) && _rpm > 0.5f)
+            {
+                _pressTotal += dt;
+                if (_pressTotal > 1.6f)
+                {
+                    _pressTotal = 0f;
+                    rec.ShellDamage = Mathf.Clamp01(rec.ShellDamage + 0.03f);
+                    rec.DamageEvents++;
+                    WorkshopAudio.Play("crystal_break", e.transform.position, 0.3f, 1.25f);
+                    Haptics.Pulse(0.4f, 0.2f, 0.08f);
+                    LastNote = fam.Fragility > 0.6f ? "the edge chipped: fragile stone wants a light hand" : "the edge chipped: soft stone wants a light hand";
+                    _noteUntil = Time.time + 3f;
+                }
+            }
+            else _pressTotal = Mathf.MoveTowards(_pressTotal, 0f, dt);
+            if (_heat > 0.85f && _rpm > 0.5f) { LastNote = "the face is heating: ease off or keep it moving"; _noteUntil = Time.time + 1f; }
             e.Visual.SetPolish(rec.Polish);
+            e.Visual.SetWet(1f);   // the drip feed keeps the face wet while it is on the pad
             // a slow orbit of the piece on the pad (visual), plus whatever the player sweeps
             _sweepPhase += dt * 2.2f;
             Seat(e);
@@ -207,8 +260,9 @@ namespace GeodeEmpire.Lapidary
             {
                 _contactTimer = 0.12f;
                 Vector3 edge = e.transform.position + transform.right * (e.Radius * 0.8f) + Vector3.down * 0.005f;
-                EffectsFactory.Instance?.Impact(edge, Vector3.up, 0.15f);
+                EffectsFactory.Instance?.Slurry(edge, transform.right, 0.12f + 0.2f * _sweep);
             }
+            Haptics.Pulse(0.04f * _rpm + (Pressing ? 0.06f : 0f), 0f, dt);
             _saveTimer -= dt;
             if (_saveTimer <= 0f) { _saveTimer = 2f; GameSession.Instance?.QueueSave("polish"); }
             if (rec.Polish >= 0.98f && before < 0.98f) Finish(e);

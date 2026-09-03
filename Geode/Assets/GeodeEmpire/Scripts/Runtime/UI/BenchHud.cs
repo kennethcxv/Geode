@@ -11,8 +11,8 @@ namespace GeodeEmpire.UI
     {
         private CrackingBench _bench;
         private VisualElement _root, _reticle, _panel, _forceFill, _progressFill, _progressRow, _result;
-        private Label _title, _cracks, _hint, _resultName, _resultNote, _resultPrompt, _zone, _seat;
-        private string _lastSeat = "";
+        private Label _title, _cracks, _hint, _resultName, _resultNote, _resultPrompt, _zone, _seat, _tool;
+        private string _lastSeat = "", _lastTool = "";
         private int _lastZone = -1;
         private float _flash;
         private int _lastCracks = -1;
@@ -54,6 +54,7 @@ namespace GeodeEmpire.UI
             _progressFill = UiKit.Box(pbg, "meter-fill");
             _cracks = UiKit.Label(_panel, "", "");
             _seat = UiKit.Label(_panel, "", "muted");
+            _tool = UiKit.Label(_panel, "", "muted");
             _hint = UiKit.Label(_panel, "", "bench-hint");
             _hint.style.whiteSpace = WhiteSpace.Normal;
             _panel.style.display = DisplayStyle.None;
@@ -105,6 +106,8 @@ namespace GeodeEmpire.UI
             _flash = 1f;
         }
 
+        private static string ThicknessWord(float t) => t > 1.12f ? "runs thick" : t < 0.9f ? "runs thin" : "is even";
+
         private void OnRevealed(SpecimenEntity e)
         {
             _reticle.style.display = DisplayStyle.None;
@@ -137,7 +140,9 @@ namespace GeodeEmpire.UI
             bool lamp = _bench.HasLamp;
             _progressRow.style.display = lamp ? DisplayStyle.Flex : DisplayStyle.None;
             if (lamp) _progressFill.style.width = Length.Percent(_bench.Model.Progress() * 100f);
-            string seat = "Seat: " + Workshop.Preparation.SeatWord(_bench.Stability) + (_bench.ClampClosed ? "  •  clamped" : _bench.ClampOwned ? "  •  clamp open" : "") + (_bench.Cleanliness < 0.5f ? "  •  seam hidden under clay" : "");
+            string seat = "Seat: " + Workshop.Preparation.SeatWord(_bench.Stability) + (_bench.ClampClosed ? "  •  clamped" : _bench.ClampOwned ? "  •  clamp open" : "") + (_bench.Cleanliness < 0.5f ? "  •  clay hides the seam" : "");
+            string tool = _bench.ToolName + (_bench.HasLamp && _bench.AimValid && _bench.Rock != null ? "  •  shell " + ThicknessWord(_bench.Rock.Geology.SectorThicknessAt(_bench.AimSector)) + " here" : "");
+            if (tool != _lastTool) { _lastTool = tool; _tool.text = tool; }
             if (seat != _lastSeat) { _lastSeat = seat; _seat.text = seat; _seat.style.color = _bench.Stability < StressModel.UnstableBelow ? new Color(1f, 0.55f, 0.35f) : _bench.Stability < 0.8f ? new Color(1f, 0.85f, 0.5f) : new Color(0.75f, 0.75f, 0.72f); }
             int cracks = _bench.Model.CrackedCount();
             if (cracks != _lastCracks)
@@ -147,7 +152,10 @@ namespace GeodeEmpire.UI
             }
             // the hint only changes with state, never per frame: build the string when the state does
             int state;
-            if (_bench.LastResult.Slipped && _flash > 0.5f) state = _bench.LastResult.Wobbled ? 10 : 5;
+            var lr = _bench.LastResult;
+            if (lr.Slipped && _flash > 0.5f) state = lr.Wobbled ? 10 : 5;
+            else if (lr.Damaged && !lr.Opened && _flash > 0.5f) state = 20 + (int)lr.DamageCause;
+            else if (lr.WeakBite && _flash > 0.5f) state = 40 + (int)lr.BiteCause;
             else if (_bench.LastResult.SurfaceChip && _flash > 0.5f) state = 8;
             else if (_bench.LastResult.Lucky && _flash > 0.5f) state = 9;
             else if (_bench.LastResult.Overstrike && _flash > 0.5f) state = 6;
@@ -178,6 +186,22 @@ namespace GeodeEmpire.UI
                     12 => "Caked in clay: the seam is hidden. Wash it first, or work round the middle by eye.",
                     13 => $"It shifted on the cradle and the blow lost energy. Seat it firmer: {GameInput.Glyph("Move")} tilts the rock.",
                     14 => $"Close the bench clamp [{GameInput.Glyph("Interact")}] once the rock sits how you want it: it holds the shell firm.",
+                    // damage, and why
+                    20 + (int)StressModel.Cause.Heavy => "Something broke inside: that blow was too heavy for this shell.",
+                    20 + (int)StressModel.Cause.OffSeam => "Something broke inside: off the seam, the shock goes into the cavity instead of the ring.",
+                    20 + (int)StressModel.Cause.ThinShell => "Something broke inside: the shell is thin here, the chisel went through to the crystals.",
+                    20 + (int)StressModel.Cause.Overstrike => "Something broke inside: hammering an open crack drives the shock into the crystals.",
+                    20 + (int)StressModel.Cause.Wedge => "Something broke inside: the wedge drives too deep into a thin shell.",
+                    20 + (int)StressModel.Cause.Unstable => "Something broke inside: the rock shifted under the blow.",
+                    20 + (int)StressModel.Cause.None => "Something broke inside.",
+                    // a weak bite, and why
+                    40 + (int)StressModel.Cause.OffSeam => $"Weak bite: off the seam. The shell only splits along its ring  •  {GameInput.Glyph("Rotate")} rotate",
+                    40 + (int)StressModel.Cause.Glancing => "Weak bite: the chisel stood at a glancing angle. Set it square to the shell.",
+                    40 + (int)StressModel.Cause.Unstable => $"Weak bite: the rock moved and took the energy. Seat it firmer ({GameInput.Glyph("Move")} tilt).",
+                    40 + (int)StressModel.Cause.Clay => "Weak bite: the clay cushions the blow. A wash helps.",
+                    40 + (int)StressModel.Cause.ThickShell => "Weak bite: the shell runs thick here. Work the thinner side of the ring, or hit firmer.",
+                    40 + (int)StressModel.Cause.Light => "Weak bite: too light for this matrix. Wind up a little more.",
+                    40 + (int)StressModel.Cause.None => "Weak bite: the shell barely took it.",
                     _ => $"Hold {GameInput.Glyph("Strike")} to wind up  •  {GameInput.Glyph("Rotate")} rotate  •  {GameInput.Glyph("Move")} tilt  •  {GameInput.Glyph("Back")} leave",
                 };
             }

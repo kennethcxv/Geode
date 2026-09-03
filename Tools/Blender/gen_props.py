@@ -83,6 +83,23 @@ def hammer(rng):
     return bm, None
 
 
+def lump_hammer(rng):
+    """Four-pound lump hammer for the splitting wedge: a squat double-faced head on a short hickory handle. Same
+    conventions as the cross-peen hammer: handle along +Z from the grip end (origin), head centre at z 0.29,
+    striking faces along +/-X, half-length 0.05."""
+    bm = bmesh.new()
+    handle = hq.lathe([(0.016, 0), (0.018, 0.02), (0.015, 0.1), (0.014, 0.2), (0.016, 0.255), (0.013, 0.29), (0.013, 0.306)], segments=28, close_bottom=True, close_top=True)
+    for v in handle.verts:
+        v.co.y *= 0.72
+    add(bm, handle, mat=0)
+    head = hq.rbox((0.1, 0.038, 0.042), (0, 0, 0.29), bevel=0.006, segments=3)
+    add(bm, head, mat=1)
+    for sx in (-1, 1):
+        add(bm, hq.lathe([(0, 0), (0.017, 0), (0.019, 0.003), (0.019, 0.006), (0, 0.006)], segments=32), T(sx * 0.05, 0, 0.29) @ R(sx * 90, "Y"), mat=1)   # domed faces
+    add(bm, hq.rbox((0.012, 0.02, 0.006), (0, 0, 0.308), bevel=0.001, segments=1), mat=1)   # wedge in the eye
+    return bm, None
+
+
 def chisel(rng, fine=False):
     """Cold chisel: origin at the cutting edge, +Z up the shank. Ground edge widening into a flat blade, octagonal
     shank, mushroomed striking cap. The fine chisel is longer, slimmer and carries a knurled grip band."""
@@ -1231,6 +1248,7 @@ PROPS = [
     ("prop_hammer", hammer, 201),
     ("prop_chisel", lambda r: chisel(r, False), 202),
     ("prop_chisel_fine", lambda r: chisel(r, True), 203),
+    ("prop_lump_hammer", lump_hammer, 257),
     ("prop_loupe", loupe, 232),
     ("prop_shop_case", shop_case, 233),
     ("prop_shop_table", shop_table, 234),
@@ -1285,7 +1303,7 @@ PROPS = [
 
 # props whose origin is not the base centre (tool tips, ceiling attachment, blade axle)
 KEEP_ORIGIN = {"prop_pendant_lamp", "prop_saw_blade", "prop_chisel", "prop_chisel_fine", "prop_wedge", "prop_wall_clock", "prop_saw_wheel", "prop_saw_needle", "prop_saw_valve", "prop_cracker_lever"}
-KEEP_XY = {"prop_hammer", "prop_loupe", "prop_price_card", "prop_tablet", "prop_label_stand", "prop_scale_station", "prop_pegboard", "prop_window_frame", "prop_task_lamp"}
+KEEP_XY = {"prop_hammer", "prop_lump_hammer", "prop_loupe", "prop_price_card", "prop_tablet", "prop_label_stand", "prop_scale_station", "prop_pegboard", "prop_window_frame", "prop_task_lamp"}
 MAX_VERTS = 40000
 
 

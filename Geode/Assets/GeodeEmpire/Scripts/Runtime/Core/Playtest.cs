@@ -462,6 +462,107 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        /// <summary>V5 cracker: buy Stage 2 + the cracker if needed, set a rock on it (tilted first, so it slips), level it, tighten, squeeze until it splits.</summary>
+        public void RunCracker(float tiltDeg = 22f) { if (!Running) StartCoroutine(Cracker(tiltDeg)); }
+
+        private IEnumerator Cracker(float tiltDeg)
+        {
+            Running = true;
+            Phase = "cracker";
+            var st = FindAnyObjectByType<Cracking.CrackerStation>(FindObjectsInactive.Include);   // it lives under the Stage-2 root, inactive until bought
+            if (st == null) { L("no cracker station"); Running = false; yield break; }
+            if (!st.Owned)
+            {
+                if (S.State.Cash < 3000f) S.AddCash(3000f, "test");
+                if (!Economy.UpgradeCatalog.Has(S.State, Economy.UpgradeCatalog.TrimSaw)) S.BuyUpgrade(Economy.UpgradeCatalog.TrimSaw, out _);
+                if (S.State.WorkshopStage < 2) { S.BuyUpgrade(Economy.UpgradeCatalog.Stage2, out string e2); L("stage 2: " + (e2 ?? "ok")); yield return new WaitForSeconds(1f); }
+                S.BuyUpgrade(Economy.UpgradeCatalog.GeodeCracker, out string err);
+                L("bought cracker: " + (err ?? "ok") + " owned=" + st.Owned);
+                yield return new WaitForSeconds(0.5f);
+            }
+            L($"== Cracker tilt={tiltDeg} cash={S.State.Cash}");
+            if (S.Crates.Count == 0) { S.BuyCrate("local", out _); yield return new WaitForSeconds(1.4f); }
+            CrateEntity crate = null;
+            foreach (var c in S.Crates.Values) if (!c.IsOpened || c.RemainingRocks > 0) { crate = c; break; }
+            if (crate != null && !crate.IsOpened)
+            {
+                Vector3 cratePos = crate.transform.position;
+                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
+                yield return Walk(stand, 0.3f);
+                yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
+                yield return new WaitForSeconds(0.9f);
+            }
+            SpecimenEntity rock = null; float best = -1f;
+            foreach (var e in S.Entities.Values)
+            {
+                if (e.IsOpened || e.Record.Location != SpecimenLocation.InCrate || e.Radius > st.MaxRockRadius) continue;
+                float score = e.Geology.CavityFraction + (e.Geology.Cavity == CavityArchetype.Nodule ? -1f : 0f);
+                if (score > best) { best = score; rock = e; }
+            }
+            if (rock == null) { L("no rock"); Running = false; yield break; }
+            yield return FetchRock(rock);
+            if (P.Held == null) { L("could not pick up"); Running = false; yield break; }
+            rock = P.Held;
+            var g = rock.Geology;
+            L($"rock {rock.Id} {g.Mineral} {g.Cavity} size={g.SizeClass} r={rock.Radius:F3} shell={g.ShellThickness:F2} seamQ={g.SeamQuality:F2} tier={g.Tier}");
+            Vector3 bed = ZonePos(ZoneKind.Cracker);
+            yield return RouteTo(new Vector3(bed.x, 0f, bed.z - 1.0f), 0.25f);
+            yield return LookAndInteract(bed, "Set on");
+            yield return new WaitForSeconds(0.8f);
+            L($"cracker active={st.Active} state={st.State} split@={st.SplitPressure:F2}");
+            if (!st.Active) { Running = false; yield break; }
+            Snap("cracker_seated");
+            // 1. deliberately off level: the chain rides up and slips under pressure
+            st.DevSeat(0f, tiltDeg);
+            yield return new WaitForSeconds(0.3f);
+            L($"tilted {st.TiltAngle:F0} deg ({st.AlignmentWord})");
+            Snap("cracker_tilted");
+            yield return Interact();   // lay the chain
+            D.KeyDown(Key.E);
+            float t0 = Time.time;
+            while (st.State == Cracking.CrackerStation.Phase.Tighten && Time.time - t0 < 6f) yield return null;
+            D.KeyUp(); yield return null;
+            L($"tightened: state={st.State} tighten={st.Tighten:F2}");
+            D.SetMouseButton(0, true);
+            t0 = Time.time;
+            while (st.State == Cracking.CrackerStation.Phase.Pressure && Time.time - t0 < 12f) yield return null;
+            D.SetMouseButton(0, false); yield return null;
+            L($"after squeeze (tilted): state={st.State} slips={st.Slips} pressure={st.Pressure:F2} note='{st.Note}'");
+            Snap("cracker_slipped");
+            // 2. level it, tighten again, squeeze until it splits
+            st.DevSeat(0f, 0f);
+            yield return new WaitForSeconds(0.3f);
+            L($"levelled {st.TiltAngle:F0} deg ({st.AlignmentWord}) state={st.State}");
+            if (st.State == Cracking.CrackerStation.Phase.Seat) yield return Interact();
+            D.KeyDown(Key.E);
+            t0 = Time.time;
+            while (st.State == Cracking.CrackerStation.Phase.Tighten && Time.time - t0 < 6f) yield return null;
+            D.KeyUp(); yield return null;
+            D.SetMouseButton(0, true);
+            t0 = Time.time; bool snapped = false;
+            while ((st.State == Cracking.CrackerStation.Phase.Pressure || st.State == Cracking.CrackerStation.Phase.Splitting) && Time.time - t0 < 20f)
+            {
+                if (!snapped && st.Pressure / Mathf.Max(0.01f, st.SplitPressure) > 0.75f) { snapped = true; Snap("cracker_groaning"); }
+                if (st.State == Cracking.CrackerStation.Phase.Splitting) D.SetMouseButton(0, false);
+                yield return null;
+            }
+            D.SetMouseButton(0, false);
+            yield return new WaitForSeconds(0.8f);
+            L($"split: state={st.State} pressure={st.Pressure:F2}/{st.SplitPressure:F2} opened={rock.IsOpened} processedBy={rock.Record.ProcessedBy} damage={rock.Record.DamageFraction:F2} note='{st.ResultNote}'");
+            Snap("cracker_open");
+            {
+                Vector3 c = rock.transform.position;
+                DevDriver.CaptureFrom(c + new Vector3(0.1f, 0.32f, -0.34f), c + Vector3.up * 0.02f, 34f, SnapDir + "/cracker_close.png");
+            }
+            L(Core.CollisionAudit.Report("cracker open"));
+            yield return Interact();
+            yield return new WaitForSeconds(0.4f);
+            L($"took: held={(P.Held != null ? P.Held.Record.DisplayName : "none")} active={st.Active}");
+            L(RunSaveReloadCheck());
+            Phase = "done";
+            Running = false;
+        }
+
         /// <summary>
         /// V5 prep: the dirtiest rock in the crate goes to the bench caked (seam hidden, strikes land poorly), is tilted on
         /// the cradle (seat quality read from the hull), washed, cracked clean, then rinsed in the tub for the full colour.

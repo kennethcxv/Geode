@@ -34,6 +34,7 @@ namespace GeodeEmpire.Economy
         public const string ThinBlade = "thin_blade";
         public const string CoolantPump = "coolant_pump";
         public const string SawClamp = "saw_clamp";
+        public const string GeodeCracker = "geode_cracker";
         public const string PolishLap = "polish_lap";
         public const string Stage2 = "stage2_workshop";
 
@@ -81,6 +82,9 @@ namespace GeodeEmpire.Economy
             new UpgradeDefinition { Id = SawClamp, Name = "Heavy Vise Jaws", Price = 180f, Order = 8, Requires = TrimSaw,
                 Description = "Deeper, stiffer jaws with fresh rubber pads for the carriage vise.",
                 Effect = "Tall and awkward rocks stay put under a hard feed instead of shifting and stepping the face." },
+            new UpgradeDefinition { Id = GeodeCracker, Name = "Geode Cracker", Price = 380f, Order = 10, Requires = Stage2,
+                Description = "A chain splitter on a stand: a hardened chain round the seam, a ratchet lever to squeeze it.",
+                Effect = "A third way to open rock: slow to set but a level, well-seated geode splits clean all the way round with far less crystal damage than hammering. Takes nothing over 11 cm." },
             new UpgradeDefinition { Id = PolishLap, Name = "Flat Lap", Price = 420f, Order = 10, Requires = Stage2,
                 Description = "A 12-inch flat lap with a diamond pad and a drip feed.",
                 Effect = "Polish sawn faces: banded slabs and slices come up glossy and saturated, worth far more. Natural cavities stay as they are." },

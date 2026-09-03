@@ -52,8 +52,20 @@ namespace GeodeEmpire.Cracking
             public float AngleFactor;    // 1 = square to the surface, 0 = glancing
         }
 
+        public enum Cause { None, OffSeam, Glancing, ThickShell, Clay, Light, Unstable, Heavy, ThinShell, Overstrike, Wedge }
+
         public struct StrikeResult
         {
+            /// <summary>The blow put far less into the shell than a square, on-seam blow of that force would have.</summary>
+            public bool WeakBite;
+            /// <summary>Nothing moved: no crack, next to no stress.</summary>
+            public bool NoProgress;
+            /// <summary>Why a weak bite / no progress happened (the dominant input fault).</summary>
+            public Cause BiteCause;
+            /// <summary>Why crystals were damaged (the dominant factor).</summary>
+            public Cause DamageCause;
+            /// <summary>Damage that stays hidden until the reveal (no audible crystal break).</summary>
+            public bool InternalDamage;
             public int Sector;
             public float StressAdded;
             public float Placement;      // 0..1 seam accuracy
@@ -168,6 +180,9 @@ namespace GeodeEmpire.Cracking
             sizeMult *= Mathf.Lerp(0.6f, 1f, stability);
             float baseStress = 1.9f * force * (0.4f + 0.6f * angle) * placement * seam * thicknessMult * toolMult * clampMult * sizeMult / Mathf.Max(0.5f, Toughness);
             baseStress *= Mathf.Lerp(1f, 0.8f, Mathf.Clamp01(Clay));   // a caked shell takes the blow softly
+            // what the same force would have done square on the seam, on an average sector of this shell: the yardstick
+            // for telling the player a blow was weak, and why
+            float idealStress = 1.9f * force * seam * Mathf.Lerp(1.35f, 0.75f, Mathf.InverseLerp(0.08f, 0.5f, ShellThickness)) * toolMult * clampMult * (1f / SizeEffort) / Mathf.Max(0.5f, Toughness);
 
             // geology answers the blow: the same strike bites a little differently every time
             float bite = rng.Range(0.78f, 1.22f);
@@ -209,6 +224,19 @@ namespace GeodeEmpire.Cracking
             }
             r.NewCrack = !wasCracked && Stress[sector] >= 1f;
             r.Propagated = r.NewCrack && neighborCracked;
+            // a weak bite, and the reason: the dominant fault in the inputs, so the player learns rather than guesses
+            if (!wasCracked && !r.SurfaceChip && !r.NewCrack && baseStress < idealStress * 0.35f)
+            {
+                r.WeakBite = true;
+                r.NoProgress = baseStress < 0.08f;
+                if (placement < 0.6f) r.BiteCause = Cause.OffSeam;
+                else if (angle < 0.6f) r.BiteCause = Cause.Glancing;
+                else if (r.Wobbled) r.BiteCause = Cause.Unstable;
+                else if (Clay > 0.5f) r.BiteCause = Cause.Clay;
+                else if (r.SectorThick > 1.12f) r.BiteCause = Cause.ThickShell;
+                else if (force < 0.3f) r.BiteCause = Cause.Light;
+                else r.BiteCause = Cause.None;
+            }
             int cracks = CrackedCount();
             r.CracksTotal = cracks;
 
@@ -225,6 +253,17 @@ namespace GeodeEmpire.Cracking
             r.DamageChance = Mathf.Clamp01(chance);
             r.Damaged = rng.Chance(r.DamageChance);
             r.DamageSeverity = r.Damaged ? Mathf.Clamp01(force * rng.Range(0.55f, 1.05f) * (r.Overstrike ? 1.2f : 1f)) : 0f;
+            if (r.Damaged)
+            {
+                // the dominant factor behind the damage, for the bench's hint
+                if (r.Overstrike) r.DamageCause = Cause.Overstrike;
+                else if (Wedge && big && thin > 0.5f) r.DamageCause = Cause.Wedge;
+                else if (r.Wobbled) r.DamageCause = Cause.Unstable;
+                else if (placement < 0.6f) r.DamageCause = Cause.OffSeam;
+                else if (thin > 0.6f) r.DamageCause = Cause.ThinShell;
+                else r.DamageCause = Cause.Heavy;
+                r.InternalDamage = r.DamageSeverity < 0.45f;
+            }
 
             // opening: enough of the ring is cracked, or the shell is simply overwhelmed
             bool ringOpen = cracks >= Mathf.CeilToInt(Sectors * OpenFraction) && (r.NewCrack || wasCracked || cracks >= Sectors - 1);

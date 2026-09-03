@@ -709,6 +709,13 @@ namespace GeodeEmpire.EditorTools
             chisel.transform.localRotation = Quaternion.Euler(90f, 30f, 0f);
             var hammer = Prop("prop_hammer", bench, new Vector3(-0.55f, 0.935f, 0.05f), 0f, "M_Hickory,M_Steel", collider: false);
             hammer.transform.localRotation = Quaternion.Euler(0f, -20f, 90f);
+            // the other tools the bench can put in the hands (shown by the bench when owned and fitting; parked out of sight otherwise)
+            var chiselFine = Prop("prop_chisel_fine", bench, new Vector3(-0.35f, 0.935f, -0.15f), 0f, "M_Steel", collider: false);
+            chiselFine.transform.localRotation = Quaternion.Euler(90f, 30f, 0f); chiselFine.SetActive(false);
+            var wedgeTool = Prop("prop_wedge", bench, new Vector3(-0.35f, 0.935f, -0.15f), 0f, "M_Steel", collider: false);
+            wedgeTool.transform.localRotation = Quaternion.Euler(90f, 30f, 0f); wedgeTool.SetActive(false);
+            var lumpHammer = Prop("prop_lump_hammer", bench, new Vector3(-0.55f, 0.935f, 0.05f), 0f, "M_Hickory,M_Steel", collider: false);
+            lumpHammer.transform.localRotation = Quaternion.Euler(0f, -20f, 90f); lumpHammer.SetActive(false);
             var lampProp = Prop("prop_task_lamp", bench, new Vector3(0.74f, 0.9f, 0.24f), 225f, "M_MetalDark,M_Enamel,M_Bulb,M_PlasticDark", collider: true);   // base on the bench top (x < 0.9)
             var taskLight = MakeLight(bench, "TaskLight", new Vector3(0.62f, 1.32f, 0.05f), new Vector3(58f, -110f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 0.35f, 2.6f, 62f, true);   // neutral daylight lamp at 0.5 m: crystal colour stays honest
             Prop("prop_pegboard", bench, new Vector3(0f, 1.35f, RoomD / 2f - 2.15f - 0.032f), 0f, "M_Wood,M_PlasticDark,M_Metal", collider: false);   // battens on the wall face
@@ -727,6 +734,7 @@ namespace GeodeEmpire.EditorTools
             cb.HammerLen = 0.312f;
             cb.HammerHeadHalf = 0.066f;
             cb.HammerVisual = hammer.transform;
+            cb.ChiselFineVisual = chiselFine.transform; cb.WedgeVisual = wedgeTool.transform; cb.LumpHammerVisual = lumpHammer.transform;
             cb.TaskLight = taskLight;
 
             // ---- Wash tub (west of the bench): scrub the quarry clay off before deciding how to open a rock ----
@@ -744,7 +752,7 @@ namespace GeodeEmpire.EditorTools
             ws.Tub = tubZone;
             ws.Brush = brush.transform;
             ws.SetHighlightRenderers(tubProp.GetComponentsInChildren<Renderer>());
-            Prop("prop_bucket", parent, new Vector3(-2.05f, 0f, 2.3f), 0f, "M_PlasticBlue,M_Metal");
+            Prop("prop_bucket", parent, new Vector3(-1.95f, 0f, 2.42f), 0f, "M_PlasticBlue,M_Metal");
 
             // ---- Appraisal bench (west wall) --------------------------------------------------
             var appraisal = new GameObject("AppraisalStation").transform;
@@ -945,6 +953,27 @@ namespace GeodeEmpire.EditorTools
                 var ra = new GameObject("Anchor").transform; ra.SetParent(rz.transform, false); rz.Anchor = ra;
             }
             MakeLight(s2, "RackLight", new Vector3(-2.95f, 2.3f, 2.05f), Vector3.zero, LightType.Point, new Color(1f, 0.95f, 0.86f), 1.3f, 2.4f, 0f, false);
+
+            // geode cracker: the chain splitter on its stand between the tub and the rack, operator facing the north wall
+            var crackerRoot = new GameObject("CrackerStation").transform;
+            crackerRoot.SetParent(s2, false);
+            crackerRoot.localPosition = new Vector3(-2.45f, 0f, 2.15f);
+            var crackerMachine = new GameObject("Machine").transform;
+            crackerMachine.SetParent(crackerRoot, false);
+            var crackerProp = Prop("prop_cracker", crackerMachine, Vector3.zero, 0f, "M_MachinePaint,M_Steel,M_Rubber,M_Dial", collider: true);
+            var crackerLever = Prop("prop_cracker_lever", crackerMachine, new Vector3(0.08f, 1.33f, 0.12f), 0f, "M_MachinePaint,M_Steel,M_Rubber", collider: false);
+            var crackerNeedle = Prop("prop_saw_needle", crackerMachine, new Vector3(-0.045f, 1.4f, 0.052f), 0f, "M_Red", collider: false);
+            var crackerAnchor = new GameObject("Anchor").transform; crackerAnchor.SetParent(crackerMachine, false); crackerAnchor.localPosition = new Vector3(0f, 1.36f, 0.04f);
+            var crackerCam = new GameObject("CrackerCamera").transform; crackerCam.SetParent(crackerRoot, false);
+            var bedZone = Support(Zone(crackerRoot, "CrackerBed", new Vector3(0f, 0.94f, 0f), ZoneKind.Cracker, "the cracker", 1, false, true, new Vector3(0.36f, 0.3f, 0.36f)), 0.16f, 0.16f);
+            bedZone.SetHighlightRenderers(crackerProp.GetComponentsInChildren<Renderer>());
+            var bedAnchor = new GameObject("Anchor").transform; bedAnchor.SetParent(bedZone.transform, false); bedZone.Anchor = bedAnchor;
+            var cracker = crackerRoot.gameObject.AddComponent<Cracking.CrackerStation>();
+            cracker.Bed = bedZone; cracker.BedCenter = bedAnchor; cracker.Lever = crackerLever.transform; cracker.GaugeNeedle = crackerNeedle.transform;
+            cracker.Anchor = crackerAnchor; cracker.CameraAnchor = crackerCam; cracker.Machine = crackerMachine.gameObject;
+            cracker.ChainMaterial = WorkshopMaterials.Get("M_Steel");
+            cracker.SetHighlightRenderers(crackerProp.GetComponentsInChildren<Renderer>());
+            MakeLight(s2, "CrackerLight", new Vector3(-2.45f, 2.6f, 1.75f), new Vector3(62f, 0f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 1.1f, 2.6f, 55f, false);
 
             // trophy wall: two lit boards over the appraisal bench, eight more display slots run by the cabinet
             var trophy = new GameObject("TrophyWall").transform;
@@ -1204,6 +1233,7 @@ namespace GeodeEmpire.EditorTools
             hud.AddComponent<HudController>();
             hud.AddComponent<BenchHud>();
             hud.AddComponent<SawHud>();
+            hud.AddComponent<CrackerHud>();
             hud.AddComponent<TabletUI>();
             hud.AddComponent<AppraisalUI>();
             hud.AddComponent<PauseMenu>();
