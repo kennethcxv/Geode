@@ -336,6 +336,7 @@ namespace GeodeEmpire.UI
                 if (found)
                 {
                     UiKit.Label(card, fam.Description, "item-desc");
+                    if (!string.IsNullOrEmpty(fam.FieldNote)) UiKit.Label(card, fam.FieldNote, "item-desc", "muted");
                     UiKit.Label(card, $"Found {entry.Found}  •  Best {UiKit.Money(entry.BestValue)}  •  Largest {entry.LargestMassKg:F1} kg", "item-sub");
                     if (entry.TraitsSeen.Count > 0)
                     {

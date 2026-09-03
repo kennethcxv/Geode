@@ -7,6 +7,8 @@ namespace GeodeEmpire.Specimens
     {
         ClearQuartz = 0, Amethyst = 1, Citrine = 2, SmokyQuartz = 3, Agate = 4,
         Calcite = 5, Celestite = 6, Fluorite = 7, Pyrite = 8, Aragonite = 9,
+        // V4 families: each a different habit and material response, not a recolour
+        Malachite = 10, Selenite = 11, Wulfenite = 12, Garnet = 13, Hematite = 14, Tourmaline = 15,
     }
 
     /// <summary>Indices match the FBX archetypes exported by Tools/Blender/gen_crystals.py.</summary>
@@ -63,6 +65,16 @@ namespace GeodeEmpire.Specimens
         public int BaseFrequency;
         public bool DruzyCapable;
         public float CenterpieceChance;
+        /// <summary>Cavity archetype weights (Hollow, ThickWall, Cathedral, Pocket, DoubleChamber, Nodule); null = the default mix.</summary>
+        public float[] CavityWeights;
+        /// <summary>Preferred matrix tone index (-1 = any): dark host rock for iron and copper minerals, tan for desert vugs.</summary>
+        public int MatrixToneBias = -1;
+        /// <summary>Extra iron staining on the outside (0..1): a real exterior clue for the iron-rich families.</summary>
+        public float StainBias;
+        /// <summary>How the family's own colour shows through the shell as an exterior hint (multiplier).</summary>
+        public float HintBias = 1f;
+        /// <summary>Shown in the encyclopedia and on source cards: where it comes from and what to look for.</summary>
+        public string FieldNote;
     }
 
     public static class MineralCatalog
@@ -298,6 +310,151 @@ namespace GeodeEmpire.Specimens
                     ValueMult = 1.25f, Fragility = 0.9f, ShellToughness = 0.85f,
                     SecondaryOptions = new[] { MineralId.Calcite }, SecondaryChance = 0.1f,
                     BaseFrequency = 4, DruzyCapable = false, CenterpieceChance = 0.35f,
+                },
+                // ---- V4 families ----------------------------------------------------------------------
+                new MineralFamily
+                {
+                    Id = MineralId.Malachite, Name = "Malachite",
+                    Description = "Botryoidal green crusts with concentric banding. The cut and polished face is the prize: bullseye rings in two greens.",
+                    FieldNote = "Copper country. Dark, heavy, green-stained rough; almost always solid, so it wants the saw.",
+                    Archetypes = new[] { CrystalArchetype.Botryoidal, CrystalArchetype.DruzyTile },
+                    ArchetypeWeights = new[] { 0.85f, 0.15f },
+                    Placement = PlacementStyle.Banded, ScaleMin = 0.1f, ScaleMax = 0.32f, DensityMin = 0.55f, DensityMax = 0.95f,
+                    TiltDeg = 8f, ElongationMin = 0.9f, ElongationMax = 1.1f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Deep Green", C(0.18f, 0.52f, 0.32f), C(0.1f, 0.4f, 0.24f), C(0.05f, 0.26f, 0.15f), C(0.03f, 0.18f, 0.1f), C(0.08f, 0.32f, 0.18f),
+                            C(0.3f, 0.6f, 0.4f), C(0.05f, 0.22f, 0.12f)),
+                        new MineralPalette("Bright Green", C(0.3f, 0.7f, 0.42f), C(0.2f, 0.58f, 0.34f), C(0.1f, 0.4f, 0.22f), C(0.06f, 0.28f, 0.15f), C(0.12f, 0.45f, 0.25f),
+                            C(0.4f, 0.7f, 0.48f), C(0.08f, 0.28f, 0.15f)),
+                    },
+                    PaletteWeights = new[] { 0.6f, 0.4f },
+                    Translucency = 0.12f, Metallic = 0f, Smoothness = 0.72f, Sparkle = 0.15f, Rim = 0.3f, ZoningBase = 0.05f, Inclusions = 0.15f,
+                    CavityWall = C(0.2f, 0.42f, 0.28f), BandStrength = 1.0f, BandFrequency = 22f,
+                    ValueMult = 1.7f, Fragility = 0.5f, ShellToughness = 0.8f,
+                    SecondaryOptions = new[] { MineralId.Calcite, MineralId.ClearQuartz }, SecondaryChance = 0.1f,
+                    BaseFrequency = 5, DruzyCapable = true, CenterpieceChance = 0.05f,
+                    CavityWeights = new[] { 0.05f, 0.3f, 0.02f, 0.08f, 0.02f, 0.53f },
+                    MatrixToneBias = 3, StainBias = 0.2f, HintBias = 1.6f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Selenite, Name = "Selenite",
+                    Description = "Glassy gypsum blades and swallowtail twins. Water-clear to amber, satin-soft, and the most fragile thing on the bench.",
+                    FieldNote = "Clay beds and gypsum caves. Light for its size, often a pale, powdery shell; a fingernail scratches it.",
+                    Archetypes = new[] { CrystalArchetype.Fishtail, CrystalArchetype.Blade },
+                    ArchetypeWeights = new[] { 0.55f, 0.45f },
+                    Placement = PlacementStyle.Sprays, ScaleMin = 0.4f, ScaleMax = 1.0f, DensityMin = 0.2f, DensityMax = 0.6f,
+                    TiltDeg = 28f, ElongationMin = 1.0f, ElongationMax = 1.6f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Water Clear", C(0.96f, 0.96f, 0.93f), C(0.9f, 0.9f, 0.86f), C(0.78f, 0.78f, 0.72f), C(0.66f, 0.66f, 0.6f), C(0.95f, 0.95f, 0.92f)),
+                        new MineralPalette("Amber", C(0.95f, 0.82f, 0.55f), C(0.9f, 0.72f, 0.42f), C(0.78f, 0.55f, 0.25f), C(0.62f, 0.42f, 0.18f), C(0.88f, 0.7f, 0.4f)),
+                    },
+                    PaletteWeights = new[] { 0.65f, 0.35f },
+                    Translucency = 0.9f, Metallic = 0f, Smoothness = 0.82f, Sparkle = 0.35f, Rim = 0.75f, ZoningBase = 0.1f, Inclusions = 0.3f,
+                    CavityWall = C(0.72f, 0.66f, 0.56f), BandStrength = 0.2f, BandFrequency = 7f,
+                    ValueMult = 1.2f, Fragility = 0.95f, ShellToughness = 0.7f,
+                    SecondaryOptions = new[] { MineralId.Calcite }, SecondaryChance = 0.12f,
+                    BaseFrequency = 5, DruzyCapable = false, CenterpieceChance = 0.45f,
+                    CavityWeights = new[] { 0.45f, 0.2f, 0.15f, 0.12f, 0.08f, 0f },
+                    MatrixToneBias = 2, StainBias = 0f, HintBias = 0.7f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Wulfenite, Name = "Wulfenite",
+                    Description = "Square, paper-thin orange plates with an adamantine flash, scattered on tan matrix. Rare, and prized when the colour is red.",
+                    FieldNote = "Desert lead vugs. Small tan rough with a pocket; look for an orange fleck on the outside.",
+                    Archetypes = new[] { CrystalArchetype.TabularPlate },
+                    ArchetypeWeights = new[] { 1f },
+                    Placement = PlacementStyle.Scattered, ScaleMin = 0.22f, ScaleMax = 0.62f, DensityMin = 0.15f, DensityMax = 0.5f,
+                    TiltDeg = 45f, ElongationMin = 0.9f, ElongationMax = 1.15f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Orange", C(0.98f, 0.58f, 0.16f), C(0.94f, 0.48f, 0.1f), C(0.78f, 0.34f, 0.05f), C(0.6f, 0.24f, 0.03f), C(0.9f, 0.4f, 0.06f)),
+                        new MineralPalette("Red-Orange", C(0.92f, 0.36f, 0.1f), C(0.85f, 0.28f, 0.06f), C(0.65f, 0.16f, 0.03f), C(0.5f, 0.1f, 0.02f), C(0.8f, 0.2f, 0.04f)),
+                        new MineralPalette("Butterscotch", C(0.96f, 0.74f, 0.34f), C(0.92f, 0.64f, 0.24f), C(0.75f, 0.48f, 0.12f), C(0.58f, 0.35f, 0.08f), C(0.86f, 0.55f, 0.15f)),
+                    },
+                    PaletteWeights = new[] { 0.5f, 0.2f, 0.3f },
+                    Translucency = 0.55f, Metallic = 0f, Smoothness = 0.96f, Sparkle = 0.95f, Rim = 0.8f, ZoningBase = 0.15f, Inclusions = 0.1f,
+                    CavityWall = C(0.62f, 0.52f, 0.38f), BandStrength = 0.15f, BandFrequency = 8f,
+                    ValueMult = 2.2f, Fragility = 0.85f, ShellToughness = 0.9f,
+                    SecondaryOptions = new[] { MineralId.Calcite }, SecondaryChance = 0.18f,
+                    BaseFrequency = 3, DruzyCapable = false, CenterpieceChance = 0.3f,
+                    CavityWeights = new[] { 0.2f, 0.35f, 0.03f, 0.37f, 0.05f, 0f },
+                    MatrixToneBias = 2, StainBias = 0.1f, HintBias = 1.4f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Garnet, Name = "Garnet",
+                    Description = "Dodecahedra of deep red set into dark host rock. Tough, glassy, and read as jewels at any distance.",
+                    FieldNote = "Schist and skarn: dark, gritty, heavy rough. Broken corners sometimes show a red glint.",
+                    Archetypes = new[] { CrystalArchetype.Dodecahedron },
+                    ArchetypeWeights = new[] { 1f },
+                    Placement = PlacementStyle.Embedded, ScaleMin = 0.22f, ScaleMax = 0.6f, DensityMin = 0.2f, DensityMax = 0.6f,
+                    TiltDeg = 60f, ElongationMin = 0.95f, ElongationMax = 1.05f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Almandine", C(0.55f, 0.1f, 0.14f), C(0.42f, 0.06f, 0.1f), C(0.25f, 0.03f, 0.06f), C(0.15f, 0.02f, 0.04f), C(0.3f, 0.04f, 0.08f)),
+                        new MineralPalette("Spessartine", C(0.85f, 0.36f, 0.12f), C(0.72f, 0.26f, 0.08f), C(0.5f, 0.14f, 0.04f), C(0.35f, 0.08f, 0.02f), C(0.6f, 0.18f, 0.05f)),
+                    },
+                    PaletteWeights = new[] { 0.7f, 0.3f },
+                    Translucency = 0.3f, Metallic = 0f, Smoothness = 0.92f, Sparkle = 0.55f, Rim = 0.55f, ZoningBase = 0.1f, Inclusions = 0.2f,
+                    CavityWall = C(0.26f, 0.24f, 0.23f), BandStrength = 0.1f, BandFrequency = 8f,
+                    ValueMult = 1.4f, Fragility = 0.3f, ShellToughness = 1.2f,
+                    SecondaryOptions = new[] { MineralId.ClearQuartz, MineralId.Pyrite }, SecondaryChance = 0.2f,
+                    BaseFrequency = 5, DruzyCapable = false, CenterpieceChance = 0.4f,
+                    CavityWeights = new[] { 0.15f, 0.4f, 0.03f, 0.35f, 0.07f, 0f },
+                    MatrixToneBias = 3, StainBias = 0.15f, HintBias = 1.2f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Hematite, Name = "Hematite",
+                    Description = "Kidney ore: botryoidal black-grey with a steel sheen, or bright specular plates. Heavy as lead and reads metallic, never glassy.",
+                    FieldNote = "Iron country. Rust-stained, very heavy for its size; a red streak in the pits gives it away.",
+                    Archetypes = new[] { CrystalArchetype.Botryoidal, CrystalArchetype.DruzyTile },
+                    ArchetypeWeights = new[] { 0.8f, 0.2f },
+                    Placement = PlacementStyle.Carpet, ScaleMin = 0.1f, ScaleMax = 0.3f, DensityMin = 0.6f, DensityMax = 1.0f,
+                    TiltDeg = 8f, ElongationMin = 0.9f, ElongationMax = 1.1f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Kidney Ore", C(0.3f, 0.28f, 0.3f), C(0.22f, 0.2f, 0.22f), C(0.12f, 0.1f, 0.12f), C(0.06f, 0.05f, 0.06f), C(0.16f, 0.13f, 0.15f),
+                            C(0.42f, 0.2f, 0.14f), C(0.18f, 0.09f, 0.07f)),
+                        new MineralPalette("Specular", C(0.52f, 0.52f, 0.56f), C(0.4f, 0.4f, 0.45f), C(0.22f, 0.22f, 0.26f), C(0.12f, 0.12f, 0.15f), C(0.3f, 0.3f, 0.34f),
+                            C(0.4f, 0.2f, 0.15f), C(0.16f, 0.09f, 0.08f)),
+                    },
+                    PaletteWeights = new[] { 0.65f, 0.35f },
+                    Translucency = 0f, Metallic = 0.85f, Smoothness = 0.8f, Sparkle = 0.4f, Rim = 0.25f, ZoningBase = 0f, Inclusions = 0.05f,
+                    CavityWall = C(0.28f, 0.2f, 0.18f), BandStrength = 0.35f, BandFrequency = 14f,
+                    ValueMult = 1.3f, Fragility = 0.25f, ShellToughness = 1.35f,
+                    SecondaryOptions = new[] { MineralId.ClearQuartz, MineralId.Calcite }, SecondaryChance = 0.22f,
+                    BaseFrequency = 4, DruzyCapable = true, CenterpieceChance = 0.05f,
+                    CavityWeights = new[] { 0.35f, 0.35f, 0.05f, 0.1f, 0.05f, 0.1f },
+                    MatrixToneBias = 3, StainBias = 0.7f, HintBias = 0.8f,
+                },
+                new MineralFamily
+                {
+                    Id = MineralId.Tourmaline, Name = "Tourmaline",
+                    Description = "Striated three-sided prisms: jet-black schorl mostly, now and then green or pink. Sits in pale pegmatite and looks like nothing else.",
+                    FieldNote = "Pegmatite: pale, coarse, feldspar-flecked rough with a black needle showing at a corner if you are lucky.",
+                    Archetypes = new[] { CrystalArchetype.TrigonalPrism },
+                    ArchetypeWeights = new[] { 1f },
+                    Placement = PlacementStyle.Scattered, ScaleMin = 0.35f, ScaleMax = 0.95f, DensityMin = 0.15f, DensityMax = 0.5f,
+                    TiltDeg = 35f, ElongationMin = 1.0f, ElongationMax = 1.4f,
+                    Palettes = new[]
+                    {
+                        new MineralPalette("Schorl", C(0.12f, 0.11f, 0.12f), C(0.08f, 0.08f, 0.09f), C(0.04f, 0.04f, 0.05f), C(0.02f, 0.02f, 0.03f), C(0.06f, 0.06f, 0.07f)),
+                        new MineralPalette("Verdelite", C(0.2f, 0.55f, 0.35f), C(0.14f, 0.45f, 0.28f), C(0.06f, 0.3f, 0.16f), C(0.03f, 0.2f, 0.1f), C(0.08f, 0.35f, 0.18f)),
+                        new MineralPalette("Rubellite", C(0.85f, 0.3f, 0.5f), C(0.75f, 0.2f, 0.4f), C(0.55f, 0.1f, 0.28f), C(0.4f, 0.05f, 0.2f), C(0.65f, 0.12f, 0.32f)),
+                    },
+                    PaletteWeights = new[] { 0.6f, 0.22f, 0.18f },
+                    Translucency = 0.35f, Metallic = 0f, Smoothness = 0.9f, Sparkle = 0.4f, Rim = 0.6f, ZoningBase = 0.35f, Inclusions = 0.15f,
+                    CavityWall = C(0.8f, 0.76f, 0.7f), BandStrength = 0.1f, BandFrequency = 8f,
+                    ValueMult = 1.9f, Fragility = 0.6f, ShellToughness = 1.1f,
+                    SecondaryOptions = new[] { MineralId.ClearQuartz }, SecondaryChance = 0.3f,
+                    BaseFrequency = 4, DruzyCapable = false, CenterpieceChance = 0.5f,
+                    CavityWeights = new[] { 0.3f, 0.3f, 0.05f, 0.3f, 0.05f, 0f },
+                    MatrixToneBias = 2, StainBias = 0f, HintBias = 1.1f,
                 },
             };
             _all = list.ToArray();

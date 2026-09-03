@@ -396,7 +396,10 @@ namespace GeodeEmpire.Specimens
             _mpb.SetFloat(WeatheringId, g.Weathering);
             _mpb.SetFloat(CavitySmoothId, fam.Id == MineralId.Agate ? 0.65f : 0.35f);
             _mpb.SetFloat(CavityDruzyId, CavityDruzyAmount(g));
-            _mpb.SetColor(CavityCrystalColorId, ApplySaturation(Color.Lerp(pal.SurfaceA, pal.SurfaceB, 0.5f), g.Saturation));
+            var druzyCol = Color.Lerp(pal.SurfaceA, pal.SurfaceB, 0.5f);
+            // metallic ores: the druzy floor is dark steel, not chrome
+            if (fam.Metallic > 0.5f) druzyCol = Color.Lerp(druzyCol, pal.DeepA, 0.65f);
+            _mpb.SetColor(CavityCrystalColorId, ApplySaturation(druzyCol, g.Saturation));
             _mpb.SetFloat(HighlightId, _highlight);
             _mpb.SetFloatArray(SectorCrackId, _sectorCrack);
             _mpb.SetVectorArray(ImpactsId, _impacts);

@@ -173,8 +173,10 @@ namespace GeodeEmpire.Specimens
                 _ => rng.Range(0.09f, 0.15f),
             };
             g.Weathering = rng.Range(0.1f, 0.9f);
-            g.ExteriorHint = rng.Chance(0.35f) ? rng.Range(0.3f, 1f) : rng.Range(0f, 0.15f);
+            g.ExteriorHint = Mathf.Clamp01((rng.Chance(0.35f) ? rng.Range(0.3f, 1f) : rng.Range(0f, 0.15f)) * fam.HintBias);
             g.ExteriorTone = rng.Range(0, 4);
+            // iron and copper minerals live in dark host rock, desert vugs in tan: the matrix is a clue in itself
+            if (fam.MatrixToneBias >= 0 && rng.Chance(0.7f)) g.ExteriorTone = fam.MatrixToneBias;
             g.RimRoughness = rng.Range(0.02f, 0.06f);
             g.BandOffset = rng.NextFloat();
             // exterior texture family: the family's habit and the weathering decide it
@@ -184,6 +186,7 @@ namespace GeodeEmpire.Specimens
             g.Texture = (ExteriorTexture)rng.PickWeighted(texW);
             g.Dirt = Mathf.Clamp01(rng.Range(0.05f, 0.95f) * Mathf.Lerp(0.6f, 1.1f, g.Weathering));
             g.Stain = rng.Chance(0.4f + 0.3f * g.Weathering) ? rng.Range(0.25f, 1f) : rng.Range(0f, 0.12f);
+            g.Stain = Mathf.Clamp01(Mathf.Max(g.Stain, fam.StainBias * rng.Range(0.6f, 1.2f)));
             g.SeamQuality = Mathf.Clamp01(rng.Range(0.25f, 1f) * 0.7f + (g.Exterior == ExteriorArchetype.Angular ? 0.05f : 0.3f) * rng.NextFloat());
             g.SectorThickness = new float[SeamSectors];
             {
@@ -201,7 +204,9 @@ namespace GeodeEmpire.Specimens
             g.ChipLatitude = rng.Range(-0.55f, 0.55f);
 
             // --- cavity -------------------------------------------------------------------------
-            if (fam.Id == MineralId.Agate)
+            if (fam.CavityWeights != null)
+                g.Cavity = (CavityArchetype)rng.PickWeighted(fam.CavityWeights);
+            else if (fam.Id == MineralId.Agate)
                 g.Cavity = (CavityArchetype)rng.PickWeighted(new[] { 0.12f, 0.28f, 0.02f, 0.05f, 0.03f, 0.5f });
             else
                 g.Cavity = (CavityArchetype)rng.PickWeighted(new[] { 0.42f, 0.28f, 0.06f + 0.1f * q, 0.14f, 0.07f, 0.03f });
@@ -267,7 +272,7 @@ namespace GeodeEmpire.Specimens
             if (!nodule) pool.Add(RareTrait.CrystalOnCrystal);
             if (quartzFamily) pool.Add(RareTrait.Phantom);
             if (!nodule) pool.Add(RareTrait.PerfectSymmetry);
-            if (g.HasSecondary && g.Secondary == MineralId.Pyrite || fam.Id == MineralId.Pyrite) pool.Add(RareTrait.MetallicContrast);
+            if (g.HasSecondary && g.Secondary == MineralId.Pyrite || fam.Metallic > 0.5f) pool.Add(RareTrait.MetallicContrast);
             if (!nodule && fam.Placement != PlacementStyle.Banded) pool.Add(RareTrait.GiantCrystalField);
 
             for (int i = 0; i < traitCount && pool.Count > 0; i++)
@@ -307,7 +312,7 @@ namespace GeodeEmpire.Specimens
                 case RareTrait.CrystalOnCrystal: g.CrystalScale = Mathf.Max(g.CrystalScale, 0.5f); if (!g.HasSecondary) { g.HasSecondary = true; g.Secondary = g.Family.SecondaryOptions[0]; g.SecondaryAmount = 0.25f; } break;
                 case RareTrait.Phantom: g.Zoning = Mathf.Max(g.Zoning, 0.8f); g.Clarity = Mathf.Max(g.Clarity, 0.7f); break;
                 case RareTrait.PerfectSymmetry: g.Symmetry = 1f; g.CrystalDensity = Mathf.Max(g.CrystalDensity, 0.7f); break;
-                case RareTrait.MetallicContrast: if (g.Mineral != MineralId.Pyrite) { g.HasSecondary = true; g.Secondary = MineralId.Pyrite; g.SecondaryAmount = Mathf.Max(g.SecondaryAmount, 0.3f); } break;
+                case RareTrait.MetallicContrast: if (g.Family.Metallic < 0.5f) { g.HasSecondary = true; g.Secondary = MineralId.Pyrite; g.SecondaryAmount = Mathf.Max(g.SecondaryAmount, 0.3f); } else if (!g.HasSecondary) { g.HasSecondary = true; g.Secondary = MineralId.ClearQuartz; g.SecondaryAmount = 0.3f; } break;
                 case RareTrait.GiantCrystalField: g.CrystalScale = Mathf.Max(g.CrystalScale, 0.82f); g.CrystalDensity = Mathf.Max(g.CrystalDensity, 0.55f); break;
             }
         }

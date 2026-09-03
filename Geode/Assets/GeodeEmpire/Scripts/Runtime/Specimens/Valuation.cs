@@ -201,6 +201,12 @@ namespace GeodeEmpire.Specimens
                 case MineralId.Celestite: return strong ? "Sky-Blue" : "Ice-Blue";
                 case MineralId.Pyrite: return strong ? "Bright Brass" : "Brassy";
                 case MineralId.Aragonite: return palette == "Amber" ? "Amber" : "White";
+                case MineralId.Malachite: return palette == "Bright Green" ? "Bright Green" : strong ? "Deep Green" : "Green";
+                case MineralId.Selenite: return palette == "Amber" ? "Amber" : g.Clarity > 0.75f ? "Water-Clear" : "Satin";
+                case MineralId.Wulfenite: return palette == "Red-Orange" ? "Red" : palette == "Butterscotch" ? "Butterscotch" : "Orange";
+                case MineralId.Garnet: return palette == "Spessartine" ? "Orange" : strong ? "Deep Red" : "Red";
+                case MineralId.Hematite: return palette == "Specular" ? "Specular" : "Black";
+                case MineralId.Tourmaline: return palette == "Verdelite" ? "Green" : palette == "Rubellite" ? "Pink" : "Black";
             }
             return "";
         }
@@ -210,11 +216,16 @@ namespace GeodeEmpire.Specimens
             if (g.HasTrait(RareTrait.DeepCathedral) || g.Cavity == CavityArchetype.Cathedral) return "Cathedral";
             if (g.HasTrait(RareTrait.DoubleCavity) || g.Cavity == CavityArchetype.DoubleChamber) return "Double Chamber";
             if (g.HasTrait(RareTrait.GiantCenterpiece)) return "Centrepiece";
-            if (g.Cavity == CavityArchetype.Nodule) return "Nodule";
+            if (g.Cavity == CavityArchetype.Nodule) return g.Mineral == MineralId.Malachite ? "Botryoidal Mass" : "Nodule";
             if (g.IsDruzy) return "Druzy Geode";
             if (g.Mineral == MineralId.Aragonite) return "Spray";
             if (g.Mineral == MineralId.Celestite || g.Mineral == MineralId.Fluorite) return "Cluster";
-            if (g.Mineral == MineralId.Pyrite) return "Pocket";
+            if (g.Mineral == MineralId.Pyrite || g.Mineral == MineralId.Wulfenite) return "Pocket";
+            if (g.Mineral == MineralId.Malachite) return "Crust";
+            if (g.Mineral == MineralId.Selenite) return g.CrystalScale > 0.6f ? "Blades" : "Cluster";
+            if (g.Mineral == MineralId.Garnet) return "in Matrix";
+            if (g.Mineral == MineralId.Hematite) return g.Palette.Name == "Specular" ? "Specularite" : "Kidney Ore";
+            if (g.Mineral == MineralId.Tourmaline) return g.CrystalScale > 0.6f ? "Prisms" : "in Pegmatite";
             if (g.Cavity == CavityArchetype.Pocket) return "Pocket";
             return "Geode";
         }

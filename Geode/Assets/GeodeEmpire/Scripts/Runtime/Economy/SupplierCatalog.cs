@@ -41,6 +41,9 @@ namespace GeodeEmpire.Economy
         public const string AmethystLot = "amethyst";
         public const string Estate = "estate";
         public const string Premium = "premium";
+        public const string CuttingRough = "cutting";
+        public const string DesertPocket = "desert";
+        public const string OversizedLot = "oversized";
 
         public static readonly SupplierDefinition[] All =
         {
@@ -111,6 +114,47 @@ namespace GeodeEmpire.Economy
                 Clue = "Numbered, wrapped, scrubbed clean and pre-inspected: medium and large rough you can read in the hand.",
                 SizeWeights = new[] { 0f, 0.55f, 0.4f, 0.05f }, DirtScale = 0.15f,
             },
+            new SupplierDefinition
+            {
+                Id = CuttingRough, Name = "Cutting Rough Lot", Tagline = "Solid nodules for the saw. Nothing to crack, everything to slice.",
+                Description = "Banded agate, malachite and kidney ore sorted for the slab saw: solid rough that the hammer would only shatter, and that a polished face turns into money.",
+                Price = 200f, MinRocks = 7, MaxRocks = 8, CountHidden = false,
+                TierWeights = new[] { 0.3f, 0.36f, 0.22f, 0.09f, 0.025f, 0.005f },
+                UnlockHint = "Unlocks once you own the Trim Saw.", Accent = new Color(0.35f, 0.62f, 0.45f),
+                PreferredMinerals = new[] { MineralId.Agate, MineralId.Malachite, MineralId.Hematite }, PreferredShare = 0.8f,
+                Character = "Solid, banded, heavy. Saw and polish material: slabs and slices, not cavities.",
+                Risk = "Medium. A dull lot cuts plain grey; a good one is bullseye banding all the way through.",
+                Minerals = "Agate nodules, malachite crusts, hematite kidney ore.",
+                Clue = "Dense medium and large lumps, little clay, green or rust staining where the mineral shows.",
+                SizeWeights = new[] { 0.05f, 0.5f, 0.4f, 0.05f }, DirtScale = 0.5f,
+            },
+            new SupplierDefinition
+            {
+                Id = DesertPocket, Name = "Desert Pocket Lot", Tagline = "Vug material from the dry country. Small, delicate, sometimes extraordinary.",
+                Description = "Pocket rough from lead, pegmatite and garnet workings: wulfenite plates, tourmaline prisms, garnets in schist, selenite blades. Fragile, and worth being careful with.",
+                Price = 240f, MinRocks = 6, MaxRocks = 7, CountHidden = false,
+                TierWeights = new[] { 0.2f, 0.3f, 0.28f, 0.16f, 0.05f, 0.01f },
+                UnlockHint = "Unlocks at collection prestige tier 2.", Accent = new Color(0.85f, 0.5f, 0.28f),
+                PreferredMinerals = new[] { MineralId.Wulfenite, MineralId.Tourmaline, MineralId.Garnet, MineralId.Selenite }, PreferredShare = 0.75f,
+                Character = "Small pockets, unusual habits, high fragility: the loupe and the saw earn their keep here.",
+                Risk = "Medium-high. Delicate crystals punish a heavy hand; a clean wulfenite pocket pays for the lot.",
+                Minerals = "Wulfenite, tourmaline, garnet, selenite; some quartz and calcite.",
+                Clue = "Tan and dark rough, small and light; orange or black flecks at the corners.",
+                SizeWeights = new[] { 0.45f, 0.45f, 0.1f, 0f }, DirtScale = 0.55f,
+            },
+            new SupplierDefinition
+            {
+                Id = OversizedLot, Name = "Oversized Rough Lot", Tagline = "Three boulders. Bring a bigger cradle.",
+                Description = "A pallet of oversized geodes straight off the loader. Too big for the basic cradle and the 10-inch saw; with heavy equipment, potentially the best pieces you will ever open.",
+                Price = 300f, MinRocks = 3, MaxRocks = 4, CountHidden = false,
+                TierWeights = new[] { 0.2f, 0.3f, 0.28f, 0.16f, 0.05f, 0.01f },
+                UnlockHint = "Unlocks after your fourth crate.", Accent = new Color(0.6f, 0.55f, 0.5f),
+                Character = "Few pieces, huge mass, big cavities. Everything about them takes longer.",
+                Risk = "High effort, high ceiling. Brute-forcing one on the small cradle usually wrecks it.",
+                Minerals = "The quarry's own mix, at boulder size: quartz family, agate, calcite, celestite.",
+                Clue = "Head-sized rough, caked, seams you can read from across the room.",
+                SizeWeights = new[] { 0f, 0f, 0.25f, 0.75f }, DirtScale = 1.1f,
+            },
         };
 
         public static SupplierDefinition Get(string id)
@@ -129,6 +173,9 @@ namespace GeodeEmpire.Economy
             // the gamble is the third strategy: it lands mid-slice, after the player has bought twice and kept something
             if (!state.HasSupplier(Estate) && state.Stats.CratesPurchased >= 2 && state.DisplayedCount() > 0) { state.UnlockedSuppliers.Add(Estate); newly.Add(Estate); }
             if (!state.HasSupplier(Premium) && state.CollectionValue() >= 1500f) { state.UnlockedSuppliers.Add(Premium); newly.Add(Premium); }
+            if (!state.HasSupplier(CuttingRough) && state.HasUpgrade(UpgradeCatalog.TrimSaw)) { state.UnlockedSuppliers.Add(CuttingRough); newly.Add(CuttingRough); }
+            if (!state.HasSupplier(DesertPocket) && state.Prestige >= 2) { state.UnlockedSuppliers.Add(DesertPocket); newly.Add(DesertPocket); }
+            if (!state.HasSupplier(OversizedLot) && state.Stats.CratesPurchased >= 4) { state.UnlockedSuppliers.Add(OversizedLot); newly.Add(OversizedLot); }
             return newly;
         }
 
