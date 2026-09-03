@@ -36,7 +36,7 @@ namespace GeodeEmpire.Retail
         public NavMeshSurface Navigation;
 
         /// <summary>Retail markup over the appraised (dealer) value. A customer with the right taste pays it; the dealer never does.</summary>
-        public const float Markup = 1.3f;
+        public const float Markup = 1.4f;
         public const int MaxCustomers = 3;
 
         public event Action Changed;

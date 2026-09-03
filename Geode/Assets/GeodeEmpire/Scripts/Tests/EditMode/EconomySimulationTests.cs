@@ -4,6 +4,7 @@ using NUnit.Framework;
 using UnityEngine;
 using GeodeEmpire.Core;
 using GeodeEmpire.Economy;
+using GeodeEmpire.Retail;
 using GeodeEmpire.Save;
 using GeodeEmpire.Specimens;
 
@@ -65,6 +66,97 @@ namespace GeodeEmpire.Tests
                 Assert.Greater(mean, sup.Price * 1.15f, $"{sup.Id} should return more than its price on average");
             }
             Debug.Log(sb.ToString());
+        }
+
+        /// <summary>
+        /// A mixed-strategy midgame: buy what the cash allows, keep the best find when it is worth keeping, sell the
+        /// rest (part retail at the markup, part to the dealer), buy upgrades in a sensible order, replace blades.
+        /// Reports when the saw and Stage 2 become affordable in crates and rough hours (~12 min per crate).
+        /// </summary>
+        [Test]
+        public void MidgameProgressionReport()
+        {
+            const float MinutesPerCrate = 12f;
+            var sawAt = new List<int>(); var stageAt = new List<int>(); var lapAt = new List<int>();
+            int worlds = 60, crates = 40, softlocks = 0;
+            float collectionEnd = 0f, cashEnd = 0f; int prestigeEnd = 0;
+            var order = new[] { UpgradeCatalog.Loupe, UpgradeCatalog.InspectionLamp, UpgradeCatalog.BenchClamp, UpgradeCatalog.TrimSaw, UpgradeCatalog.FineChisel,
+                UpgradeCatalog.CalibratedScale, UpgradeCatalog.SalesTable, UpgradeCatalog.DisplayExpansion, UpgradeCatalog.Stage2, UpgradeCatalog.HeavyCradle,
+                UpgradeCatalog.Wedge, UpgradeCatalog.PolishLap, UpgradeCatalog.ThinBlade, UpgradeCatalog.CoolantPump };
+            var sb = new StringBuilder("Midgame progression (mixed strategy):\n");
+            for (ulong w = 1; w <= (ulong)worlds; w++)
+            {
+                var s = NewState(w * 7331UL);
+                var rng = new System.Random((int)w);
+                float collection = 0f; int cuts = 0;
+                int saw = -1, stage = -1, lap = -1;
+                for (int n = 0; n < crates; n++)
+                {
+                    // the best crate the cash allows, keeping the cheapest crate's price in reserve
+                    SupplierDefinition sup = null, cheapest = null;
+                    foreach (var cand in SupplierCatalog.All)
+                    {
+                        if (!s.HasSupplier(cand.Id) || s.Cash < cand.Price) continue;
+                        if (cheapest == null || cand.Price < cheapest.Price) cheapest = cand;
+                        if (s.Cash >= cand.Price + 75f && (sup == null || cand.Price > sup.Price)) sup = cand;
+                    }
+                    sup ??= cheapest;
+                    if (sup == null) { softlocks++; break; }
+                    s.Cash -= sup.Price;
+                    s.Stats.CratesPurchased++;
+                    var crate = CrateGenerator.Generate(s, sup, (seed, id, cid) => Create(s, seed, id, cid));
+                    // process: saw owners cut nodules and agate for a small premium; polished faces add a little more
+                    float value = 0f, best = 0f;
+                    foreach (var id in crate.SpecimenIds)
+                    {
+                        var r = s.FindSpecimen(id);
+                        float damage = s.HasUpgrade(UpgradeCatalog.FineChisel) ? 0.04f : 0.07f;
+                        float v = Valuation.DamagedValue(r.Geology, damage, 0f);
+                        if (s.HasUpgrade(UpgradeCatalog.TrimSaw) && (r.Geology.Mineral == MineralId.Agate || r.Geology.CavityFraction < 0.35f)) { v *= 1.12f; cuts++; if (s.HasUpgrade(UpgradeCatalog.PolishLap)) v *= 1.08f; }
+                        if (s.HasUpgrade(UpgradeCatalog.CalibratedScale)) v *= 1.05f;
+                        best = Mathf.Max(best, v);
+                        value += v;
+                    }
+                    // keep the best when it beats what is already on the shelves (collection value drives prestige)
+                    // keep a find only when it clearly raises the collection, and not every crate: cash comes first for a mixed player
+                    if (best > 120f && best > collection * 0.5f && n % 3 == 0) { collection += best; value -= best; }
+                    // half sells retail at the markup, the rest goes to the dealer
+                    s.Cash += value * (0.5f * Retail.RetailShop.Markup + 0.5f);
+                    s.Cash -= (cuts / 15) * 45f; cuts %= 15;   // a blade every fifteen cuts
+                    s.Stats.SpecimensSold += crate.SpecimenIds.Count;
+                    s.Prestige = collection >= 6000f ? 5 : collection >= 3000f ? 4 : collection >= 1500f ? 3 : collection >= 600f ? 2 : collection >= 150f ? 1 : 0;
+                    SupplierCatalog.EvaluateUnlocks(s);
+                    foreach (var id in order)
+                    {
+                        if (s.HasUpgrade(id)) continue;
+                        var up = UpgradeCatalog.Get(id);
+                        if (!string.IsNullOrEmpty(up.Requires) && !s.HasUpgrade(up.Requires)) continue;
+                        if (s.Cash - up.Price < 150f) break;   // one purchase at a time, in order, keeping a crate's worth
+                        s.Cash -= up.Price; s.Upgrades.Add(id);
+                        if (id == UpgradeCatalog.TrimSaw) saw = n + 1;
+                        if (id == UpgradeCatalog.Stage2) { stage = n + 1; s.WorkshopStage = 2; SupplierCatalog.EvaluateUnlocks(s); }
+                        if (id == UpgradeCatalog.PolishLap) lap = n + 1;
+                        break;
+                    }
+                }
+                if (saw > 0) sawAt.Add(saw);
+                if (stage > 0) stageAt.Add(stage);
+                if (lap > 0) lapAt.Add(lap);
+                collectionEnd += collection; cashEnd += s.Cash; prestigeEnd += s.Prestige;
+                if (w <= 3) sb.AppendLine($"  world {w}: saw@{saw} stage2@{stage} lap@{lap} cash=${s.Cash:F0} collection=${collection:F0} prestige={s.Prestige} suppliers={string.Join(",", s.UnlockedSuppliers)}");
+            }
+            sawAt.Sort(); stageAt.Sort(); lapAt.Sort();
+            string Med(List<int> l) => l.Count == 0 ? "never" : $"crate {l[l.Count / 2]} (~{l[l.Count / 2] * MinutesPerCrate / 60f:F1} h; p10 {l[l.Count / 10] * MinutesPerCrate / 60f:F1} h, p90 {l[l.Count * 9 / 10] * MinutesPerCrate / 60f:F1} h)";
+            sb.AppendLine($"  saw affordable: {sawAt.Count}/{worlds} worlds, median {Med(sawAt)}");
+            sb.AppendLine($"  Stage 2 built: {stageAt.Count}/{worlds} worlds, median {Med(stageAt)}");
+            sb.AppendLine($"  flat lap: {lapAt.Count}/{worlds} worlds, median {Med(lapAt)}");
+            sb.AppendLine($"  after {crates} crates: avg cash ${cashEnd / worlds:F0}, avg collection ${collectionEnd / worlds:F0}, avg prestige {prestigeEnd / (float)worlds:F1}, softlocks {softlocks}");
+            Debug.Log(sb.ToString());
+            Assert.AreEqual(0, softlocks, "a mixed strategy must never strand the career");
+            Assert.GreaterOrEqual(sawAt.Count, worlds * 0.95f, "the saw must be reachable in nearly every world");
+            Assert.That(sawAt[sawAt.Count / 2] * MinutesPerCrate / 60f, Is.InRange(0.8f, 3.0f), "saw should land in hours 1-3");
+            Assert.GreaterOrEqual(stageAt.Count, worlds * 0.9f, "Stage 2 must be reachable in nearly every world within 40 crates");
+            Assert.That(stageAt[stageAt.Count / 2] * MinutesPerCrate / 60f, Is.InRange(2.5f, 7.0f), "Stage 2 should land in hours 3-7");
         }
 
         [Test]

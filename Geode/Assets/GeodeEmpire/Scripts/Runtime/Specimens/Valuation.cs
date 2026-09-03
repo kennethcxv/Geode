@@ -65,7 +65,7 @@ namespace GeodeEmpire.Specimens
             float visual = VisualScore(g);
             // quality now sets most of every visible axis, so the curve is steeper than V3's: an ordinary common
             // is a few dollars, a world-class piece a thousand or more
-            float value = 0.7f * fam.ValueMult * sizeMult * Mathf.Exp(visual * 6.5f) * FormationFactor(g.Cavity);
+            float value = 0.76f * fam.ValueMult * sizeMult * Mathf.Exp(visual * 6.5f) * FormationFactor(g.Cavity);
             foreach (var t in g.Traits) value *= TraitMultiplier(t);
             if (g.HasSecondary) value *= 1f + 0.25f * g.SecondaryAmount;
             return Mathf.Round(value);
