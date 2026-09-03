@@ -169,8 +169,26 @@ namespace GeodeEmpire.EditorTools
         const float ShopDoorX = 5.6f;
 
         /// <summary>Forward+ so a room full of lamps is not capped at four lights per object.</summary>
+        private static void EnsureAlwaysIncludedShader(string name)
+        {
+            var sh = Shader.Find(name);
+            if (sh == null) { Debug.LogWarning("[SceneBuilder] shader not found: " + name); return; }
+            var gs = AssetDatabase.LoadAssetAtPath<Object>("ProjectSettings/GraphicsSettings.asset");
+            if (gs == null) return;
+            var so = new SerializedObject(gs);
+            var arr = so.FindProperty("m_AlwaysIncludedShaders");
+            for (int i = 0; i < arr.arraySize; i++) if (arr.GetArrayElementAtIndex(i).objectReferenceValue == sh) return;
+            arr.InsertArrayElementAtIndex(arr.arraySize);
+            arr.GetArrayElementAtIndex(arr.arraySize - 1).objectReferenceValue = sh;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
+        }
+
         public static void EnsureRendererSettings()
         {
+            // shaders the runtime creates materials for by name are not referenced by any asset, so a player build
+            // would strip them: pin them in Always Included Shaders
+            EnsureAlwaysIncludedShader("Universal Render Pipeline/Particles/Unlit");
             var rd = AssetDatabase.LoadAssetAtPath<UniversalRendererData>("Assets/Settings/PC_Renderer.asset");
             if (rd != null && rd.renderingMode != RenderingMode.ForwardPlus)
             {

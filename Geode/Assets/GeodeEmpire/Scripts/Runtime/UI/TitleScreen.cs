@@ -32,6 +32,7 @@ namespace GeodeEmpire.UI
             _instance = this;
             GameInput.Ensure();
             GameSettings.Current.Apply();
+            GameSettings.Current.ApplyDisplay();   // the saved display mode/resolution, applied once at boot
             CursorController.Reset();
             CursorController.EnterMenu();
             Time.timeScale = 1f;

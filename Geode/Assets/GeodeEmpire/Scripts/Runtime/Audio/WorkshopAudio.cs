@@ -86,6 +86,9 @@ namespace GeodeEmpire.Audio
         // ------------------------------------------------------------------------------------
         private static void Build()
         {
+            _bank["swing"] = Variants(2, i => Whoosh(0.14f + i * 0.03f, seed: 300 + (ulong)i));
+            _bank["chisel_ring"] = Variants(3, i => Ring(2900f + i * 350f, 0.22f, seed: 310 + (ulong)i));
+            _bank["tension"] = Variants(2, i => Tension(0.55f + i * 0.15f, seed: 320 + (ulong)i));
             _bank["tap_light"] = Variants(3, i => Impact(0.12f, 1800f + i * 200f, 0.6f, 0.02f, 0.25f, 5.0f, seed: 10 + (ulong)i));
             _bank["tap_medium"] = Variants(3, i => Impact(0.18f, 1200f + i * 120f, 0.9f, 0.05f, 0.45f, 3.5f, seed: 20 + (ulong)i));
             _bank["tap_heavy"] = Variants(3, i => Impact(0.26f, 700f + i * 80f, 1.0f, 0.12f, 0.7f, 2.4f, seed: 30 + (ulong)i));
@@ -144,6 +147,67 @@ namespace GeodeEmpire.Audio
                 lp += (noise - lp) * 0.35f;
                 float click = i < 40 ? (1f - i / 40f) * 0.8f : 0f;
                 d[i] = Mathf.Clamp((tone + lp * noiseMix * 1.5f + low + click * noise) * env * amp, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>Hammer through air: a short band-limited noise swell that peaks just before contact.</summary>
+        private static float[] Whoosh(float duration, ulong seed)
+        {
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f, lp2 = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float x = t / duration;
+                float env = Mathf.Pow(Mathf.Sin(x * Mathf.PI), 2.2f) * (0.4f + 0.6f * x);
+                float noise = rng.NextFloat() * 2f - 1f;
+                float cutoff = 0.08f + 0.18f * x;              // opens up as the head accelerates
+                lp += (noise - lp) * cutoff;
+                lp2 += (lp - lp2) * cutoff;
+                d[i] = Mathf.Clamp(lp2 * 3.2f * env, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>Steel on steel: the chisel cap's inharmonic ring layered on top of the stone thud.</summary>
+        private static float[] Ring(float freq, float duration, ulong seed)
+        {
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float f2 = freq * 1.41f, f3 = freq * 2.27f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float env = Mathf.Exp(-t * 16f) * Mathf.Min(1f, t * 3000f);
+                float v = Mathf.Sin(2f * Mathf.PI * freq * t) * 0.5f + Mathf.Sin(2f * Mathf.PI * f2 * t) * 0.3f * Mathf.Exp(-t * 10f) + Mathf.Sin(2f * Mathf.PI * f3 * t) * 0.2f * Mathf.Exp(-t * 26f);
+                v += (rng.NextFloat() * 2f - 1f) * 0.05f * Mathf.Exp(-t * 60f);
+                d[i] = Mathf.Clamp(v * env * 0.55f, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>Near-break groan: a low, slowly wobbling grind that only a mostly-cracked shell makes.</summary>
+        private static float[] Tension(float duration, ulong seed)
+        {
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float phase = 0f, lp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float f = 62f + Mathf.Sin(t * 9f) * 8f + rng.NextFloat() * 4f;
+                phase += f / SampleRate;
+                float saw = (phase - Mathf.Floor(phase)) * 2f - 1f;
+                float grain = saw * 0.35f + Mathf.Sin(phase * 2f * Mathf.PI * 2f) * 0.2f;
+                float crackle = rng.NextFloat() < 0.002f ? (rng.NextFloat() * 2f - 1f) : 0f;
+                lp += (grain - lp) * 0.25f;
+                float env = Mathf.Sin(t / duration * Mathf.PI) * (0.8f + 0.2f * Mathf.Sin(t * 31f));
+                d[i] = Mathf.Clamp((lp + crackle * 0.6f) * env * 0.6f, -1f, 1f);
             }
             return d;
         }

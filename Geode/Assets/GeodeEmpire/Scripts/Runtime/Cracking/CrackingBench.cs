@@ -502,6 +502,7 @@ namespace GeodeEmpire.Cracking
             _recoilT = -1f;
             _swingCharge = Mathf.Clamp01(force);
             float dur = Mathf.Lerp(0.10f, 0.15f, force);
+            WorkshopAudio.Play("swing", HammerVisual != null ? HammerVisual.position : _toolPoint, 0.18f + 0.5f * force, 0.85f + 0.4f * force);
             while (_swingT < 1f)
             {
                 _swingT += Time.deltaTime / dur;
@@ -558,10 +559,14 @@ namespace GeodeEmpire.Cracking
             {
                 float pitch = Mathf.Lerp(1.1f, 0.85f, force) * (result.Placement > 0.6f ? 1f : 1.1f) * (result.Overstrike ? 0.82f : 1f);
                 WorkshopAudio.Play(clip, _toolPoint, Mathf.Lerp(0.6f, 1f, force), pitch);
+                // hammer face on the chisel cap rings; the stone thud below it is what changes with placement
+                WorkshopAudio.Play("chisel_ring", _toolPoint, 0.16f + 0.4f * force, Mathf.Lerp(1.08f, 0.94f, force));
                 if (result.NewCrack) { WorkshopAudio.Play("tick", _toolPoint, 0.9f, 0.9f); WorkshopAudio.Play("creak", _toolPoint, 0.35f + 0.4f * ringFrac, 1.1f - 0.25f * ringFrac); }
                 else if (result.StressAdded > 0.4f && _rng.Chance(0.35f)) WorkshopAudio.Play("tick", _toolPoint, 0.4f, 1.2f);
                 // a shell with most of its ring cracked groans under every blow
                 if (ringFrac >= 0.5f && !result.NewCrack) WorkshopAudio.Play("creak", _rock.transform.position, 0.25f + 0.35f * ringFrac, 0.8f);
+                // near the break the whole shell grinds: a low layer the player learns to listen for
+                if (ringFrac >= 0.7f) WorkshopAudio.Play("tension", _rock.transform.position, 0.3f + 0.45f * ringFrac, 0.9f + 0.2f * ringFrac);
                 _controller?.Impulse((0.2f + 0.55f * force) * (result.NewCrack ? 1.3f : 1f));
                 EffectsFactory.Instance?.Impact(_toolPoint, _toolNormal, force * (result.Placement * 0.6f + 0.4f));
                 if (result.NewCrack) SeamBurst(result.Sector, geo);

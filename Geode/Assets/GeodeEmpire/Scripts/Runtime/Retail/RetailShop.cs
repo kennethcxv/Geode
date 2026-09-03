@@ -323,6 +323,7 @@ namespace GeodeEmpire.Retail
             LeaveQueue(c);
             c.Paid();
             WorkshopAudio.Play2D("register", 0.8f);
+            WorkshopAudio.Play2D("crystal_chime", 0.3f, 1.25f);
             session.Notify($"Sold {rec.DisplayName} for {UI.UiKit.Money(price)}", NotificationKind.Success);
             Tutorial.Notify("checkout");
             foreach (var id in SupplierCatalog.EvaluateUnlocks(session.State))
