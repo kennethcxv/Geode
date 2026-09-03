@@ -148,3 +148,5 @@
 .binding-key { width: 150px; color: rgba(240, 236, 228, 0.6); font-size: 15px; }
 .confirm-card { position: absolute; left: 60px; right: 60px; top: 45%; background-color: rgb(30, 27, 24); border-width: 1px; border-color: rgba(226,178,96,0.65); border-radius: 6px; padding: 20px 24px; }
 .confirm-card .panel-subtitle { margin-bottom: 14px; }
+
+.checkout-sold { border-color: rgb(156, 212, 146); background-color: rgba(60, 90, 55, 0.92); }

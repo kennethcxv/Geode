@@ -654,6 +654,253 @@ namespace GeodeEmpire.Core
         /// </summary>
         public void RunPolish() { if (!Running) StartCoroutine(Polish()); }
         public void RunStage2() { if (!Running) StartCoroutine(Stage2()); }
+        public void RunPieceLifecycle() { if (!Running) StartCoroutine(PieceLifecycle()); }
+
+        /// <summary>
+        /// Save/anti-duplication QA for cut pieces: cut a rock, display one half, polish and put the other up for
+        /// sale, reload, sell it to the dealer, reload again. The parent stays gone, each piece exists exactly once,
+        /// polish and prices persist, the sold piece stays sold.
+        /// </summary>
+        private IEnumerator PieceLifecycle()
+        {
+            Running = true;
+            Phase = "lifecycle";
+            int specimensBefore = S.State.Specimens.Count;
+            yield return SawCut(0f, 0f, 0f, false);
+            Running = true;
+            Phase = "lifecycle";
+            // the newest cut: two piece records sharing a parent
+            string parentId = null; int cutIndex = -1;
+            foreach (var r in S.State.Specimens) if (r.IsPiece && r.CutIndex >= cutIndex) { cutIndex = r.CutIndex; parentId = r.ParentId; }
+            if (parentId == null) { L("no pieces were made"); Running = false; yield break; }
+            var pieces = new List<SpecimenRecord>();
+            foreach (var r in S.State.Specimens) if (r.IsPiece && r.ParentId == parentId) pieces.Add(r);
+            L($"lifecycle: parent {parentId} pieces={string.Join(",", pieces.ConvertAll(r => r.Id + "@" + r.Location))} {Chk(pieces.Count == 2)} specimens {specimensBefore}->{S.State.Specimens.Count} {DuplicateCheck()}");
+            SpecimenRecord recA = null, recB = null;
+            foreach (var r in pieces) { if (r.Location == SpecimenLocation.AppraisalStation) recA = r; else recB ??= r; }
+            if (recA == null) recA = pieces[0];
+            if (recB == null || recB == recA) foreach (var r in pieces) if (r != recA) recB = r;
+            if (recB == null) { L("only one piece"); Running = false; yield break; }
+            // A: from the scale to the display cabinet
+            var entA = S.GetEntity(recA.Id);
+            if (entA != null)
+            {
+                yield return RouteTo(StandNear(entA.transform.position), 0.3f);
+                yield return LookAndInteract(entA.transform.position, "Take");
+                if (P.Held == null) yield return FetchRock(entA);
+                if (P.Held != null) { if (!P.Held.Record.Appraised) yield return AppraiseHeld(); if (P.Held != null) yield return KeepHeld(); }
+            }
+            L($"A displayed: loc={recA.Location} {Chk(recA.Location == SpecimenLocation.DisplaySlot)} slot={recA.LocationIndex} value={recA.EstimatedValue()}");
+            L(Core.CollisionAudit.Report("piece on display"));
+            // B: polish it, weigh it, put it in the window
+            yield return Polish();
+            Running = true;
+            Phase = "lifecycle";
+            // the polish run reloads the world on its way out: records and entities are new objects now
+            recA = S.State.FindSpecimen(recA.Id); recB = S.State.FindSpecimen(recB.Id);
+            var entB = S.GetEntity(recB.Id);
+            L($"B after polish: loc={recB.Location} polish={recB.Polish:F2} {Chk(recB.Polish > 0.95f)} held={(P.Held != null ? P.Held.Id : "none")}");
+            if (P.Held == null && entB != null)
+            {
+                yield return RouteTo(StandNear(entB.transform.position), 0.3f);
+                yield return LookAndInteract(entB.transform.position, "Take");
+                if (P.Held == null) yield return FetchRock(entB);
+            }
+            if (P.Held != null && P.Held.Record.Id == recB.Id)
+            {
+                yield return AppraiseHeld();
+                if (P.Held != null) yield return StockHeld();
+            }
+            L($"B for sale: loc={recB.Location} {Chk(recB.Location == SpecimenLocation.SaleSlot)} asking={recB.AskingPrice} {Chk(recB.AskingPrice > 0f)} polish={recB.Polish:F2} appraised={recB.AppraisedValue}");
+            L(Core.CollisionAudit.Report("polished piece stocked"));
+            Snap("lifecycle_stocked");
+            // reload 1
+            float askBefore = recB.AskingPrice; float polishBefore = recB.Polish; int count1 = S.State.Specimens.Count;
+            S.FlushSave("test");
+            S.ContinueGame();
+            yield return new WaitForSeconds(1.0f);
+            recA = S.State.FindSpecimen(recA.Id); recB = S.State.FindSpecimen(recB.Id);
+            var parent = S.State.FindSpecimen(parentId);
+            L($"reload 1: parent={(parent != null ? parent.Location.ToString() : "missing")} {Chk(parent != null && parent.Location == SpecimenLocation.Cut && S.GetEntity(parentId) == null)} A={recA.Location}/{recA.LocationIndex} {Chk(recA.Location == SpecimenLocation.DisplaySlot && S.GetEntity(recA.Id) != null && S.GetEntity(recA.Id).Zone != null)} B={recB.Location} polish={recB.Polish:F2} asking={recB.AskingPrice} {Chk(recB.Location == SpecimenLocation.SaleSlot && Mathf.Approximately(recB.Polish, polishBefore) && Mathf.Approximately(recB.AskingPrice, askBefore))} specimens={S.State.Specimens.Count} {Chk(S.State.Specimens.Count == count1)} {DuplicateCheck()}");
+            // sell B to the dealer
+            entB = S.GetEntity(recB.Id);
+            if (entB != null)
+            {
+                yield return RouteTo(StandNear(entB.transform.position), 0.3f);
+                yield return LookAndInteract(entB.transform.position, "Take");
+                if (P.Held != null)
+                {
+                    Vector3 tray = ZonePos(ZoneKind.SellTray);
+                    yield return RouteTo(StandNear(tray), 0.3f);
+                    yield return LookAndInteract(tray, "Place in the dealer outbox");
+                    yield return SellCore();
+                }
+            }
+            L($"B sold: loc={recB.Location} {Chk(recB.Location == SpecimenLocation.Sold)} entity={(S.GetEntity(recB.Id) != null)} {Chk(S.GetEntity(recB.Id) == null)} cash={S.State.Cash}");
+            // reload 2
+            int count2 = S.State.Specimens.Count; float cash2 = S.State.Cash;
+            S.FlushSave("test");
+            S.ContinueGame();
+            yield return new WaitForSeconds(1.0f);
+            recA = S.State.FindSpecimen(recA.Id); recB = S.State.FindSpecimen(recB.Id); parent = S.State.FindSpecimen(parentId);
+            L($"reload 2: parent={(parent != null ? parent.Location.ToString() : "missing")} {Chk(parent != null && parent.Location == SpecimenLocation.Cut)} A={recA.Location} {Chk(recA.Location == SpecimenLocation.DisplaySlot && S.GetEntity(recA.Id) != null)} B={recB.Location} {Chk(recB.Location == SpecimenLocation.Sold && S.GetEntity(recB.Id) == null)} specimens={S.State.Specimens.Count} {Chk(S.State.Specimens.Count == count2)} cash={S.State.Cash} {Chk(Mathf.Approximately(S.State.Cash, cash2))} {DuplicateCheck()}");
+            L(Core.CollisionAudit.Report("lifecycle end"));
+            Phase = "done";
+            Running = false;
+        }
+
+        /// <summary>Every live entity must map to exactly one record and no record may have two entities.</summary>
+        private string DuplicateCheck()
+        {
+            var ids = new HashSet<string>();
+            int dup = 0, orphan = 0;
+            foreach (var e in S.Entities.Values)
+            {
+                if (e == null) continue;
+                if (!ids.Add(e.Record.Id)) dup++;
+                if (S.State.FindSpecimen(e.Record.Id) == null) orphan++;
+            }
+            var recIds = new HashSet<string>(); int dupRec = 0;
+            foreach (var r in S.State.Specimens) if (!recIds.Add(r.Id)) dupRec++;
+            return $"dupEntities={dup} dupRecords={dupRec} orphans={orphan} {Chk(dup == 0 && dupRec == 0 && orphan == 0)}";
+        }
+
+        public void RunRetailStress(float minutes = 16f) { if (!Running) StartCoroutine(RetailStress(minutes)); }
+
+        /// <summary>
+        /// The NPC gate: keep the shop stocked, keep customers coming (up to four at once), serve the counter like a
+        /// shopkeeper would, and measure stuck time, collision loops, queue stalls and path failures for a long while.
+        /// </summary>
+        private IEnumerator RetailStress(float minutes)
+        {
+            Running = true;
+            Phase = "stress";
+            var shop = Retail.RetailShop.Instance;
+            var reg = Find<Retail.CheckoutRegister>();
+            if (shop == null || reg == null) { L("no shop/register"); Running = false; yield break; }
+            L($"== RetailStress {minutes:F0} min cash={S.State.Cash} forSale={S.State.ForSaleCount()} slots={S.State.SaleCapacity}");
+            // the cashier's spot: behind the counter on the workshop side, looking into the shop
+            Vector3 cashier = new Vector3(reg.transform.position.x - 0.85f, 0f, reg.transform.position.z + 0.15f);
+            D.Teleport(cashier, 90f);
+            yield return StockDirect(6);
+            var stuckRun = new Dictionary<int, float>();      // continuous stuck seconds per customer
+            var overlapRun = new Dictionary<long, float>();   // continuous close-contact seconds per pair
+            int stuckEvents = 0, collisionLoops = 0, queueStalls = 0, served = 0, spawned = 0, leftEmpty = 0, maxAtOnce = 0;
+            float worstStuck = 0f, worstOverlap = 0f, longestCounterWait = 0f;
+            var seen = new HashSet<string>();
+            float t0 = Time.time, nextSpawn = 2f, nextReport = 60f, counterSince = -1f, serveAt = -1f, playerMoveAt = 240f;
+            bool playerInAisle = false;
+            Retail.Customer lastAtCounter = null;
+            while (Time.time - t0 < minutes * 60f)
+            {
+                float dt = Time.deltaTime, elapsed = Time.time - t0;
+                // arrivals: steady traffic, sometimes two at once
+                nextSpawn -= dt;
+                if (nextSpawn <= 0f)
+                {
+                    int want = shop.Customers.Count < 2 && Random.value < 0.35f ? 2 : 1;
+                    for (int i = 0; i < want && shop.Customers.Count < 4; i++) { if (shop.SpawnNow() != null) spawned++; }
+                    nextSpawn = Random.Range(11f, 20f);
+                }
+                maxAtOnce = Mathf.Max(maxAtOnce, shop.Customers.Count);
+                // restock when the shelves thin out
+                if (S.State.ForSaleCount() < 4 && Time.frameCount % 120 == 0) yield return StockDirect(4);
+                // the shopkeeper serves whoever reaches the counter, after a beat
+                var at = shop.AtCounter;
+                if (at != null && at.Wanted != null)
+                {
+                    if (at != lastAtCounter) { lastAtCounter = at; counterSince = Time.time; serveAt = Time.time + Random.Range(1.2f, 2.5f); }
+                    else if (Time.time >= serveAt && serveAt > 0f)
+                    {
+                        D.LookAt(at.transform.position + Vector3.up * 1.3f);
+                        if (!seen.Contains("checkout")) { seen.Add("checkout"); Snap("stress_checkout"); }
+                        reg.Interact(P); yield return new WaitForSeconds(0.45f);
+                        if (shop.AtCounter == at && at.Wanted != null) { reg.Interact(P); served++; }
+                        longestCounterWait = Mathf.Max(longestCounterWait, Time.time - counterSince);
+                        serveAt = -1f;
+                    }
+                    if (Time.time - counterSince > 30f) { queueStalls++; counterSince = Time.time; L($"  [{elapsed:F0}s] queue stall: {at.Archetype.Name} at counter, wanted={(at.Wanted != null)} rung={reg.RungUp}"); }
+                }
+                else lastAtCounter = null;
+                // the player in the aisle for a couple of minutes: a moving obstacle on the browse line
+                if (elapsed > playerMoveAt)
+                {
+                    playerInAisle = !playerInAisle;
+                    if (playerInAisle) D.Teleport(new Vector3(4.5f, 0f, -1.7f), 0f); else D.Teleport(cashier, 90f);
+                    playerMoveAt = elapsed + (playerInAisle ? 120f : 180f);
+                    L($"  [{elapsed:F0}s] player {(playerInAisle ? "standing in the aisle" : "back at the counter")}");
+                }
+                // metrics
+                var list = new List<Retail.Customer>();
+                foreach (var c in shop.Customers) if (c != null) list.Add(c);
+                foreach (var c in list)
+                {
+                    bool stuck = c.Walking && c.Speed < 0.03f && !c.Arrived;
+                    stuckRun.TryGetValue(c.Id, out float run);
+                    run = stuck ? run + dt : 0f;
+                    stuckRun[c.Id] = run;
+                    worstStuck = Mathf.Max(worstStuck, run);
+                    if (run > 4f) { stuckEvents++; stuckRun[c.Id] = 0f; L($"  [{elapsed:F0}s] stuck>4s: {c.Archetype.Name}#{c.Id} state={c.State} at {c.transform.position:F2} recoveries={c.Recoveries}"); }
+                }
+                for (int i = 0; i < list.Count; i++)
+                    for (int j = i + 1; j < list.Count; j++)
+                    {
+                        var a = list[i]; var b = list[j];
+                        long key = ((long)Mathf.Min(a.Id, b.Id) << 20) | (long)Mathf.Max(a.Id, b.Id);
+                        Vector3 d = a.transform.position - b.transform.position; d.y = 0f;
+                        bool close = d.sqrMagnitude < 0.45f * 0.45f && (a.Walking || b.Walking);
+                        overlapRun.TryGetValue(key, out float run);
+                        run = close ? run + dt : 0f;
+                        overlapRun[key] = run;
+                        worstOverlap = Mathf.Max(worstOverlap, run);
+                        if (run > 2.5f) { collisionLoops++; overlapRun[key] = 0f; L($"  [{elapsed:F0}s] collision loop: #{a.Id}({a.State}) vs #{b.Id}({b.State}) at {a.transform.position:F2}"); }
+                        if (!seen.Contains("passing") && d.sqrMagnitude < 1.3f * 1.3f && a.Walking && b.Walking) { seen.Add("passing"); D.LookAt((a.transform.position + b.transform.position) * 0.5f + Vector3.up * 1.1f); Snap("stress_passing"); }
+                    }
+                // representative moments, from wherever the shopkeeper stands
+                foreach (var c in list)
+                {
+                    if (!seen.Contains("entrance") && c.State == Retail.Customer.Phase.Browsing && c.Walking && shop.DoorPoint != null && (c.transform.position - shop.DoorPoint.position).sqrMagnitude < 1.0f) { seen.Add("entrance"); D.LookAt(c.transform.position + Vector3.up * 1.2f); Snap("stress_entrance"); }
+                    if (!seen.Contains("browsing") && c.State == Retail.Customer.Phase.Browsing && !c.Walking && c.Arrived) { seen.Add("browsing"); D.LookAt(c.transform.position + Vector3.up * 1.2f); Snap("stress_browsing"); }
+                    if (!seen.Contains("exit") && c.State == Retail.Customer.Phase.Leaving && shop.DoorPoint != null && (c.transform.position - shop.DoorPoint.position).sqrMagnitude < 1.4f) { seen.Add("exit"); D.LookAt(c.transform.position + Vector3.up * 1.2f); Snap("stress_exit"); }
+                }
+                if (!seen.Contains("queue") && shop.QueueLength >= 2) { seen.Add("queue"); D.LookAt(shop.QueuePoint(1).position + Vector3.up * 1.2f); Snap("stress_queue"); }
+                if (elapsed >= nextReport)
+                {
+                    nextReport += 60f;
+                    L($"  [{elapsed / 60f:F0} min] customers={shop.Customers.Count} spawned={spawned} served={served} leftEmpty={S.State.Stats.CustomersLeftEmptyHanded - leftEmpty} stuckEvents={stuckEvents} worstStuck={worstStuck:F1}s loops={collisionLoops} worstOverlap={worstOverlap:F1}s stalls={queueStalls} recoveries={shop.Metrics.StuckRecoveries} repositions={shop.Metrics.Repositions} pathFail={shop.Metrics.PathFailures} forSale={S.State.ForSaleCount()} cash={S.State.Cash} fps={1f / Mathf.Max(0.001f, Time.smoothDeltaTime):F0}");
+                }
+                yield return null;
+            }
+            L($"stress end: spawned={spawned} served={served} maxAtOnce={maxAtOnce} stuckEvents={stuckEvents} {Chk(stuckEvents == 0)} worstStuck={worstStuck:F1}s collisionLoops={collisionLoops} {Chk(collisionLoops == 0)} worstOverlap={worstOverlap:F1}s queueStalls={queueStalls} {Chk(queueStalls == 0)} longestCounterWait={longestCounterWait:F1}s recoveries={shop.Metrics.StuckRecoveries} repositions={shop.Metrics.Repositions} {Chk(shop.Metrics.Repositions == 0)} pathFailures={shop.Metrics.PathFailures} customersLeft={shop.Customers.Count} snaps={string.Join(",", seen)}");
+            L(Core.CollisionAudit.Report("after stress"));
+            Phase = "done";
+            Running = false;
+        }
+
+        /// <summary>Put appraised test specimens straight onto free sale slots (no walking): stock for the stress run.</summary>
+        private IEnumerator StockDirect(int n)
+        {
+            var shop = Retail.RetailShop.Instance;
+            int room = 0;
+            foreach (var z in shop.SaleSlots) if (z.gameObject.activeInHierarchy && !z.Locked && z.IsEmpty) room++;
+            n = Mathf.Min(n, room);
+            if (n <= 0) yield break;
+            SpawnTestStock(n, 0f);
+            yield return null;
+            int placed = 0;
+            foreach (var e in new List<SpecimenEntity>(S.Entities.Values))
+            {
+                if (!e.IsOpened || !e.Record.Appraised || e.Record.Location != SpecimenLocation.World || e.Zone != null) continue;
+                PlacementZone free = null;
+                foreach (var z in shop.SaleSlots) if (z.gameObject.activeInHierarchy && !z.Locked && z.IsEmpty) { free = z; break; }
+                if (free == null) break;
+                free.Place(e);
+                placed++;
+                if (placed >= n) break;
+            }
+            L($"  stocked {placed} -> forSale={S.State.ForSaleCount()}");
+        }
+
 
         /// <summary>Buy the Stage-2 workshop, check the room changed, store a rock on the rack, display on the trophy wall, reload.</summary>
         private IEnumerator Stage2()
@@ -761,10 +1008,17 @@ namespace GeodeEmpire.Core
             if (lap == null) { L("no lap"); Running = false; yield break; }
             if (!lap.Owned)
             {
-                if (S.State.Cash < 500f) S.AddCash(500f, "test");
-                S.BuyUpgrade(Economy.UpgradeCatalog.PolishLap, out string err);
-                L("bought lap: " + (err ?? "ok") + " owned=" + lap.Owned);
-                yield return null;
+                // the lap sits behind the trim saw and the Stage-2 workshop
+                foreach (var id in new[] { Economy.UpgradeCatalog.TrimSaw, Economy.UpgradeCatalog.Stage2, Economy.UpgradeCatalog.PolishLap })
+                {
+                    if (S.State.HasUpgrade(id)) continue;
+                    float price = Economy.UpgradeCatalog.Get(id).Price;
+                    if (S.State.Cash < price + 150f) S.AddCash(price + 150f, "test");
+                    S.BuyUpgrade(id, out string err);
+                    L($"bought {id}: {(err ?? "ok")}");
+                    yield return null;
+                }
+                L("lap owned=" + lap.Owned);
             }
             SpecimenEntity piece = null; float best = -1f;
             foreach (var e in S.Entities.Values)

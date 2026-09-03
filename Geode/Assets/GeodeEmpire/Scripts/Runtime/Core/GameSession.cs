@@ -411,6 +411,7 @@ namespace GeodeEmpire.Core
             string cav = g.Cavity.ToString();
             if (!entry.CavitiesSeen.Contains(cav)) entry.CavitiesSeen.Add(cav);
 
+            if (string.IsNullOrEmpty(r.ProcessedBy)) r.ProcessedBy = "hammer";
             var st = State.Stats;
             st.SpecimensOpened++;
             if (damageFraction > 0.001f) { if (damageFraction > st.MostDamagedFraction) { st.MostDamagedFraction = damageFraction; st.MostDamagedName = r.DisplayName; } }

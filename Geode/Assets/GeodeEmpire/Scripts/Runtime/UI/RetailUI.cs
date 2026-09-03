@@ -14,8 +14,9 @@ namespace GeodeEmpire.UI
         private RetailShop _shop;
         private CheckoutRegister _register;
         private VisualElement _chip, _card;
-        private Label _chipText, _cardWho, _cardWhat, _cardPrice, _cardPrompt;
+        private Label _chipText, _cardWho, _cardWhat, _cardPrice, _cardProfit, _cardPrompt;
         private float _flash;
+        private string _soldWhat, _soldPrice, _soldProfit;
 
         private void Start()
         {
@@ -35,6 +36,7 @@ namespace GeodeEmpire.UI
             _cardWho = UiKit.Label(_card, "", "item-sub");
             _cardWhat = UiKit.Label(_card, "", "appraisal-name", "bold");
             _cardPrice = UiKit.Label(_card, "", "appraisal-value");
+            _cardProfit = UiKit.Label(_card, "", "item-sub");
             _cardPrompt = UiKit.Label(_card, "", "muted");
             _card.style.display = DisplayStyle.None;
             _shop.Changed += Refresh;
@@ -47,7 +49,15 @@ namespace GeodeEmpire.UI
             if (_shop != null) { _shop.Changed -= Refresh; _shop.SaleCompleted -= OnSale; }
         }
 
-        private void OnSale(Customer c, Save.SpecimenRecord r, float price) { _flash = 1.6f; }
+        private void OnSale(Customer c, Save.SpecimenRecord r, float price)
+        {
+            _flash = 2.2f;
+            _soldWhat = r.DisplayName;
+            _soldPrice = UiKit.Money(price);
+            float dealer = r.EstimatedValue();
+            _soldProfit = dealer > 0f ? $"{UiKit.Money(price - dealer)} over the dealer's price" : "";
+            Refresh();
+        }
 
         private void Update()
         {
@@ -56,12 +66,26 @@ namespace GeodeEmpire.UI
             if (rung)
             {
                 var c = _shop.AtCounter;
+                var rec = c.Wanted.Record;
+                float dealer = rec.EstimatedValue();
                 _cardWho.text = $"{c.Archetype.Name}  •  {c.Archetype.Blurb}";
-                _cardWhat.text = c.Wanted.Record.DisplayName;
-                _cardPrice.text = UiKit.Money(c.Wanted.Record.AskingPrice);
+                _cardWhat.text = rec.DisplayName;
+                _cardPrice.text = UiKit.Money(rec.AskingPrice);
+                _cardProfit.text = dealer > 0f ? $"{UiKit.Money(rec.AskingPrice - dealer)} over the dealer's price" : "";
                 _cardPrompt.text = $"[{GameInput.Glyph("Interact")}] Take payment";
+                _card.RemoveFromClassList("checkout-sold");
             }
-            _card.style.display = rung ? DisplayStyle.Flex : DisplayStyle.None;
+            else if (_flash > 0f)
+            {
+                // the payoff: SOLD, the price, the margin, for a couple of seconds
+                _cardWho.text = "SOLD";
+                _cardWhat.text = _soldWhat;
+                _cardPrice.text = _soldPrice;
+                _cardProfit.text = _soldProfit;
+                _cardPrompt.text = "Thank you, come again";
+                _card.AddToClassList("checkout-sold");
+            }
+            _card.style.display = rung || _flash > 0f ? DisplayStyle.Flex : DisplayStyle.None;
             if (_flash > 0f) { _flash -= Time.deltaTime; if (_flash <= 0f) Refresh(); }
         }
 

@@ -46,6 +46,11 @@ namespace GeodeEmpire.Retail
         private readonly List<Customer> _customers = new List<Customer>();
         private readonly Dictionary<PlacementZone, UI.WorldLabel> _labels = new Dictionary<PlacementZone, UI.WorldLabel>();
         private readonly Queue<Customer> _queue = new Queue<Customer>();
+        private readonly Dictionary<PlacementZone, Customer> _browseClaims = new Dictionary<PlacementZone, Customer>();
+
+        /// <summary>Navigation health counters, read by the retail stress test.</summary>
+        public sealed class NavMetrics { public int StuckRecoveries, Repositions, PathFailures; }
+        public NavMetrics Metrics = new NavMetrics();
         private float _nextSpawnIn = 25f;
         private int _customerCounter;
         private float _doorOpen;
@@ -93,6 +98,7 @@ namespace GeodeEmpire.Retail
             _customers.Clear();
             _queue.Clear();
             AtCounter = null;
+            _browseClaims.Clear();
             _nextSpawnIn = 30f;
             RefreshCapacity();
         }
@@ -153,6 +159,24 @@ namespace GeodeEmpire.Retail
         }
 
         public PlacementZone SlotOf(SpecimenEntity e) => e != null ? e.Zone : null;
+
+        // ---- browse spots: one person per fixture, so nobody stands inside anybody else ---------------------------
+        public bool ClaimBrowse(PlacementZone slot, Customer c)
+        {
+            if (slot == null) return false;
+            if (_browseClaims.TryGetValue(slot, out var other) && other != null && other != c && other.State != Customer.Phase.Done) return false;
+            _browseClaims[slot] = c;
+            return true;
+        }
+
+        public Customer BrowseClaimedBy(PlacementZone slot) => slot != null && _browseClaims.TryGetValue(slot, out var c) && c != null ? c : null;
+
+        public void ReleaseBrowse(Customer c)
+        {
+            List<PlacementZone> mine = null;
+            foreach (var kv in _browseClaims) if (kv.Value == c || kv.Value == null) (mine ??= new List<PlacementZone>()).Add(kv.Key);
+            if (mine != null) foreach (var k in mine) _browseClaims.Remove(k);
+        }
 
         /// <summary>Typical asking price of what is on the shelves (median), or a modest default for an empty shop.</summary>
         public float StockAnchorPrice()
@@ -247,6 +271,7 @@ namespace GeodeEmpire.Retail
         public void Remove(Customer c)
         {
             _customers.Remove(c);
+            ReleaseBrowse(c);
             if (AtCounter == c) AtCounter = null;
             RefreshLabels();
             Changed?.Invoke();

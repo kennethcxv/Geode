@@ -356,6 +356,37 @@ namespace GeodeEmpire.UI
                 }
             }
             UiKit.Label(_content, $"{known} of {MineralCatalog.All.Count} mineral families discovered", "muted");
+
+            // the pieces on display, with their short histories
+            var kept = new List<SpecimenRecord>();
+            foreach (var r in st.Specimens) if (r.Location == SpecimenLocation.DisplaySlot) kept.Add(r);
+            if (kept.Count > 0)
+            {
+                UiKit.Label(_content, "ON DISPLAY", "section");
+                kept.Sort((a, b) => a.LocationIndex.CompareTo(b.LocationIndex));
+                foreach (var r in kept)
+                {
+                    var card = UiKit.Box(_content, "item-card");
+                    UiKit.Label(card, $"{r.LocationIndex + 1}.  {r.DisplayName}", "item-title", "medium");
+                    UiKit.Label(card, Provenance(r), "item-sub");
+                }
+            }
+        }
+
+        /// <summary>One line of history: where it came from, what opened it, what was done to it, what it is worth.</summary>
+        public static string Provenance(SpecimenRecord r)
+        {
+            var parts = new List<string>();
+            var sup = !string.IsNullOrEmpty(r.SupplierId) ? SupplierCatalog.Get(r.SupplierId) : null;
+            if (sup != null) parts.Add(sup.Name + (!string.IsNullOrEmpty(r.CrateId) ? $" (lot {r.CrateId})" : ""));
+            string tool = r.IsPiece ? "trim saw" : r.ProcessedBy == "hammer" ? "hammer and chisel" : r.ProcessedBy;
+            if (!string.IsNullOrEmpty(tool)) parts.Add("opened with the " + tool);
+            if (r.DamageFraction > 0.005f) parts.Add($"{r.DamageFraction * 100f:F0}% crystal damage"); else if (r.IsOpened) parts.Add("no damage");
+            if (r.Polish > 0.5f) parts.Add("polished");
+            parts.Add(r.Appraised ? "appraised " + UiKit.Money(r.AppraisedValue) : "unappraised");
+            if (r.DiscoveredAtTicks > 0) parts.Add("found " + new System.DateTime(r.DiscoveredAtTicks).ToString("d MMM yyyy"));
+            else if (r.OpenedAtTicks > 0) parts.Add("opened " + new System.DateTime(r.OpenedAtTicks).ToString("d MMM yyyy"));
+            return string.Join("  •  ", parts);
         }
 
         // ---- Stats ----------------------------------------------------------------------------

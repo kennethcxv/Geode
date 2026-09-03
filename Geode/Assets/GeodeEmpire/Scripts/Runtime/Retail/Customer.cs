@@ -43,13 +43,15 @@ namespace GeodeEmpire.Retail
     }
 
     /// <summary>
-    /// One shop visitor: walks in, looks at what is on sale, decides, queues, pays, leaves. NavMeshAgent for the walk,
-    /// a procedural stride and head-turn for life. Never persisted; never touches the career state directly.
+    /// One shop visitor: walks in, looks at what is on sale, decides, queues, pays, leaves. NavMeshAgent for the walk
+    /// (position only: the body turns itself, smoothly), browse spots are reserved so two people never stand in one
+    /// place, everyone yields a little to whoever is ahead, and a customer who makes no progress repaths, sidesteps
+    /// and, as a last resort, is moved on while nobody is looking. Never persisted; never touches the career state.
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent))]
     public sealed class Customer : MonoBehaviour
     {
-        public enum Phase { Entering, Browsing, Deciding, ToQueue, Queued, AtCounter, Leaving, Done }
+        public enum Phase { Entering, Browsing, Deciding, ToQueue, Queued, AtCounter, Thanking, Leaving, Done }
 
         public CustomerArchetype Archetype { get; private set; }
         public Phase State { get; private set; } = Phase.Entering;
@@ -57,6 +59,13 @@ namespace GeodeEmpire.Retail
         public float Budget { get; private set; }
         public bool Bought { get; private set; }
         public int Id { get; private set; }
+        public int Priority => _agent != null ? _agent.avoidancePriority : 50;
+        public float Speed => _agent != null ? _agent.velocity.magnitude : 0f;
+        /// <summary>Has somewhere to be and is not deliberately standing still.</summary>
+        public bool Walking => _hasTarget && _agent != null && !_agent.isStopped && !_agent.pathPending;
+        public bool Arrived => HasArrived();
+        public int Recoveries { get; private set; }
+        public float StuckSeconds { get; private set; }
 
         private RetailShop _shop;
         private NavMeshAgent _agent;
@@ -69,9 +78,22 @@ namespace GeodeEmpire.Retail
         private int _queueIndex = -1;
         private readonly List<PlacementZone> _plan = new List<PlacementZone>();
         private int _planIndex;
+        private int _deferred;
+        private int _waits;
         private PlacementZone _lookingAt;
         private float _bestInterest;
         private SpecimenEntity _best;
+        private float _baseSpeed = 1.1f, _speedMul = 1f;
+        private Vector3 _target;
+        private bool _hasTarget, _fallback;
+        private Vector3 _progressPos;
+        private float _progressTimer;
+        private int _stuckLevel;
+        private float _turnRate;
+        private float _fidget;
+        private float _headYaw;
+        private UI.WorldLabel _bubble;
+        private float _bubbleTimer;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         public void Init(RetailShop shop, int id)
@@ -84,13 +106,19 @@ namespace GeodeEmpire.Retail
             float anchor = _shop.StockAnchorPrice();
             Budget = Mathf.Clamp(Mathf.Round(Mathf.Max(Archetype.BudgetFloor, anchor * rng.Range(Archetype.BudgetMin, Archetype.BudgetMax)) / 5f) * 5f, 10f, 9999f);
             _agent = GetComponent<NavMeshAgent>();
-            _agent.speed = rng.Range(0.95f, 1.25f);
-            _agent.angularSpeed = 240f;
-            _agent.acceleration = 4f;
-            _agent.stoppingDistance = 0.12f;
-            _agent.radius = 0.28f;
+            _baseSpeed = rng.Range(0.9f, 1.25f);
+            _agent.speed = _baseSpeed;
+            _agent.angularSpeed = 220f;
+            _agent.acceleration = 3.2f;
+            _agent.stoppingDistance = 0.2f;
+            _agent.radius = 0.3f;
             _agent.height = 1.7f;
+            _agent.autoBraking = true;
+            _agent.autoRepath = true;
+            _agent.updateRotation = false;   // the body turns itself: no instant pivots
+            _agent.obstacleAvoidanceType = ObstacleAvoidanceType.MedQualityObstacleAvoidance;
             _agent.avoidancePriority = 40 + id % 20;
+            _fidget = rng.Range(0f, 6.28f);
             _legL = Find("LegL"); _legR = Find("LegR"); _armL = Find("ArmL"); _armR = Find("ArmR"); _head = Find("Head"); _torso = Find("Torso");
             transform.localScale = Vector3.one * Archetype.Height * rng.Range(0.97f, 1.03f);
             // colours per part and sub-mesh, with a little per-person variation. The figure's parts only carry the
@@ -134,8 +162,15 @@ namespace GeodeEmpire.Retail
             });
             int look = Mathf.Min(slots.Count, rng.Range(2, 5));
             for (int i = 0; i < look; i++) _plan.Add(slots[i]);
-            if (_plan.Count == 0 && _shop.SaleSlots.Count > 0) _plan.Add(_shop.SaleSlots[rng.Range(0, Mathf.Min(_shop.SaleSlots.Count, 6))]);   // window shopping
+            if (_plan.Count == 0 && _shop.SaleSlots.Count > 0)
+            {
+                // window shopping: any fixture that exists in this shop
+                var open = new List<PlacementZone>();
+                foreach (var s in _shop.SaleSlots) if (s.gameObject.activeInHierarchy) open.Add(s);
+                if (open.Count > 0) _plan.Add(open[rng.Range(0, Mathf.Min(open.Count, 6))]);
+            }
             State = Phase.Entering;
+            _progressPos = transform.position;
             GoToBrowse();
         }
 
@@ -145,40 +180,204 @@ namespace GeodeEmpire.Retail
             return null;
         }
 
-        private bool Go(Transform target)
+        // ---- navigation ------------------------------------------------------------------------
+        private bool Go(Vector3 point)
         {
-            if (target == null || _agent == null || !_agent.isOnNavMesh) return false;
+            if (_agent == null || !_agent.isOnNavMesh) return false;
             _agent.isStopped = false;
             _navTimer = 0f;
-            return _agent.SetDestination(target.position);
+            _target = point;
+            _hasTarget = true;
+            _fallback = false;
+            _stuckLevel = 0;
+            _progressPos = transform.position;
+            _progressTimer = 0f;
+            if (!_agent.SetDestination(point)) { _shop.Metrics.PathFailures++; _hasTarget = false; return false; }
+            return true;
+        }
+
+        private bool Go(Transform target) => target != null && Go(target.position);
+
+        private void Stop()
+        {
+            if (_agent != null && _agent.isOnNavMesh) _agent.isStopped = true;
+            _hasTarget = false;
         }
 
         /// <summary>
         /// Reached the destination, or as close as this shop lets them: someone (usually the player) standing on the
         /// browse point, or an unreachable point, must never park a customer forever.
         /// </summary>
-        private bool Arrived
+        private bool HasArrived()
         {
-            get
+            if (_agent == null || !_hasTarget) return true;
+            if (_agent.pathPending) return false;
+            float remaining = _agent.remainingDistance;
+            float radius = _agent.stoppingDistance + (_fallback ? 0.3f : 0.1f);
+            if (remaining <= radius) return true;
+            if (_agent.pathStatus != NavMeshPathStatus.PathComplete && remaining <= 0.7f) return true;
+            if (remaining <= 0.8f && SomeoneStandingNear(_target, 0.7f)) return true;   // close enough: the next spot is taken, look from here
+            if (_navTimer > 5f && remaining <= 1.1f && _agent.velocity.sqrMagnitude < 0.0004f) return true;
+            return _navTimer > 16f;
+        }
+
+        private bool SomeoneStandingNear(Vector3 point, float radius)
+        {
+            foreach (var o in _shop.Customers)
             {
-                if (_agent == null) return true;
-                if (_agent.pathPending) return false;
-                float remaining = _agent.remainingDistance;
-                if (remaining <= _agent.stoppingDistance + 0.08f) return true;
-                if (_agent.pathStatus != NavMeshPathStatus.PathComplete && remaining <= 0.7f) return true;
-                if (_navTimer > 5f && remaining <= 1.1f && _agent.velocity.sqrMagnitude < 0.0004f) return true;
-                return _navTimer > 14f;
+                if (o == null || o == this || o.Walking) continue;
+                Vector3 d = o.transform.position - point; d.y = 0f;
+                if (d.sqrMagnitude < radius * radius) return true;
+            }
+            return false;
+        }
+
+        /// <summary>No meaningful progress for a short while: repath, then sidestep to a nearby valid point, then move on unseen.</summary>
+        private void TrackProgress(float dt)
+        {
+            if (!Walking) { _progressTimer = 0f; _progressPos = transform.position; return; }
+            _progressTimer += dt;
+            if (_progressTimer < 1.6f) return;
+            float moved = Vector3.Distance(transform.position, _progressPos);
+            float remaining = _agent.remainingDistance;
+            bool invalid = _agent.pathStatus == NavMeshPathStatus.PathInvalid;
+            _progressPos = transform.position;
+            _progressTimer = 0f;
+            bool stalled = moved < 0.08f && remaining > _agent.stoppingDistance + 0.25f;
+            if (!stalled && !invalid) { _stuckLevel = 0; return; }
+            StuckSeconds += 1.6f;
+            Recover(invalid);
+        }
+
+        private void Recover(bool invalid)
+        {
+            Recoveries++;
+            _shop.Metrics.StuckRecoveries++;
+            if (invalid) _shop.Metrics.PathFailures++;
+            _stuckLevel++;
+            if (_stuckLevel == 1 && !invalid)
+            {
+                _agent.ResetPath();
+                _agent.SetDestination(_target);
+                return;
+            }
+            if (_stuckLevel <= 4)
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    var off = Random.insideUnitCircle * (0.45f + 0.15f * _stuckLevel);
+                    if (NavMesh.SamplePosition(_target + new Vector3(off.x, 0f, off.y), out var hit, 0.5f, NavMesh.AllAreas))
+                    {
+                        _agent.ResetPath();
+                        if (_agent.SetDestination(hit.position)) { _fallback = true; return; }
+                    }
+                }
+                return;
+            }
+            // unrecoverable in place: put them where they were going, while the player is not looking (or after long enough anyway)
+            if (!VisibleToPlayer() || _stuckLevel >= 8)
+            {
+                if (NavMesh.SamplePosition(_target, out var hit, 0.8f, NavMesh.AllAreas)) _agent.Warp(hit.position);
+                _shop.Metrics.Repositions++;
+                _stuckLevel = 0;
+                _fallback = true;
             }
         }
 
+        private bool VisibleToPlayer()
+        {
+            var cam = Camera.main;
+            if (cam == null) return false;
+            Vector3 d = transform.position + Vector3.up * 0.9f - cam.transform.position;
+            if (d.sqrMagnitude > 12f * 12f) return false;
+            return Vector3.Angle(cam.transform.forward, d) < cam.fieldOfView * 0.7f;
+        }
+
+        /// <summary>Personal space: slow for whoever is ahead (the lower-priority walker gives way) and never push through the player.</summary>
+        private void YieldToOthers(float dt)
+        {
+            float mul = 1f;
+            if (Walking)
+            {
+                Vector3 fwd = _agent.velocity.sqrMagnitude > 0.01f ? _agent.velocity.normalized : -transform.forward;
+                foreach (var o in _shop.Customers)
+                {
+                    if (o == null || o == this) continue;
+                    Vector3 d = o.transform.position - transform.position; d.y = 0f;
+                    float dist = d.magnitude;
+                    if (dist > 1.2f || dist < 0.001f) continue;
+                    if (Vector3.Dot(d / dist, fwd) < 0.35f) continue;
+                    bool iYield = Priority >= o.Priority || !o.Walking;
+                    float slow = Mathf.Lerp(iYield ? 0.3f : 0.65f, 1f, Mathf.InverseLerp(0.5f, 1.2f, dist));
+                    mul = Mathf.Min(mul, slow);
+                }
+                var cam = Camera.main;
+                if (cam != null)
+                {
+                    Vector3 d = cam.transform.position - transform.position; d.y = 0f;
+                    float dist = d.magnitude;
+                    if (dist > 0.001f && dist < 1.0f && Vector3.Dot(d / dist, fwd) > 0.3f) mul = Mathf.Min(mul, Mathf.Lerp(0.15f, 1f, Mathf.InverseLerp(0.45f, 1.0f, dist)));
+                }
+            }
+            _speedMul = Mathf.MoveTowards(_speedMul, mul, dt * 2.2f);
+            if (_agent != null) _agent.speed = _baseSpeed * _speedMul;
+        }
+
+        /// <summary>The body follows the direction of travel with a turn-rate limit; standing still it faces what it is doing.</summary>
+        private void TurnBody(float dt)
+        {
+            Vector3 v = _agent != null ? _agent.velocity : Vector3.zero; v.y = 0f;
+            float before = transform.eulerAngles.y;
+            if (v.sqrMagnitude > 0.03f)
+            {
+                var want = Quaternion.LookRotation(-v.normalized, Vector3.up);   // the figure's front is -Z (Blender -Y)
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, want, 240f * dt);
+            }
+            float rate = dt > 0f ? Mathf.DeltaAngle(before, transform.eulerAngles.y) / dt : 0f;
+            _turnRate = Mathf.Lerp(_turnRate, rate, dt * 6f);
+        }
+
+        // ---- browsing / deciding ---------------------------------------------------------------
         private void GoToBrowse()
         {
-            if (_planIndex >= _plan.Count) { Decide(); return; }
-            _lookingAt = _plan[_planIndex];
-            var bp = _shop.BrowsePointFor(_lookingAt);
-            if (bp == null || !Go(bp)) { _planIndex++; GoToBrowse(); return; }
+            _shop.ReleaseBrowse(this);
+            int guard = 0;
+            while (_planIndex < _plan.Count && guard++ < 12)
+            {
+                var slot = _plan[_planIndex];
+                if (!_shop.ClaimBrowse(slot, this))
+                {
+                    // someone is standing there: come back to it, and if the whole plan is taken, wait a little way off
+                    if (_deferred < _plan.Count) { _plan.RemoveAt(_planIndex); _plan.Add(slot); _deferred++; continue; }
+                    if (_waits < 2) { _waits++; _deferred = 0; Loiter(slot); return; }
+                    _planIndex++;
+                    continue;
+                }
+                var bp = _shop.BrowsePointFor(slot);
+                if (bp == null || !Go(bp.position)) { _shop.ReleaseBrowse(this); _planIndex++; continue; }
+                _lookingAt = slot;
+                _deferred = 0;
+                State = Phase.Browsing;
+                _timer = -1f;
+                return;
+            }
+            Decide();
+        }
+
+        /// <summary>Wait a step back from a busy fixture, looking at it, then try the plan again.</summary>
+        private void Loiter(PlacementZone slot)
+        {
+            var bp = _shop.BrowsePointFor(slot);
+            Vector3 basePos = bp != null ? bp.position : transform.position;
+            Vector3 away = basePos - slot.transform.position; away.y = 0f;
+            away = away.sqrMagnitude > 0.001f ? away.normalized : Vector3.forward;
+            Vector3 side = Vector3.Cross(Vector3.up, away) * (Random.value < 0.5f ? -1f : 1f);
+            Vector3 spot = basePos + away * 0.8f + side * 0.55f;
+            if (NavMesh.SamplePosition(spot, out var hit, 0.8f, NavMesh.AllAreas)) spot = hit.position;
+            _lookingAt = slot;
             State = Phase.Browsing;
             _timer = -1f;
+            if (!Go(spot)) { _planIndex++; GoToBrowse(); }
         }
 
         private float Interest(SpecimenRecord r)
@@ -192,6 +391,14 @@ namespace GeodeEmpire.Retail
             f += Archetype.SizeWeight * Mathf.Clamp01((g.MassKg - 1.2f) / 3f) * 0.4f;
             f -= Archetype.ConditionWeight * r.DamageFraction * 0.8f;
             f += 0.08f + Mathf.Clamp01((float)g.Tier / 4f) * 0.22f;       // anything beyond a plain common piece reads as "nice"
+            // what the workshop made of it: decorators and tourists love a polished face, collectors and rockhounds a natural split
+            if (r.IsPiece)
+            {
+                bool decor = Archetype.Name == "Decorator" || Archetype.Name == "Tourist" || Archetype.Name == "Jeweller";
+                if (r.Polish > 0.5f) f += decor ? 0.14f : 0.05f;
+                if (r.Piece.IsSlab) f += decor ? 0.06f : -0.04f;
+            }
+            else if (Archetype.Name == "Collector" || Archetype.Name == "Rockhound") f += 0.06f;
             // a bargain relative to their budget is tempting
             f += Mathf.Clamp01(1f - price / Budget) * 0.2f;
             return Mathf.Clamp01(f);
@@ -199,8 +406,10 @@ namespace GeodeEmpire.Retail
 
         private void Decide()
         {
+            _shop.ReleaseBrowse(this);
+            Stop();
             State = Phase.Deciding;
-            _timer = 0.6f;
+            _timer = Random.Range(0.5f, 1.1f);
         }
 
         private void Update()
@@ -208,7 +417,11 @@ namespace GeodeEmpire.Retail
             if (_shop == null || _agent == null) return;
             float dt = Time.deltaTime;
             _navTimer += dt;
+            TrackProgress(dt);
+            YieldToOthers(dt);
+            TurnBody(dt);
             Animate(dt);
+            if (_bubble != null) { _bubbleTimer -= dt; if (_bubbleTimer <= 0f) { Destroy(_bubble.gameObject); _bubble = null; } else FaceBubble(); }
             switch (State)
             {
                 case Phase.Entering:
@@ -216,8 +429,8 @@ namespace GeodeEmpire.Retail
                     if (!Arrived) break;
                     if (_timer < 0f)
                     {
-                        _timer = Random.Range(2.8f, 5.5f);
-                        _agent.isStopped = true;
+                        _timer = Random.Range(2.6f, 5.5f);
+                        Stop();
                     }
                     _timer -= dt;
                     FaceSlot(_lookingAt, dt);
@@ -229,7 +442,7 @@ namespace GeodeEmpire.Retail
                             float i = Interest(occ.Record) * Random.Range(0.85f, 1.15f);
                             if (i > _bestInterest) { _bestInterest = i; _best = occ; }
                         }
-                        _planIndex++;
+                        if (_shop.BrowseClaimedBy(_lookingAt) == this) _planIndex++;   // a loiter does not consume the plan entry
                         GoToBrowse();
                     }
                     break;
@@ -255,7 +468,7 @@ namespace GeodeEmpire.Retail
                     if (idx != _queueIndex) { _queueIndex = idx; Go(_shop.QueuePoint(idx)); }
                     if (Arrived)
                     {
-                        _agent.isStopped = true;
+                        Stop();
                         if (idx == 0)
                         {
                             if (State != Phase.AtCounter)
@@ -267,15 +480,20 @@ namespace GeodeEmpire.Retail
                         }
                         else State = Phase.Queued;
                     }
-                    FaceTowards(_shop.CounterItemPoint != null ? _shop.CounterItemPoint.position : transform.position + transform.forward, dt);
+                    if (!Walking) FaceTowards(_shop.CounterItemPoint != null ? _shop.CounterItemPoint.position : transform.position - transform.forward, dt);
                     _queueTimer += dt;
                     if (_queueTimer > Archetype.Patience && State != Phase.AtCounter) { PutBack(); Leave(false); }
                     break;
                 }
                 case Phase.AtCounter:
-                    FaceTowards(_shop.CounterItemPoint != null ? _shop.CounterItemPoint.position - transform.right * 0.2f : transform.position + transform.forward, dt);
+                    FaceTowards(_shop.CounterItemPoint != null ? _shop.CounterItemPoint.position - transform.right * 0.2f : transform.position - transform.forward, dt);
                     _queueTimer += dt;
                     if (_queueTimer > Archetype.Patience * 1.6f) { PutBack(); Leave(false); }
+                    break;
+                case Phase.Thanking:
+                    _timer -= dt;
+                    FaceTowards(Camera.main != null ? Camera.main.transform.position : transform.position - transform.forward, dt);
+                    if (_timer <= 0f) Leave(true);
                     break;
                 case Phase.Leaving:
                     if (Arrived || _timer < 0f) Finish();
@@ -317,31 +535,37 @@ namespace GeodeEmpire.Retail
 
         private void PutBack()
         {
-            if (Wanted == null) return;
             var e = Wanted;
             Wanted = null;
-            e.transform.SetParent(null, true);
-            e.Locked = false;
-            e.SetCollidersEnabled(true);
-            // back onto a free sale slot (its own if still empty)
-            PlacementZone home = null;
-            foreach (var s in _shop.SaleSlots) if (s.IsEmpty && !s.Locked) { home = s; break; }
-            if (home != null) home.Place(e, true);
-            else { e.SetPhysics(true); e.Record.Location = SpecimenLocation.World; e.Record.AskingPrice = 0f; }
+            if (e != null)
+            {
+                e.transform.SetParent(null, true);
+                e.Locked = false;
+                e.SetCollidersEnabled(true);
+                // back onto a free sale slot (its own if still empty)
+                PlacementZone home = null;
+                foreach (var s in _shop.SaleSlots) if (s.IsEmpty && !s.Locked && s.gameObject.activeInHierarchy) { home = s; break; }
+                if (home != null) home.Place(e, true);
+                else { e.SetPhysics(true); e.Record.Location = SpecimenLocation.World; e.Record.AskingPrice = 0f; }
+            }
             _shop.LeaveQueue(this);
             _shop.RefreshLabels();
         }
 
+        /// <summary>Money taken: a beat of thanks at the counter, then out.</summary>
         public void Paid()
         {
             Bought = true;
             Wanted = null;
-            Leave(true);
+            State = Phase.Thanking;
+            _timer = 1.1f;
+            Say("Thanks!");
         }
 
         private void Leave(bool happy)
         {
             if (!happy && !Bought) _shop.CustomerLeftEmptyHanded();
+            _shop.ReleaseBrowse(this);
             State = Phase.Leaving;
             _timer = 40f;
             if (!Go(_shop.OutsidePoint)) Finish();
@@ -350,22 +574,80 @@ namespace GeodeEmpire.Retail
         private void Finish()
         {
             State = Phase.Done;
+            _shop.ReleaseBrowse(this);
             _shop.Remove(this);
             Destroy(gameObject);
         }
 
         // ---- presentation --------------------------------------------------------------------
+        private void Say(string text)
+        {
+            if (_shop.LabelFont == null) return;
+            if (_bubble == null)
+            {
+                _bubble = UI.WorldLabel.Create(transform, _shop.LabelFont, _shop.LabelMaterial, 0.07f, new Color(0.98f, 0.95f, 0.85f), "Bubble");
+                _bubble.transform.localPosition = new Vector3(0f, 1.95f, 0f);
+            }
+            _bubble.Text = text;
+            _bubbleTimer = 1.4f;
+            FaceBubble();
+        }
+
+        private void FaceBubble()
+        {
+            var cam = Camera.main;
+            if (cam == null || _bubble == null) return;
+            Vector3 d = _bubble.transform.position - cam.transform.position; d.y = 0f;
+            if (d.sqrMagnitude > 0.001f) _bubble.transform.rotation = Quaternion.LookRotation(d.normalized, Vector3.up);
+        }
+
         private void Animate(float dt)
         {
             float speed = _agent != null ? _agent.velocity.magnitude : 0f;
+            float gait = Mathf.Clamp01(speed / 0.5f);
             _stride += dt * speed * 5.2f;
-            float swing = Mathf.Sin(_stride) * Mathf.Clamp01(speed / 0.5f) * 28f;
+            float swing = Mathf.Sin(_stride) * gait * 28f;
             if (_legL != null) _legL.localRotation = Quaternion.Euler(swing, 0f, 0f);
             if (_legR != null) _legR.localRotation = Quaternion.Euler(-swing, 0f, 0f);
+            float t = Time.time + _fidget;
+            bool standing = gait < 0.15f;
+            bool browsing = State == Phase.Browsing && standing;
+            bool waiting = (State == Phase.Queued || State == Phase.AtCounter) && standing;
             float armSwing = swing * 0.6f;
-            if (_armL != null) _armL.localRotation = Quaternion.Euler(-armSwing, 0f, 4f);
+            // left hand: swings, or comes up to the chin for a moment while weighing something up
+            var leftIdle = Quaternion.Euler(-armSwing, 0f, 4f);
+            if (browsing && Mathf.Sin(t * 0.6f) > 0.55f) leftIdle = Quaternion.Euler(-88f, 0f, 34f);
+            if (_armL != null) _armL.localRotation = Quaternion.Slerp(_armL.localRotation, leftIdle, dt * 5f);
             if (_armR != null) _armR.localRotation = Quaternion.Slerp(_armR.localRotation, Wanted != null ? Quaternion.Euler(-62f, 0f, -6f) : Quaternion.Euler(armSwing, 0f, -4f), dt * 6f);
-            if (_torso != null) _torso.localPosition = new Vector3(0f, 0.95f + Mathf.Abs(Mathf.Sin(_stride)) * 0.012f * Mathf.Clamp01(speed), 0f);
+            if (_torso != null)
+            {
+                float bob = Mathf.Abs(Mathf.Sin(_stride)) * 0.012f * gait;
+                float breathe = Mathf.Sin(t * 1.7f) * 0.003f;
+                float shift = (1f - gait) * Mathf.Sin(t * 0.5f) * 0.014f;
+                _torso.localPosition = new Vector3(shift, 0.95f + bob + breathe, 0f);
+                float lean = browsing ? 7f : waiting ? 2f : gait * 3f;   // toward the goods, a little into the walk
+                float roll = Mathf.Clamp(_turnRate / 220f, -1f, 1f) * 5f;
+                _torso.localRotation = Quaternion.Slerp(_torso.localRotation, Quaternion.Euler(-lean, 0f, roll), dt * 4f);
+            }
+            if (_head != null && !browsing)
+            {
+                // waiting or walking: glance at the player when they are close, otherwise look where you are going
+                var cam = Camera.main;
+                Quaternion want = Quaternion.identity;
+                if (cam != null)
+                {
+                    Vector3 toCam = cam.transform.position - _head.position;
+                    float dist = toCam.magnitude;
+                    if (dist < (waiting ? 3.2f : 1.8f) && dist > 0.05f)
+                    {
+                        Vector3 local = transform.InverseTransformDirection(toCam / dist);
+                        float yaw = Mathf.Atan2(-local.x, -local.z) * Mathf.Rad2Deg;   // front is -Z
+                        if (Mathf.Abs(yaw) < 75f) want = Quaternion.Euler(0f, Mathf.Clamp(yaw, -60f, 60f), 0f);
+                    }
+                }
+                if (State == Phase.Thanking) want *= Quaternion.Euler(Mathf.Sin(Time.time * 9f) * 6f, 0f, 0f);   // a nod
+                _head.localRotation = Quaternion.Slerp(_head.localRotation, want, dt * 3f);
+            }
         }
 
         private void FaceSlot(PlacementZone z, float dt)
@@ -386,7 +668,7 @@ namespace GeodeEmpire.Retail
             if (flat.sqrMagnitude < 0.01f) return;
             // the figure's front is -Z (Blender -Y): look away so the face points at the target
             var target = Quaternion.LookRotation(-flat.normalized, Vector3.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, target, dt * 5f);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, 200f * dt);
         }
     }
 }
