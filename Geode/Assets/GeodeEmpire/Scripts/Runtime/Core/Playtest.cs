@@ -44,6 +44,19 @@ namespace GeodeEmpire.Core
         private GameSession S => GameSession.Instance;
         private PlayerInteractor P => D.Player;
 
+        private int _snap;
+        private bool _stockedSnap;
+        public string SnapDir = "Assets/Output/fresh";
+
+        /// <summary>Contact-sheet frame of the Game view at a milestone (Editor: relative to the project root).</summary>
+        private void Snap(string name)
+        {
+            System.IO.Directory.CreateDirectory(SnapDir);
+            string path = $"{SnapDir}/{_snap++:D2}_{name}.png";
+            ScreenCapture.CaptureScreenshot(path);
+            L($"snap {path}");
+        }
+
         private void L(string msg)
         {
             Log.AppendLine($"[{Time.time:F1}] {msg}");
@@ -245,15 +258,19 @@ namespace GeodeEmpire.Core
 
             Phase = "open-crate";
             CrateEntity crate = null;
-            foreach (var c in S.Crates.Values) { crate = c; break; }
+            foreach (var c in S.Crates.Values) if (!c.IsOpened || c.RemainingRocks > 0) { crate = c; break; }
             if (crate == null) { L("no crate"); Running = false; yield break; }
             Vector3 cratePos = crate.transform.position;
             Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f;
             stand.y = 0f;
             yield return D.WalkTo(stand, 0.3f);
+            D.LookAt(cratePos + Vector3.up * 0.2f);
+            yield return null; yield return null;
+            Snap("crate_delivered");
             if (!crate.IsOpened) yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
             yield return new WaitForSeconds(0.9f);
             L("crate opened=" + crate.IsOpened + " remaining=" + crate.RemainingRocks);
+            Snap("crate_opened");
 
             Phase = "pick-rock";
             SpecimenEntity rock = null;
@@ -262,6 +279,8 @@ namespace GeodeEmpire.Core
             yield return LookAndInteract(rock.transform.position, "Pick up rock");
             L("held=" + (P.Held != null ? P.Held.Id : "none"));
             if (P.Held == null) { Running = false; yield break; }
+            yield return new WaitForSeconds(0.4f);
+            Snap("rock_in_hand");
 
             Phase = "to-bench";
             Vector3 cradle = ZonePos(ZoneKind.Cradle);
@@ -272,6 +291,7 @@ namespace GeodeEmpire.Core
             var bench = Find<CrackingBench>();
             L("bench active=" + bench.Active + " rock=" + (bench.Rock != null ? bench.Rock.Id : "none"));
             if (!bench.Active) { Running = false; yield break; }
+            Snap("bench_start");
 
             Phase = "crack";
             int strikes = 0;
@@ -285,11 +305,13 @@ namespace GeodeEmpire.Core
                 strikes++;
                 var r = bench.LastResult;
                 L($"strike {strikes}: force~{hold} sector={r.Sector} place={r.Placement:F2} added={r.StressAdded:F2} cracks={r.CracksTotal} slip={r.Slipped} dmg={r.Damaged} open={r.Opened}");
+                if (strikes == 5) Snap("crack_mid");
                 if (style != "careless" || strikes % 2 == 0) yield return Rotate(0.42f, 1);   // work around the ring
                 while (bench.Revealing) yield return null;
             }
             yield return new WaitForSeconds(2.2f);
             L($"opened={bench.Opened} strikes={strikes} note='{bench.ResultNote}' damageEvents={bench.DamageEventsThisRock}");
+            Snap("reveal");
             if (!bench.Opened) { Running = false; yield break; }
 
             Phase = "take";
@@ -304,6 +326,7 @@ namespace GeodeEmpire.Core
             yield return new WaitForSeconds(1.6f);
             var ap = Find<AppraisalStation>();
             L("appraised=" + (ap.Current != null && ap.Current.Record.Appraised) + " value=" + (ap.Current != null ? ap.Current.Record.AppraisedValue.ToString() : ""));
+            Snap("appraisal");
             yield return LookAndInteract(scale, "Take");
             L("held=" + (P.Held != null ? P.Held.Record.DisplayName : "none"));
 
@@ -313,11 +336,13 @@ namespace GeodeEmpire.Core
             yield return LookAndInteract(tray, "Place in the dealer outbox");
             var outbox = Find<SellOutbox>();
             L("outbox count=" + outbox.Count + " est=" + outbox.EstimateTotal());
+            Snap("outbox");
             var intercom = Find<DealerIntercom>();
             yield return D.WalkTo(StandNear(new Vector3(intercom.transform.position.x, 0f, intercom.transform.position.z), 1.7f), 0.3f);
             yield return LookAndInteract(intercom.transform.position, "Call dealer");
             yield return new WaitForSeconds(0.5f);
             L($"cash={S.State.Cash} sold={S.State.Stats.SpecimensSold} suppliers={string.Join(",", S.State.UnlockedSuppliers)}");
+            Snap("dealer_sold");
             Phase = "done";
             Running = false;
         }
@@ -338,10 +363,10 @@ namespace GeodeEmpire.Core
             Phase = "display";
             SpecimenEntity best = null;
             foreach (var e in S.Entities.Values)
-                if (e.IsOpened && e.Record.Location != SpecimenLocation.DisplaySlot && (best == null || e.Geology.BaseValue > best.Geology.BaseValue)) best = e;
-            if (best == null) { L("no opened specimen to display"); Running = false; yield break; }
+                if (e.IsOpened && e.Record.Location != SpecimenLocation.DisplaySlot && e.Record.Location != SpecimenLocation.SaleSlot && e.Record.Location != SpecimenLocation.Sold && (best == null || e.Geology.BaseValue > best.Geology.BaseValue)) best = e;
+            if (best == null) { L("no opened specimen to display"); yield break; }
             Vector3 bp = best.transform.position;
-            yield return D.WalkTo(StandNear(bp, 0.9f), 0.3f);
+            yield return RouteTo(StandNear(bp, 0.9f), 0.3f);
             yield return LookAndInteract(bp, "Take");
             if (P.Held == null) { yield return LookAndInteract(bp, "Pick up"); }
             L("held=" + (P.Held != null ? P.Held.Record.DisplayName : "none"));
@@ -352,6 +377,7 @@ namespace GeodeEmpire.Core
             yield return new WaitForSeconds(0.4f);
             var st = S.State;
             L($"displayed={st.DisplayedCount()} collectionValue={st.CollectionValue()} prestige={st.Prestige} suppliers={string.Join(",", st.UnlockedSuppliers)} kept={st.Stats.SpecimensKept}");
+            Snap("cabinet");
         }
 
         /// <summary>Run G (menus): drive the tablet and pause/settings purely with the virtual gamepad and log what has focus.</summary>
@@ -815,21 +841,15 @@ namespace GeodeEmpire.Core
             int placed = 0;
             foreach (var e in stock)
             {
-                PlacementZone free = null;
-                foreach (var z in shop.SaleSlots) if (z.IsEmpty && !z.Locked) { free = z; break; }
-                if (free == null) break;
+                if (FreeSaleSlot() == null) break;
                 yield return FetchRock(e);
                 if (P.Held != e) { L("could not fetch " + e.Id); continue; }
-                // stand in front of the fixture: its browse point is exactly that spot
-                var stand = shop.BrowsePointFor(free) != null ? shop.BrowsePointFor(free).position : StandNear(free.transform.position, 0.9f);
-                stand.y = 0f;
-                yield return RouteTo(stand, 0.3f);
-                yield return LookAndInteract(free.transform.position, "Put up for sale");
-                L($"stocked {e.Record.DisplayName} asking={e.Record.AskingPrice} value={e.Record.EstimatedValue()} slot={free.SlotIndex} loc={e.Record.Location}");
+                yield return StockHeld();
                 placed++;
                 if (placed >= 4) break;
             }
             L(Core.CollisionAudit.Report("stocked shelves"));
+            Snap("shelf_stocked");
             // step back behind the counter so nobody is standing on a browse point
             if (shop.CounterCustomerPoint != null) { var behind = shop.CounterCustomerPoint.position + new Vector3(-1.2f, 0f, 0f); behind.y = 0f; yield return RouteTo(behind, 0.3f); }
             // customers
@@ -840,7 +860,14 @@ namespace GeodeEmpire.Core
                 if (c == null) { L("spawn failed"); break; }
                 L($"customer {c.Id}: {c.Archetype.Name} budget={c.Budget}");
                 float t = 0f;
-                while (c != null && c.State != Retail.Customer.Phase.AtCounter && c.State != Retail.Customer.Phase.Leaving && c.State != Retail.Customer.Phase.Done && t < 90f) { t += Time.deltaTime; yield return null; }
+                while (c != null && c.State != Retail.Customer.Phase.AtCounter && c.State != Retail.Customer.Phase.Leaving && c.State != Retail.Customer.Phase.Done && t < 90f)
+                {
+                    t += Time.deltaTime;
+                    // a shopkeeper serves whoever is at the counter, not just the one being watched
+                    var other = shop.AtCounter;
+                    if (other != null && other != c && other.Wanted != null) { yield return ServeCounter(other); }
+                    yield return null;
+                }
                 if (c == null || c.State != Retail.Customer.Phase.AtCounter)
                 {
                     L($"  left without buying (state={(c != null ? c.State.ToString() : "gone")}) after {t:F0}s");
@@ -853,7 +880,12 @@ namespace GeodeEmpire.Core
                 var reg = Find<Retail.CheckoutRegister>();
                 yield return RouteTo(new Vector3(reg.transform.position.x - 0.85f, 0f, reg.transform.position.z + 0.15f), 0.3f);
                 float cashBefore = S.State.Cash;
+                D.LookAt(c.transform.position + Vector3.up * 1.3f);
+                yield return null; yield return null;
+                Snap("customer_counter");
                 yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Ring up");
+                yield return new WaitForSeconds(0.3f);
+                Snap("checkout_card");
                 yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Take");
                 yield return new WaitForSeconds(0.5f);
                 L($"  sale: cash {cashBefore} -> {S.State.Cash} retailSales={S.State.Stats.RetailSales} forSale={S.State.ForSaleCount()}");
@@ -865,7 +897,164 @@ namespace GeodeEmpire.Core
         }
 
         /// <summary>Crack every remaining rock on the bench quickly (for economy/pacing checks).</summary>
+        /// <summary>Walk behind the counter and ring up the customer standing at it (two presses).</summary>
+        private IEnumerator ServeCounter(Retail.Customer c)
+        {
+            var reg = Find<Retail.CheckoutRegister>();
+            if (reg == null || c == null || c.Wanted == null) yield break;
+            string what = c.Wanted.Record.DisplayName; float price = c.Wanted.Record.AskingPrice; float cashBefore = S.State.Cash;
+            yield return RouteTo(new Vector3(reg.transform.position.x - 0.85f, 0f, reg.transform.position.z + 0.15f), 0.3f);
+            yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Ring up");
+            yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Take");
+            yield return new WaitForSeconds(0.3f);
+            L($"  served {c.Archetype.Name}: {what} for {price}: cash {cashBefore} -> {S.State.Cash}");
+        }
+
+        private PlacementZone FreeSaleSlot()
+        {
+            var shop = Retail.RetailShop.Instance;
+            if (shop == null) return null;
+            foreach (var z in shop.SaleSlots) if (z.IsEmpty && !z.Locked) return z;
+            return null;
+        }
+
+        /// <summary>Carry the held piece to the showroom and put it on the first free sale fixture, through the real prompt.</summary>
+        private IEnumerator StockHeld()
+        {
+            var shop = Retail.RetailShop.Instance;
+            var e = P.Held;
+            var free = FreeSaleSlot();
+            if (shop == null || e == null || free == null) { L("nothing to stock"); yield break; }
+            // stand in front of the fixture: its browse point is exactly that spot
+            var stand = shop.BrowsePointFor(free) != null ? shop.BrowsePointFor(free).position : StandNear(free.transform.position, 0.9f);
+            stand.y = 0f;
+            yield return RouteTo(stand, 0.3f);
+            yield return LookAndInteract(free.transform.position, "Put up for sale");
+            if (P.Held == e)
+            {
+                // a customer put something back on that slot while we walked: take the next free one
+                var other = FreeSaleSlot();
+                if (other != null && other != free)
+                {
+                    var stand2 = shop.BrowsePointFor(other) != null ? shop.BrowsePointFor(other).position : StandNear(other.transform.position, 0.9f);
+                    stand2.y = 0f;
+                    yield return RouteTo(stand2, 0.3f);
+                    yield return LookAndInteract(other.transform.position, "Put up for sale");
+                    free = other;
+                }
+            }
+            if (P.Held == e)
+            {
+                L($"could not stock {e.Record.DisplayName}: outbox instead");
+                Vector3 tray = ZonePos(ZoneKind.SellTray);
+                yield return RouteTo(StandNear(tray), 0.3f);
+                yield return LookAndInteract(tray, "Place in the dealer outbox");
+                yield break;
+            }
+            L($"stocked {e.Record.DisplayName} asking={e.Record.AskingPrice} value={e.Record.EstimatedValue()} slot={free.SlotIndex} loc={e.Record.Location}");
+        }
+
+        /// <summary>Put the held piece in the first free cabinet slot (the collector's decision).</summary>
+        private IEnumerator KeepHeld()
+        {
+            if (P.Held == null) yield break;
+            var e = P.Held;
+            Vector3 slot = ZonePos(ZoneKind.DisplaySlot, 0);
+            yield return RouteTo(StandNear(slot, 1.0f), 0.3f);
+            yield return LookAndInteract(slot, "Place in display slot");
+            yield return new WaitForSeconds(0.4f);
+            L($"kept {e.Record.DisplayName}: displayed={S.State.DisplayedCount()} collectionValue={S.State.CollectionValue()} prestige={S.State.Prestige}");
+            if (_snap > 0) Snap("cabinet");
+        }
+
+        /// <summary>Weigh whatever is in hand on the appraisal scale and take it back.</summary>
+        private IEnumerator AppraiseHeld()
+        {
+            if (P.Held == null) yield break;
+            Vector3 scale = ZonePos(ZoneKind.Scale);
+            yield return RouteTo(StandNear(scale), 0.3f);
+            yield return LookAndInteract(scale, "Weigh on the scale");
+            yield return new WaitForSeconds(1.6f);
+            var ap = Find<AppraisalStation>();
+            L($"  appraised {(ap.Current != null ? ap.Current.Record.DisplayName : "?")} value={(ap.Current != null ? ap.Current.Record.AppraisedValue : 0f)}");
+            yield return LookAndInteract(scale, "Take");
+        }
+
+        /// <summary>Press the dealer intercom: sells the outbox.</summary>
+        private IEnumerator SellOutbox()
+        {
+            var outbox = Find<SellOutbox>();
+            var intercom = Find<DealerIntercom>();
+            if (outbox == null || intercom == null || outbox.Count == 0) yield break;
+            float before = S.State.Cash;
+            yield return RouteTo(StandNear(new Vector3(intercom.transform.position.x, 0f, intercom.transform.position.z), 1.7f), 0.3f);
+            yield return LookAndInteract(intercom.transform.position, "Call dealer");
+            yield return new WaitForSeconds(0.6f);
+            yield return DismissLetters();
+            L($"dealer: {outbox.Count} left, cash {before} -> {S.State.Cash}");
+        }
+
+        /// <summary>Empty crates are broken down like a player would, freeing the pallet.</summary>
+        private IEnumerator BreakDownEmptyCrates()
+        {
+            foreach (var c in new List<CrateEntity>(S.Crates.Values))
+            {
+                if (c == null || !c.IsOpened || c.RemainingRocks > 0) continue;
+                Vector3 p = c.transform.position;
+                Vector3 stand = p + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
+                yield return RouteTo(stand, 0.3f);
+                yield return LookAndInteract(p + Vector3.up * 0.2f, "Break down");
+                yield return new WaitForSeconds(0.5f);
+                L("broke down " + c.Record.Id + " crates=" + S.Crates.Count);
+            }
+        }
+
         public void RunCrackAll(string style = "careful") { if (!Running) StartCoroutine(CrackAll(style)); }
+
+        public void RunFreshPlayer(string style = "careful") { if (!Running) StartCoroutine(FreshPlayer(style)); }
+
+        /// <summary>
+        /// The intended first session, end to end, through the real prompts: first crate (buy, open, crack, appraise,
+        /// dealer), the rest of the crate, a keeper in the cabinet, a second crate, the showroom with customers, and
+        /// the menus on the pad. Frames are captured at each milestone; the log carries the pacing.
+        /// </summary>
+        private IEnumerator FreshPlayer(string style)
+        {
+            Running = true;
+            _snap = 0; _stockedSnap = false;
+            float t0 = Time.time;
+            L($"== FreshPlayer ({style}) cash={S.State.Cash} specimens={S.State.Specimens.Count}");
+            yield return FirstCrate(style);
+            Running = true;
+            L($"-- first crate done at {Time.time - t0:F0}s");
+            yield return CrackAllCore(style);
+            Running = true;
+            yield return SellOutbox();
+            L($"-- crate cracked out at {Time.time - t0:F0}s cash={S.State.Cash} forSale={S.State.ForSaleCount()}");
+            if (S.State.DisplayedCount() == 0) yield return DisplayKeepCore();
+            Running = true;
+            L($"-- keeper displayed at {Time.time - t0:F0}s kept={S.State.DisplayedCount()}");
+            yield return BreakDownEmptyCrates();
+            // second crate: whatever the tablet now offers beyond the local quarry
+            string next = S.State.UnlockedSuppliers.Contains("regional") && S.State.Cash >= 150f ? "regional" : "local";
+            if (S.BuyCrate(next, out string err)) L($"bought {next} at {Time.time - t0:F0}s cash={S.State.Cash}"); else L($"could not buy {next}: {err}");
+            yield return new WaitForSeconds(1.5f);
+            yield return FirstCrate(style);
+            Running = true;
+            yield return CrackAllCore(style);
+            Running = true;
+            yield return SellOutbox();
+            L($"-- second crate cracked out at {Time.time - t0:F0}s cash={S.State.Cash} opened={S.State.Stats.SpecimensOpened} forSale={S.State.ForSaleCount()}");
+            yield return RetailCycle(3);
+            Running = true;
+            L($"-- retail done at {Time.time - t0:F0}s cash={S.State.Cash}");
+            yield return ControllerMenus();
+            Running = true;
+            L($"== FreshPlayer end at {Time.time - t0:F0}s cash={S.State.Cash} opened={S.State.Stats.SpecimensOpened} sold={S.State.Stats.SpecimensSold} kept={S.State.DisplayedCount()} retail={S.State.Stats.RetailSales} families={S.State.Encyclopedia.Count}");
+            L(Core.CollisionAudit.Report("fresh player end"));
+            Phase = "done";
+            Running = false;
+        }
 
         private IEnumerator CrackAll(string style)
         {
@@ -990,14 +1179,30 @@ namespace GeodeEmpire.Core
                 if (!bench.Opened) L($"  loop ended early: active={bench.Active} revealing={bench.Revealing} strikes={strikes} exitReason={bench.LastExitReason.Split('\n')[0]}");
                 yield return new WaitForSeconds(1.8f);
                 var g = rock.Geology;
-                L($"{rock.Id} {g.Mineral} {g.Tier} strikes={strikes} dmgEvents={bench.DamageEventsThisRock} note='{bench.ResultNote}' base=${g.BaseValue} dmgFrac={rock.Visual.CrystalDamageFraction():F2}");
+                L($"{rock.Id} {g.Mineral} {g.Tier} {g.MassKg:F1}kg strikes={strikes} dmgEvents={bench.DamageEventsThisRock} note='{bench.ResultNote}' base=${g.BaseValue} dmgFrac={rock.Visual.CrystalDamageFraction():F2}");
                 yield return Interact();
                 yield return new WaitForSeconds(0.3f);
                 yield return DismissLetters();
-                // drop it in the outbox
-                Vector3 tray = ZonePos(ZoneKind.SellTray);
-                yield return D.WalkTo(StandNear(tray), 0.3f);
-                yield return LookAndInteract(tray, "Place in the dealer outbox");
+                if (P.Held != null && g.Tier >= QualityTier.Good && S.State.DisplayedCount() == 0)
+                {
+                    // the first rare piece is the one a player keeps
+                    yield return AppraiseHeld();
+                    if (P.Held != null) yield return KeepHeld();
+                }
+                else if (P.Held != null && g.Tier >= QualityTier.Decent && FreeSaleSlot() != null)
+                {
+                    // promising: weigh it, then put it in the showroom window
+                    yield return AppraiseHeld();
+                    if (P.Held != null) yield return StockHeld();
+                    if (_snap > 0 && !_stockedSnap) { _stockedSnap = true; Snap("shelf_stocked"); }
+                }
+                else
+                {
+                    // ordinary: the dealer outbox
+                    Vector3 tray = ZonePos(ZoneKind.SellTray);
+                    yield return RouteTo(StandNear(tray), 0.3f);
+                    yield return LookAndInteract(tray, "Place in the dealer outbox");
+                }
                 processed++;
             }
             L("crackall processed=" + processed);

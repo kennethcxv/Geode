@@ -164,7 +164,9 @@ namespace GeodeEmpire.Retail
             }
             if (prices.Count == 0) return 90f;
             prices.Sort();
-            return prices.Count % 2 == 1 ? prices[prices.Count / 2] : 0.5f * (prices[prices.Count / 2 - 1] + prices[prices.Count / 2]);
+            float median = prices.Count % 2 == 1 ? prices[prices.Count / 2] : 0.5f * (prices[prices.Count / 2 - 1] + prices[prices.Count / 2]);
+            // the window's best piece pulls the crowd up: a $110 celestite among $10 quartz still finds its buyer sometimes
+            return Mathf.Lerp(median, prices[prices.Count - 1], 0.35f);
         }
 
         public Transform BrowsePointFor(PlacementZone slot)

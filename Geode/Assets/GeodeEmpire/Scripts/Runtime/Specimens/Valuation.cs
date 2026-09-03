@@ -110,6 +110,8 @@ namespace GeodeEmpire.Specimens
             string colorWord = ColorWord(g);
             string famName = fam.Name;
             if (fam.Id == MineralId.ClearQuartz && !string.IsNullOrEmpty(colorWord)) famName = "Quartz";
+            // "Smoky Smoky Quartz": the family name already carries the word
+            if (!string.IsNullOrEmpty(colorWord) && famName.StartsWith(colorWord, System.StringComparison.OrdinalIgnoreCase)) colorWord = null;
             if (!string.IsNullOrEmpty(colorWord)) sb.Append(colorWord).Append(' ');
             sb.Append(famName);
             sb.Append(' ').Append(FormWord(g));
