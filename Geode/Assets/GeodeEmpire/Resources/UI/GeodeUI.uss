@@ -21,6 +21,7 @@
 }
 .accent { color: rgb(226, 178, 96); }
 .muted { color: rgba(240, 236, 228, 0.6); }
+.warn { color: rgb(232, 150, 130); }
 .danger { color: rgb(232, 116, 96); }
 .success { color: rgb(156, 212, 146); }
 .caption { font-size: 15px; color: rgba(240, 236, 228, 0.6); letter-spacing: 1px; }

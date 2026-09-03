@@ -18,6 +18,8 @@ namespace GeodeEmpire.Save
         Saw = 12,
         /// <summary>On the polishing lap.</summary>
         Lap = 13,
+        /// <summary>On the Stage-2 rock rack (material storage). LocationIndex is the occupant index.</summary>
+        Rack = 14,
     }
 
     /// <summary>Career state of one specimen. Geology is regenerated from Seed; nothing here rerolls it.</summary>

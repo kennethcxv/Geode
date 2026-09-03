@@ -653,6 +653,105 @@ namespace GeodeEmpire.Core
         /// then save/reload and check the finish stuck.
         /// </summary>
         public void RunPolish() { if (!Running) StartCoroutine(Polish()); }
+        public void RunStage2() { if (!Running) StartCoroutine(Stage2()); }
+
+        /// <summary>Buy the Stage-2 workshop, check the room changed, store a rock on the rack, display on the trophy wall, reload.</summary>
+        private IEnumerator Stage2()
+        {
+            Running = true;
+            Phase = "stage2";
+            var exp = Find<Workshop.WorkshopExpansion>();
+            if (exp == null) { L("no WorkshopExpansion in scene"); Running = false; yield break; }
+            L($"== Stage2 cash={S.State.Cash} stage={S.State.WorkshopStage} display={S.State.DisplayCapacity} sale={S.State.SaleCapacity} rootActive={exp.Stage2Root.activeSelf} {Chk(!exp.Stage2Root.activeSelf)}");
+            if (!S.State.HasUpgrade(Economy.UpgradeCatalog.TrimSaw)) { if (S.State.Cash < 700f) S.AddCash(700f, "test"); S.BuyUpgrade(Economy.UpgradeCatalog.TrimSaw, out _); yield return null; }
+            bool canLap = S.CanBuyUpgrade(Economy.UpgradeCatalog.PolishLap, out string whyLap);
+            L($"lap before stage 2: can={canLap} why='{whyLap}' {Chk(!canLap)}");
+            bool canOversized = S.State.HasSupplier(Economy.SupplierCatalog.OversizedLot);
+            L($"oversized lot before: {canOversized} {Chk(!canOversized)}");
+            if (S.State.Cash < 1500f) S.AddCash(1500f, "test");
+            float cashBefore = S.State.Cash;
+            bool ok = S.BuyUpgrade(Economy.UpgradeCatalog.Stage2, out string err);
+            yield return null;
+            L($"bought stage 2: {ok} {err} cash {cashBefore}->{S.State.Cash} {Chk(Mathf.Approximately(S.State.Cash, cashBefore - 1400f))} stage={S.State.WorkshopStage} {Chk(S.State.WorkshopStage == 2)} rootActive={exp.Stage2Root.activeSelf} {Chk(exp.Stage2Root.activeSelf)} display={S.State.DisplayCapacity} sale={S.State.SaleCapacity}");
+            foreach (var h in exp.HideAtStage2) L($"  hidden {h.name}: {Chk(!h.activeSelf)}");
+            canLap = S.CanBuyUpgrade(Economy.UpgradeCatalog.PolishLap, out whyLap);
+            L($"lap after stage 2: can={canLap} why='{whyLap}' {Chk(canLap)}   oversized lot={S.State.HasSupplier(Economy.SupplierCatalog.OversizedLot)} {Chk(S.State.HasSupplier(Economy.SupplierCatalog.OversizedLot))}");
+            var shop = Retail.RetailShop.Instance; int openSale = 0; foreach (var z in shop.SaleSlots) if (z.gameObject.activeInHierarchy && !z.Locked) openSale++;
+            var dc = Find<Workshop.DisplayCabinet>(); int openDisp = 0; foreach (var z in dc.Slots) if (z.gameObject.activeInHierarchy && !z.Locked) openDisp++;
+            L($"open sale slots={openSale}/{shop.SaleSlots.Count} {Chk(openSale == S.State.SaleCapacity)}  open display slots={openDisp}/{dc.Slots.Count} {Chk(openDisp == S.State.DisplayCapacity)}");
+
+            // a rock onto the rack
+            SpecimenEntity rock = null;
+            foreach (var e in S.Entities.Values) if (!e.IsPiece && e.Record.Location == SpecimenLocation.World && !e.Record.IsOpened) { rock = e; break; }
+            if (rock == null) foreach (var e in S.Entities.Values) if (e.Record.Location == SpecimenLocation.World) { rock = e; break; }
+            if (rock == null) { L("no loose rock to store"); Running = false; yield break; }
+            yield return FetchRock(rock);
+            if (P.Held == null) { L("could not pick up rock"); Running = false; yield break; }
+            rock = P.Held;
+            Vector3 rackPos = ZonePos(ZoneKind.Rack);
+            L($"rack zone at {rackPos:F2}");
+            yield return RouteTo(new Vector3(rackPos.x + 0.95f, 0f, rackPos.z), 0.3f);
+            yield return LookAndInteract(rackPos, "rock rack");
+            yield return new WaitForSeconds(0.4f);
+            L($"rack: loc={rock.Record.Location} {Chk(rock.Record.Location == SpecimenLocation.Rack)} idx={rock.Record.LocationIndex} pos={rock.transform.position:F2} held={(P.Held != null)}");
+            D.Teleport(new Vector3(rackPos.x + 1.3f, 0f, rackPos.z - 0.2f), -90f);
+            D.LookAt(new Vector3(rackPos.x, 0.9f, rackPos.z));
+            yield return new WaitForSeconds(0.4f);
+            Snap("stage2_rack");
+
+            // an opened specimen onto the trophy wall
+            SpecimenEntity trophyRock = null;
+            foreach (var e in S.Entities.Values) if (e.Record.IsOpened && (e.Record.Location == SpecimenLocation.World || e.Record.Location == SpecimenLocation.SellTray) && e.Zone == null) { trophyRock = e; break; }
+            if (trophyRock == null) foreach (var e in S.Entities.Values) if (e.Record.IsOpened && e.Record.Location != SpecimenLocation.DisplaySlot && e.Record.Location != SpecimenLocation.SaleSlot) { trophyRock = e; break; }
+            int trophyIndex = 12;
+            if (trophyRock != null)
+            {
+                if (trophyRock.Zone != null) { yield return RouteTo(StandNear(trophyRock.transform.position), 0.3f); yield return LookAndInteract(trophyRock.transform.position, "Take"); }
+                else yield return FetchRock(trophyRock);
+                if (P.Held != null)
+                {
+                    trophyRock = P.Held;
+                    Vector3 slotPos = ZonePos(ZoneKind.DisplaySlot, trophyIndex);
+                    L($"trophy slot {trophyIndex} at {slotPos:F2}");
+                    yield return RouteTo(new Vector3(slotPos.x + 1.0f, 0f, slotPos.z), 0.3f);
+                    yield return LookAndInteract(slotPos, "display slot");
+                    yield return new WaitForSeconds(0.4f);
+                    L($"trophy: loc={trophyRock.Record.Location} {Chk(trophyRock.Record.Location == SpecimenLocation.DisplaySlot)} idx={trophyRock.Record.LocationIndex} {Chk(trophyRock.Record.LocationIndex == trophyIndex)} held={(P.Held != null)} displayed={S.State.DisplayedCount()}");
+                    D.Teleport(new Vector3(slotPos.x + 1.5f, 0f, slotPos.z + 0.5f), -90f);
+                    D.LookAt(new Vector3(slotPos.x, 1.75f, slotPos.z + 0.5f));
+                    yield return new WaitForSeconds(0.4f);
+                    Snap("stage2_trophy");
+                }
+                else L("could not pick up trophy rock");
+            }
+            else L("no opened specimen for the trophy wall");
+
+            // showroom shelf view
+            yield return RouteTo(new Vector3(4.2f, 0f, -0.6f), 0.35f);
+            D.LookAt(new Vector3(3.9f, 1.1f, -2.55f));
+            yield return new WaitForSeconds(0.4f);
+            Snap("stage2_shopshelf");
+            yield return RouteTo(new Vector3(0.6f, 0f, 0.9f), 0.35f);
+            D.LookAt(new Vector3(1.75f, 1.2f, 2.4f));
+            yield return new WaitForSeconds(0.4f);
+            Snap("stage2_sawbay");
+            D.LookAt(new Vector3(-2.75f, 1.0f, -1.15f));
+            yield return new WaitForSeconds(0.4f);
+            Snap("stage2_polish");
+
+            // reload: the room stays expanded, the rack keeps its rock
+            string rackId = rock.Id; string trophyId = trophyRock != null ? trophyRock.Id : null;
+            S.FlushSave("test");
+            S.ContinueGame();
+            yield return new WaitForSeconds(0.9f);
+            exp = Find<Workshop.WorkshopExpansion>();
+            var back = S.GetEntity(rackId);
+            var backT = trophyId != null ? S.GetEntity(trophyId) : null;
+            L($"after reload: stage={S.State.WorkshopStage} rootActive={(exp != null && exp.Stage2Root.activeSelf)} {Chk(exp != null && exp.Stage2Root.activeSelf)} rackRock={(back != null ? back.Record.Location.ToString() : "missing")} {Chk(back != null && back.Record.Location == SpecimenLocation.Rack && back.Zone != null && back.Zone.Kind == ZoneKind.Rack)} trophy={(backT != null ? backT.Record.Location + "/" + backT.Record.LocationIndex : "n/a")} {Chk(trophyId == null || (backT != null && backT.Record.Location == SpecimenLocation.DisplaySlot && backT.Record.LocationIndex == trophyIndex))} display={S.State.DisplayCapacity} sale={S.State.SaleCapacity} suppliers={string.Join(",", S.State.UnlockedSuppliers)}");
+            L($"stage2 done {WorldSummary()}");
+            Running = false;
+        }
+
 
         private IEnumerator Polish()
         {

@@ -180,6 +180,14 @@ namespace GeodeEmpire.Specimens
             }
         }
 
+        /// <summary>Storage pose: an opened geode closes back up (lid on, crystals kept visible) so it takes one rock's room on a rack.</summary>
+        public void ApplyStoredPose()
+        {
+            if (Visual == null || Visual.TopHalf == null || !IsOpened) return;
+            Visual.TopHalf.localRotation = Quaternion.identity;
+            Visual.TopHalf.localPosition = Vector3.zero;
+        }
+
         /// <summary>
         /// Freeze the flipped top half where the reveal left it, but resting on the bottom half's own base plane, so the
         /// pose is right on every surface the specimen is later set on (the bench drops it onto the bench top instead).

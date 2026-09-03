@@ -416,6 +416,7 @@ namespace GeodeEmpire.Core
             if (damageFraction > 0.001f) { if (damageFraction > st.MostDamagedFraction) { st.MostDamagedFraction = damageFraction; st.MostDamagedName = r.DisplayName; } }
             else st.CleanOpens++;
             if (g.MassKg > st.LargestSpecimenKg) { st.LargestSpecimenKg = g.MassKg; st.LargestSpecimenName = r.DisplayName; }
+            if (value > st.HighestValueHammerResult) { st.HighestValueHammerResult = value; st.HighestValueHammerResultName = r.DisplayName; }
 
             if (firstOfFamily) Notify($"New mineral discovered: {fam.Name}", NotificationKind.Discovery);
             if (g.Tier >= QualityTier.Exceptional) Notify($"{Valuation.TierLabel(g.Tier)} find: {r.DisplayName}", NotificationKind.Discovery);
@@ -515,8 +516,21 @@ namespace GeodeEmpire.Core
             State.Upgrades.Add(upgradeId);
             if (upgradeId == Economy.UpgradeCatalog.DisplayExpansion) State.DisplayCapacity = 12;
             if (upgradeId == Economy.UpgradeCatalog.SalesTable) State.SaleCapacity = 10;
+            if (upgradeId == Economy.UpgradeCatalog.Stage2)
+            {
+                State.WorkshopStage = 2;
+                State.DisplayCapacity += Workshop.WorkshopExpansion.Stage2DisplaySlots;
+                State.SaleCapacity += Workshop.WorkshopExpansion.Stage2SaleSlots;
+            }
             Audio.WorkshopAudio.Play2D("ui_buy", 0.7f);
-            Notify($"{up.Name} installed.", NotificationKind.Success);
+            if (upgradeId == Economy.UpgradeCatalog.Stage2)
+            {
+                Audio.WorkshopAudio.Play2D("thud", 0.8f);
+                Notify("Workshop expanded: saw bay, polishing corner, rock rack, trophy wall and showroom shelf are in.", NotificationKind.Discovery);
+                foreach (var id in Economy.SupplierCatalog.EvaluateUnlocks(State))
+                    Notify($"New supplier available: {Economy.SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
+            }
+            else Notify($"{up.Name} installed.", NotificationKind.Success);
             Tutorial.Notify("upgrade_or_crate");
             StateChanged?.Invoke();
             FlushSave("upgrade");

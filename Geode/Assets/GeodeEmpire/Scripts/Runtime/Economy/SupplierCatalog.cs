@@ -148,7 +148,7 @@ namespace GeodeEmpire.Economy
                 Description = "A pallet of oversized geodes straight off the loader. Too big for the basic cradle and the 10-inch saw; with heavy equipment, potentially the best pieces you will ever open.",
                 Price = 300f, MinRocks = 3, MaxRocks = 4, CountHidden = false,
                 TierWeights = new[] { 0.2f, 0.3f, 0.28f, 0.16f, 0.05f, 0.01f },
-                UnlockHint = "Unlocks after your fourth crate.", Accent = new Color(0.6f, 0.55f, 0.5f),
+                UnlockHint = "Unlocks with the Stage 2 workshop.", Accent = new Color(0.6f, 0.55f, 0.5f),
                 Character = "Few pieces, huge mass, big cavities. Everything about them takes longer.",
                 Risk = "High effort, high ceiling. Brute-forcing one on the small cradle usually wrecks it.",
                 Minerals = "The quarry's own mix, at boulder size: quartz family, agate, calcite, celestite.",
@@ -175,7 +175,7 @@ namespace GeodeEmpire.Economy
             if (!state.HasSupplier(Premium) && state.CollectionValue() >= 1500f) { state.UnlockedSuppliers.Add(Premium); newly.Add(Premium); }
             if (!state.HasSupplier(CuttingRough) && state.HasUpgrade(UpgradeCatalog.TrimSaw)) { state.UnlockedSuppliers.Add(CuttingRough); newly.Add(CuttingRough); }
             if (!state.HasSupplier(DesertPocket) && state.Prestige >= 2) { state.UnlockedSuppliers.Add(DesertPocket); newly.Add(DesertPocket); }
-            if (!state.HasSupplier(OversizedLot) && state.Stats.CratesPurchased >= 4) { state.UnlockedSuppliers.Add(OversizedLot); newly.Add(OversizedLot); }
+            if (!state.HasSupplier(OversizedLot) && state.WorkshopStage >= 2) { state.UnlockedSuppliers.Add(OversizedLot); newly.Add(OversizedLot); }
             return newly;
         }
 

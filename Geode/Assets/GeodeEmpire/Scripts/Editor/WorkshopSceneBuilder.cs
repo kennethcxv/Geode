@@ -169,6 +169,7 @@ namespace GeodeEmpire.EditorTools
         const float RoomCX = (RoomXMin + RoomXMax) * 0.5f;
         const float PartitionX = 2.55f;
         const float ShopDoorX = 5.6f;
+        private static Transform _stage2;   // the Stage-2 root, set while the stations build so the showroom can add to it
 
         /// <summary>Forward+ so a room full of lamps is not capped at four lights per object.</summary>
         private static void EnsureAlwaysIncludedShader(string name)
@@ -822,13 +823,87 @@ namespace GeodeEmpire.EditorTools
             Sign(parent, "DEALER OUTBOX", new Vector3(-1.2f, 1.55f, -RoomD / 2f + 0.03f), 180f);
             Sign(parent, "GEODE WORKS", new Vector3(-2.3f, 2.25f, -RoomD / 2f + 0.03f), 180f, 1.3f);
             Sign(parent, "PRIVATE COLLECTION", new Vector3(PartitionX - 0.08f, 2.05f, 0.28f), 90f, 0.85f);
+            // ---- Stage 2: the lapidary workshop expansion. Everything here is inactive until the upgrade is bought ----
+            var expansion = new GameObject("WorkshopExpansion");
+            expansion.transform.SetParent(parent, false);
+            var exp = expansion.AddComponent<WorkshopExpansion>();
+            var s2 = new GameObject("Stage2").transform;
+            s2.SetParent(expansion.transform, false);
+            exp.Stage2Root = s2.gameObject;
+            _stage2 = s2;
+            exp.HideAtStage2.Add(shelf.gameObject);      // cardboard storage gives way to the rock rack
+            exp.HideAtStage2.Add(wallShelf);             // the jar shelf gives way to the trophy wall
+
+            // rock rack: steel material storage where the cardboard shelf stood, three lipped shelves of three
+            var rack = new GameObject("RockRack").transform;
+            rack.SetParent(s2, false);
+            rack.localPosition = new Vector3(-3.37f, 0f, 2.05f);
+            rack.localRotation = Quaternion.Euler(0f, -90f, 0f);   // back panel to the west wall, lips toward the room
+            var rackProp = Prop("prop_rock_rack", rack, Vector3.zero, 0f, "M_Metal");
+            foreach (var (name, y) in new[] { ("RackLow", 0.135f), ("RackMid", 0.615f), ("RackTop", 1.095f) })
+            {
+                var rz = Zone(rack, name, new Vector3(0f, y, 0.02f), ZoneKind.Rack, "the rock rack", 3, true, true, new Vector3(1.12f, 0.42f, 0.42f));
+                rz.GridColumns = 3; rz.GridSpacing = new Vector2(0.38f, 0f);
+                rz.SetHighlightRenderers(rackProp.GetComponentsInChildren<Renderer>());
+                var ra = new GameObject("Anchor").transform; ra.SetParent(rz.transform, false); rz.Anchor = ra;
+            }
+            MakeLight(s2, "RackLight", new Vector3(-2.95f, 2.3f, 2.05f), Vector3.zero, LightType.Point, new Color(1f, 0.95f, 0.86f), 1.3f, 2.4f, 0f, false);
+
+            // trophy wall: two lit boards over the appraisal bench, eight more display slots run by the cabinet
+            var trophy = new GameObject("TrophyWall").transform;
+            trophy.SetParent(s2, false);
+            trophy.localPosition = new Vector3(-3.45f, 0f, 0.54f);
+            trophy.localRotation = Quaternion.Euler(0f, -90f, 0f);   // local -Z faces east into the room
+            int trophySlot = dc.Slots.Count;
+            foreach (float boardY in new[] { 1.5f, 2.02f })
+            {
+                Box($"TrophyBoard{boardY:F1}", trophy, new Vector3(0f, boardY, 0f), new Vector3(1.5f, 0.03f, 0.3f), "M_WoodDark");
+                foreach (float bx in new[] { -0.6f, 0.6f })
+                {
+                    Box("Bracket", trophy, new Vector3(bx, boardY - 0.1f, 0.1f), new Vector3(0.03f, 0.17f, 0.03f), "M_MetalDark");
+                    Box("Bracket", trophy, new Vector3(bx, boardY - 0.03f, 0.03f), new Vector3(0.03f, 0.03f, 0.2f), "M_MetalDark");
+                }
+                if (boardY > 1.9f) Box("TrophyCanopy", trophy, new Vector3(0f, boardY + 0.45f, -0.02f), new Vector3(1.5f, 0.04f, 0.26f), "M_WoodDark");
+                foreach (float lx in new[] { -0.36f, 0.36f })
+                    MakeLight(trophy, "TrophyLamp", new Vector3(lx, boardY + 0.4f, -0.06f), Vector3.zero, LightType.Point, new Color(1f, 0.97f, 0.9f), 0.6f, 0.9f, 0f, false);
+                for (int col = 0; col < 4; col++)
+                {
+                    float x = (col - 1.5f) * 0.36f;
+                    var z = Zone(trophy, $"Slot{trophySlot}", new Vector3(x, boardY + 0.015f, 0.0f), ZoneKind.DisplaySlot, $"display slot {trophySlot + 1}", 1, true, false, new Vector3(0.28f, 0.4f, 0.36f));
+                    z.SlotIndex = trophySlot;
+                    var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
+                    dc.Slots.Add(z);
+                    trophySlot++;
+                }
+            }
+            MakeLight(s2, "TrophySpot", new Vector3(-2.75f, 2.8f, 0.54f), new Vector3(58f, -90f, 0f), LightType.Spot, new Color(0.95f, 0.96f, 1f), 3.2f, 3f, 62f, false);
+            Sign(s2, "TROPHY WALL", new Vector3(RoomXMin + 0.03f, 2.62f, 0.54f), -90f, 0.75f);
+
+            // saw bay: pegboard tooling above the machine and a proper light rig
+            Prop("prop_pegboard", s2, new Vector3(1.75f, 1.9f, RoomD / 2f - 0.02f), 0f, "M_Wood", collider: false);
+            var sawPegHammer = Prop("prop_hammer", s2, new Vector3(1.4f, 2.2f, RoomD / 2f - 0.07f), 0f, "M_WoodDark,M_Steel", collider: false);
+            sawPegHammer.transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
+            Prop("prop_brush", s2, new Vector3(1.95f, 2.15f, RoomD / 2f - 0.06f), 0f, "M_WoodDark,M_Straw", collider: false).transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            Prop("prop_jar", s2, new Vector3(2.2f, 1.62f, RoomD / 2f - 0.09f), 0f, "M_JarGlass", collider: false);
+            MakeLight(s2, "SawRigA", new Vector3(1.4f, 2.75f, 1.95f), new Vector3(68f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 2.6f, 3.2f, 55f, false);
+            MakeLight(s2, "SawRigB", new Vector3(2.1f, 2.75f, 1.95f), new Vector3(68f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 2.6f, 3.2f, 55f, false);
+
+            // polishing corner: pegboard, a supplies shelf and a lamp make it a workstation instead of a machine in a corner
+            Prop("prop_pegboard", s2, new Vector3(RoomXMin + 0.03f, 1.6f, -1.15f), -90f, "M_Wood", collider: false);
+            var polishShelf = Prop("prop_wall_shelf", s2, new Vector3(RoomXMin + 0.13f, 2.05f, -1.15f), -90f, "M_WoodDark", collider: false);
+            Prop("prop_jar", polishShelf.transform, new Vector3(-0.25f, 0.03f, 0.0f), 0f, "M_JarGlass", collider: false);
+            Prop("prop_jar", polishShelf.transform, new Vector3(-0.05f, 0.03f, -0.02f), 0f, "M_JarGlass", collider: false);
+            Prop("prop_cardboard_box", polishShelf.transform, new Vector3(0.25f, 0.03f, 0.0f), -6f, "M_Cardboard", collider: false, scale: new Vector3(0.35f, 0.35f, 0.35f));
+            Prop("prop_brush", s2, new Vector3(RoomXMin + 0.08f, 1.75f, -1.45f), -90f, "M_WoodDark,M_Straw", collider: false).transform.localRotation = Quaternion.Euler(90f, -90f, 0f);
+            MakeLight(s2, "LapLight", new Vector3(-2.55f, 2.75f, -1.15f), new Vector3(62f, -90f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 2.4f, 3f, 58f, false);
+
             BuildShowroom(parent, dc.LabelFont);
             // spare tools on the pegboard
             var pegHammer = Prop("prop_hammer", parent, new Vector3(-0.35f, 1.65f, RoomD / 2f - 0.07f), 0f, "M_WoodDark,M_Steel", collider: false);
             pegHammer.transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
             var pegChisel = Prop("prop_chisel_fine", parent, new Vector3(0.25f, 1.45f, RoomD / 2f - 0.07f), 0f, "M_Steel", collider: false);
             pegChisel.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
-            Prop("prop_stool", parent, new Vector3(-2.2f, 0f, 1.6f), -40f, "M_WoodDark");
+            Prop("prop_stool", parent, new Vector3(-3.25f, 0f, -1.95f), 30f, "M_WoodDark");   // tucked by the door, out of every walking lane
 
             var start = new GameObject("PlayerStart");
             start.transform.SetParent(parent, false);
@@ -906,6 +981,34 @@ namespace GeodeEmpire.EditorTools
                 rs.PriceCards.Add(card.transform);
                 var bp = new GameObject("Browse").transform; bp.SetParent(table.transform, false); bp.localPosition = new Vector3(lp.x, 0f, side * 0.95f); rs.BrowsePoints.Add(bp);
                 slot++;
+            }
+
+            // Stage-2 wall shelf on the showroom's south wall: four more sales slots, the door's browsing line
+            if (_stage2 != null)
+            {
+                var shopShelf = new GameObject("ShopShelf").transform;
+                shopShelf.SetParent(_stage2, false);
+                shopShelf.localPosition = new Vector3(3.9f, 0f, -RoomD / 2f + 0.15f);
+                shopShelf.localRotation = Quaternion.Euler(0f, 180f, 0f);   // local -Z faces north into the shop
+                Box("ShelfBoard", shopShelf, new Vector3(0f, 1.0f, 0f), new Vector3(1.7f, 0.03f, 0.32f), "M_WoodDark");
+                Box("ShelfBack", shopShelf, new Vector3(0f, 1.25f, 0.14f), new Vector3(1.7f, 0.52f, 0.02f), "M_CounterPaint");
+                Box("ShelfValance", shopShelf, new Vector3(0f, 1.49f, -0.02f), new Vector3(1.7f, 0.04f, 0.3f), "M_WoodDark");
+                foreach (float bx in new[] { -0.7f, 0.7f })
+                    Box("Bracket", shopShelf, new Vector3(bx, 0.9f, 0.1f), new Vector3(0.03f, 0.17f, 0.03f), "M_MetalDark");
+                foreach (float lx in new[] { -0.6f, -0.2f, 0.2f, 0.6f })
+                {
+                    var z = Zone(shopShelf, $"Sale{slot}", new Vector3(lx, 1.015f, 0.0f), ZoneKind.SaleSlot, $"sales slot {slot + 1}", 1, true, false, new Vector3(0.36f, 0.34f, 0.32f));
+                    z.SlotIndex = slot;
+                    var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
+                    rs.SaleSlots.Add(z);
+                    var card = Prop("prop_price_card", shopShelf, new Vector3(lx, 1.015f, -0.17f), 0f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
+                    rs.PriceCards.Add(card.transform);
+                    var bp = new GameObject("Browse").transform; bp.SetParent(shopShelf, false); bp.localPosition = new Vector3(lx, 0f, -0.85f); rs.BrowsePoints.Add(bp);
+                    slot++;
+                }
+                foreach (float lx in new[] { -0.4f, 0.4f })
+                    MakeLight(shopShelf, "ShelfLamp", new Vector3(lx, 1.42f, -0.06f), Vector3.zero, LightType.Point, new Color(1f, 0.96f, 0.88f), 0.6f, 0.9f, 0f, false);
+                Sign(_stage2, "NEW ARRIVALS", new Vector3(3.9f, 1.85f, -RoomD / 2f + 0.03f), 180f, 0.7f);
             }
 
             // signage and dressing

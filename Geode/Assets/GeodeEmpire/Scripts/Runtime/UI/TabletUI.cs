@@ -296,9 +296,13 @@ namespace GeodeEmpire.UI
                 if (owned) UiKit.Label(side, "INSTALLED", "tag", "tag-owned");
                 else
                 {
+                    if (up.Id == UpgradeCatalog.SawBlade && st.HasUpgrade(UpgradeCatalog.TrimSaw))
+                        UiKit.Label(side, $"Blade wear {st.BladeWear * 100f:F0}%", "item-sub", st.BladeWear >= 0.75f ? "warn" : "muted");
+                    else if (up.Id == UpgradeCatalog.Stage2 && st.WorkshopStage < 2)
+                        UiKit.Label(side, "WORKSHOP EXPANSION", "tag");
                     UiKit.Label(side, UiKit.Money(up.Price), "price", "bold");
                     bool can = _s.CanBuyUpgrade(up.Id, out string why);
-                    var buy = UiKit.Button(side, can ? "Buy" : why, () => BuyUpgrade(up), can ? "btn-primary" : "");
+                    var buy = UiKit.Button(side, can ? (up.Consumable ? "Replace" : "Buy") : why, () => BuyUpgrade(up), can ? "btn-primary" : "");
                     buy.style.marginTop = 8;
                     buy.SetEnabled(can);
                 }
@@ -378,6 +382,13 @@ namespace GeodeEmpire.UI
             Row("Highest value kept", st.HighestValueKept > 0 ? $"{UiKit.Money(st.HighestValueKept)}  ({st.HighestValueKeptName})" : "—");
             Row("Largest specimen", st.LargestSpecimenKg > 0 ? $"{st.LargestSpecimenKg:F2} kg  ({st.LargestSpecimenName})" : "—");
             Row("Most damaged", st.MostDamagedFraction > 0 ? $"{st.MostDamagedFraction * 100f:F0}%  ({st.MostDamagedName})" : "—");
+            Row("Rocks washed", st.RocksWashed.ToString());
+            Row("Saw cuts / slabs", $"{st.SawCuts} / {st.SlabsCut}");
+            Row("Best saw result", st.HighestValueSawResult > 0 ? $"{UiKit.Money(st.HighestValueSawResult)}  ({st.HighestValueSawResultName})" : "—");
+            Row("Best hammer result", st.HighestValueHammerResult > 0 ? $"{UiKit.Money(st.HighestValueHammerResult)}  ({st.HighestValueHammerResultName})" : "—");
+            Row("Largest slab face", st.LargestSlabFaceCm2 > 0 ? $"{st.LargestSlabFaceCm2:F0} cm²  ({st.LargestSlabName})" : "—");
+            Row("Pieces polished", st.PiecesPolished.ToString());
+            Row("Best polished piece", st.BestPolishedValue > 0 ? $"{UiKit.Money(st.BestPolishedValue)}  ({st.BestPolishedName})" : "—");
             Row("Specimens kept", _s.State.DisplayedCount().ToString());
             Row("Specimens sold", st.SpecimensSold.ToString());
             Row("Retail sales", st.RetailSales > 0 ? $"{st.RetailSales}  ({UiKit.Money(st.RetailRevenue)})" : "0");

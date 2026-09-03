@@ -8,7 +8,7 @@ using GeodeEmpire.Specimens;
 
 namespace GeodeEmpire.Interaction
 {
-    public enum ZoneKind { Cradle, SellTray, Scale, DisplaySlot, Shelf, SaleSlot, Counter, Wash, Saw, SawTray, Lap }
+    public enum ZoneKind { Cradle, SellTray, Scale, DisplaySlot, Shelf, SaleSlot, Counter, Wash, Saw, SawTray, Lap, Rack }
 
     /// <summary>
     /// A physical spot specimens can be placed into (and taken from). Trays hold several, slots hold one.
@@ -47,6 +47,7 @@ namespace GeodeEmpire.Interaction
             ZoneKind.Wash => SpecimenLocation.WashTub,
             ZoneKind.Saw => SpecimenLocation.Saw,
             ZoneKind.Lap => SpecimenLocation.Lap,
+            ZoneKind.Rack => SpecimenLocation.Rack,
             _ => SpecimenLocation.World,
         };
 
@@ -67,7 +68,7 @@ namespace GeodeEmpire.Interaction
         public string RefusalReason(SpecimenEntity e)
         {
             if (e == null) return null;
-            if (Locked) return Kind == ZoneKind.DisplaySlot ? "Locked shelf: buy the Cabinet Shelf Expansion" : Kind == ZoneKind.SaleSlot ? "Locked: buy the Second Sales Case" : $"{DisplayLabel} is locked";
+            if (Locked) return Kind == ZoneKind.DisplaySlot ? "Locked shelf: buy the Cabinet Shelf Expansion" : Kind == ZoneKind.SaleSlot ? "Locked: buy the Showroom Island Table" : $"{DisplayLabel} is locked";
             if (IsFull) return Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot ? "Slot taken: pick a free slot or swap it out" : $"{DisplayLabel} is full";
             bool opened = e.Record.IsOpened;
             if (opened && !AcceptsOpened) return "Unopened rocks only";
@@ -156,6 +157,7 @@ namespace GeodeEmpire.Interaction
             var rot = anchor.rotation * Quaternion.Euler(0f, SeededYaw(e, idx), 0f);
             var pos = anchor.TransformPoint(SlotLocalOffset(idx)) + Vector3.up * e.RestHeightOffset(Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.Scale || Kind == ZoneKind.Cradle || Kind == ZoneKind.SaleSlot);
             e.SetPose(pos, rot);
+            if (Kind == ZoneKind.Rack) e.ApplyStoredPose();
             e.Record.Location = LocationFor();
             e.Record.LocationIndex = IsIndexedSlot ? SlotIndex : idx;   // which slot, not which occupant: the reload looks it up by this
             e.Record.WorldPosition = pos;
@@ -170,6 +172,7 @@ namespace GeodeEmpire.Interaction
             if (e == null || !Occupants.Contains(e)) return;
             Occupants.Remove(e);
             e.Zone = null;
+            if (Kind == ZoneKind.Rack) e.ApplyOpenPose();
             if (!silent) Taken?.Invoke(this, e);
             // re-pack remaining occupants
             for (int i = 0; i < Occupants.Count; i++)

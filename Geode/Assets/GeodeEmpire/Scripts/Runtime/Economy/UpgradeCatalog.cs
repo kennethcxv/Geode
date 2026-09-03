@@ -34,6 +34,7 @@ namespace GeodeEmpire.Economy
         public const string ThinBlade = "thin_blade";
         public const string CoolantPump = "coolant_pump";
         public const string PolishLap = "polish_lap";
+        public const string Stage2 = "stage2_workshop";
 
         public static readonly UpgradeDefinition[] All =
         {
@@ -76,9 +77,12 @@ namespace GeodeEmpire.Economy
             new UpgradeDefinition { Id = CoolantPump, Name = "Coolant Pump", Price = 110f, Order = 7, Requires = TrimSaw,
                 Description = "A recirculating pump flooding the blade instead of a drip.",
                 Effect = "The blade runs cool: much less load when feeding hard, half the chipping, longer blade life." },
-            new UpgradeDefinition { Id = PolishLap, Name = "Flat Lap", Price = 420f, Order = 8, Requires = TrimSaw,
+            new UpgradeDefinition { Id = PolishLap, Name = "Flat Lap", Price = 420f, Order = 10, Requires = Stage2,
                 Description = "A 12-inch flat lap with a diamond pad and a drip feed.",
                 Effect = "Polish sawn faces: banded slabs and slices come up glossy and saturated, worth far more. Natural cavities stay as they are." },
+            new UpgradeDefinition { Id = Stage2, Name = "Stage 2: Lapidary Workshop", Price = 1400f, Order = 9, Requires = TrimSaw,
+                Description = "Contractors, a week of dust, and the room becomes a small professional lapidary shop.",
+                Effect = "A lit saw bay with pegboard tooling, a proper polishing corner (the Flat Lap can be fitted), a steel rock rack for nine rough or cut pieces, a trophy wall over the appraisal bench (8 more display slots), a wall shelf in the showroom (4 more sales slots), and access to oversized quarry lots." },
         };
 
         public static UpgradeDefinition Get(string id)
