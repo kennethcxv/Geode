@@ -442,8 +442,9 @@ namespace GeodeEmpire.EditorTools
             Object.DestroyImmediate(knob.GetComponent<Collider>());
             Box("Porch", parent, new Vector3(ShopDoorX, -0.05f, -RoomD / 2f - 1.0f), new Vector3(3.2f, 0.1f, 2.0f), "M_Concrete");
             Box("PorchWallS", parent, new Vector3(ShopDoorX, RoomH / 2f, -RoomD / 2f - 2.05f), new Vector3(3.6f, RoomH, 0.2f), "M_Brick");
-            Box("PorchWallW", parent, new Vector3(ShopDoorX - 1.7f, RoomH / 2f, -RoomD / 2f - 1.0f), new Vector3(0.2f, RoomH, 2.2f), "M_Brick");
-            Box("PorchWallE", parent, new Vector3(ShopDoorX + 1.7f, RoomH / 2f, -RoomD / 2f - 1.0f), new Vector3(0.2f, RoomH, 2.2f), "M_Brick");
+            // the side walls start at the outer face of the south wall: centred 0.1 m closer they poked into the showroom
+            Box("PorchWallW", parent, new Vector3(ShopDoorX - 1.7f, RoomH / 2f, -RoomD / 2f - 1.2f), new Vector3(0.2f, RoomH, 2.2f), "M_Brick");
+            Box("PorchWallE", parent, new Vector3(ShopDoorX + 1.7f, RoomH / 2f, -RoomD / 2f - 1.2f), new Vector3(0.2f, RoomH, 2.2f), "M_Brick");
             Box("PorchRoof", parent, new Vector3(ShopDoorX, RoomH + 0.05f, -RoomD / 2f - 1.0f), new Vector3(3.6f, 0.1f, 2.2f), "M_Ceiling");
         }
 
