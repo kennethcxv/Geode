@@ -692,7 +692,8 @@ namespace GeodeEmpire.EditorTools
             // ---- Receiving pallet (south-east, near the door) ----------------------------------
             var receiving = new GameObject("ReceivingArea").transform;
             receiving.SetParent(parent, false);
-            receiving.localPosition = new Vector3(1.5f, 0f, -1.9f);
+            // cells end 0.19 m short of the partition so a crate in the east cells never touches it (or the cashier)
+            receiving.localPosition = new Vector3(1.18f, 0f, -1.9f);
             foreach (var cell in new[] { new Vector3(-0.6f, 0f, 0.4f), new Vector3(0.6f, 0f, 0.4f), new Vector3(-0.6f, 0f, -0.4f), new Vector3(0.6f, 0f, -0.4f) })
                 Prop("prop_pallet", receiving, cell, 0f, "M_Wood");
             receiving.gameObject.AddComponent<ReceivingArea>();
@@ -742,7 +743,7 @@ namespace GeodeEmpire.EditorTools
             Prop("prop_jar", wallShelf.transform, new Vector3(-0.18f, 0.03f, -0.03f), 0f, "M_JarGlass", collider: false);
             Prop("prop_jar", wallShelf.transform, new Vector3(0.05f, 0.03f, 0.0f), 0f, "M_JarGlass", collider: false);
             Prop("prop_cardboard_box", wallShelf.transform, new Vector3(0.28f, 0.03f, 0.0f), 8f, "M_Cardboard", collider: false, scale: new Vector3(0.35f, 0.35f, 0.35f));
-            Prop("prop_rock_bin", parent, new Vector3(0.55f, 0f, -2.35f), 8f, "M_WoodDark");
+            Prop("prop_rock_bin", parent, new Vector3(-0.2f, 0f, -2.4f), 8f, "M_WoodDark");   // between the outbox and the pallets
             Prop("prop_extinguisher", parent, new Vector3(-1.55f, 0f, -2.52f), 0f, "M_Red");
             Prop("prop_broom", parent, new Vector3(-3.35f, 0f, -2.35f), 20f, "M_Wood", collider: false).transform.localRotation = Quaternion.Euler(-6f, 20f, 8f);
             Prop("prop_wall_clock", parent, new Vector3(-2.3f, 2.5f, -RoomD / 2f + 0.02f), 180f, "M_Cream", collider: false);
@@ -842,7 +843,7 @@ namespace GeodeEmpire.EditorTools
             Sign(parent, "GEODE WORKS  ·  SHOWROOM", new Vector3(PartitionX + 0.08f, 2.3f, -1.0f), -90f, 0.9f);
             Sign(parent, "FOR SALE", new Vector3(RoomXMax - 0.03f, 2.15f, 0.4f), 90f, 0.9f);
             Sign(parent, "OPEN", new Vector3(ShopDoorX + 0.9f, 2.5f, -RoomD / 2f + 0.03f), 180f, 0.7f);
-            Prop("prop_stool", shop, new Vector3(2.0f, 0f, -1.35f), 40f, "M_WoodDark");
+            Prop("prop_stool", shop, new Vector3(2.2f, 0f, 0.2f), 40f, "M_WoodDark");   // cashier's stool north of the counter, out of the receiving bay and the walking lanes
             Prop("prop_cardboard_box", shop, new Vector3(6.55f, 0f, -2.35f), 20f, "M_Cardboard", scale: new Vector3(0.8f, 0.8f, 0.8f));
             Prop("prop_label_stand", shop, new Vector3(PartitionX + 0.2f, 0.95f, -0.45f), 90f, "M_Paper", collider: false, scale: new Vector3(2f, 2f, 2f));
 
