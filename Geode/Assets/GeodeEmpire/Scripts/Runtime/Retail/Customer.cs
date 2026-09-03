@@ -93,13 +93,21 @@ namespace GeodeEmpire.Retail
             _agent.avoidancePriority = 40 + id % 20;
             _legL = Find("LegL"); _legR = Find("LegR"); _armL = Find("ArmL"); _armR = Find("ArmR"); _head = Find("Head"); _torso = Find("Torso");
             transform.localScale = Vector3.one * Archetype.Height * rng.Range(0.97f, 1.03f);
-            // colours per material slot, with a little per-person variation
+            // colours per part and sub-mesh, with a little per-person variation. The figure's parts only carry the
+            // slots they use (see gen_props.customer_parts): torso [jacket], hips [trousers], legs [trousers, shoes],
+            // arms [jacket, skin], head [skin, hair]
             foreach (var r in GetComponentsInChildren<Renderer>())
             {
                 var mats = r.sharedMaterials;
+                string part = r.gameObject.name;
                 for (int i = 0; i < mats.Length; i++)
                 {
-                    Color c = i == 0 ? Archetype.Jacket : i == 1 ? Archetype.Trousers : i == 2 ? Archetype.Skin : Archetype.Hair;
+                    Color c;
+                    if (part.StartsWith("Head")) c = i == 0 ? Archetype.Skin : Archetype.Hair;
+                    else if (part.StartsWith("Arm")) c = i == 0 ? Archetype.Jacket : Archetype.Skin;
+                    else if (part.StartsWith("Leg")) c = i == 0 ? Archetype.Trousers : Archetype.Hair * 0.6f;
+                    else if (part.StartsWith("Hips")) c = Archetype.Trousers;
+                    else c = Archetype.Jacket;
                     c = Color.Lerp(c, c * rng.Range(0.85f, 1.15f), 0.6f); c.a = 1f;
                     var mpb = new MaterialPropertyBlock();
                     r.GetPropertyBlock(mpb, i);

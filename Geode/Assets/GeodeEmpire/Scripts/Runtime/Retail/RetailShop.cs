@@ -32,6 +32,7 @@ namespace GeodeEmpire.Retail
         public GameObject CustomerTemplate;
         public Transform DoorLeaf;
         public Font LabelFont;
+        public Material LabelMaterial;
         public NavMeshSurface Navigation;
 
         /// <summary>Retail markup over the appraised (dealer) value. A customer with the right taste pays it; the dealer never does.</summary>
@@ -43,7 +44,7 @@ namespace GeodeEmpire.Retail
         public event Action<Customer, SpecimenRecord, float> SaleCompleted;
 
         private readonly List<Customer> _customers = new List<Customer>();
-        private readonly Dictionary<PlacementZone, TextMesh> _labels = new Dictionary<PlacementZone, TextMesh>();
+        private readonly Dictionary<PlacementZone, UI.WorldLabel> _labels = new Dictionary<PlacementZone, UI.WorldLabel>();
         private readonly Queue<Customer> _queue = new Queue<Customer>();
         private float _nextSpawnIn = 25f;
         private int _customerCounter;
@@ -182,24 +183,17 @@ namespace GeodeEmpire.Retail
             var card = PriceCards[i];
             if (!_labels.TryGetValue(z, out var tm))
             {
-                var go = new GameObject("PriceText");
-                go.transform.SetParent(card, false);
-                go.transform.localPosition = new Vector3(0f, 0.052f, -0.014f);
-                go.transform.localRotation = Quaternion.Euler(-15f, 0f, 0f);
-                tm = go.AddComponent<TextMesh>();
-                tm.characterSize = 0.0045f;
-                tm.fontSize = 64;
-                tm.anchor = TextAnchor.MiddleCenter;
-                tm.alignment = TextAlignment.Center;
-                tm.color = new Color(0.14f, 0.11f, 0.08f);
-                if (LabelFont != null) { tm.font = LabelFont; go.GetComponent<MeshRenderer>().sharedMaterial = LabelFont.material; }
+                // sibling of the scaled card prop, placed by hand on its printed face
+                tm = UI.WorldLabel.Create(card.parent, LabelFont, LabelMaterial, 0.021f * Mathf.Max(0.1f, card.lossyScale.x), new Color(0.14f, 0.11f, 0.08f), "PriceText");
+                tm.transform.SetPositionAndRotation(card.TransformPoint(new Vector3(0f, 0.052f, -0.014f)), card.rotation * Quaternion.Euler(-15f, 0f, 0f));
+                tm.LineSpacing = 1.05f;
                 _labels[z] = tm;
             }
             var occ = z.First;
             bool reserved = false;
             if (occ != null) foreach (var c in _customers) if (c != null && c.Wanted == occ) reserved = true;
-            if (occ != null) tm.text = ShortName(occ.Record.DisplayName) + "\n" + UI.UiKit.Money(occ.Record.AskingPrice) + (reserved ? "\nRESERVED" : "");
-            else tm.text = z.Locked ? "" : "FOR SALE\n—";
+            if (occ != null) tm.Text = ShortName(occ.Record.DisplayName) + "\n" + UI.UiKit.Money(occ.Record.AskingPrice) + (reserved ? "\nRESERVED" : "");
+            else tm.Text = z.Locked ? "" : "FOR SALE\n—";
             card.gameObject.SetActive(!z.Locked);
         }
 

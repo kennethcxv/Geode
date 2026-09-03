@@ -16,7 +16,8 @@ namespace GeodeEmpire.Workshop
     {
         public List<PlacementZone> Slots = new List<PlacementZone>();
         public Font LabelFont;
-        private readonly Dictionary<PlacementZone, TextMesh> _labels = new Dictionary<PlacementZone, TextMesh>();
+        public Material LabelMaterial;   // depth-tested world text; falls back to the font material
+        private readonly Dictionary<PlacementZone, UI.WorldLabel> _labels = new Dictionary<PlacementZone, UI.WorldLabel>();
 
         private void Awake()
         {
@@ -88,22 +89,14 @@ namespace GeodeEmpire.Workshop
         {
             if (!_labels.TryGetValue(z, out var tm))
             {
-                var go = new GameObject("Label");
-                go.transform.SetParent(z.transform, false);
-                go.transform.localPosition = new Vector3(0f, 0.012f, -0.13f);
-                go.transform.localRotation = Quaternion.Euler(60f, 0f, 0f);
-                tm = go.AddComponent<TextMesh>();
-                tm.characterSize = 0.012f;
-                tm.fontSize = 48;
-                tm.anchor = TextAnchor.MiddleCenter;
-                tm.alignment = TextAlignment.Center;
-                tm.color = new Color(0.12f, 0.1f, 0.08f);
-                if (LabelFont != null) { tm.font = LabelFont; go.GetComponent<MeshRenderer>().sharedMaterial = LabelFont.material; }
+                tm = UI.WorldLabel.Create(z.transform, LabelFont, LabelMaterial, 0.024f, new Color(0.12f, 0.1f, 0.08f));
+                tm.transform.localPosition = new Vector3(0f, 0.012f, -0.13f);
+                tm.transform.localRotation = Quaternion.Euler(60f, 0f, 0f);
                 _labels[z] = tm;
             }
             var occ = z.First;
-            if (occ != null) tm.text = occ.Record.DisplayName + "\n" + (occ.Record.Appraised ? AppraisalStation.ValueLabel(occ.Record) : "unappraised");
-            else tm.text = z.Locked ? "" : "";
+            if (occ != null) tm.Text = occ.Record.DisplayName + "\n" + (occ.Record.Appraised ? AppraisalStation.ValueLabel(occ.Record) : "unappraised");
+            else tm.Text = "";
         }
     }
 }

@@ -511,18 +511,55 @@ namespace GeodeEmpire.EditorTools
         }
 
         /// <param name="intoWallYaw">world yaw of the direction pointing into the wall the sign hangs on</param>
+        /// <summary>
+        /// World text needs a static font atlas (so a material asset can reference it) and a depth-tested, single-sided
+        /// shader; the built-in text material draws through walls. One material per world font.
+        /// </summary>
+        public static Material WorldTextMaterial(string fontPath, string matPath)
+        {
+            var imp = AssetImporter.GetAtPath(fontPath) as TrueTypeFontImporter;
+            // reimporting inside a pipeline command wedges the command server (the import refresh swallows the reply),
+            // so only touch the importer when the settings really are off; the character set is applied with them
+            if (imp != null && (imp.fontTextureCase != FontTextureCase.CustomSet || imp.fontSize != 96 || imp.fontRenderingMode != FontRenderingMode.Smooth))
+            {
+                imp.fontTextureCase = FontTextureCase.CustomSet;
+                imp.customCharacters = WorldTextCharacters;
+                imp.fontSize = 96;
+                imp.characterPadding = 3;
+                imp.fontRenderingMode = FontRenderingMode.Smooth;
+                imp.SaveAndReimport();
+            }
+            var font = AssetDatabase.LoadAssetAtPath<Font>(fontPath);
+            if (font == null) { Debug.LogWarning("[SceneBuilder] world font missing: " + fontPath); return null; }
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("GeodeEmpire/WorldText"));
+                AssetDatabase.CreateAsset(mat, matPath);
+            }
+            if (mat.shader == null || mat.shader.name != "GeodeEmpire/WorldText") mat.shader = Shader.Find("GeodeEmpire/WorldText");
+            mat.mainTexture = font.material != null ? font.material.mainTexture : null;
+            mat.color = Color.white;
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>Printable ASCII plus the few typographic marks the labels use (dashes, dot, degree, times).</summary>
+        public const string WorldTextCharacters = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~–—·•°×≈";
+        public const float PriceCardScale = 1.5f;   // 13.5 x 9 cm: readable from the browse spot
+        public const string WorldFontBold = "Assets/GeodeEmpire/UI/Fonts/RobotoBold-World.ttf";
+        public const string WorldFontMedium = "Assets/GeodeEmpire/UI/Fonts/RobotoMedium-World.ttf";
+
         private static void Sign(Transform parent, string text, Vector3 pos, float intoWallYaw, float scale = 1f)
         {
             // text first, so the board can be sized to it; the label is a sibling (not a child) of the scaled board
             var rot = Quaternion.Euler(0f, intoWallYaw, 0f);
-            var label = new GameObject("SignText");
-            label.transform.SetParent(parent, false);
-            label.transform.SetPositionAndRotation(pos + rot * new Vector3(0f, 0.112f * scale, -0.06f), rot);
-            var tm = label.AddComponent<TextMesh>();
-            tm.text = text; tm.characterSize = 0.03f * scale; tm.fontSize = 64; tm.anchor = TextAnchor.MiddleCenter; tm.alignment = TextAlignment.Center;
-            tm.color = new Color(0.93f, 0.88f, 0.76f);
-            var font = AssetDatabase.LoadAssetAtPath<Font>("Assets/GeodeEmpire/UI/Fonts/Roboto-Bold.ttf");
-            if (font != null) { tm.font = font; label.GetComponent<MeshRenderer>().sharedMaterial = font.material; }
+            var font = AssetDatabase.LoadAssetAtPath<Font>(WorldFontBold);
+            var textMat = WorldTextMaterial(WorldFontBold, "Assets/GeodeEmpire/Materials/M_WorldText_Bold.mat");
+            var tm = GeodeEmpire.UI.WorldLabel.Create(parent, font, textMat, 0.19f * scale, new Color(0.93f, 0.88f, 0.76f), "SignText");
+            tm.transform.SetPositionAndRotation(pos + rot * new Vector3(0f, 0.112f * scale, -0.06f), rot);
+            tm.Text = text;
+            var label = tm.gameObject;
             var b = label.GetComponent<MeshRenderer>().bounds;
             float textWidth = Mathf.Max(b.size.x, b.size.z);
             if (textWidth < 0.1f) textWidth = text.Length * 0.115f * scale;          // mesh not generated yet in batch mode
@@ -668,7 +705,8 @@ namespace GeodeEmpire.EditorTools
             cabinet.localRotation = Quaternion.Euler(0f, 90f, 0f);
             var cabProp = Prop("prop_display_cabinet", cabinet, Vector3.zero, 0f, "M_WoodDark");
             var dc = cabinet.gameObject.AddComponent<DisplayCabinet>();
-            dc.LabelFont = AssetDatabase.LoadAssetAtPath<Font>("Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf");
+            dc.LabelFont = AssetDatabase.LoadAssetAtPath<Font>(WorldFontMedium);
+            dc.LabelMaterial = WorldTextMaterial(WorldFontMedium, "Assets/GeodeEmpire/Materials/M_WorldText_Medium.mat");
             // LED strips under each shelf: the cabinet lights its own contents
             for (int row = 0; row < 3; row++)
                 for (int side = -1; side <= 1; side += 2)
@@ -738,6 +776,7 @@ namespace GeodeEmpire.EditorTools
             shop.SetParent(parent, false);
             var rs = shop.gameObject.AddComponent<RetailShop>();
             rs.LabelFont = labelFont;
+            rs.LabelMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/GeodeEmpire/Materials/M_WorldText_Medium.mat");
 
             // counter set into the partition: cashier on the workshop side, customers on the shop side
             var counter = Prop("prop_counter", shop, new Vector3(PartitionX, 0f, -1.0f), -90f, "M_WoodDark,M_CounterPaint");
@@ -765,7 +804,7 @@ namespace GeodeEmpire.EditorTools
                     z.SlotIndex = slot;
                     var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
                     rs.SaleSlots.Add(z);
-                    var card = Prop("prop_price_card", caseProp.transform, new Vector3(lx, shelfY, -0.16f), 0f, "M_Paper,M_Paper", collider: false);
+                    var card = Prop("prop_price_card", caseProp.transform, new Vector3(lx, shelfY, -0.17f), 0f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
                     rs.PriceCards.Add(card.transform);
                     var bp = new GameObject("Browse").transform; bp.SetParent(caseProp.transform, false); bp.localPosition = new Vector3(lx, 0f, -0.9f); rs.BrowsePoints.Add(bp);
                     slot++;
@@ -794,7 +833,7 @@ namespace GeodeEmpire.EditorTools
                 var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
                 rs.SaleSlots.Add(z);
                 float side = Mathf.Sign(lp.z);
-                var card = Prop("prop_price_card", table.transform, new Vector3(lp.x, 0.872f, lp.z + side * 0.2f), side > 0f ? 0f : 180f, "M_Paper,M_Paper", collider: false);
+                var card = Prop("prop_price_card", table.transform, new Vector3(lp.x, 0.872f, lp.z + side * 0.22f), side > 0f ? 0f : 180f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
                 rs.PriceCards.Add(card.transform);
                 var bp = new GameObject("Browse").transform; bp.SetParent(table.transform, false); bp.localPosition = new Vector3(lp.x, 0f, side * 0.95f); rs.BrowsePoints.Add(bp);
                 slot++;
