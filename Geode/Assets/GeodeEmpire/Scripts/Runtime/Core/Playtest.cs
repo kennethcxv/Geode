@@ -235,7 +235,7 @@ namespace GeodeEmpire.Core
         private static T Find<T>() where T : Object => FindAnyObjectByType<T>();
 
         // the partition between workshop and showroom is only open by the north wall
-        private const float PartitionX = 2.55f;
+        private const float PartitionX = 2.4f;
         private static readonly Vector3 OpeningWest = new Vector3(2.2f, 0f, 1.8f), OpeningEast = new Vector3(2.95f, 0f, 1.8f);
 
         private int _walkRescues;

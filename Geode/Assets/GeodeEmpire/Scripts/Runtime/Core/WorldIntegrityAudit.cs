@@ -25,7 +25,8 @@ namespace GeodeEmpire.Core
         {
             string n = t.name;
             return n.StartsWith("Wall") || n == "Floor" || n == "FloorShop" || n == "ShopFloor" || n == "Ceiling" || n.StartsWith("Wainscot") || n.StartsWith("Skirt")
-                || n.StartsWith("Partition") || n.StartsWith("Porch") || n.StartsWith("Beam") || n == "DoorLintel" || n == "Pipe" || n.EndsWith("Mat");
+                || n.StartsWith("Partition") || n.StartsWith("Porch") || n.StartsWith("Beam") || n == "DoorLintel" || n == "Pipe" || n.EndsWith("Mat")
+                || n.StartsWith("Back") || n.StartsWith("Bay");
         }
 
         private static bool IsDynamic(Collider c)
