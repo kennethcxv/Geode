@@ -128,10 +128,14 @@
 .unity-base-popup-field__arrow { -unity-background-image-tint-color: rgb(232,190,112); }
 
 /* ---- retail --------------------------------------------------------------------- */
-.retail-chip { position: absolute; left: 28px; top: 302px; padding: 10px 16px; border-radius: 8px; border-left-width: 3px; border-left-color: rgba(240,236,228,0.35); }
+.retail-chip { position: absolute; left: 28px; top: 372px; padding: 10px 16px; border-radius: 8px; border-left-width: 3px; border-left-color: rgba(240,236,228,0.35); }
 .retail-chip-waiting { border-left-color: rgb(232, 190, 112); background-color: rgba(40, 32, 20, 0.9); }
-.checkout-card { position: absolute; left: 50%; top: 54%; translate: -50% 0; width: 520px; align-items: center; padding: 16px 24px; border-radius: 10px; }
-.checkout-card-station { top: auto; bottom: 16px; width: auto; min-width: 380px; padding: 8px 22px; }
+.checkout-card {
+    position: absolute; right: 28px; top: 240px; left: auto; translate: 0 0;
+    width: 420px; align-items: stretch; padding: 18px 20px 20px 20px; border-radius: 10px;
+    background-color: rgba(19, 16, 22, 0.94); border-color: rgba(255, 244, 220, 0.11);
+}
+.checkout-card-station { top: auto; bottom: 26px; right: 28px; width: 420px; padding: 12px 20px; }
 
 /* ---- settings page ---- */
 .settings { width: 100%; }

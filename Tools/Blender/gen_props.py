@@ -1323,9 +1323,11 @@ def polish_disc(rng):
 
 
 def wash_tub(rng):
-    """Cleaning station: a deep utility sink on a steel stand with a gooseneck tap and a drain hose. Slot 0 stand
-    (steel), slot 1 water surface, slot 2 sink (moulded plastic), slot 3 brass tap. Tub rim at 0.83, water at 0.706 (a shallow rinse basin).
-    0.64 x 0.5, origin at base centre; operator at -Y."""
+    """Cleaning station: a deep stainless utility sink on a steel stand under a splashback, with a wall-mounted
+    mixer, a coiled hose and a spray gun on its rim, and a drain hose below. Slot 0 stand (steel), slot 1 water
+    surface, slot 2 sink and splashback (stainless), slot 3 tap and valves (brass), slot 4 the hose and the gun's
+    grip (dark rubber/plastic). Tub rim at 0.83, water at 0.706 (a shallow rinse basin), splashback top at 1.42.
+    0.64 x 0.5, origin at base centre; operator at -Y, wall at +Y."""
     bm = bmesh.new()
     for x in (-0.28, 0.28):
         for y in (-0.2, 0.2):
@@ -1345,21 +1347,46 @@ def wash_tub(rng):
     add(bm, sink, mat=2, sharp=45)
     # a few centimetres of rinse water in the bottom of the sink, so a rock stands proud of it and can be seen
     add(bm, hq.loft([hq.ring_rrect(w - 0.088, d - 0.088, 0.042, 0.7, 32), hq.ring_rrect(w - 0.088, d - 0.088, 0.042, 0.706, 32)]), mat=1, sharp=45)
-    # gooseneck tap on the back rim
-    add(bm, hq.lathe([(0, 0), (0.028, 0), (0.03, 0.004), (0.03, 0.02), (0.02, 0.026), (0.013, 0.03), (0, 0.03)], segments=32), T(0.14, 0.2, 0.83), mat=3)
-    neck = hq.bezier((0.14, 0.2, 0.86), (0.14, 0.2, 1.1), (0.14, 0.0, 1.1), (0.14, 0.02, 0.98), 20)
+    # splashback: a stainless panel up the wall behind the sink with a folded top lip, so the wall reads as a
+    # working wet area rather than a tub parked against boards
+    add(bm, hq.rbox((0.94, 0.014, 0.52), (0, 0.235, 1.08), bevel=0.004, segments=2), mat=2)
+    add(bm, hq.rbox((0.94, 0.045, 0.022), (0, 0.22, 1.335), bevel=0.005, segments=2), mat=2)    # top lip, folded forward
+    add(bm, hq.rbox((0.94, 0.06, 0.022), (0, 0.21, 0.83), bevel=0.005, segments=2), mat=2)      # bottom return onto the rim
+
+    # wall mixer: a body across the splashback, two cross handles, a swan neck reaching over the basin
+    add(bm, hq.cyl(0.016, 0.24, segments=20), T(-0.12, 0.207, 0.99) @ R(90, "Y"), mat=3)
+    for sx in (-1, 1):
+        add(bm, hq.lathe([(0, 0), (0.02, 0), (0.022, 0.005), (0.016, 0.022), (0.011, 0.03), (0, 0.03)], segments=20),
+            T(sx * 0.12, 0.19, 0.99) @ R(-90, "X"), mat=3)
+        for a in (0, 90):
+            add(bm, hq.rbox((0.046, 0.009, 0.009), (0, 0, 0), bevel=0.002, segments=1),
+                T(sx * 0.12, 0.155, 0.99) @ R(a, "Y"), mat=3)
+    # a swan neck that clears the rim and reaches the middle of the basin, so the tap reads from across the room
+    neck = hq.bezier((0.0, 0.205, 1.0), (0.0, 0.205, 1.3), (0.0, -0.06, 1.28), (0.0, -0.02, 1.03), 24)
     add(bm, hq.tube(neck, 0.011, segments=16), mat=3)
-    add(bm, hq.lathe([(0, 0), (0.012, 0), (0.014, 0.01), (0.012, 0.02), (0, 0.02)], segments=20), T(0.14, 0.02, 0.96), mat=3)
-    add(bm, hq.tube([(0.16, 0.2, 0.85), (0.21, 0.2, 0.87)], 0.006, segments=12), mat=3)
-    add(bm, hq.knob(0.011, 0.012, segments=20, ridges=8), T(0.16, 0.2, 0.85) @ R(90, "Y"), mat=3)
+    add(bm, hq.lathe([(0, 0), (0.014, 0), (0.016, 0.011), (0.013, 0.022), (0, 0.022)], segments=20), T(0.0, -0.02, 1.01), mat=3)
+
+    # spray gun parked on the right rim, on a coiled hose down to the wall union: the reference's hero tool
+    add(bm, hq.lathe([(0, 0), (0.02, 0), (0.022, 0.006), (0.018, 0.05), (0.012, 0.055), (0, 0.055)], segments=20),
+        T(0.34, 0.19, 1.06) @ R(-90, "X"), mat=3)                                              # hose union on the splashback
+    coil = hq.bezier((0.34, 0.15, 1.06), (0.44, 0.02, 1.0), (0.2, -0.04, 0.96), (0.29, 0.03, 0.86), 26)
+    add(bm, hq.tube(coil, 0.010, segments=12), mat=4)
+    add(bm, hq.rbox((0.038, 0.032, 0.11), (0.29, 0.03, 0.9), bevel=0.009, segments=2), mat=4)   # grip
+    add(bm, hq.cyl(0.016, 0.13, segments=20, center=(0, 0, 0)), T(0.29, -0.01, 0.955) @ R(70, "X"), mat=3)   # barrel
+    add(bm, hq.lathe([(0, 0), (0.018, 0), (0.02, 0.008), (0.008, 0.016), (0, 0.016)], segments=20),
+        T(0.29, -0.05, 1.0) @ R(70, "X"), mat=3)                                               # nozzle head
+    add(bm, hq.rbox((0.01, 0.03, 0.03), (0.272, 0.015, 0.935), bevel=0.004, segments=1), mat=4) # trigger
+
+    # drain hose under the sink
     hose = hq.bezier((0.0, 0.05, 0.63), (0.0, 0.05, 0.5), (0.2, 0.15, 0.35), (0.25, 0.24, 0.02), 20)
-    add(bm, hq.tube(hose, 0.012, segments=12), mat=2)
+    add(bm, hq.tube(hose, 0.012, segments=12), mat=4)
     cols = [ColBox((0.62, 0.48, 0.05), (0, 0, 0.585)), ColBox((0.52, 0.42, 0.04), (0, 0, 0.16)), ColBox((w - 0.1, d - 0.1, 0.04), (0, 0, 0.64)),
             ColBox((w + 0.02, 0.05, 0.2), (0, -d / 2 + 0.005, 0.74)), ColBox((w + 0.02, 0.05, 0.2), (0, d / 2 - 0.005, 0.74)),
             ColBox((0.05, d, 0.2), (-w / 2 + 0.005, 0, 0.74)), ColBox((0.05, d, 0.2), (w / 2 - 0.005, 0, 0.74))]
     for x in (-0.28, 0.28):
         for y in (-0.2, 0.2):
             cols.append(ColBox((0.035, 0.035, 0.6), (x, y, 0.3)))
+    cols.append(ColBox((0.94, 0.02, 0.52), (0, 0.235, 1.08)))
     return bm, cols
 
 

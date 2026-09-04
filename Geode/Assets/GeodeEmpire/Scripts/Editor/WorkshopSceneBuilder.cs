@@ -911,12 +911,13 @@ namespace GeodeEmpire.EditorTools
             var wash = new GameObject("WashStation").transform;
             wash.SetParent(parent, false);
             wash.localPosition = new Vector3(-1.4f, 0f, 2.05f);
-            var tubProp = Prop("prop_wash_tub", wash, Vector3.zero, 0f, "M_Steel,M_Water,M_PlasticBlue,M_Brass", collider: true);
+            var tubProp = Prop("prop_wash_tub", wash, Vector3.zero, 0f, "M_Steel,M_Water,M_Stainless,M_Brass,M_PlasticDark", collider: true);
             var tubZone = Support(Zone(wash, "WashZone", new Vector3(0f, 0.66f, 0f), ZoneKind.Wash, "the wash tub", 1, true, true, new Vector3(0.46f, 0.35f, 0.34f)), 0.24f, 0.17f);   // the rock rests on the sink floor
             tubZone.SetHighlightRenderers(tubProp.GetComponentsInChildren<Renderer>());
             var tubAnchor = new GameObject("Anchor").transform;
             tubAnchor.SetParent(tubZone.transform, false);
             tubZone.Anchor = tubAnchor;
+            Prop("prop_tray", wash, new Vector3(-0.28f, 0.835f, 0.02f), 0f, "M_Stainless", collider: false, scale: new Vector3(0.95f, 0.7f, 0.95f));   // washed rock drains on the rim
             var brush = Prop("prop_brush", wash, new Vector3(0.21f, 0.83f, -0.14f), 25f, "M_WoodDark,M_Bristle", collider: false);
             var ws = tubProp.AddComponent<WashStation>();
             ws.Tub = tubZone;
