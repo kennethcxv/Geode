@@ -69,7 +69,9 @@ namespace GeodeEmpire.UI
             // the sale card belongs to the counter: it shares the right-hand rail with the workstation panels,
             // so out at the saw or the lap it must be gone, not stacked on top of them
             var cam = Camera.main;
-            bool atCounter = station || (cam != null && (cam.transform.position - _station.transform.position).sqrMagnitude < 4.2f * 4.2f);
+            var hud = HudController.Instance;
+            bool free = station || (hud != null && hud.FreeRoam && !CursorController.InMenu);
+            bool atCounter = free && (station || (cam != null && (cam.transform.position - _station.transform.position).sqrMagnitude < 4.2f * 4.2f));
             if (rung)
             {
                 var line = tx.Items[0];

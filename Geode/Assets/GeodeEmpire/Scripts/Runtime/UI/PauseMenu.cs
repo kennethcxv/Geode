@@ -35,13 +35,20 @@ namespace GeodeEmpire.UI
             _panel = UiKit.Box(_dim, "panel");
             _panel.style.width = 720;
             _mainPage = UiKit.Box(_panel);
-            UiKit.Label(_mainPage, "PAUSED", "panel-title", "bold");
-            UiKit.Label(_mainPage, "Progress is saved automatically.", "panel-subtitle");
-            _resume = UiKit.Button(_mainPage, "Resume", Close, "btn-primary");
+            // the same head the tablet wears, so pausing does not drop out of the game's own chrome
+            var head = UiKit.Box(_mainPage, "panel-head");
+            var brand = UiKit.Box(head, "panel-brand");
+            UiKit.Box(brand, "brand-gem");
+            UiKit.Label(brand, "GEODE EMPIRE", "panel-brandname");
+            var titleBox = UiKit.Box(head, "grow");
+            UiKit.Label(titleBox, "PAUSED", "page-title");
+            UiKit.Label(titleBox, "Progress is saved automatically.", "page-sub");
+            var buttons = UiKit.Box(_mainPage, "pause-buttons");
+            _resume = UiKit.Button(buttons, "Resume", Close, "btn-primary");
             _resume.style.marginBottom = 10;
-            _settingsBtn = UiKit.Button(_mainPage, "Settings", () => ShowSettings(true));
+            _settingsBtn = UiKit.Button(buttons, "Settings", () => ShowSettings(true), "btn-ghost");
             _settingsBtn.style.marginBottom = 10;
-            _quitBtn = UiKit.Button(_mainPage, "Save and quit to title", QuitToTitle, "btn-ghost");
+            _quitBtn = UiKit.Button(buttons, "Save and quit to title", QuitToTitle, "btn-ghost");
             _settings = new SettingsPage(_panel, LeaveSettings);
             _settingsPage = _settings.Root;
             _settingsPage.style.display = DisplayStyle.None;

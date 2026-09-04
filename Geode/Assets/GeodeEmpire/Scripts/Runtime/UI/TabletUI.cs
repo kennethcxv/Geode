@@ -201,7 +201,7 @@ namespace GeodeEmpire.UI
                 case 0: BuildSuppliers(); break;
                 case 1: BuildUpgrades(); break;
                 case 2: BuildCollection(); break;
-                default: BuildStats(); break;
+                default: BuildStats(); StatsDetail(); break;
             }
             if (keep >= 0)
             {
@@ -648,6 +648,31 @@ namespace GeodeEmpire.UI
         }
 
         // ---- Stats ----------------------------------------------------------------------------
+        /// <summary>The right-hand card on the statistics page: where the career stands, at a glance.</summary>
+        private void StatsDetail()
+        {
+            var st = _s.State;
+            _detail.Clear();
+            var (level, into, span) = Core.Progression.LevelProgress(st);
+            UiKit.Label(_detail, "THE CAREER SO FAR", "caption");
+            UiKit.Label(_detail, "Empire Level " + level, "detail-title").style.marginTop = 4;
+            UiKit.Label(_detail, into.ToString("N0") + " / " + span.ToString("N0") + " XP toward level " + (level + 1), "detail-sub");
+            UiKit.Rule(_detail);
+            UiKit.Kv(_detail, "Day", Core.Progression.Day(st).ToString());
+            UiKit.Kv(_detail, "In the till", UiKit.Money(st.Cash), "success");
+            UiKit.Kv(_detail, "Turned over", UiKit.Money(st.Stats.MoneyEarned));
+            UiKit.Kv(_detail, "Rock opened", st.Stats.SpecimensOpened.ToString());
+            UiKit.Kv(_detail, "Families met", st.Encyclopedia.Count + " / " + MineralCatalog.All.Count);
+            UiKit.Kv(_detail, "On display", st.DisplayedCount() + " / " + st.DisplayCapacity);
+            if (!string.IsNullOrEmpty(st.Stats.BiggestSaleName))
+            {
+                UiKit.Rule(_detail);
+                UiKit.Label(_detail, "BEST SALE", "caption");
+                UiKit.Label(_detail, st.Stats.BiggestSaleName, "detail-note").style.marginTop = 1;
+                UiKit.Label(_detail, UiKit.Money(st.Stats.BiggestSale), "row-price").style.marginTop = 2;
+            }
+        }
+
         private void BuildStats()
         {
             _subtitle.text = "Career statistics";
