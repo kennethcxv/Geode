@@ -13,50 +13,50 @@ namespace GeodeEmpire.UI
     {
         private AppraisalStation _station;
         private VisualElement _card;
-        private Label _name, _mineral, _size, _traits, _condition, _value, _record, _hint, _look, _process, _why, _call, _prov;
+        private Label _name, _mineral, _traits, _value, _record, _hint, _why, _call, _prov, _rarity;
+        private VisualElement _facts, _valueBox;
 
         private void Start()
         {
             _station = FindAnyObjectByType<AppraisalStation>();
             var root = HudController.Instance.GetComponent<UIDocument>().rootVisualElement;
-            _card = UiKit.Box(root, "card", "appraisal-card");
-            _card.style.position = Position.Absolute;
-            _card.style.right = 40;
-            _card.style.top = Length.Percent(12);   // high enough that a tall card (records, certification, auction hint) clears the tutorial card on 3:2 screens
-            _name = UiKit.Label(_card, "", "appraisal-name", "bold");
-            _mineral = UiKit.Label(_card, "", "appraisal-line", "muted");
-            _size = UiKit.Label(_card, "", "appraisal-line");
-            Caption("LOOK");
-            _traits = UiKit.Label(_card, "", "appraisal-line", "accent");
-            _traits.style.whiteSpace = WhiteSpace.Normal;
-            _look = UiKit.Label(_card, "", "appraisal-line", "muted");
-            Caption("CONDITION  •  PROCESS");
-            _condition = UiKit.Label(_card, "", "appraisal-line");
-            _process = UiKit.Label(_card, "", "appraisal-line", "muted");
-            Caption("VALUE");
-            _value = UiKit.Label(_card, "", "appraisal-value", "bold");
-            _why = UiKit.Label(_card, "", "appraisal-line", "muted");
-            _why.style.whiteSpace = WhiteSpace.Normal;
-            _call = UiKit.Label(_card, "", "appraisal-line", "accent");
-            Caption("PROVENANCE");
-            _prov = UiKit.Label(_card, "", "muted");
-            _prov.style.whiteSpace = WhiteSpace.Normal;
-            _record = UiKit.Label(_card, "", "appraisal-record", "medium");
-            _hint = UiKit.Label(_card, "", "muted");
-            _hint.style.marginTop = 12;
-            _hint.style.whiteSpace = WhiteSpace.Normal;
+            // the reference pack's specimen card: name and rarity at the top, a run of labelled facts,
+            // then the valuation set apart in green, then the prose
+            _card = UiKit.Box(root, "detail", "appraisal-card");
+            var head = UiKit.Box(_card, "row");
+            head.style.alignItems = Align.FlexStart;
+            var headText = UiKit.Box(head, "grow");
+            headText.style.flexShrink = 1;
+            _name = UiKit.Label(headText, "", "detail-title");
+            _mineral = UiKit.Label(headText, "", "detail-sub");
+            _rarity = UiKit.Rarity(head, 0);
+            _rarity.style.flexShrink = 0;
+            _rarity.style.marginLeft = 10;
+            UiKit.Rule(_card);
+            // the body scrolls inside the card: a long read-out must never squash its own rows
+            var scroll = new ScrollView(ScrollViewMode.Vertical);
+            scroll.AddToClassList("card-scroll");
+            _card.Add(scroll);
+            var body = scroll.contentContainer;
+            _facts = UiKit.Box(body, "facts");
+            _traits = UiKit.Label(body, "", "detail-note", "accent");
+            _valueBox = UiKit.Box(body, "value-block");
+            UiKit.Label(_valueBox, "ESTIMATED VALUE", "caption");
+            _value = UiKit.Label(_valueBox, "", "appraisal-value");
+            _why = UiKit.Label(_valueBox, "", "detail-note");
+            _why.style.marginTop = 6;
+            _call = UiKit.Label(body, "", "detail-note", "accent");
+            _record = UiKit.Label(body, "", "appraisal-record", "medium");
+            UiKit.Rule(body);
+            _prov = UiKit.Label(body, "", "detail-note", "muted");
+            _prov.style.marginTop = 0;
+            _hint = UiKit.Label(body, "", "detail-note", "muted");
             _card.style.display = DisplayStyle.None;
             if (_station != null)
             {
                 _station.Appraised += Show;
                 _station.Cleared += Hide;
             }
-        }
-
-        private void Caption(string text)
-        {
-            var c = UiKit.Label(_card, text, "caption");
-            c.style.marginTop = 10;
         }
 
         private void OnDestroy()
@@ -83,22 +83,39 @@ namespace GeodeEmpire.UI
             var g = e.Geology;
             var s = GameSession.Instance.State;
             _name.text = r.DisplayName;
-            _mineral.text = $"{g.Family.Name}  •  {Valuation.TierLabel(Valuation.TierFromValue(r.AppraisedValue))}";
-            _size.text = $"{g.MassKg:F2} kg  •  {g.Size * 200f:F0} cm across  •  {FormationWord(g.Cavity)}" + (!string.IsNullOrEmpty(r.Locality) ? $"  •  {r.Locality}" : "");
-            _look.text = $"{Valuation.HabitWord(g)}  •  {Valuation.SaturationWord(g.Saturation)}  •  {Valuation.ClarityWord(g.Clarity)}  •  {Valuation.ZoningWord(g.Zoning)}";
+            _mineral.text = g.Family.Name;
+            var tier = Valuation.TierFromValue(r.AppraisedValue);
+            int chip = Mathf.Clamp((int)tier - 1, 0, 4);
+            _rarity.text = Valuation.TierLabel(tier).ToUpper();
+            foreach (var c in new[] { "rarity-common", "rarity-uncommon", "rarity-rare", "rarity-epic", "rarity-legendary" }) _rarity.RemoveFromClassList(c);
+            _rarity.AddToClassList(new[] { "rarity-common", "rarity-uncommon", "rarity-rare", "rarity-epic", "rarity-legendary" }[chip]);
+
+            _facts.Clear();
+            if (!string.IsNullOrEmpty(r.Locality)) UiKit.Kv(_facts, "Origin", r.Locality);
+            UiKit.Kv(_facts, "Weight", $"{g.MassKg:F2} kg");
+            UiKit.Kv(_facts, "Crystal type", g.Family.Name);
+            UiKit.Kv(_facts, "Formation", FormationWord(g.Cavity));
+            UiKit.Kv(_facts, "Size", $"{g.Size * 200f:F0} cm across");
+            UiKit.Kv(_facts, "Habit", Valuation.HabitWord(g));
+            UiKit.Kv(_facts, "Saturation", Valuation.SaturationWord(g.Saturation));
+            UiKit.Kv(_facts, "Clarity", Valuation.ClarityWord(g.Clarity));
+            UiKit.Kv(_facts, "Zoning", Valuation.ZoningWord(g.Zoning));
             string tool = r.IsPiece ? "trim saw" : r.ProcessedBy == "hammer" ? "hammer and chisel" : r.ProcessedBy == "cracker" ? "geode cracker" : r.ProcessedBy;
-            _process.text = (r.Certified ? $"Certified  •  UV: {r.Fluorescence}  •  " : "") + (string.IsNullOrEmpty(tool) ? (r.IsOpened ? "Opened" : "Unopened") : "Opened with the " + tool) + (r.StrikeCount > 0 ? $"  •  {r.StrikeCount} strikes" : "") + (r.Polish > 0.02f ? $"  •  polish {Mathf.RoundToInt(r.Polish * 100f)}%" : "") + (r.ShellDamage > 0.02f ? "  •  shell chipped" : "");
+            UiKit.Kv(_facts, "Opened with", string.IsNullOrEmpty(tool) ? (r.IsOpened ? "opened" : "unopened") : tool);
+            if (r.StrikeCount > 0) UiKit.Kv(_facts, "Strikes", r.StrikeCount.ToString());
+            if (r.Polish > 0.02f) UiKit.Kv(_facts, "Polish", Mathf.RoundToInt(r.Polish * 100f) + "%");
+            if (r.Certified) UiKit.Kv(_facts, "UV", r.Fluorescence);
+            float dmg = e.Visual.CrystalDamageFraction();
+            string cond = dmg <= 0.001f ? "Clean, no damage" : dmg < 0.12f ? "Minor chipping" : dmg < 0.35f ? "Noticeable damage" : "Heavily damaged";
+            if (dmg > 0.001f) cond += $"  (-{Mathf.RoundToInt(dmg * 85f)}%)";
+            UiKit.Kv(_facts, "Condition", cond, dmg > 0.12f ? "danger" : "success");
+
             _why.text = string.Join("\n", Valuation.Explain(r));
             _call.text = r.Predicted ? PredictionLine(r) : "";
             _call.style.display = r.Predicted ? DisplayStyle.Flex : DisplayStyle.None;
             _prov.text = TabletUI.Provenance(r, true);
-            _traits.text = string.Join("  •  ", Valuation.Highlights(g));
-            float dmg = e.Visual.CrystalDamageFraction();
-            string cond = dmg <= 0.001f ? "Condition: clean, no damage" : dmg < 0.12f ? "Condition: minor chipping" : dmg < 0.35f ? "Condition: noticeable damage" : "Condition: heavily damaged";
-            if (dmg > 0.001f) cond += $"  (−{Mathf.RoundToInt(dmg * 85f)}%)";
-            _condition.text = cond;
-            _condition.RemoveFromClassList("danger");
-            if (dmg > 0.12f) _condition.AddToClassList("danger");
+            _traits.text = string.Join("  \u2022  ", Valuation.Highlights(g));
+            _traits.style.display = string.IsNullOrEmpty(_traits.text) ? DisplayStyle.None : DisplayStyle.Flex;
             _value.text = AppraisalStation.ValueLabel(r);
             var entry = s.GetOrCreateEntry(g.Mineral);
             string rec = "";

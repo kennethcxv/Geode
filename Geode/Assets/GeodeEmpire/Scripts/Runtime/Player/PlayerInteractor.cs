@@ -23,6 +23,8 @@ namespace GeodeEmpire.Player
         public SpecimenEntity Held { get; private set; }
         public IInteractable Target { get; private set; }
         public string Prompt { get; private set; } = "";
+        /// <summary>The key the prompt is asking for, drawn as its own cap; empty when the line is not a call to act.</summary>
+        public string PromptKey { get; private set; } = "";
         public string Hint { get; private set; } = "";
         public bool Inspecting { get; private set; }
         /// <summary>The loupe is raised: the held piece stays up in inspect pose without holding the inspect button.</summary>
@@ -265,7 +267,7 @@ namespace GeodeEmpire.Player
         private void RefreshPrompt()
         {
             _promptTarget = Target; _promptHeld = Held; _promptInspecting = Inspecting; _promptScheme = GameInput.Scheme;
-            string p = "", h = "";
+            string p = "", h = "", key = "";
             if (Inspecting)
             {
                 p = Held != null && !Held.IsOpened ? HandReading(Held) + (string.IsNullOrEmpty(_tapNote) ? "" : "  •  " + _tapNote) + (Held.Record.Predicted ? "  •  your call: " + CallWord(Held.Record) : "") : "";
@@ -276,7 +278,8 @@ namespace GeodeEmpire.Player
             else if (Target != null)
             {
                 string tp = Target.GetPrompt(this);
-                p = string.IsNullOrEmpty(tp) ? "" : $"[{GameInput.Glyph("Interact")}] {tp}";
+                p = tp ?? "";
+                if (!string.IsNullOrEmpty(p)) key = GameInput.Glyph("Interact");
                 h = Target.GetHint(this) ?? "";
                 // a piece on a shelf (the crosshair finds the slot, or the rock itself): its label sits under the prompt, small, where the eye already is
                 string label = Target is SpecimenEntity se ? se.GetHint(this)
@@ -288,10 +291,11 @@ namespace GeodeEmpire.Player
                 string held = $"Hold {GameInput.Glyph("Inspect")} to inspect   {GameInput.Glyph("Drop")} drop" + (LoupeTool.Owned ? $"   {GameInput.Glyph("Loupe")} loupe" : "");
                 h = string.IsNullOrEmpty(h) ? held : h + "   " + held;
             }
-            if (p != Prompt || h != Hint)
+            if (p != Prompt || h != Hint || key != PromptKey)
             {
                 Prompt = p;
                 Hint = h;
+                PromptKey = key;
                 PromptChanged?.Invoke();
             }
         }

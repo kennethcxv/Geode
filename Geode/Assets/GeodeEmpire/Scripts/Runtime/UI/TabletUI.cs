@@ -18,7 +18,8 @@ namespace GeodeEmpire.UI
         public int CurrentTab => _tab;
         public string FocusedText => UiKit.FocusedText(_panel);
 
-        private VisualElement _root, _dim, _panel, _content;
+        private VisualElement _root, _dim, _panel, _content, _detail;
+        private string _detailKey;   // which row the detail card is showing, so a rebuild keeps it
         private Label _cash, _subtitle;
         private readonly List<Button> _tabs = new List<Button>();
         private int _tab;
@@ -34,17 +35,19 @@ namespace GeodeEmpire.UI
             _dim = UiKit.Box(_root, "panel-dim");
             _dim.style.display = DisplayStyle.None;
             _panel = UiKit.Box(_dim, "panel");
-            _panel.style.width = 1120;
-            _panel.style.height = 720;
-            var header = UiKit.Box(_panel, "row");
-            header.style.alignItems = Align.Center;
+            _panel.style.width = 1500;
+            _panel.style.height = 880;
+            var header = UiKit.Box(_panel, "panel-head");
+            var brand = UiKit.Box(header, "panel-brand");
+            UiKit.Box(brand, "brand-gem");
+            UiKit.Label(brand, "GEODE EMPIRE", "panel-brandname");
             var titleBox = UiKit.Box(header, "grow");
-            UiKit.Label(titleBox, "WORKSHOP TABLET", "panel-title", "bold");
-            _subtitle = UiKit.Label(titleBox, "", "panel-subtitle");
-            _cash = UiKit.Label(header, "$0", "price", "bold");
-            _cash.style.fontSize = 30;
+            UiKit.Label(titleBox, "WORKSHOP TABLET", "page-title");
+            _subtitle = UiKit.Label(titleBox, "", "page-sub");
+            _cash = UiKit.Label(header, "$0", "status-cash");
+            _cash.style.fontSize = 34;
             var close = UiKit.Button(header, "Close", Close, "btn-ghost");
-            close.style.marginLeft = 20;
+            close.style.marginLeft = 22;
             var tabRow = UiKit.Box(_panel, "tab-row");
             string[] names = { "Suppliers", "Upgrades", "Collection", "Stats" };
             for (int i = 0; i < names.Length; i++)
@@ -56,10 +59,22 @@ namespace GeodeEmpire.UI
                 tabRow.Add(b);
                 _tabs.Add(b);
             }
+            var body = UiKit.Box(_panel, "panel-body");
             _scroll = new ScrollView(ScrollViewMode.Vertical);
-            _scroll.AddToClassList("grow");
-            _panel.Add(_scroll);
+            _scroll.AddToClassList("panel-list");
+            body.Add(_scroll);
             _content = _scroll.contentContainer;
+            // the pack's management screens always keep a detail card down the right edge: the list stays
+            // scannable and everything long about the highlighted row lives over here
+            // the detail card scrolls: a long supplier read-out must not squash its own rows
+            var detailScroll = new ScrollView(ScrollViewMode.Vertical);
+            detailScroll.AddToClassList("panel-detail");
+            body.Add(detailScroll);
+            _detail = detailScroll.contentContainer;
+            var foot = UiKit.Box(_panel, "panel-foot");
+            UiKit.KeyHint(foot, GameInput.Glyph("Move"), "Navigate");
+            UiKit.KeyHint(foot, GameInput.Glyph("Interact"), "Select");
+            UiKit.KeyHint(foot, GameInput.Glyph("Back"), "Close");
             // Controller navigation: spatial navigation never steps from the tab row into the scroll view, so route
             // it explicitly. Down enters the list, Up/Down walk the buttons, Left/Right in the list switch tabs.
             _panel.RegisterCallback<NavigationMoveEvent>(OnNavigationMove, TrickleDown.TrickleDown);
@@ -179,6 +194,8 @@ namespace GeodeEmpire.UI
             var focused = _root.panel?.focusController?.focusedElement as Button;
             int keep = focused != null ? ContentButtons().IndexOf(focused) : -1;
             _content.Clear();
+            _detail.Clear();
+            _detailKey = null;
             switch (_tab)
             {
                 case 0: BuildSuppliers(); break;
@@ -226,45 +243,85 @@ namespace GeodeEmpire.UI
                 if (sup.Occasional && !unlocked) continue;                      // occasional lots are not advertised before they exist
                 if (sup.Occasional && !Market.Available(st, sup)) continue;     // ... and only show while on offer
                 bool premiumTease = sup.Id == SupplierCatalog.Premium && !unlocked;
-                var card = UiKit.Box(_content, "item-card");
-                card.style.borderLeftWidth = 4;
+                var card = UiKit.Box(_content, "row-card");
                 card.style.borderLeftColor = unlocked ? sup.Accent : new Color(0.3f, 0.3f, 0.3f);
                 var row = UiKit.Box(card, "row");
                 row.style.alignItems = Align.Center;
+                var sw = UiKit.Box(row, "swatch");
+                sw.style.backgroundColor = unlocked ? sup.Accent * 0.32f : new Color(0.16f, 0.16f, 0.17f);
+                UiKit.Box(sw, "swatch-core").style.backgroundColor = unlocked ? sup.Accent : new Color(0.24f, 0.24f, 0.26f);
                 var text = UiKit.Box(row, "grow");
-                UiKit.Label(text, sup.Name, "item-title", "medium");
-                UiKit.Label(text, sup.Tagline, "item-sub");
+                UiKit.Label(text, sup.Name, "row-title");
+                UiKit.Label(text, sup.Tagline, "row-sub");
                 var tags = UiKit.Box(text, "row");
-                tags.style.marginTop = 8;
+                tags.style.marginTop = 6;
                 UiKit.Label(tags, sup.RockCountLabel.ToUpper(), "tag");
                 UiKit.Label(tags, VarianceTag(sup), "tag");
                 if (sup.Occasional) UiKit.Label(tags, "ON OFFER", "tag");
                 if (!unlocked) UiKit.Label(tags, "LOCKED", "tag", "tag-locked");
-                var desc = UiKit.Label(text, unlocked ? sup.Description : sup.UnlockHint, "item-desc");
-                if (unlocked)
-                {
-                    void Line(string k, string v) { var r2 = UiKit.Box(text, "row"); r2.style.marginTop = 4; var kl = UiKit.Label(r2, k, "item-sub"); kl.style.width = 92; var vl = UiKit.Label(r2, v, "item-sub"); vl.style.whiteSpace = WhiteSpace.Normal; vl.style.flexShrink = 1; }
-                    Line("Expect", sup.Character);
-                    Line("Risk", sup.Risk);
-                    Line("Minerals", sup.Minerals);
-                    Line("Look for", sup.Clue);
-                }
                 var side = UiKit.Box(row);
                 side.style.alignItems = Align.FlexEnd;
-                side.style.minWidth = 180;
-                UiKit.Label(side, UiKit.Money(sup.Price), "price", "bold");
+                side.style.minWidth = 168;
+                UiKit.Label(side, UiKit.Money(sup.Price), "row-price");
+                var supplier = sup;
+                void Detail() => SupplierDetail(supplier, unlocked, premiumTease);
+                card.RegisterCallback<PointerEnterEvent>(_ => Detail());
                 if (unlocked)
                 {
                     bool afford = _s.CanAfford(sup.Price);
-                    var buy = UiKit.Button(side, afford ? "Order crate" : $"{UiKit.Money(sup.Price - st.Cash)} more", () => Buy(sup), afford ? "btn-primary" : "");
+                    var buy = UiKit.Button(side, afford ? "Order crate" : $"{UiKit.Money(sup.Price - st.Cash)} more", () => Buy(supplier), afford ? "btn-primary" : "");
                     buy.style.marginTop = 8;
                     buy.SetEnabled(afford && pallet < 4);
+                    buy.RegisterCallback<FocusInEvent>(_ => Detail());
                 }
-                else if (premiumTease)
+                else
                 {
-                    UiKit.Label(side, $"Collection value {UiKit.Money(st.CollectionValue())} / $1,500", "muted");
+                    var look = UiKit.Button(side, "Details", Detail, "btn-ghost");
+                    look.style.marginTop = 8;
+                    look.RegisterCallback<FocusInEvent>(_ => Detail());
                 }
+                if (_detailKey == null) { _detailKey = sup.Id; Detail(); }
             }
+        }
+
+        /// <summary>The right-hand card: everything long about the highlighted supplier.</summary>
+        private void SupplierDetail(SupplierDefinition sup, bool unlocked, bool premiumTease)
+        {
+            _detailKey = sup.Id;
+            _detail.Clear();
+            var head = UiKit.Box(_detail, "row");
+            head.style.alignItems = Align.Center;
+            var sw = UiKit.Box(head, "swatch");
+            sw.style.backgroundColor = unlocked ? sup.Accent * 0.32f : new Color(0.16f, 0.16f, 0.17f);
+            UiKit.Box(sw, "swatch-core").style.backgroundColor = unlocked ? sup.Accent : new Color(0.24f, 0.24f, 0.26f);
+            var ht = UiKit.Box(head, "grow");
+            UiKit.Label(ht, sup.Name, "detail-title");
+            UiKit.Label(ht, sup.Tagline, "detail-sub");
+            UiKit.Rule(_detail);
+            var desc = UiKit.Label(_detail, unlocked ? sup.Description : sup.UnlockHint, "detail-note");
+            desc.style.marginTop = 0;
+            if (unlocked)
+            {
+                UiKit.Rule(_detail);
+                void Line(string k, string v)
+                {
+                    UiKit.Label(_detail, k.ToUpper(), "caption").style.marginTop = 8;
+                    UiKit.Label(_detail, v, "detail-note").style.marginTop = 1;
+                }
+                Line("Expect", sup.Character);
+                Line("Risk", sup.Risk);
+                Line("Minerals", sup.Minerals);
+                Line("Look for", sup.Clue);
+            }
+            else if (premiumTease)
+            {
+                UiKit.Rule(_detail);
+                UiKit.Kv(_detail, "Collection value", UiKit.Money(_s.State.CollectionValue()) + " / $1,500");
+            }
+            UiKit.Rule(_detail);
+            UiKit.Kv(_detail, "Crate price", UiKit.Money(sup.Price), "accent");
+            UiKit.Kv(_detail, "Rocks", sup.RockCountLabel);
+            UiKit.Kv(_detail, "Character", VarianceTag(sup));
         }
 
         private static string VarianceTag(SupplierDefinition sup)
@@ -309,30 +366,84 @@ namespace GeodeEmpire.UI
             foreach (var up in list)
             {
                 bool owned = st.HasUpgrade(up.Id);
-                var card = UiKit.Box(_content, "item-card");
+                var card = UiKit.Box(_content, "row-card");
+                card.style.borderLeftColor = owned ? new Color(0.31f, 0.84f, 0.5f) : new Color(0.55f, 0.36f, 0.96f);
                 var row = UiKit.Box(card, "row");
                 row.style.alignItems = Align.Center;
+                var sw = UiKit.Box(row, "swatch");
+                sw.style.backgroundColor = owned ? new Color(0.1f, 0.22f, 0.15f) : new Color(0.15f, 0.12f, 0.23f);
+                UiKit.Box(sw, "swatch-core").style.backgroundColor = owned ? new Color(0.31f, 0.84f, 0.5f) : new Color(0.55f, 0.36f, 0.96f);
                 var text = UiKit.Box(row, "grow");
-                UiKit.Label(text, up.Name, "item-title", "medium");
-                UiKit.Label(text, up.Description, "item-sub");
-                UiKit.Label(text, up.Effect, "item-desc");
+                UiKit.Label(text, up.Name, "row-title");
+                UiKit.Label(text, up.Description, "row-sub");
                 var side = UiKit.Box(row);
                 side.style.alignItems = Align.FlexEnd;
-                side.style.minWidth = 180;
+                side.style.minWidth = 168;
+                var upgrade = up;
+                void Detail() => UpgradeDetail(upgrade, owned);
+                card.RegisterCallback<PointerEnterEvent>(_ => Detail());
                 if (owned) UiKit.Label(side, "INSTALLED", "tag", "tag-owned");
                 else
                 {
                     if (up.Id == UpgradeCatalog.SawBlade && st.HasUpgrade(UpgradeCatalog.TrimSaw))
-                        UiKit.Label(side, $"Blade wear {st.BladeWear * 100f:F0}%", "item-sub", st.BladeWear >= 0.75f ? "warn" : "muted");
+                        UiKit.Label(side, $"Blade wear {st.BladeWear * 100f:F0}%", "row-sub", st.BladeWear >= 0.75f ? "warn" : "muted");
                     else if (up.Id == UpgradeCatalog.Stage2 && st.WorkshopStage < 2)
                         UiKit.Label(side, "WORKSHOP EXPANSION", "tag");
-                    UiKit.Label(side, UiKit.Money(up.Price), "price", "bold");
+                    UiKit.Label(side, UiKit.Money(up.Price), "row-price");
                     bool can = _s.CanBuyUpgrade(up.Id, out string why);
-                    var buy = UiKit.Button(side, can ? (up.Consumable ? "Replace" : "Buy") : why, () => BuyUpgrade(up), can ? "btn-primary" : "");
+                    var buy = UiKit.Button(side, can ? (up.Consumable ? "Replace" : "Purchase") : why, () => BuyUpgrade(upgrade), can ? "btn-primary" : "");
                     buy.style.marginTop = 8;
                     buy.SetEnabled(can);
+                    buy.RegisterCallback<FocusInEvent>(_ => Detail());
                 }
+                if (_detailKey == null) { _detailKey = up.Id; Detail(); }
             }
+        }
+
+        private void UpgradeDetail(UpgradeDefinition up, bool owned)
+        {
+            _detailKey = up.Id;
+            _detail.Clear();
+            var head = UiKit.Box(_detail, "row");
+            head.style.alignItems = Align.Center;
+            var sw = UiKit.Box(head, "swatch");
+            sw.style.backgroundColor = owned ? new Color(0.1f, 0.22f, 0.15f) : new Color(0.15f, 0.12f, 0.23f);
+            UiKit.Box(sw, "swatch-core").style.backgroundColor = owned ? new Color(0.31f, 0.84f, 0.5f) : new Color(0.55f, 0.36f, 0.96f);
+            var ht = UiKit.Box(head, "grow");
+            UiKit.Label(ht, up.Name, "detail-title");
+            UiKit.Label(ht, owned ? "Installed" : "Available", "detail-sub");
+            UiKit.Rule(_detail);
+            UiKit.Label(_detail, up.Description, "detail-note").style.marginTop = 0;
+            UiKit.Label(_detail, "WHAT IT CHANGES", "caption").style.marginTop = 12;
+            UiKit.Label(_detail, up.Effect, "detail-note").style.marginTop = 1;
+            UiKit.Rule(_detail);
+            UiKit.Kv(_detail, "Price", UiKit.Money(up.Price), "accent");
+            UiKit.Kv(_detail, "Status", owned ? "Installed" : (_s.CanBuyUpgrade(up.Id, out string why) ? "Ready to buy" : why),
+                     owned ? "success" : null);
+        }
+
+        /// <summary>Right-hand card for the highlighted mineral family.</summary>
+        private void FamilyDetail(MineralFamily fam, EncyclopediaEntry entry, bool found)
+        {
+            _detailKey = fam.Name;
+            _detail.Clear();
+            var pal = fam.Palettes[0];
+            var plate = UiKit.Box(_detail, "detail-plate");
+            if (found) SpecimenThumbnailer.Instance.Family(plate, fam.Id, SpecimenThumbnailer.Ground);
+            else plate.style.backgroundColor = new Color(0.115f, 0.11f, 0.125f);
+            UiKit.Label(_detail, found ? fam.Name : "Undiscovered", "detail-title").style.marginTop = 12;
+            UiKit.Label(_detail, found ? fam.Description : "Crack more rocks to learn what this is.", "detail-note").style.marginTop = 4;
+            if (!found) return;
+            if (!string.IsNullOrEmpty(fam.FieldNote))
+            {
+                UiKit.Label(_detail, "FIELD NOTE", "caption").style.marginTop = 12;
+                UiKit.Label(_detail, fam.FieldNote, "detail-note").style.marginTop = 1;
+            }
+            UiKit.Rule(_detail);
+            UiKit.Kv(_detail, "Found", entry.Found.ToString());
+            UiKit.Kv(_detail, "Best value", UiKit.Money(entry.BestValue), "accent");
+            UiKit.Kv(_detail, "Largest", $"{entry.LargestMassKg:F1} kg");
+            if (entry.CavitiesSeen.Count > 0) UiKit.Kv(_detail, "Formations", string.Join(", ", entry.CavitiesSeen));
         }
 
         private void BuyUpgrade(UpgradeDefinition up)
@@ -356,30 +467,35 @@ namespace GeodeEmpire.UI
                 foreach (var e in st.Encyclopedia) if (e.Mineral == fam.Id) entry = e;
                 bool found = entry != null && entry.Found > 0;
                 if (found) known++;
-                var card = UiKit.Box(grid, "item-card");
-                card.style.width = 330;
-                card.style.marginRight = 10;
                 var pal = fam.Palettes[0];
-                card.style.borderLeftWidth = 4;
-                card.style.borderLeftColor = found ? pal.SurfaceA : new Color(0.25f, 0.25f, 0.25f);
-                UiKit.Label(card, found ? fam.Name : "Undiscovered", "item-title", "medium");
+                // the pack's collection grid: a specimen plate on top, the name and family under it, the value on the line below
+                var tile = UiKit.Box(grid, "tile");
+                var plate = UiKit.Box(tile, "tile-plate");
+                if (found) SpecimenThumbnailer.Instance.Family(plate, fam.Id, SpecimenThumbnailer.Ground);
+                else plate.style.backgroundColor = new Color(0.115f, 0.11f, 0.125f);
+                var body = UiKit.Box(tile, "tile-body");
+                UiKit.Label(body, found ? fam.Name : "Undiscovered", "row-title");
+                UiKit.Label(body, found ? fam.Description : "Crack more rocks to learn what this is.", "row-sub");
                 if (found)
                 {
-                    UiKit.Label(card, fam.Description, "item-desc");
-                    if (!string.IsNullOrEmpty(fam.FieldNote)) UiKit.Label(card, fam.FieldNote, "item-desc", "muted");
-                    UiKit.Label(card, $"Found {entry.Found}  •  Best {UiKit.Money(entry.BestValue)}  •  Largest {entry.LargestMassKg:F1} kg", "item-sub");
+                    var foot = UiKit.Box(body, "row");
+                    foot.style.marginTop = 8;
+                    foot.style.alignItems = Align.Center;
+                    int tier = entry.BestValue >= 1200f ? 4 : entry.BestValue >= 600f ? 3 : entry.BestValue >= 250f ? 2 : entry.BestValue >= 90f ? 1 : 0;
+                    UiKit.Rarity(foot, tier);
+                    var spacer = UiKit.Box(foot, "grow");
+                    UiKit.Label(foot, UiKit.Money(entry.BestValue), "row-price");
+                    UiKit.Label(body, $"Found {entry.Found}  \u2022  largest {entry.LargestMassKg:F1} kg", "row-sub");
                     if (entry.TraitsSeen.Count > 0)
                     {
                         var traits = new List<string>();
                         foreach (var t in entry.TraitsSeen) if (System.Enum.TryParse<RareTrait>(t, out var rt)) traits.Add(Valuation.TraitName(rt));
-                        UiKit.Label(card, "Traits seen: " + string.Join(", ", traits), "item-sub");
+                        UiKit.Label(body, "Traits: " + string.Join(", ", traits), "row-sub");
                     }
-                    UiKit.Label(card, "Formations: " + string.Join(", ", entry.CavitiesSeen), "item-sub");
                 }
-                else
-                {
-                    UiKit.Label(card, "Crack more rocks to learn what this is.", "item-sub");
-                }
+                var famRef = fam; var entryRef = entry; bool foundRef = found;
+                tile.RegisterCallback<PointerEnterEvent>(_ => FamilyDetail(famRef, entryRef, foundRef));
+                if (_detailKey == null && found) { _detailKey = fam.Name; FamilyDetail(famRef, entryRef, true); }
             }
             UiKit.Label(_content, $"{known} of {MineralCatalog.All.Count} mineral families discovered", "muted");
 

@@ -13,65 +13,65 @@
 
 /* ---- surfaces ------------------------------------------------------------------------ */
 .card {
-    background-color: rgba(22, 20, 18, 0.86);
+    background-color: rgba(19, 16, 22, 0.94);
     border-width: 1px;
     border-color: rgba(255, 244, 220, 0.12);
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 12px 18px;
 }
-.accent { color: rgb(226, 178, 96); }
+.accent { color: rgb(232, 190, 112); }
 .muted { color: rgba(240, 236, 228, 0.6); }
 .warn { color: rgb(232, 150, 130); }
 .danger { color: rgb(232, 116, 96); }
-.success { color: rgb(156, 212, 146); }
+.success { color: rgb(80, 214, 128); }
 .caption { font-size: 15px; color: rgba(240, 236, 228, 0.6); letter-spacing: 1px; }
-.section { font-size: 15px; color: rgba(226, 178, 96, 0.9); letter-spacing: 3px; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); }
+.section { font-size: 15px; color: rgba(232, 190, 112, 0.9); letter-spacing: 3px; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); }
 
 /* ---- HUD --------------------------------------------------------------------------- */
-.crosshair { position: absolute; width: 5px; height: 5px; border-radius: 3px; background-color: rgba(255, 250, 240, 0.85); }
-.crosshair-ring { position: absolute; width: 24px; height: 24px; border-radius: 12px; border-width: 2px; border-color: rgba(226, 178, 96, 0.95); background-color: rgba(0,0,0,0); }
+.crosshair { position: absolute; width: 5px; height: 5px; border-radius: 6px; background-color: rgba(255, 250, 240, 0.85); }
+.crosshair-ring { position: absolute; width: 24px; height: 24px; border-radius: 12px; border-width: 2px; border-color: rgba(232, 190, 112, 0.95); background-color: rgba(0,0,0,0); }
 
 .prompt { position: absolute; left: 50%; top: 57%; translate: -50% 0; font-size: 24px; -unity-text-align: middle-center; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); }
-.prompt-hint { position: absolute; left: 50%; top: 86%; translate: -50% 0; font-size: 16px; color: rgba(240, 236, 228, 0.78); -unity-text-align: middle-center; padding: 6px 14px; background-color: rgba(18, 16, 14, 0.62); border-radius: 3px; border-width: 1px; border-color: rgba(255,244,220,0.08); }
+.prompt-hint { position: absolute; left: 50%; top: 86%; translate: -50% 0; font-size: 16px; color: rgba(240, 236, 228, 0.78); -unity-text-align: middle-center; padding: 6px 14px; background-color: rgba(18, 16, 14, 0.62); border-radius: 6px; border-width: 1px; border-color: rgba(255,244,220,0.08); }
 
 .cash-card { position: absolute; left: 28px; top: 24px; flex-direction: row; align-items: center; padding: 10px 18px; }
 .cash-label { font-size: 15px; color: rgba(240, 236, 228, 0.6); margin-right: 12px; letter-spacing: 3px; }
-.cash-value { font-size: 30px; color: rgb(226, 178, 96); }
+.cash-value { font-size: 30px; color: rgb(232, 190, 112); }
 .cash-delta { font-size: 18px; margin-left: 12px; }
 
-.tutorial { position: absolute; left: 50%; bottom: 28px; translate: -50% 0; max-width: 860px; -unity-text-align: middle-center; font-size: 20px; padding: 14px 24px; border-left-width: 3px; border-left-color: rgb(226, 178, 96); }
+.tutorial { position: absolute; left: 50%; bottom: 78px; translate: -50% 0; max-width: 860px; -unity-text-align: middle-center; font-size: 20px; padding: 14px 24px; border-left-width: 3px; border-left-color: rgb(232, 190, 112); }
 
-.notify-stack { position: absolute; right: 28px; top: 24px; align-items: flex-end; }
+.notify-stack { position: absolute; right: 28px; top: 190px; align-items: flex-end; }
 .notify { margin-bottom: 8px; font-size: 17px; max-width: 480px; padding: 10px 16px; }
-.notify-success { border-left-width: 3px; border-left-color: rgb(156, 212, 146); }
+.notify-success { border-left-width: 3px; border-left-color: rgb(80, 214, 128); }
 .notify-warning { border-left-width: 3px; border-left-color: rgb(232, 116, 96); }
-.notify-discovery { border-left-width: 3px; border-left-color: rgb(226, 178, 96); }
+.notify-discovery { border-left-width: 3px; border-left-color: rgb(232, 190, 112); }
 
 /* ---- bench overlay ---------------------------------------------------------------- */
-.bench-panel { position: absolute; right: 28px; bottom: 32px; width: 340px; padding: 14px 18px; }
-.bench-title { font-size: 15px; letter-spacing: 3px; color: rgba(226, 178, 96, 0.9); margin-bottom: 8px; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); }
-.meter-bg { height: 10px; background-color: rgba(255,255,255,0.08); border-radius: 2px; margin-top: 6px; margin-bottom: 6px; overflow: hidden; border-width: 1px; border-color: rgba(255,255,255,0.06); }
-.meter-fill { height: 10px; background-color: rgb(226, 178, 96); border-radius: 2px; }
-.meter-fill-force { background-color: rgb(232, 150, 90); }
-.bench-hint { font-size: 15px; color: rgba(240,236,228,0.72); margin-top: 8px; }
+.bench-panel { position: absolute; right: 28px; top: 240px; width: 420px; padding: 18px 20px 20px 20px; border-radius: 10px; background-color: rgba(19, 16, 22, 0.94); border-color: rgba(255, 244, 220, 0.11); }
+.bench-title { font-size: 20px; letter-spacing: 4px; color: rgb(232, 190, 112); margin-bottom: 12px; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); }
+.meter-bg { height: 14px; background-color: rgba(255,255,255,0.09); border-radius: 4px; margin-top: 8px; margin-bottom: 8px; overflow: hidden; border-width: 0; }
+.meter-fill { height: 14px; background-color: rgb(139, 92, 246); border-radius: 4px; }
+.meter-fill-force { background-color: rgb(232, 168, 96); }
+.bench-hint { font-size: 16px; color: rgba(238,233,226,0.72); margin-top: 12px; white-space: normal; }
 
 /* ---- panels (tablet, appraisal, pause, letters) ------------------------------------- */
 .panel-dim { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(6, 5, 4, 0.66); align-items: center; justify-content: center; }
-.panel { background-color: rgb(26, 24, 21); border-width: 1px; border-color: rgba(255,244,220,0.12); border-radius: 6px; padding: 26px 30px; }
+.panel { background-color: rgb(23, 20, 27); border-width: 1px; border-color: rgba(255,244,220,0.12); border-radius: 10px; padding: 26px 30px; }
 .panel-title { font-size: 34px; margin-bottom: 2px; letter-spacing: 1px; }
 .panel-subtitle { font-size: 16px; color: rgba(240,236,228,0.6); margin-bottom: 20px; letter-spacing: 1px; }
-.tab-row { flex-direction: row; margin-bottom: 18px; border-bottom-width: 1px; border-bottom-color: rgba(255,244,220,0.1); padding-bottom: 10px; }
-.tab { padding: 9px 20px; margin-right: 8px; border-radius: 3px; background-color: rgba(255,255,255,0.04); font-size: 17px; letter-spacing: 1px; color: rgba(240,236,228,0.72); border-width: 1px; border-color: rgba(0,0,0,0); }
+.tab-row { flex-direction: row; flex-shrink: 0; margin-bottom: 4px; border-bottom-width: 1px; border-bottom-color: rgba(255,244,220,0.1); padding-bottom: 0; }
+.tab { padding: 9px 20px; margin-right: 8px; border-radius: 6px; background-color: rgba(255,255,255,0.04); font-size: 17px; letter-spacing: 1px; color: rgba(240,236,228,0.72); border-width: 1px; border-color: rgba(0,0,0,0); }
 .tab:hover { background-color: rgba(255,255,255,0.09); color: rgb(240,236,228); }
 .tab:focus { border-color: rgb(255, 214, 140); color: rgb(240,236,228); }
-.tab-active { background-color: rgba(226,178,96,0.2); color: rgb(240,236,228); border-color: rgba(226,178,96,0.65); }
+.tab-active { background-color: rgba(232,190,112,0.2); color: rgb(240,236,228); border-color: rgba(232,190,112,0.65); }
 
-.btn { padding: 11px 22px; border-radius: 3px; background-color: rgba(226, 178, 96, 0.14); border-width: 1px; border-color: rgba(226,178,96,0.5); color: rgb(240,236,228); font-size: 18px; letter-spacing: 0.5px; -unity-text-align: middle-center; margin: 0; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); }
-.btn:hover { background-color: rgba(226, 178, 96, 0.3); border-color: rgba(226,178,96,0.8); }
-.btn:focus { background-color: rgba(226, 178, 96, 0.34); border-color: rgb(255, 214, 140); border-width: 2px; padding: 10px 21px; }
-.btn:active { background-color: rgba(226, 178, 96, 0.5); }
+.btn { padding: 11px 22px; border-radius: 6px; background-color: rgba(232, 190, 112, 0.14); border-width: 1px; border-color: rgba(232,190,112,0.5); color: rgb(240,236,228); font-size: 18px; letter-spacing: 0.5px; -unity-text-align: middle-center; margin: 0; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); }
+.btn:hover { background-color: rgba(232, 190, 112, 0.3); border-color: rgba(232,190,112,0.8); }
+.btn:focus { background-color: rgba(232, 190, 112, 0.34); border-color: rgb(255, 214, 140); border-width: 2px; padding: 10px 21px; }
+.btn:active { background-color: rgba(232, 190, 112, 0.5); }
 .btn:disabled { opacity: 0.38; }
-.btn-primary { background-color: rgb(226, 178, 96); color: rgb(28,24,20); border-color: rgb(226, 178, 96); }
+.btn-primary { background-color: rgb(232, 190, 112); color: rgb(28,24,20); border-color: rgb(232, 190, 112); }
 .btn-primary:hover { background-color: rgb(240, 196, 120); border-color: rgb(240, 196, 120); }
 .btn-primary:focus { background-color: rgb(244, 204, 132); border-color: rgb(255, 236, 200); }
 .btn-ghost { background-color: rgba(255,255,255,0.04); border-color: rgba(255,244,220,0.18); }
@@ -79,56 +79,58 @@
 
 .row { flex-direction: row; }
 .grow { flex-grow: 1; }
-.item-card { background-color: rgba(255,248,236,0.035); border-radius: 4px; padding: 16px 18px; margin-bottom: 10px; border-width: 1px; border-color: rgba(255,244,220,0.07); }
+.item-card { background-color: rgba(255,248,236,0.035); border-radius: 8px; padding: 16px 18px; margin-bottom: 10px; border-width: 1px; border-color: rgba(255,244,220,0.07); }
 .item-card:hover { background-color: rgba(255,248,236,0.06); }
-.item-card:focus { border-color: rgba(226,178,96,0.6); }
+.item-card:focus { border-color: rgba(232,190,112,0.6); }
 .item-title { font-size: 22px; }
 .item-sub { font-size: 16px; color: rgba(240,236,228,0.62); margin-top: 2px; }
 .item-desc { font-size: 16px; color: rgba(240,236,228,0.82); margin-top: 8px; white-space: normal; }
-.price { font-size: 28px; color: rgb(226,178,96); }
+.price { font-size: 28px; color: rgb(232,190,112); }
 .tag { font-size: 14px; padding: 4px 9px; border-radius: 2px; background-color: rgba(255,255,255,0.08); margin-right: 6px; letter-spacing: 2px; color: rgba(240,236,228,0.85); }
 .tag-locked { background-color: rgba(232,116,96,0.18); color: rgb(232,150,130); }
-.tag-owned { background-color: rgba(156,212,146,0.18); color: rgb(156,212,146); }
+.tag-owned { background-color: rgba(80,214,128,0.18); color: rgb(80,214,128); }
 
 .stat-row { flex-direction: row; justify-content: space-between; padding: 8px 0; border-bottom-width: 1px; border-bottom-color: rgba(255,244,220,0.07); }
 .stat-key { color: rgba(240,236,228,0.66); font-size: 17px; }
 .stat-val { font-size: 17px; }
 
-.appraisal-card { width: 520px; }
-.appraisal-name { font-size: 32px; }
+.appraisal-card { position: absolute; right: 28px; top: 240px; bottom: 96px; width: 470px; }
+.appraisal-name { font-size: 26px; }
+.appraisal-value { font-size: 34px; color: rgb(80, 214, 128); -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Bold.ttf"); margin-top: 2px; }
+.appraisal-record { font-size: 15px; color: rgb(80, 214, 128); margin-top: 8px; letter-spacing: 1px; white-space: normal; }
+/* the valuation is set apart, the way the pack frames the number that matters */
+.value-block { flex-shrink: 0; margin-top: 12px; padding: 12px 14px; border-radius: 8px; background-color: rgba(80, 214, 128, 0.09); border-width: 1px; border-color: rgba(80, 214, 128, 0.28); }
 .appraisal-line { font-size: 17px; margin-top: 2px; }
-.appraisal-value { font-size: 40px; color: rgb(226,178,96); margin-top: 6px; }
-.appraisal-record { font-size: 16px; color: rgb(156,212,146); margin-top: 6px; letter-spacing: 1px; }
 
 .unity-scroll-view { flex-grow: 1; }
 .unity-scroller { width: 10px; }
-.unity-scroller--vertical .unity-base-slider__dragger { background-color: rgba(226,178,96,0.5); border-radius: 3px; border-width: 0; }
+.unity-scroller--vertical .unity-base-slider__dragger { background-color: rgba(232,190,112,0.5); border-radius: 6px; border-width: 0; }
 .unity-scroller--vertical .unity-base-slider__tracker { background-color: rgba(255,255,255,0.05); }
 .unity-scroller__low-button, .unity-scroller__high-button { display: none; }
 
 /* ---- settings controls ------------------------------------------------------------- */
-.slider-row { flex-direction: row; align-items: center; margin-bottom: 10px; padding: 4px 6px; border-radius: 3px; }
+.slider-row { flex-direction: row; align-items: center; margin-bottom: 10px; padding: 4px 6px; border-radius: 6px; }
 .slider-row:hover { background-color: rgba(255,255,255,0.03); }
 .slider-label { width: 230px; font-size: 17px; }
 .unity-base-slider { flex-grow: 1; margin: 0 12px; }
 .unity-base-slider__tracker { background-color: rgba(255,255,255,0.1); border-radius: 2px; border-width: 0; height: 6px; margin-top: -3px; }
-.unity-base-slider__dragger { background-color: rgb(226,178,96); border-width: 0; border-radius: 8px; width: 16px; height: 16px; margin-top: -8px; }
+.unity-base-slider__dragger { background-color: rgb(232,190,112); border-width: 0; border-radius: 8px; width: 16px; height: 16px; margin-top: -8px; }
 .unity-base-slider:focus .unity-base-slider__dragger { background-color: rgb(255, 214, 140); border-width: 2px; border-color: rgb(255,236,200); }
 .unity-toggle { margin: 0; }
-.unity-toggle .unity-toggle__checkmark { background-color: rgba(255,255,255,0.08); border-color: rgba(255,244,220,0.3); border-width: 1px; border-radius: 3px; width: 20px; height: 20px; -unity-background-image-tint-color: rgb(28,24,20); }
-.unity-toggle:checked .unity-toggle__checkmark { background-color: rgb(226,178,96); border-color: rgb(226,178,96); }
+.unity-toggle .unity-toggle__checkmark { background-color: rgba(255,255,255,0.08); border-color: rgba(255,244,220,0.3); border-width: 1px; border-radius: 6px; width: 20px; height: 20px; -unity-background-image-tint-color: rgb(28,24,20); }
+.unity-toggle:checked .unity-toggle__checkmark { background-color: rgb(232,190,112); border-color: rgb(232,190,112); }
 .unity-toggle:focus .unity-toggle__checkmark { border-color: rgb(255,214,140); border-width: 2px; }
-.unity-base-dropdown__container-outer { background-color: rgb(26,24,21); border-color: rgba(226,178,96,0.5); }
+.unity-base-dropdown__container-outer { background-color: rgb(26,24,21); border-color: rgba(232,190,112,0.5); }
 .unity-base-field__label { min-width: 230px; font-size: 17px; color: rgb(240,236,228); }
-.unity-base-popup-field__input { background-color: rgba(255,255,255,0.06); border-color: rgba(255,244,220,0.2); border-radius: 3px; color: rgb(240,236,228); padding: 6px 10px; }
+.unity-base-popup-field__input { background-color: rgba(255,255,255,0.06); border-color: rgba(255,244,220,0.2); border-radius: 6px; color: rgb(240,236,228); padding: 6px 10px; }
 .unity-base-popup-field:focus .unity-base-popup-field__input { border-color: rgb(255,214,140); }
 .unity-base-popup-field__text { color: rgb(240,236,228); font-size: 17px; }
-.unity-base-popup-field__arrow { -unity-background-image-tint-color: rgb(226,178,96); }
+.unity-base-popup-field__arrow { -unity-background-image-tint-color: rgb(232,190,112); }
 
 /* ---- retail --------------------------------------------------------------------- */
-.retail-chip { position: absolute; left: 28px; top: 106px; padding: 8px 14px; border-left-width: 3px; border-left-color: rgba(240,236,228,0.35); }
-.retail-chip-waiting { border-left-color: rgb(226, 178, 96); background-color: rgba(40, 32, 20, 0.9); }
-.checkout-card { position: absolute; left: 50%; top: 62%; translate: -50% 0; width: 520px; align-items: center; padding: 16px 24px; }
+.retail-chip { position: absolute; left: 28px; top: 302px; padding: 10px 16px; border-radius: 8px; border-left-width: 3px; border-left-color: rgba(240,236,228,0.35); }
+.retail-chip-waiting { border-left-color: rgb(232, 190, 112); background-color: rgba(40, 32, 20, 0.9); }
+.checkout-card { position: absolute; left: 50%; top: 54%; translate: -50% 0; width: 520px; align-items: center; padding: 16px 24px; border-radius: 10px; }
 .checkout-card-station { top: auto; bottom: 16px; width: auto; min-width: 380px; padding: 8px 22px; }
 
 /* ---- settings page ---- */
@@ -147,7 +149,187 @@
 .binding-row { flex-direction: row; margin-top: 4px; }
 .binding-action { width: 250px; color: rgba(240, 236, 228, 0.85); font-size: 15px; }
 .binding-key { width: 150px; color: rgba(240, 236, 228, 0.6); font-size: 15px; }
-.confirm-card { position: absolute; left: 60px; right: 60px; top: 45%; background-color: rgb(30, 27, 24); border-width: 1px; border-color: rgba(226,178,96,0.65); border-radius: 6px; padding: 20px 24px; }
+.confirm-card { position: absolute; left: 60px; right: 60px; top: 45%; background-color: rgb(26, 23, 31); border-width: 1px; border-color: rgba(232,190,112,0.65); border-radius: 10px; padding: 20px 24px; }
 .confirm-card .panel-subtitle { margin-bottom: 14px; }
 
-.checkout-sold { border-color: rgb(156, 212, 146); background-color: rgba(60, 90, 55, 0.92); }
+.checkout-sold { border-color: rgb(80, 214, 128); background-color: rgba(60, 90, 55, 0.92); }
+
+/* ============================================================================================
+   Reference-match chrome — the persistent frame every screen in the target pack shares:
+   a brand badge and standing goals top-left, the money/day/level block top-right, key hints
+   along the bottom, and a specimen detail card down the right edge.
+   ============================================================================================ */
+
+.brand {
+    position: absolute; left: 28px; top: 22px;
+    flex-direction: row; align-items: center;
+    padding: 10px 22px 10px 15px;
+    background-color: rgba(19, 16, 22, 0.94);
+    border-width: 1px; border-color: rgba(139, 92, 246, 0.5);
+    border-radius: 9px;
+}
+.brand-gem { width: 24px; height: 24px; border-radius: 12px; margin-right: 13px; background-color: rgb(139, 92, 246); border-width: 2px; border-color: rgba(232, 190, 112, 0.85); }
+.brand-name { font-size: 23px; letter-spacing: 4px; color: rgb(238, 233, 226); -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); }
+
+.goals {
+    position: absolute; left: 28px; top: 82px;
+    width: 372px; padding: 16px 18px 14px 18px;
+    background-color: rgba(19, 16, 22, 0.92);
+    border-width: 1px; border-color: rgba(255, 244, 220, 0.10);
+    border-radius: 9px;
+}
+.goals-title { font-size: 20px; letter-spacing: 1px; color: rgb(238, 233, 226); -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); margin-bottom: 8px; }
+.goal-row { flex-direction: row; align-items: center; margin-top: 7px; }
+.goal-box { width: 16px; height: 16px; border-radius: 4px; border-width: 1px; border-color: rgba(255, 244, 220, 0.35); margin-right: 12px; }
+.goal-box-done { background-color: rgb(232, 190, 112); border-color: rgb(232, 190, 112); }
+.goal-star { color: rgb(232, 190, 112); font-size: 17px; margin-right: 10px; }
+.goal-text { font-size: 18px; color: rgba(238, 233, 226, 0.86); flex-grow: 1; }
+.goal-num { font-size: 16px; color: rgba(238, 233, 226, 0.55); }
+.goal-head { color: rgb(238, 233, 226); }
+
+.status {
+    position: absolute; right: 28px; top: 22px;
+    width: 356px; padding: 14px 20px 16px 20px;
+    background-color: rgba(19, 16, 22, 0.94);
+    border-width: 1px; border-color: rgba(255, 244, 220, 0.10);
+    border-radius: 9px;
+    align-items: flex-end;
+}
+.status-cash { font-size: 43px; color: rgb(80, 214, 128); -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Bold.ttf"); }
+.status-day { font-size: 20px; color: rgba(238, 233, 226, 0.88); margin-top: 1px; }
+.status-level { font-size: 18px; color: rgba(238, 233, 226, 0.66); margin-top: 5px; }
+.xp-track { width: 100%; height: 21px; margin-top: 4px; border-radius: 4px; background-color: rgba(255, 255, 255, 0.09); overflow: hidden; justify-content: center; }
+.xp-fill { position: absolute; left: 0; top: 0; bottom: 0; background-color: rgb(139, 92, 246); border-radius: 4px; }
+.xp-text { font-size: 14px; letter-spacing: 1px; color: rgba(255, 255, 255, 0.82); -unity-text-align: middle-center; width: 100%; }
+
+/* key hint rail ------------------------------------------------------------------------- */
+.keybar { position: absolute; left: 28px; bottom: 22px; flex-direction: row; align-items: center; }
+.keybar-right { left: auto; right: 28px; }
+.keyhint { flex-direction: row; align-items: center; margin-right: 24px; }
+.keycap {
+    font-size: 16px; letter-spacing: 1px; color: rgb(238, 233, 226);
+    padding: 4px 11px; margin-right: 9px; min-width: 30px;
+    -unity-text-align: middle-center;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-width: 1px; border-color: rgba(255, 255, 255, 0.24);
+    border-radius: 4px;
+}
+.keyhint-label { font-size: 18px; color: rgba(238, 233, 226, 0.78); }
+
+/* world interaction chip ---------------------------------------------------------------- */
+.interact-chip {
+    position: absolute; left: 50%; top: 50%; translate: -50% 34px;
+    flex-direction: row; align-items: center;
+    padding: 6px 14px 6px 8px;
+    background-color: rgba(19, 16, 22, 0.82);
+    border-width: 1px; border-color: rgba(255, 255, 255, 0.16);
+    border-radius: 6px;
+}
+.crosshair-bar { position: absolute; background-color: rgba(255, 250, 240, 0.9); }
+
+/* right-hand detail card ---------------------------------------------------------------- */
+.detail {
+    position: absolute; right: 28px; top: 240px; width: 424px;
+    padding: 18px 20px 20px 20px;
+    background-color: rgba(19, 16, 22, 0.94);
+    border-width: 1px; border-color: rgba(255, 244, 220, 0.11);
+    border-radius: 10px;
+}
+.detail-title { font-size: 25px; letter-spacing: 1px; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); white-space: normal; }
+.detail .detail-title, .panel-detail .detail-title { flex-shrink: 1; }
+.detail-sub { font-size: 18px; color: rgba(238, 233, 226, 0.6); margin-top: 1px; white-space: normal; }
+.detail-note { font-size: 17px; color: rgba(238, 233, 226, 0.78); white-space: normal; margin-top: 10px; }
+.kv { flex-direction: row; justify-content: space-between; align-items: center; padding: 4px 0; }
+.kv-key { font-size: 17px; color: rgba(238, 233, 226, 0.6); }
+.kv-val { font-size: 17px; color: rgb(238, 233, 226); }
+.rule { height: 1px; background-color: rgba(255, 244, 220, 0.1); margin: 9px 0; }
+
+/* rarity chips -------------------------------------------------------------------------- */
+.rarity { font-size: 14px; letter-spacing: 2px; padding: 4px 11px; border-radius: 4px; -unity-text-align: middle-center; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); }
+.rarity-common { background-color: rgba(154, 160, 166, 0.22); color: rgb(196, 200, 204); }
+.rarity-uncommon { background-color: rgba(111, 207, 151, 0.2); color: rgb(133, 219, 168); }
+.rarity-rare { background-color: rgba(91, 155, 243, 0.22); color: rgb(130, 180, 250); }
+.rarity-epic { background-color: rgba(168, 85, 247, 0.26); color: rgb(198, 145, 253); }
+.rarity-legendary { background-color: rgba(232, 177, 92, 0.26); color: rgb(243, 200, 128); }
+
+/* station panel: the right-hand instrument card the workstations share ------------------- */
+.station {
+    position: absolute; right: 28px; top: 240px; width: 420px;
+    padding: 18px 20px 20px 20px;
+    background-color: rgba(19, 16, 22, 0.94);
+    border-width: 1px; border-color: rgba(255, 244, 220, 0.11);
+    border-radius: 10px;
+}
+.station-title { font-size: 20px; letter-spacing: 4px; color: rgb(232, 190, 112); -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); margin-bottom: 10px; }
+.station-step { flex-direction: row; align-items: flex-start; margin-top: 10px; }
+.station-num { width: 26px; height: 26px; border-radius: 13px; margin-right: 13px; font-size: 15px; -unity-text-align: middle-center; color: rgb(238, 233, 226); background-color: rgba(255, 255, 255, 0.1); border-width: 1px; border-color: rgba(255, 255, 255, 0.2); }
+.station-num-active { background-color: rgba(139, 92, 246, 0.4); border-color: rgb(139, 92, 246); }
+.station-steptitle { font-size: 19px; }
+.station-stepnote { font-size: 16px; color: rgba(238, 233, 226, 0.58); white-space: normal; margin-top: 1px; }
+
+/* action rows: a labelled key and what it does, stacked under a detail card -------------- */
+.action-row { flex-direction: row; align-items: center; padding: 11px 15px; margin-top: 9px; border-radius: 7px; background-color: rgba(255, 255, 255, 0.05); border-width: 1px; border-color: rgba(255, 244, 220, 0.09); }
+.action-row-primary { background-color: rgba(80, 214, 128, 0.16); border-color: rgba(80, 214, 128, 0.5); }
+.action-row-accent { background-color: rgba(139, 92, 246, 0.2); border-color: rgba(139, 92, 246, 0.5); }
+.action-label { font-size: 19px; flex-grow: 1; }
+.action-note { font-size: 15px; color: rgba(238, 233, 226, 0.55); }
+
+/* progress meter used by the stations ---------------------------------------------------- */
+.meter-lg { height: 14px; border-radius: 4px; background-color: rgba(255, 255, 255, 0.09); overflow: hidden; margin-top: 6px; }
+.meter-lg-fill { height: 100%; background-color: rgb(139, 92, 246); border-radius: 4px; }
+
+/* ---- full-screen management panel (tablet, collection, upgrades) ----------------------- */
+.panel-head { flex-direction: row; align-items: center; flex-shrink: 0; padding-bottom: 16px; border-bottom-width: 1px; border-bottom-color: rgba(255, 244, 220, 0.1); }
+.panel-brand { flex-direction: row; align-items: center; margin-right: 22px; }
+.panel-brandname { font-size: 15px; letter-spacing: 3px; color: rgba(238, 233, 226, 0.72); -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); }
+.page-title { font-size: 30px; letter-spacing: 3px; color: rgb(238, 233, 226); -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); margin-bottom: 5px; }
+.page-sub { font-size: 16px; color: rgba(238, 233, 226, 0.55); margin-top: 2px; }
+.panel-body { flex-direction: row; flex-grow: 1; margin-top: 14px; }
+.panel-list { flex-grow: 1; margin-right: 18px; }
+.panel-detail { width: 400px; flex-shrink: 0; padding: 18px 20px; background-color: rgba(255, 250, 240, 0.035); border-width: 1px; border-color: rgba(255, 244, 220, 0.1); border-radius: 10px; }
+/* nothing inside a card may shrink below its own text, or the lines lie on top of each other */
+.panel-detail Label, .panel-detail .kv, .panel-detail .rule, .panel-detail .row,
+.detail Label, .detail .kv, .detail .rule, .detail .row, .facts,
+.station Label, .station .kv, .bench-panel Label { flex-shrink: 0; }
+.card-scroll { flex-grow: 1; }
+.facts { flex-shrink: 0; }
+.panel-foot { flex-direction: row; align-items: center; flex-shrink: 0; min-height: 44px; margin-top: 14px; padding-top: 12px; border-top-width: 1px; border-top-color: rgba(255, 244, 220, 0.1); }
+
+/* underline tabs, the pack's way of showing which page you are on */
+.tab { background-color: rgba(0,0,0,0); border-width: 0; border-bottom-width: 2px; border-bottom-color: rgba(0,0,0,0); border-radius: 0; padding: 10px 4px; margin-right: 26px; font-size: 18px; letter-spacing: 1px; color: rgba(238, 233, 226, 0.55); }
+.tab:hover { background-color: rgba(0,0,0,0); color: rgb(238, 233, 226); }
+.tab:focus { background-color: rgba(0,0,0,0); border-bottom-color: rgba(232, 190, 112, 0.6); color: rgb(238, 233, 226); }
+.tab-active { background-color: rgba(0,0,0,0); border-bottom-color: rgb(232, 190, 112); color: rgb(238, 233, 226); }
+
+/* compact list rows with a rarity/family stripe, as the reference lists read */
+.row-card { padding: 13px 16px; margin-bottom: 8px; border-radius: 8px; background-color: rgba(255, 250, 240, 0.04); border-width: 1px; border-color: rgba(255, 244, 220, 0.07); border-left-width: 3px; }
+.row-card:hover { background-color: rgba(255, 250, 240, 0.075); }
+.row-card:focus { background-color: rgba(139, 92, 246, 0.16); border-color: rgba(139, 92, 246, 0.65); }
+.row-title { font-size: 19px; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); }
+.row-sub { font-size: 15px; color: rgba(238, 233, 226, 0.58); margin-top: 1px; }
+.row-price { font-size: 22px; color: rgb(232, 190, 112); -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Bold.ttf"); }
+/* a specimen/family swatch standing in for the reference's thumbnail */
+.swatch { width: 54px; height: 54px; border-radius: 9px; margin-right: 14px; flex-shrink: 0; border-width: 1px; border-color: rgba(255, 255, 255, 0.14); align-items: center; justify-content: center; overflow: hidden; }
+.swatch-core { width: 32px; height: 32px; border-radius: 16px; border-width: 2px; border-color: rgba(255, 255, 255, 0.12); }
+
+/* ---- collection tiles ------------------------------------------------------------------ */
+.tile { width: 300px; margin: 0 12px 12px 0; border-radius: 10px; overflow: hidden; background-color: rgba(255, 250, 240, 0.04); border-width: 1px; border-color: rgba(255, 244, 220, 0.08); }
+.tile:hover { background-color: rgba(255, 250, 240, 0.075); border-color: rgba(232, 190, 112, 0.4); }
+.tile-plate { height: 138px; -unity-background-scale-mode: scale-and-crop; }
+
+.tile-body { padding: 12px 14px 14px 14px; }
+.tile-body .row-sub { white-space: normal; }
+.detail-plate { height: 166px; border-radius: 8px; overflow: hidden; -unity-background-scale-mode: scale-and-crop; }
+
+/* ---- the discovery moment -------------------------------------------------------------- */
+.discovery {
+    position: absolute; left: 50%; top: 16%; translate: -50% 0; width: 430px;
+    padding: 18px 20px 20px 20px;
+    background-color: rgba(19, 16, 22, 0.96);
+    border-width: 1px; border-color: rgba(232, 190, 112, 0.55);
+    border-radius: 12px;
+    align-items: stretch;
+}
+.discovery-kind { font-size: 17px; letter-spacing: 5px; color: rgb(232, 190, 112); -unity-text-align: middle-center; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); margin-bottom: 12px; }
+.discovery-plate { height: 172px; border-radius: 8px; overflow: hidden; -unity-background-scale-mode: scale-and-crop; }
+.discovery .appraisal-value { -unity-text-align: middle-right; margin-top: 8px; }

@@ -44,6 +44,37 @@ namespace GeodeEmpire.UI
             return f.GetType().Name + (string.IsNullOrEmpty(f.name) ? "" : ":" + f.name);
         }
 
+        /// <summary>A key cap and what it does, the pairing the whole HUD uses for controls.</summary>
+        public static VisualElement KeyHint(VisualElement parent, string key, string label)
+        {
+            var row = Box(parent, "keyhint");
+            Label(row, key, "keycap");
+            if (!string.IsNullOrEmpty(label)) Label(row, label, "keyhint-label");
+            return row;
+        }
+
+        /// <summary>A key/value line inside a detail card.</summary>
+        public static Label Kv(VisualElement parent, string key, string value, params string[] valueClasses)
+        {
+            var row = Box(parent, "kv");
+            Label(row, key, "kv-key");
+            var v = Label(row, value, "kv-val");
+            foreach (var c in valueClasses) if (!string.IsNullOrEmpty(c)) v.AddToClassList(c);
+            return v;
+        }
+
+        public static VisualElement Rule(VisualElement parent) => Box(parent, "rule");
+
+        /// <summary>Rarity chip. Tier runs 0 common .. 4 legendary.</summary>
+        public static Label Rarity(VisualElement parent, int tier, string text = null)
+        {
+            string[] names = { "COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY" };
+            string[] classes = { "rarity-common", "rarity-uncommon", "rarity-rare", "rarity-epic", "rarity-legendary" };
+            int i = Mathf.Clamp(tier, 0, 4);
+            var l = Label(parent, text ?? names[i], "rarity", classes[i]);
+            return l;
+        }
+
         public static string Money(float v)
         {
             return v < 0 ? "-$" + Mathf.Abs(v).ToString("N0") : "$" + v.ToString("N0");

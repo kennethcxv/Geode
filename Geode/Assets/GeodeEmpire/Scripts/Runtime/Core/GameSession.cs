@@ -37,6 +37,8 @@ namespace GeodeEmpire.Core
         public event Action<SpecimenEntity> SpecimenSpawned;
         public event Action<SpecimenEntity> SpecimenDespawned;
         public event Action Loaded;
+        /// <summary>A piece worth stopping for came out of a rock: a first of its family, or an exceptional grade.</summary>
+        public event Action<SpecimenRecord, string> Discovered;
 
         private readonly Dictionary<string, SpecimenEntity> _entities = new Dictionary<string, SpecimenEntity>();
         private readonly Dictionary<string, CrateEntity> _crates = new Dictionary<string, CrateEntity>();
@@ -437,8 +439,8 @@ namespace GeodeEmpire.Core
             if (g.MassKg > st.LargestSpecimenKg) { st.LargestSpecimenKg = g.MassKg; st.LargestSpecimenName = r.DisplayName; }
             if (value > st.HighestValueHammerResult) { st.HighestValueHammerResult = value; st.HighestValueHammerResultName = r.DisplayName; }
 
-            if (firstOfFamily) Notify($"New mineral discovered: {fam.Name}", NotificationKind.Discovery);
-            if (g.Tier >= QualityTier.Exceptional) Notify($"{Valuation.TierLabel(g.Tier)} find: {r.DisplayName}", NotificationKind.Discovery);
+            if (firstOfFamily) Discovered?.Invoke(r, "First " + fam.Name);
+            else if (g.Tier >= QualityTier.Exceptional) Discovered?.Invoke(r, Valuation.TierLabel(g.Tier) + " find");
             else if (record && entry.Found > 1) Notify($"Best {fam.Name} so far", NotificationKind.Info);
             StateChanged?.Invoke();
         }

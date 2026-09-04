@@ -463,6 +463,49 @@ def mat_hardwood(size, seed=10):
                 normal_strength=0.8, ao=np.ones((size, size)))
 
 
+def mat_wall_board(size, seed=21):
+    """Shiplap wall cladding: five wide boards across the tile with a shadowed V-groove between them, straight grain
+    running along the board, a knot or two, and enough per-board tone drift that a whole wall never reads as one
+    repeated strip. This is the workshop's wall surface, seen at two to four metres, so the grain stays quiet and the
+    groove does the reading."""
+    period = 6
+    ys, xs = np.mgrid[0:size, 0:size].astype(np.float64)
+    x = xs / size
+    y = ys / size
+    boards = 5
+    board_id = np.floor(y * boards).astype(np.int64)
+    rng = np.random.RandomState(seed)
+    tone = rng.uniform(-0.16, 0.14, size=boards)[board_id]
+    shift = rng.uniform(0.0, 1.0, size=boards)[board_id]
+    # grain: fine lines along the board, drifting slowly so it never stripes
+    wob = fbm(size, period, seed + 31, octaves=3) * 0.4 + fbm(size, period * 4, seed + 32, octaves=2) * 0.1
+    rings = 0.5 + 0.5 * np.sin(((y + shift) * 52.0 + wob * 2.6 + x * 0.5) * 2.0 * math.pi)
+    rings = rings ** 2.6
+    fine = fbm(size, period * 30, seed + 33, octaves=1)
+    # the groove between boards: a narrow dark gap with a soft chamfer either side
+    edge = np.abs((y * boards) % 1.0 - 0.5) * 2.0
+    groove = np.clip(1.0 - (1.0 - edge) * 26.0, 0.0, 1.0)          # 1 in the gap, 0 across the face
+    chamfer = np.clip(1.0 - (1.0 - edge) * 9.0, 0.0, 1.0) - groove
+    # a couple of knots per tile, placed on the boards rather than in the gaps
+    knot = np.zeros((size, size))
+    for k in range(3):
+        kx, ky = rng.uniform(0.1, 0.9), (rng.randint(0, boards) + 0.5) / boards
+        d = np.sqrt(((x - kx) * 1.0) ** 2 + ((y - ky) * 2.4) ** 2)
+        knot = np.maximum(knot, np.clip(1.0 - d * 26.0, 0.0, 1.0))
+    height = normalize01(0.5 - 0.10 * groove - 0.035 * chamfer - 0.012 * rings - 0.004 * knot + 0.004 * fine)
+    light = color((0.50, 0.355, 0.225))
+    dark = color((0.335, 0.225, 0.135))
+    albedo = mix(light[None, None, :], dark[None, None, :], (rings * 0.7)[..., None])
+    albedo = albedo * (1.0 + tone[..., None])
+    albedo = albedo * (1.0 - 0.55 * groove[..., None]) * (1.0 - 0.14 * chamfer[..., None])
+    albedo = mix(albedo, color((0.24, 0.15, 0.09))[None, None, :], (knot * 0.75)[..., None])
+    albedo = albedo * (1.0 + 0.05 * (fine - 0.5)[..., None])
+    rough = 0.62 + 0.10 * rings + 0.12 * groove + 0.05 * fine
+    ao = np.clip(1.0 - 0.7 * groove - 0.18 * chamfer, 0.15, 1.0)
+    return dict(height=height, albedo=np.clip(albedo, 0, 1), roughness=np.clip(rough, 0.45, 0.9), metallic=0.0,
+                normal_strength=1.1, ao=ao)
+
+
 def mat_plywood(size, seed=11):
     period = 4
     ys, xs = np.mgrid[0:size, 0:size].astype(np.float64)
@@ -594,6 +637,7 @@ MATERIALS = {
     "aluminium": mat_aluminium,
     "rubber": mat_rubber,
     "hardwood": mat_hardwood,
+    "wall_board": mat_wall_board,
     "plywood": mat_plywood,
     "cardboard": mat_cardboard,
     "leather": mat_leather,
