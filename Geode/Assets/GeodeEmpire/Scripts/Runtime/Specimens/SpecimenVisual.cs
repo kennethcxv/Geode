@@ -156,6 +156,15 @@ namespace GeodeEmpire.Specimens
         /// <summary>Finish of the cut faces, 0..1 (pieces only); pushed to the shell shader.</summary>
         public float Polish { get; private set; }
 
+        /// <summary>
+        /// Scenery budget: keep only the N largest crystals in the cavity (0 = every one). A dense druse is
+        /// around six hundred crystals combined into one mesh, near a hundred thousand triangles a rock; forty of
+        /// those on shop shelves is four million triangles of set dressing on an eight-gigabyte machine. Set this
+        /// before Build. Anything the player can pick up, appraise or sell leaves it at 0.
+        /// </summary>
+        public int CrystalBudget;
+        private float _crystalCut;   // crystals shorter than this are dropped when a budget is set
+
         public void Build(SpecimenGeology geology, SpecimenCondition condition, SpecimenAssetLibrary lib) => Build(geology, condition, lib, null, 0f);
 
         /// <summary>Build a whole specimen (piece == null) or one sawn piece of it.</summary>
@@ -262,6 +271,7 @@ namespace GeodeEmpire.Specimens
         /// <summary>Rebuild the combined crystal meshes (call after damage changes).</summary>
         public void RebuildCrystals()
         {
+            ComputeCrystalCut();
             foreach (var r in _crystalRenderers) if (r != null) DestroyObj(r.gameObject);
             _crystalRenderers.Clear();
             for (int i = _ownedMeshes.Count - 1; i >= 0; i--)
@@ -282,6 +292,17 @@ namespace GeodeEmpire.Specimens
             }
             ApplyCrystalProperties();
             _crystalsBuilt = true;
+        }
+
+        /// <summary>The height of the smallest crystal the budget keeps; 0 keeps them all.</summary>
+        private void ComputeCrystalCut()
+        {
+            _crystalCut = 0f;
+            if (CrystalBudget <= 0 || Geometry == null || Geometry.Crystals == null || Geometry.Crystals.Count <= CrystalBudget) return;
+            var sizes = new List<float>(Geometry.Crystals.Count);
+            foreach (var c in Geometry.Crystals) sizes.Add(c.Scale.y);
+            sizes.Sort();
+            _crystalCut = sizes[sizes.Count - CrystalBudget];
         }
 
         private void CreateCrystalObject(Transform parent, bool top, bool secondary, bool anyHalf = false)
@@ -306,6 +327,7 @@ namespace GeodeEmpire.Specimens
             foreach (var c in Geometry.Crystals)
             {
                 if ((!anyHalf && c.TopHalf != top) || c.Secondary != secondary) continue;
+                if (c.Scale.y < _crystalCut) continue;
                 var d = _lib.GetMeshData(c.Archetype);
                 if (d == null) continue;
                 vCount += d.Vertices.Length; iCount += d.Triangles.Length;
@@ -321,6 +343,7 @@ namespace GeodeEmpire.Specimens
             foreach (var c in Geometry.Crystals)
             {
                 if ((!anyHalf && c.TopHalf != top) || c.Secondary != secondary) continue;
+                if (c.Scale.y < _crystalCut) continue;
                 byte dmg = Condition.DamageAt(c.Index);
                 var data = _lib.GetMeshData(c.Archetype);
                 if (data == null) continue;

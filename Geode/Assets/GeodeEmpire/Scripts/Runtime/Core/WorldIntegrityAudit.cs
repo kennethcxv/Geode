@@ -18,6 +18,8 @@ namespace GeodeEmpire.Core
     public static class WorldIntegrityAudit
     {
         public const float PenetrationTolerance = 0.006f;   // 6 mm: contact noise below, real interpenetration above
+        /// <summary>The player's CharacterController.stepOffset: anything shorter is walked over, not walked round.</summary>
+        private const float StepHeight = 0.3f;
         public const float PlayerRadius = 0.3f;
 
         /// <summary>Room-shell boxes overlap each other by design (corners, trim over walls); pairs inside this set are skipped.</summary>
@@ -248,7 +250,10 @@ namespace GeodeEmpire.Core
         {
             var results = new List<Finding>();
             const float cell = 0.15f;
-            float x0 = -3.6f, x1 = 7.0f, z0 = -2.7f, z1 = 2.7f;
+            // the whole building, not the V5 garage: the M1 floor plan moved the west wall from -5.3 to -6.4 and
+            // added the back of house north of z 3.2, so the old window left the wash station, the inspection bench
+            // and every back-of-house zone outside the grid and reported them "unreachable"
+            float x0 = Build.ShopPlan.XMin, x1 = Build.ShopPlan.XMax, z0 = Build.ShopPlan.ZMin, z1 = Build.ShopPlan.ZMax;
             int nx = Mathf.CeilToInt((x1 - x0) / cell), nz = Mathf.CeilToInt((z1 - z0) / cell);
             var free = new bool[nx, nz];
             freeCells = 0;
@@ -263,6 +268,10 @@ namespace GeodeEmpire.Core
                     {
                         var c = _overlapHits[k];
                         if (c is CharacterController || c.GetComponentInParent<SpecimenEntity>() != null || c.GetComponentInParent<CrateEntity>() != null || c.GetComponentInParent<CharacterController>() != null) continue;
+                        // a 12 cm pallet is a step, not a wall: the controller's stepOffset is 0.3, and the test
+                        // capsule's bottom sphere dips to the floor, so without this the receiving bay's own pallet
+                        // deck read as a sealed room the player could not enter
+                        if (c.bounds.max.y <= StepHeight) continue;
                         blocked = true;
                     }
                     free[i, j] = !blocked;

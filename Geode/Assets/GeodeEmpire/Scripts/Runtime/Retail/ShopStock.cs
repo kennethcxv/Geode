@@ -26,6 +26,8 @@ namespace GeodeEmpire.Retail
         /// cavity leaning out at the customer. False leaves it as unopened rough — what a shop sells by the crate.
         /// </summary>
         public bool Opened = true;
+        /// <summary>Keep only the N largest crystals per piece: shelf dressing, not a specimen under a loupe.</summary>
+        public int CrystalBudget = 70;
 
         private bool _done;
         public bool Ready => _done;
@@ -46,6 +48,7 @@ namespace GeodeEmpire.Retail
                 var host = new GameObject("Stock" + i);
                 host.transform.SetParent(slot, false);
                 var visual = host.AddComponent<SpecimenVisual>();
+                visual.CrystalBudget = CrystalBudget;
                 visual.Build(geology, new SpecimenCondition { Cleaned = 1f, Rinsed = true, Opened = Opened }, lib);
                 float radius = Mathf.Max(0.01f, visual.Geometry != null ? visual.Geometry.MaxRadius : 0.06f);
                 float size = rng.Range(MinSize, MaxSize);
@@ -62,6 +65,7 @@ namespace GeodeEmpire.Retail
                     host.transform.localRotation = Quaternion.Euler(rng.Range(-18f, 18f), rng.Range(0f, 360f), rng.Range(-18f, 18f));
                 }
                 foreach (var c in host.GetComponentsInChildren<Collider>()) Destroy(c);
+                foreach (var r in host.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 // seat the piece on the shelf: a tipped half's lowest point is nowhere near its pivot, so measure it
                 Seat(host.transform, slot);
                 _built++;
@@ -82,14 +86,23 @@ namespace GeodeEmpire.Retail
             MineralId.Rhodochrosite, MineralId.Vanadinite, MineralId.SmokyQuartz, MineralId.Celestite,
         };
 
+        /// <summary>
+        /// Pick a piece worth putting in a window that the machine can also afford to draw. A fine druse is
+        /// hundreds of crystals combined into one mesh: forty of those is three and a half million triangles for
+        /// set dressing, on a machine with eight gigabytes. Larger crystals at lower density cost a fraction of
+        /// that and read better at shelf distance anyway, which is what a shop puts out front.
+        /// </summary>
         private static SpecimenGeology Draw(SeededRandom rng)
         {
             SpecimenGeology best = null;
+            float bestScore = float.NegativeInfinity;
             for (int i = 0; i < 48; i++)
             {
                 var g = SpecimenGenerator.Generate(rng.NextULong());
-                if (best == null || g.QualityRoll > best.QualityRoll) best = g;
-                if (System.Array.IndexOf(ShopFamilies, g.Mineral) >= 0 && g.QualityRoll > 0.35f) return g;
+                bool family = System.Array.IndexOf(ShopFamilies, g.Mineral) >= 0;
+                float score = (family ? 1f : 0f) + g.QualityRoll * 0.5f + g.CrystalScale - g.CrystalDensity;
+                if (score > bestScore) { bestScore = score; best = g; }
+                if (family && g.QualityRoll > 0.35f && g.CrystalScale > 0.34f && g.CrystalDensity < 0.62f) return g;
             }
             return best;
         }

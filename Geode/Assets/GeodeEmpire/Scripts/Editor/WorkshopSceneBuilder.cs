@@ -1362,7 +1362,10 @@ namespace GeodeEmpire.EditorTools
                 .ClearanceDir = new Vector2(1f, 0f);
             Mat("MatLap", parent, new Vector2(-2.6f, -1.65f), new Vector2(0.9f, 1.2f)).transform.SetParent(lapMachine, true);
             lapMachine.gameObject.SetActive(false);
-            Prop("prop_bucket", parent, new Vector3(-5.38f, 0f, 2.28f), 0f, "M_Plastic,M_Metal");
+            // (this stood at (-5.38, 2.28), a bucket parked in the one square metre a player has to occupy to use
+            //  the sink: the clearance audit could not find a standing position for the wash zone at all. It lives
+            //  in the corner between the tub run and the cross wall now.)
+            Prop("prop_bucket", parent, new Vector3(-6.15f, 0f, 1.9f), 14f, "M_Plastic,M_Metal");
 
             // ---- dressing: shelves, signs, posters, clutter ----------------------------------------
             var wallShelf = Prop("prop_wall_shelf", parent, new Vector3(-6.27f, 1.55f, 1.5f), -90f, "M_WoodDark,M_MetalDark", collider: false);
@@ -1858,7 +1861,7 @@ namespace GeodeEmpire.EditorTools
             // ---- wall shelving on the two boards that carry no unit at Stage 1 -------------------------
             // the north board under the logo and the partition north of the staff door were flat empty timber;
             // a lit shelf of stock on each keeps the room reading as a shop from every angle
-            foreach (var (wx, wz, wyaw) in new[] { (4.25f, RoomZMax - 0.13f, 0f), (5.75f, RoomZMax - 0.13f, 0f), (PartitionX + 0.23f, 2.9f, -90f) })
+            foreach (var (wx, wz, wyaw) in new[] { (4.25f, RoomZMax - 0.13f, 0f), (5.75f, RoomZMax - 0.13f, 0f), (PartitionX + 0.205f, 2.9f, -90f) })
             {
                 var ws = Prop("prop_wall_shelf", shop, new Vector3(wx, 1.5f, wz), wyaw, "M_ShopWood,M_MetalDark", collider: false);
                 var st = ws.AddComponent<ShopStock>();

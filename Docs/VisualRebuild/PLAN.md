@@ -141,3 +141,48 @@ recoveries 14–25 → 2 across three runs.
 **Left deliberately quiet.** The showroom's west board (the partition north of the staff door)
 carries one lit wall shelf at Stage 1 and the third display run at Stage 2: the shop is meant to
 visibly gain a wall of stock when the workshop expands.
+
+---
+
+## E. Verification (M8)
+
+Run against `Workshop.unity` as the scene builder produces it, in Play Mode, on the 8 GB M2.
+
+| gate | spec | result |
+|------|------|--------|
+| Static collider interpenetration | §7 | **0** findings (`WorldIntegrityAudit.StaticOverlaps`) |
+| Objects below the floor / floating | §7 | **0** |
+| Placement-slot support (a rock can hang off no shelf) | §7 | **0** |
+| Clearance and reachability | §7, §8 | **0** — 2979 free cells, 2979 reachable, every interaction zone standable |
+| Decor bounds | §7 | 21, all by design: hanging-sign rods in the ceiling, wall-mounted boards in their walls, floor mats under pallet feet |
+| User-placed equipment | §12 | **12/12** pass, each refusal naming a reason |
+| Customer path: entrance → browse → queue → checkout → exit | §13 | **4 consecutive 5-minute runs green** — repositions 0, stuck events 0, collision loops 0, queue stalls 0, path failures 0 |
+| Unlock → purchase → delivery → placement → usable → persists | §14 | pass: 0 machines installed on a fresh save; buying puts a crate in the bay, not a machine in the room; siting it makes the station usable; it survives a reload |
+| Persistence, no duplicates | §5.4 | pass: pose and yaw restored exactly, one instance |
+| Save/load regression | §16 | `SaveScenarios` and `RetailSaveScenarios` all `ok`, 0 collision overlaps at every reload |
+| Automated tests | §16 | **68/68** EditMode |
+
+### Performance (§15)
+
+The showroom's standing stock was the whole story. A dense druse is ~600 crystals combined into
+one mesh, near a hundred thousand triangles a rock, and forty of those is four million triangles of
+set dressing. `SpecimenVisual.CrystalBudget` keeps the largest 70 for scenery only (anything the
+player can pick up, appraise or sell is untouched at 0), and shop stock no longer casts shadows.
+
+| | before | after |
+|---|---|---|
+| triangles, empty shop | 5,185,444 | **2,795,924** |
+| triangles, stocked shop with customers | – | 4,090,578 |
+| total allocated | 1,123 MB | **686 MB** (838 MB stocked) |
+| graphics driver | 771 MB | **483 MB** |
+
+### Two audit defects the widened coverage found
+
+The clearance grid still described the V5 garage (`x` from −3.6), so the wash station, the
+inspection bench and the whole back of house were outside it and reported "unreachable". It now
+takes its bounds from `ShopPlan`. With the real room covered, two genuine faults appeared:
+
+- The test capsule treated a 12 cm pallet as a wall, so the receiving bay's own pallet deck read as
+  a sealed room. The controller's `stepOffset` is 0.3; anything shorter is walked over.
+- **A bucket was parked in the one square metre a player has to stand in to use the sink.** With
+  that fixed the wash zone is reachable and every free cell in the building is connected.

@@ -1,5 +1,11 @@
 # REFERENCE MATCH CHECKLIST
 
+> **Superseded for everything the visual rebuild touched.** This table records the *earlier*
+> fidelity pass. The current state of every reference is
+> `Docs/VisualRebuild/REFERENCE_MANIFEST.md`, which also corrects the R17/R18 mislabel below (R17
+> is the office desk, R18 the storage room). Rows here marked **n/a** for R03, R05, R11, R13, R17
+> and R18 have since been built.
+
 State after the fidelity pass. `Docs/RefMatch/MANIFEST.md` maps every reference to its counterpart;
 `Docs/RefMatch/PASS1.md` records what changed. Captures: `Geode/Assets/Output/refmatch/`.
 
