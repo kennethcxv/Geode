@@ -898,6 +898,7 @@ namespace GeodeEmpire.Cracking
 
             // the split
             WorkshopAudio.Play("crack_final", _rock.transform.position, 1f, rare ? 0.92f : 1f);
+            MusicPlayer.Instance?.Duck(rare ? 4f : 2f);
             WorkshopAudio.Play("fragments", _rock.transform.position, 0.8f);
             _controller?.Impulse(0.9f);
             EffectsFactory.Instance?.Split(_rock.transform.position, geo.MeanEquatorRadius, _cam.transform.forward);

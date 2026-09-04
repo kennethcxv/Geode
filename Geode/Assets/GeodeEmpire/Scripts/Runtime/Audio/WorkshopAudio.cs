@@ -164,6 +164,10 @@ namespace GeodeEmpire.Audio
             _bank["clamp"] = Variants(2, i => Impact(0.14f, 640f + i * 60f, 0.7f, 0.1f, 0.35f, 4f, seed: 420 + (ulong)i));
             _bank["cut_through"] = Variants(1, i => CutThrough(seed: 430));
             _bank["coolant_hiss"] = new[] { LoopClip(Hiss(seed: 435)) };
+            _bank["slab_place"] = Variants(2, i => Impact(0.16f, 900f + i * 120f, 0.5f, 0.06f, 0.7f, 5f, seed: 436 + (ulong)i));
+            // the music bed: four bars of slow, detuned pads (a synthesised loop the MusicPlayer crossfades in and out)
+            _bank["music_calm"] = new[] { LoopClip(Pad(seed: 500, root: 110f, bright: 0.25f)) };
+            _bank["music_work"] = new[] { LoopClip(Pad(seed: 510, root: 130.8f, bright: 0.45f)) };
             _bank["lap_motor"] = new[] { LoopClip(Motor(seed: 440, hum: 150f, whine: 0.35f)) };
             _bank["lap_contact"] = new[] { LoopClip(Grind(seed: 450, fine: true)) };
             _bank["ambience"] = new[] { Ambience(seed: 300) };
@@ -197,6 +201,40 @@ namespace GeodeEmpire.Audio
         }
 
         /// <summary>Diamond blade in stone: a wide hiss with a gritty rumble underneath. Loop-safe.</summary>
+        /// <summary>
+        /// A slow pad: two detuned sines an octave apart on a four-chord cycle (i, VI, III, VII of the minor root),
+        /// low-passed noise breath under it, eight seconds a chord, seamless. Deliberately quiet and featureless: it
+        /// sits under the workshop instead of playing at the player.
+        /// </summary>
+        private static float[] Pad(ulong seed, float root, float bright)
+        {
+            float chordSeconds = 8f;
+            int chords = 4;
+            int n = (int)(chordSeconds * chords * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float[] degrees = { 1f, 1.5f, 1.2f, 1.7818f };            // root, fifth, minor third, minor seventh (as chord roots)
+            float lp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                int c = Mathf.Min(chords - 1, (int)(t / chordSeconds));
+                float within = (t - c * chordSeconds) / chordSeconds;
+                float env = Mathf.Sin(within * Mathf.PI);            // each chord swells and fades
+                float f = root * degrees[c];
+                float v = 0f;
+                v += Mathf.Sin(2f * Mathf.PI * f * t) * 0.5f;
+                v += Mathf.Sin(2f * Mathf.PI * f * 1.003f * t) * 0.35f;           // detune
+                v += Mathf.Sin(2f * Mathf.PI * f * 1.5f * t) * 0.22f;             // fifth
+                v += Mathf.Sin(2f * Mathf.PI * f * 2f * t + Mathf.Sin(t * 0.7f) * 0.5f) * 0.18f * bright;
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.01f;
+                v += lp * 0.6f;
+                d[i] = Mathf.Clamp(v * env * 0.22f, -1f, 1f);
+            }
+            return d;
+        }
+
         /// <summary>Coolant on a spinning blade: a soft filtered hiss with a fine drip patter.</summary>
         private static float[] Hiss(ulong seed)
         {

@@ -15,6 +15,9 @@ namespace GeodeEmpire.Workshop
     public sealed class DisplayCabinet : MonoBehaviour
     {
         public List<PlacementZone> Slots = new List<PlacementZone>();
+        /// <summary>Per slot: 0 base cabinet, 1 shelf expansion, 2 trophy wall (Stage 2), 3 gallery plinth (Stage 3). Filled by the scene builder.</summary>
+        public List<int> SlotTiers = new List<int>();
+        public List<string> SlotLabels = new List<string>();
         public Font LabelFont;
         public Material LabelMaterial;   // depth-tested world text; falls back to the font material
         private readonly Dictionary<PlacementZone, UI.WorldLabel> _labels = new Dictionary<PlacementZone, UI.WorldLabel>();
@@ -43,11 +46,22 @@ namespace GeodeEmpire.Workshop
         {
             var s = GameSession.Instance.State;
             int cap = s != null ? s.DisplayCapacity : 8;
+            bool byTier = SlotTiers.Count == Slots.Count;
             for (int i = 0; i < Slots.Count; i++)
             {
-                bool locked = i >= cap;
+                // each group unlocks with its own purchase: the top shelf with the expansion, the trophy wall with Stage 2, the plinths with Stage 3
+                bool locked; string hint;
+                int tier = byTier ? SlotTiers[i] : 0;
+                if (byTier && s != null)
+                {
+                    locked = tier == 1 ? !s.HasUpgrade(Economy.UpgradeCatalog.DisplayExpansion) : tier == 2 ? s.WorkshopStage < 2 : tier == 3 ? s.WorkshopStage < 3 : false;
+                    hint = tier == 1 ? "Locked shelf: buy the Cabinet Shelf Expansion" : tier == 2 ? "The trophy wall comes with the Stage 2 workshop" : tier == 3 ? "The gallery opens with the Stage 3 workshop" : null;
+                }
+                else { locked = i >= cap; hint = null; }
                 Slots[i].Locked = locked && Slots[i].IsEmpty;
-                Slots[i].DisplayLabel = locked ? "locked shelf" : $"display slot {i + 1}";
+                Slots[i].LockedHint = hint;
+                string label = SlotLabels.Count == Slots.Count && !string.IsNullOrEmpty(SlotLabels[i]) ? SlotLabels[i] : $"display slot {i + 1}";
+                Slots[i].DisplayLabel = locked ? (tier == 3 ? "locked plinth" : tier == 2 ? "locked board" : "locked shelf") : label;
                 UpdateLabel(Slots[i]);
             }
         }

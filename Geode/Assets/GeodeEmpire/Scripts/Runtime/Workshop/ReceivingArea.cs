@@ -22,13 +22,20 @@ namespace GeodeEmpire.Workshop
             new Vector3(-0.6f, 0.12f, 0.4f), new Vector3(0.6f, 0.12f, 0.4f),
             new Vector3(-0.6f, 0.12f, -0.4f), new Vector3(0.6f, 0.12f, -0.4f),
         };
+        /// <summary>Stage 3: a third pallet in the row north of the first four (world (1.0, -0.62)).</summary>
+        private static readonly Vector3[] Stage3Cells = { new Vector3(0f, 0.12f, 1.23f) };
+        private System.Collections.Generic.IEnumerable<Vector3> ActiveCells()
+        {
+            foreach (var c in Cells) yield return c;
+            if (WorkshopExpansion.Stage3Active) foreach (var c in Stage3Cells) yield return c;
+        }
 
         public Vector3 NextSpot()
         {
             var session = GameSession.Instance;
             for (int stack = 0; stack < 3; stack++)
             {
-                foreach (var cell in Cells)
+                foreach (var cell in ActiveCells())
                 {
                     var spot = transform.TransformPoint(cell + Vector3.up * (stack * 0.44f));
                     bool occupied = false;

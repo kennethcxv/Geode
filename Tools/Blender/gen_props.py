@@ -871,7 +871,7 @@ def saw_station(rng):
 def saw_station_large(rng):
     """24-inch slab saw for the Stage-3 heavy bay: the same design scaled up (blade 0.3 m, a 4.5 cm flange, a longer
     cabinet with a wider pan), so the arbor passes a rock up to arbor - flange = 25 cm high."""
-    return saw_station_sized(rng, SLAB_BLADE_R, SLAB_FLANGE_R, 1.5, 0.8)
+    return saw_station_sized(rng, SLAB_BLADE_R, SLAB_FLANGE_R, 1.1, 0.7)
 
 
 SLAB_BLADE_R = 0.3

@@ -387,6 +387,7 @@ namespace GeodeEmpire.UI
             Slider("Effects", "Hammer, chisel, crates, the shop", 0f, 1f, S.SfxVolume, Pct, v => S.SfxVolume = v);
             Slider("Ambience", "Room tone and the street outside", 0f, 1f, S.AmbienceVolume, Pct, v => S.AmbienceVolume = v);
             Slider("Interface", "Menus, tablet and prompts", 0f, 1f, S.UiVolume, Pct, v => S.UiVolume = v);
+            Slider("Music", "A quiet bed under the workshop; tools stay on top", 0f, 1f, S.MusicVolume, Pct, v => S.MusicVolume = v);
         }
     }
 }

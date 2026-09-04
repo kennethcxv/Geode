@@ -56,6 +56,7 @@ namespace GeodeEmpire.Core
         public float SfxVolume = 1f;
         public float AmbienceVolume = 0.8f;
         public float UiVolume = 0.8f;
+        public float MusicVolume = 0.45f;
 
         // ---- v1 fields, kept only so old files migrate
         public bool HeadBob = true;
@@ -143,6 +144,7 @@ namespace GeodeEmpire.Core
             RenderScale = Mathf.Clamp(RenderScale, 0.7f, 1.3f);
             Brightness = Mathf.Clamp(Brightness, 0.6f, 1.4f);
             MasterVolume = Mathf.Clamp01(MasterVolume);
+            MusicVolume = Mathf.Clamp01(MusicVolume);
             SfxVolume = Mathf.Clamp01(SfxVolume);
             AmbienceVolume = Mathf.Clamp01(AmbienceVolume);
             UiVolume = Mathf.Clamp01(UiVolume);
@@ -323,7 +325,7 @@ namespace GeodeEmpire.Core
                     DisplayMode = d.DisplayMode; ResolutionWidth = d.ResolutionWidth; ResolutionHeight = d.ResolutionHeight; VSync = d.VSync; FrameRateLimit = d.FrameRateLimit;
                     QualityPreset = d.QualityPreset; ShadowQuality = d.ShadowQuality; AntiAliasing = d.AntiAliasing; RenderScale = d.RenderScale; PostProcessing = d.PostProcessing; Brightness = d.Brightness;
                     break;
-                case 4: MasterVolume = d.MasterVolume; SfxVolume = d.SfxVolume; AmbienceVolume = d.AmbienceVolume; UiVolume = d.UiVolume; break;
+                case 4: MasterVolume = d.MasterVolume; SfxVolume = d.SfxVolume; AmbienceVolume = d.AmbienceVolume; UiVolume = d.UiVolume; MusicVolume = d.MusicVolume; break;
             }
         }
 

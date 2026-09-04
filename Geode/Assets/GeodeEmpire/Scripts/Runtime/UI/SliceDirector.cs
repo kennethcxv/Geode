@@ -69,6 +69,13 @@ namespace GeodeEmpire.UI
                 _s.QueueSave("invite");
                 return;
             }
+            if (!st.ExhibitionInviteShown && Exhibition.Eligible(st))
+            {
+                st.ExhibitionInviteShown = true;
+                Show("An exhibition", "\"Your name comes up whenever geodes do. The society would like to show your work: pick your best pieces, set them on the gallery plinths, and we will open the room.\"\n\nThe Curator's Exhibition is the career's conclusion. Put three pieces you are proud of on the plinths in the showroom gallery, then open it from the tablet's Collection page. The workshop carries on afterwards.");
+                _s.QueueSave("exhibition-invite");
+                return;
+            }
             bool arcDone = st.Stats.CratesPurchased >= 3 && st.Stats.SpecimensOpened >= 18 && (st.Stats.SpecimensSold + st.DisplayedCount()) >= 12;
             if (!st.SliceTeaseShown && arcDone)
             {

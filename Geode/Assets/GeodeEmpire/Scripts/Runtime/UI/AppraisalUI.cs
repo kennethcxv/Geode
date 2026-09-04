@@ -77,7 +77,7 @@ namespace GeodeEmpire.UI
             _size.text = $"{g.MassKg:F2} kg  •  {g.Size * 200f:F0} cm across  •  {FormationWord(g.Cavity)}" + (!string.IsNullOrEmpty(r.Locality) ? $"  •  {r.Locality}" : "");
             _look.text = $"{Valuation.HabitWord(g)}  •  {Valuation.SaturationWord(g.Saturation)}  •  {Valuation.ClarityWord(g.Clarity)}  •  {Valuation.ZoningWord(g.Zoning)}";
             string tool = r.IsPiece ? "trim saw" : r.ProcessedBy == "hammer" ? "hammer and chisel" : r.ProcessedBy == "cracker" ? "geode cracker" : r.ProcessedBy;
-            _process.text = (string.IsNullOrEmpty(tool) ? "Unopened" : "Opened with the " + tool) + (r.StrikeCount > 0 ? $"  •  {r.StrikeCount} strikes" : "") + (r.Polish > 0.02f ? $"  •  polish {Mathf.RoundToInt(r.Polish * 100f)}%" : "") + (r.ShellDamage > 0.02f ? "  •  shell chipped" : "");
+            _process.text = (r.Certified ? $"Certified  •  UV: {r.Fluorescence}  •  " : "") + (string.IsNullOrEmpty(tool) ? (r.IsOpened ? "Opened" : "Unopened") : "Opened with the " + tool) + (r.StrikeCount > 0 ? $"  •  {r.StrikeCount} strikes" : "") + (r.Polish > 0.02f ? $"  •  polish {Mathf.RoundToInt(r.Polish * 100f)}%" : "") + (r.ShellDamage > 0.02f ? "  •  shell chipped" : "");
             _why.text = string.Join("\n", Valuation.Explain(r));
             _call.text = r.Predicted ? PredictionLine(r) : "";
             _call.style.display = r.Predicted ? DisplayStyle.Flex : DisplayStyle.None;

@@ -45,6 +45,9 @@ namespace GeodeEmpire.Save
         public float AcquisitionCost;
         public float OriginalMassKg;
         public bool Favorite;
+        /// <summary>Stage 3: verified under the UV lamp and certified (exceptional pieces): a documented piece asks a little more.</summary>
+        public bool Certified;
+        public string Fluorescence = "";
         public bool Predicted;
         public bool PredictedHollow;
         public int PredictedTier = -1;
@@ -240,6 +243,10 @@ namespace GeodeEmpire.Save
         public int DisplayCapacity = 8;
         public int SaleCapacity = 6;
         public bool PremiumInviteShown;
+        public bool ExhibitionInviteShown;
+        public long ExhibitionCompletedTicks;
+        public int ExhibitionsHeld;
+        public List<string> ExhibitedIds = new List<string>();
         public bool SliceTeaseShown;
         public int Prestige;
         /// <summary>Workshop stage: 0 = the V3 garage, 1 = the Stage-2 lapidary expansion.</summary>

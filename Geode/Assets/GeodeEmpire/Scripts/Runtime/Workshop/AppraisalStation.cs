@@ -15,6 +15,7 @@ namespace GeodeEmpire.Workshop
     public sealed class AppraisalStation : MonoBehaviour
     {
         public PlacementZone Scale;
+        public Light UvLight;    // Stage 3: the longwave lamp over the scale, lit while an exceptional piece is verified
         public SpecimenEntity Current { get; private set; }
         public bool Weighing { get; private set; }
         public event Action<SpecimenEntity> Appraised;
@@ -52,6 +53,18 @@ namespace GeodeEmpire.Workshop
             bool first = !e.Record.Appraised;
             e.Record.Appraised = true;
             e.Record.AppraisedValue = value;
+            // Stage 3: the UV lamp goes on over anything exceptional; fluorescence is noted and the piece is certified
+            if (WorkshopExpansion.Stage3Active && e.Geology.Tier >= QualityTier.Exceptional && !e.Record.Certified)
+            {
+                if (UvLight != null) UvLight.enabled = true;
+                yield return new WaitForSeconds(0.9f);
+                if (UvLight != null) UvLight.enabled = false;
+                if (Current != e) { Weighing = false; yield break; }
+                e.Record.Fluorescence = FluorescenceWord(e.Geology.Mineral);
+                e.Record.Certified = true;
+                GameState.Log(e.Record, "certified", 0f, "verified under UV: " + e.Record.Fluorescence);
+                WorkshopAudio.Play("crystal_chime", e.transform.position, 0.4f, 1.3f);
+            }
             if (first) GameState.Log(e.Record, "appraised", value);
             WorkshopAudio.Play("ui_click", e.transform.position, 0.5f, 1.2f);
             if (first) Tutorial.Notify("appraised");
@@ -60,6 +73,19 @@ namespace GeodeEmpire.Workshop
             Weighing = false;
             Appraised?.Invoke(e);
         }
+
+        /// <summary>Longwave UV response by family, as the appraiser writes it.</summary>
+        public static string FluorescenceWord(MineralId m) => m switch
+        {
+            MineralId.Calcite => "glows red-orange",
+            MineralId.Fluorite => "glows blue-violet",
+            MineralId.Apophyllite => "faint green glow",
+            MineralId.Aragonite => "glows cream",
+            MineralId.Wulfenite => "dull orange glow",
+            MineralId.Selenite => "faint blue-white glow",
+            MineralId.Halite => "faint orange glow",
+            _ => "inert under UV",
+        };
 
         public static string ValueLabel(SpecimenRecord r)
         {

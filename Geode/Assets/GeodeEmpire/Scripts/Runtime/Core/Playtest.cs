@@ -484,6 +484,153 @@ namespace GeodeEmpire.Core
             yield return BreakDownEmptyCrates();
         }
 
+        /// <summary>V5 Stage 3 + endgame: force the career to the Stage-3 gate, buy it, check the room, verify a piece under UV, saw a tall rock on the slab saw, set three pieces on the plinths, open the exhibition.</summary>
+        public void RunStage3() { if (!Running) StartCoroutine(Stage3()); }
+
+        private IEnumerator Stage3()
+        {
+            Running = true;
+            Phase = "stage3";
+            var st = S.State;
+            L($"== Stage3 cash={st.Cash} stage={st.WorkshopStage} rep={Economy.Reputation.Word(st)} ({Economy.Reputation.Score(st)})");
+            S.AddCash(12000f, "test");
+            string e;
+            if (!st.HasUpgrade(Economy.UpgradeCatalog.TrimSaw)) S.BuyUpgrade(Economy.UpgradeCatalog.TrimSaw, out e);
+            if (st.WorkshopStage < 2) { S.BuyUpgrade(Economy.UpgradeCatalog.Stage2, out e); yield return new WaitForSeconds(0.8f); }
+            // a career that has earned its name: the stats a respected shop would have
+            st.Stats.SpecimensSold += 60; st.Stats.CustomersServed += 20; st.Stats.CleanOpens += 20; st.Stats.SawCuts += 10; st.Stats.PiecesPolished += 5; st.Stats.CommissionsFilled += 3;
+            for (int i = 0; i < 8; i++) st.GetOrCreateEntry((MineralId)i).Found = Mathf.Max(1, st.GetOrCreateEntry((MineralId)i).Found);
+            SpawnTestStock(6, 0f);
+            yield return DisplayKeepCore();
+            L($"rep now={Economy.Reputation.Word(st)} ({Economy.Reputation.Score(st)}) tier={Economy.Reputation.Tier(st)} canBuyStage3={S.CanBuyUpgrade(Economy.UpgradeCatalog.Stage3, out string why)} ({why})");
+            bool ok = S.BuyUpgrade(Economy.UpgradeCatalog.Stage3, out e);
+            L($"stage 3: {(ok ? "ok" : e)} stage={st.WorkshopStage} display={st.DisplayCapacity} sale={st.SaleCapacity}");
+            yield return new WaitForSeconds(1.0f);
+            var exp = FindAnyObjectByType<Workshop.WorkshopExpansion>();
+            L($"stage3 root active={(exp != null && exp.Stage3Root != null && exp.Stage3Root.activeSelf)}");
+            var saw = Find<Lapidary.SawStation>();
+            L($"saw usingLarge={saw.UsingLarge} bladeR={saw.BladeRadius} maxPass={saw.MaxPassHeight:F3}");
+            L(Core.WorldIntegrityAudit.Report("stage3"));
+            Snap("stage3_room");
+            DevDriver.CaptureFrom(new Vector3(1.7f, 1.55f, 1.05f), new Vector3(2.0f, 1.05f, 2.25f), 42f, SnapDir + "/stage3_slab_saw.png");
+            DevDriver.CaptureFrom(new Vector3(0.3f, 1.7f, 0.4f), new Vector3(1.0f, 0.1f, -0.6f), 50f, SnapDir + "/stage3_pallet.png");
+            DevDriver.CaptureFrom(new Vector3(5.4f, 1.4f, -1.0f), new Vector3(6.7f, 0.85f, -1.75f), 45f, SnapDir + "/stage3_case2.png");
+            // the slab saw takes a tall rock
+            yield return SawCut(0f, 0f, 0.01f, false, true, false);
+            Running = true;
+            st = S.State;   // the saw run's save/reload check swapped the state object
+            // UV verification: an exceptional piece on the scale
+            SpecimenEntity best = null;
+            foreach (var en in S.Entities.Values) if (en.IsOpened && en.Geology.Tier >= QualityTier.Exceptional && en.Record.Location != SpecimenLocation.Sold) { best = en; break; }
+            if (best == null)
+            {
+                var rec = S.CreateSpecimenRecord(0x7D1UL, "premium", ""); rec.Location = SpecimenLocation.World; rec.Condition.Opened = true; rec.Condition.Rinsed = true;
+                best = S.Spawn(rec, ZonePos(ZoneKind.Scale) + new Vector3(0f, 0.3f, -0.7f), Quaternion.identity, false); best.ApplyOpenPose();
+                best.SetPose(new Vector3(best.transform.position.x, best.RestHeightOffset(true), best.transform.position.z), Quaternion.identity); best.SetStaticCollidable();
+                rec.WorldPosition = best.transform.position; rec.WorldRotation = best.transform.rotation;
+                S.RecordDiscovery(rec, 0f);
+            }
+            if (best.Zone != null) best.Zone.Take(best, true);
+            var scale = Find<AppraisalStation>();
+            scale.Scale.Place(best);
+            yield return new WaitForSeconds(2.4f);
+            L($"uv: certified={best.Record.Certified} fluorescence='{best.Record.Fluorescence}' value={best.Record.AppraisedValue} asking={Retail.RetailShop.AskingPrice(best.Record)}");
+            Snap("stage3_uv");
+            DevDriver.CaptureFrom(new Vector3(-2.25f, 1.45f, 1.1f), new Vector3(-3.0f, 0.98f, 0.7f), 40f, SnapDir + "/stage3_uv_close.png");
+            scale.Scale.Take(best, true);
+            // the exhibition wants a career's worth of display: the sawn half polished (on paper), curated finds in the cabinet
+            // and the trophy wall for the collection goals, the best three on the plinths
+            var director = UI.ExhibitionDirector.Instance;
+            var zones = FindObjectsByType<PlacementZone>(FindObjectsInactive.Exclude);
+            if (P.Held != null) { if (UseGamepad) yield return D.PadTap(GamepadButton.West, 0.1f); else yield return D.Tap(Key.G, 0.1f); yield return new WaitForSeconds(0.4f); }
+            foreach (var en in S.Entities.Values) if (en.IsPiece && en.Record.Location != SpecimenLocation.Sold) { en.Record.Polish = 0.95f; L($"polished on paper: {en.Record.DisplayName}"); break; }
+            var curated = new List<SpecimenEntity>();
+            string[] sups = { Economy.SupplierCatalog.Local, Economy.SupplierCatalog.Regional, Economy.SupplierCatalog.CuttingRough, Economy.SupplierCatalog.AmethystLot };
+            var seenTraits = new HashSet<RareTrait>(); var seenFams = new HashSet<MineralId>();
+            var wants = new List<(string name, System.Func<SpecimenGeology, bool> ok)>
+            {
+                ("cathedral", g => g.Cavity == CavityArchetype.Cathedral && g.Tier >= QualityTier.Exceptional && g.MassKg < 2.5f),
+                ("museum", g => g.Tier >= QualityTier.MuseumGrade && g.MassKg < 2.5f && g.Cavity != CavityArchetype.Nodule),
+                ("heavy", g => g.MassKg >= 2.5f && g.Tier >= QualityTier.Exceptional && g.Cavity != CavityArchetype.Nodule),
+            };
+            for (int k = 0; k < 6; k++) { int fam = k; wants.Add(($"family{fam}", g => (int)g.Mineral == fam && g.Tier >= QualityTier.Exceptional && g.Cavity != CavityArchetype.Nodule && g.MassKg < 2.5f && g.Traits.Count > 0)); }
+            ulong cseed = 20000UL;
+            foreach (var w in wants)
+            {
+                SpecimenRecord rec = null;
+                for (int tries = 0; tries < 60000 && rec == null; tries++, cseed++)
+                {
+                    var g = SpecimenGenerator.Generate(cseed);
+                    if (!w.ok(g)) continue;
+                    rec = S.CreateSpecimenRecord(cseed, sups[curated.Count % sups.Length], "");
+                }
+                if (rec == null) { L($"  curated {w.name}: no seed found"); continue; }
+                rec.Location = SpecimenLocation.World; rec.Condition.Opened = true; rec.Condition.Rinsed = true; rec.Appraised = true; rec.AppraisedValue = Valuation.DamagedValue(rec.Geology, 0f, 0f);
+                var en = S.Spawn(rec, new Vector3(-1.5f + (curated.Count % 4) * 0.45f, 0.3f, -0.6f + (curated.Count / 4) * 0.5f), Quaternion.identity, false);
+                en.ApplyOpenPose(); S.RecordDiscovery(rec, 0f);
+                curated.Add(en);
+                foreach (var tr in rec.Geology.Traits) seenTraits.Add(tr); seenFams.Add(rec.Geology.Mineral);
+                L($"  curated {w.name}: {rec.DisplayName} {rec.Geology.Tier} {rec.Geology.MassKg:F1} kg traits={rec.Geology.Traits.Count} sup={rec.SupplierId}");
+            }
+            L($"curated {curated.Count}: families={seenFams.Count} traits={seenTraits.Count}");
+            foreach (var en in S.Entities.Values) if (en.IsPiece && en.Record.Polish > 0.9f && en != P.Held) { curated.Add(en); break; }
+            int onPlinths = 0, inCabinet = 0;
+            PlacementZone FindSlot(SpecimenEntity en, bool plinth, out string why)
+            {
+                why = null;
+                foreach (var z in zones)
+                {
+                    if (z.Kind != ZoneKind.DisplaySlot || !z.IsEmpty || z.Locked || !z.gameObject.activeInHierarchy) continue;
+                    if ((z.SlotIndex >= director.FirstPlinthSlot) != plinth) continue;
+                    string r = z.RefusalReason(en) ?? z.FitRefusal(en);
+                    if (r != null) { why = r; continue; }
+                    return z;
+                }
+                return null;
+            }
+            foreach (var en in curated)
+            {
+                string refusal = null;
+                var target = onPlinths < 3 ? FindSlot(en, true, out refusal) : null;
+                if (target == null) target = FindSlot(en, false, out refusal);
+                if (target == null) { L($"  no display slot for {en.Record.DisplayName}: {refusal}"); continue; }
+                if (en.Zone != null) en.Zone.Take(en, true);
+                target.Place(en, true);
+                if (target.SlotIndex >= director.FirstPlinthSlot) { onPlinths++; L($"  plinth {target.SlotIndex}: {en.Record.DisplayName}"); } else inCabinet++;
+            }
+            L($"placed: plinths={onPlinths} cabinet={inCabinet} displayed={st.DisplayedCount()}");
+            yield return new WaitForSeconds(0.5f);
+            L(Core.CollisionAudit.Report("plinths"));
+            DevDriver.CaptureFrom(new Vector3(5.2f, 1.6f, 0.2f), new Vector3(5.2f, 1.05f, 2.4f), 55f, SnapDir + "/stage3_gallery.png");
+            // sourcing is a career fact: six suppliers on the books
+            var supSet = new HashSet<string>(); foreach (var r in st.Specimens) if (!string.IsNullOrEmpty(r.SupplierId)) supSet.Add(r.SupplierId);
+            foreach (var sd in Economy.SupplierCatalog.All) if (supSet.Count < 6 && !supSet.Contains(sd.Id)) { var rr = S.CreateSpecimenRecord(4242UL + (ulong)supSet.Count, sd.Id, ""); rr.Location = SpecimenLocation.Sold; supSet.Add(sd.Id); }
+            foreach (var g in Economy.CollectionGoals.All) { var (have, need) = g.Progress(st); L($"  goal {g.Id}: {have}/{need}{(g.Done(st) ? "  done" : "")}"); }
+            foreach (var ax in Economy.Exhibition.Axes(st)) L($"  axis {ax.Title}: {(ax.Met ? "met" : "NOT met")} ({ax.Detail})");
+            L($"eligible={Economy.Exhibition.Eligible(st)} onPlinths={director.PlinthCount(st)}");
+            S.RaiseStateChanged();
+            yield return new WaitForSeconds(0.6f);
+            L($"invite shown={st.ExhibitionInviteShown}");
+            yield return DismissLetters();
+            if (Economy.Exhibition.Eligible(st) && director.PlinthCount(st) >= 3)
+            {
+                director.Open();
+                float t0 = Time.time; bool snapped = false;
+                while (director.Running && Time.time - t0 < 30f)
+                {
+                    if (!snapped && Time.time - t0 > 3.5f) { snapped = true; Snap("exhibition_plinth"); }
+                    if (CursorController.InMenu && Time.time - t0 > 12f) { Snap("exhibition_summary"); if (UseGamepad) yield return D.PadTap(GamepadButton.South, 0.1f); else yield return D.Tap(Key.Enter, 0.1f); yield return new WaitForSeconds(0.5f); }
+                    yield return null;
+                }
+                L($"exhibition: held={st.ExhibitionsHeld} completed={st.ExhibitionCompletedTicks > 0} exhibited=[{string.Join(",", st.ExhibitedIds)}] running={director.Running} inputLocked={P.InputLocked}");
+            }
+            else L("exhibition not opened (eligibility or plinths)");
+            L(RunSaveReloadCheck());
+            L($"after reload: stage={S.State.WorkshopStage} held={S.State.ExhibitionsHeld} certified={S.State.FindSpecimen(best.Record.Id)?.Certified}");
+            Phase = "done";
+            Running = false;
+        }
+
         /// <summary>V5 market: crates until an occasional lot is offered, sales until a buyer writes in, a favourite refused by the outbox, a commission filled through it.</summary>
         public void RunMarket() { if (!Running) StartCoroutine(MarketRun()); }
 
@@ -952,7 +1099,7 @@ namespace GeodeEmpire.Core
                         rec.WorldPosition = ent.transform.position; rec.WorldRotation = ent.transform.rotation;
                         L($"staged tall rock {rec.Id} {g.Mineral} {g.Cavity} height={(mx.y - mn.y):F3}");
                     }
-                    else S.Despawn(ent);
+                    else { S.Despawn(ent); S.State.Specimens.Remove(rec); }   // a candidate that was never staged leaves no record behind (a reload would spawn it)
                 }
             }
             if (rock == null) { L("no suitable rock"); Running = false; yield break; }

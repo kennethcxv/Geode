@@ -33,6 +33,7 @@ namespace GeodeEmpire.Interaction
         public int GridColumns = 4;
         public Transform Anchor;
         public bool Locked;
+        public string LockedHint;   // why this slot is locked, when the owner knows better than the generic shelf text
         /// <summary>Half-extents (local x, z) of the surface each slot really offers, measured from the slot centre.</summary>
         public Vector2 SupportHalfSize = new Vector2(0.15f, 0.15f);
         /// <summary>Trays that pack occupants by their real size in rows along local x (dealer outbox, rack shelves, saw tray).</summary>
@@ -166,7 +167,7 @@ namespace GeodeEmpire.Interaction
         public string RefusalReason(SpecimenEntity e)
         {
             if (e == null) return null;
-            if (Locked) return Kind == ZoneKind.DisplaySlot ? "Locked shelf: buy the Cabinet Shelf Expansion" : Kind == ZoneKind.SaleSlot ? "Locked: buy the Showroom Island Table" : $"{DisplayLabel} is locked";
+            if (Locked) return !string.IsNullOrEmpty(LockedHint) ? LockedHint : Kind == ZoneKind.DisplaySlot ? "Locked shelf: buy the Cabinet Shelf Expansion" : Kind == ZoneKind.SaleSlot ? "Locked: buy the Showroom Island Table" : $"{DisplayLabel} is locked";
             if (IsFull) return Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot ? "Slot taken: pick a free slot or swap it out" : $"{DisplayLabel} is full";
             bool opened = e.Record.IsOpened;
             if (opened && !AcceptsOpened) return "Unopened rocks only";
@@ -262,6 +263,7 @@ namespace GeodeEmpire.Interaction
             e.Record.LocationIndex = IsIndexedSlot ? SlotIndex : idx;   // which slot, not which occupant: the reload looks it up by this
             e.Record.WorldPosition = e.transform.position;
             e.Record.WorldRotation = e.transform.rotation;
+            if (!silent && e.IsPiece && e.Record.Piece.IsSlab) Audio.WorkshopAudio.Play("slab_place", e.transform.position, 0.6f);
             if (!silent) Placed?.Invoke(this, e);
         }
 

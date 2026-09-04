@@ -68,6 +68,9 @@ namespace GeodeEmpire.EditorTools
             SetTransparent(Lit("M_Water", null, new Color(0.24f, 0.36f, 0.4f, 0.72f), 0.96f, 0f, 1f));
             Lit("M_MachinePaint", "T_Metal", new Color(0.56f, 0.62f, 0.58f), 0.55f, 0.15f, 1f);
             Lit("M_Dial", null, new Color(0.92f, 0.9f, 0.84f), 0.35f, 0f, 1f);
+            Lit("M_UvLens", null, new Color(0.35f, 0.2f, 0.6f), 0.7f, 0f, 1f);
+            Lit("M_PlinthPaint", null, new Color(0.74f, 0.72f, 0.68f), 0.35f, 0f, 1f);   // gallery off-white
+            Lit("M_Felt", null, new Color(0.18f, 0.2f, 0.28f), 0.15f, 0f, 1f);
             Lit("M_BladeRim", "T_Metal", new Color(0.3f, 0.29f, 0.28f), 0.3f, 0.6f, 1f);
             // V5 hero-asset materials: real material separation on the rebuilt props
             Lit("M_Leather", "T_Cardboard", new Color(0.34f, 0.23f, 0.16f), 0.38f, 0f, 2.5f);
@@ -184,6 +187,11 @@ namespace GeodeEmpire.EditorTools
         const float PartitionX = 2.55f;
         const float ShopDoorX = 5.6f;
         private static Transform _stage2;   // the Stage-2 root, set while the stations build so the showroom can add to it
+        private static Transform _stage3;   // the Stage-3 root
+        private static Transform _appraisalRoot; private static AppraisalStation _appraisalStation;
+        private static DisplayCabinet _cabinet;
+        private static int _firstPlinthSlot = -1;
+        private static WorkshopExpansion _expansion;
 
         /// <summary>Forward+ so a room full of lamps is not capped at four lights per object.</summary>
         private static void EnsureAlwaysIncludedShader(string name)
@@ -768,9 +776,10 @@ namespace GeodeEmpire.EditorTools
             scaleZone.Anchor = scaleAnchor;
             var ap = appraisal.gameObject.AddComponent<AppraisalStation>();
             ap.Scale = scaleZone;
+            _appraisalRoot = appraisal; _appraisalStation = ap;
             Prop("prop_task_lamp", appraisal, new Vector3(0.62f, 0.9f, 0.22f), 235f, "M_MetalDark,M_Enamel,M_Bulb,M_PlasticDark", collider: true);
             MakeLight(appraisal, "AppraisalLight", new Vector3(0.35f, 1.3f, -0.05f), new Vector3(62f, -100f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 0.5f, 2.4f, 60f, true);
-            var tabletProp = Prop("prop_tablet", appraisal, new Vector3(-0.42f, 0.9f, 0.1f), 15f, "M_Plastic,M_PlasticDark", collider: true);
+            var tabletProp = Prop("prop_tablet", appraisal, new Vector3(-0.52f, 0.9f, 0.1f), 15f, "M_Plastic,M_PlasticDark", collider: true);
             var tablet = tabletProp.AddComponent<OrderTablet>();
             var screen = GameObject.CreatePrimitive(PrimitiveType.Quad);
             screen.name = "Screen";
@@ -826,6 +835,7 @@ namespace GeodeEmpire.EditorTools
             cabinet.localRotation = Quaternion.Euler(0f, 90f, 0f);
             var cabProp = Prop("prop_display_cabinet", cabinet, Vector3.zero, 0f, "M_WoodDark,M_CaseLight");
             var dc = cabinet.gameObject.AddComponent<DisplayCabinet>();
+            _cabinet = dc;
             dc.LabelFont = AssetDatabase.LoadAssetAtPath<Font>(WorldFontMedium);
             dc.LabelMaterial = WorldTextMaterial(WorldFontMedium, "Assets/GeodeEmpire/Materials/M_WorldText_Medium.mat");
             // LED strips under each shelf: the cabinet lights its own contents
@@ -846,7 +856,7 @@ namespace GeodeEmpire.EditorTools
                     var a = new GameObject("Anchor").transform;
                     a.SetParent(z.transform, false);
                     z.Anchor = a;
-                    dc.Slots.Add(z);
+                    dc.Slots.Add(z); dc.SlotTiers.Add(row == 2 ? 1 : 0); dc.SlotLabels.Add($"display slot {slot + 1}");   // the top shelf is the expansion
                     slot++;
                 }
             }
@@ -886,6 +896,20 @@ namespace GeodeEmpire.EditorTools
             saw.Clamp = clampZone; saw.OutTray = sawTray;
             saw.Vise = vise.transform; saw.Jaw = jaw.transform; saw.Blade = blade.transform;
             saw.Wheel = wheel.transform; saw.Needle = needle.transform; saw.Valve = valve.transform; saw.Nozzle = nozzle;
+            // Stage 3: the 24-inch slab saw in the same bay (same cabinet footprint, a taller gantry, a 0.3 m blade)
+            var large = new GameObject("LargeMachine").transform;
+            large.SetParent(sawRoot, false);
+            var largeBody = Prop("prop_saw_station_large", large, Vector3.zero, 0f, "M_MachinePaint,M_Water,M_Glass,M_Rubber,M_Red,M_Steel,M_Dial", collider: true);
+            var largeBlade = Prop("prop_saw_blade_large", large, new Vector3(0f, 0.935f + 0.3f, 0.05f), 0f, "M_Metal,M_MetalDark,M_BladeRim", collider: false);
+            var largeVise = Prop("prop_saw_vise", large, new Vector3(0.42f, 0.915f, -0.056f), 0f, "M_MachinePaint,M_Rubber,M_Steel", collider: true);
+            var largeJaw = Prop("prop_saw_jaw", largeVise.transform, new Vector3(0.04f, 0.02f, 0f), 0f, "M_MachinePaint,M_Rubber,M_Steel", collider: false);
+            var largeWheel = Prop("prop_saw_wheel", largeVise.transform, new Vector3(0.26f, 0.08f, 0f), 0f, "M_Steel,M_PlasticDark", collider: false);
+            var largeNeedle = Prop("prop_saw_needle", large, new Vector3(-0.385f, 0.71f, -0.396f), 0f, "M_Red", collider: false);
+            var largeValve = Prop("prop_saw_valve", large, new Vector3(0.42f, 1.18f, 0.24f), 0f, "M_Steel,M_Red", collider: false);
+            var largeNozzle = new GameObject("Nozzle").transform; largeNozzle.SetParent(large, false); largeNozzle.localPosition = new Vector3(0f, 0.935f + 0.3f + 0.3f + 0.07f, 0.05f);
+            saw.LargeMachine = large.gameObject; saw.LargeVise = largeVise.transform; saw.LargeJaw = largeJaw.transform; saw.LargeWheel = largeWheel.transform; saw.LargeBlade = largeBlade.transform;
+            saw.LargeNeedle = largeNeedle.transform; saw.LargeValve = largeValve.transform; saw.LargeNozzle = largeNozzle;
+            large.gameObject.SetActive(false);
             saw.CameraAnchor = sawCam; saw.Teaser = teaser; saw.Machine = machine.gameObject; saw.TaskLight = sawLight;
             saw.SetHighlightRenderers(vise.GetComponentsInChildren<Renderer>());
             machine.gameObject.SetActive(false);
@@ -932,12 +956,30 @@ namespace GeodeEmpire.EditorTools
             var expansion = new GameObject("WorkshopExpansion");
             expansion.transform.SetParent(parent, false);
             var exp = expansion.AddComponent<WorkshopExpansion>();
+            _expansion = exp;
             var s2 = new GameObject("Stage2").transform;
             s2.SetParent(expansion.transform, false);
             exp.Stage2Root = s2.gameObject;
             _stage2 = s2;
             exp.HideAtStage2.Add(shelf.gameObject);      // cardboard storage gives way to the rock rack
             exp.HideAtStage2.Add(wallShelf);             // the jar shelf gives way to the trophy wall
+            var s3 = new GameObject("Stage3").transform;
+            s3.SetParent(expansion.transform, false);
+            exp.Stage3Root = s3.gameObject;
+            _stage3 = s3;
+            // UV verification lamp at the appraisal scale, with its purple light (only lit while a piece is verified)
+            if (_appraisalRoot != null)
+            {
+                var uv = Prop("prop_uv_lamp", s3, Vector3.zero, 0f, "M_PlasticDark,M_UvLens", collider: true);
+                uv.transform.SetParent(_appraisalRoot, false);
+                uv.transform.localPosition = new Vector3(-0.29f, 0.9f, 0.12f); uv.transform.localRotation = Quaternion.Euler(0f, 220f, 0f);   // head over the scale plate   // between the scale and the tablet (the tablet sits at the bench end)
+                uv.transform.SetParent(s3, true);
+                var uvLight = MakeLight(s3, "UvLight", _appraisalRoot.TransformPoint(new Vector3(-0.2f, 1.22f, 0.02f)), new Vector3(70f, 60f, 0f), LightType.Spot, new Color(0.55f, 0.3f, 1f), 1.6f, 1.2f, 55f, false);
+                uvLight.enabled = false;
+                if (_appraisalStation != null) _appraisalStation.UvLight = uvLight;
+            }
+            // a third receiving pallet: the row north of the first four, clear of the cabinet's south end (x 1.94) and the player start
+            Prop("prop_pallet", s3, new Vector3(1.0f, 0f, -0.62f), 0f, "M_Wood,M_MetalDark");
 
             // rock rack: steel material storage where the cardboard shelf stood, three lipped shelves of three
             var rack = new GameObject("RockRack").transform;
@@ -980,7 +1022,7 @@ namespace GeodeEmpire.EditorTools
             trophy.SetParent(s2, false);
             trophy.localPosition = new Vector3(-3.45f, 0f, 0.54f);
             trophy.localRotation = Quaternion.Euler(0f, -90f, 0f);   // local -Z faces east into the room
-            int trophySlot = dc.Slots.Count;
+            int trophySlot = dc.Slots.Count; int trophyFirst = trophySlot;
             foreach (float boardY in new[] { 1.5f, 2.02f })
             {
                 // boards 1.8 x 0.55 from the wall (local z +0.15) out to -0.4: room for a large geode propped clamshell-style
@@ -996,10 +1038,10 @@ namespace GeodeEmpire.EditorTools
                 for (int col = 0; col < 4; col++)
                 {
                     float x = (col - 1.5f) * 0.45f;
-                    var z = Support(Zone(trophy, $"Slot{trophySlot}", new Vector3(x, boardY + 0.015f, -0.125f), ZoneKind.DisplaySlot, $"display slot {trophySlot + 1}", 1, true, false, new Vector3(0.42f, 0.4f, 0.52f)), 0.21f, 0.26f);
+                    var z = Support(Zone(trophy, $"Slot{trophySlot}", new Vector3(x, boardY + 0.015f, -0.125f), ZoneKind.DisplaySlot, $"trophy wall {trophySlot - trophyFirst + 1}", 1, true, false, new Vector3(0.42f, 0.4f, 0.52f)), 0.21f, 0.26f);
                     z.SlotIndex = trophySlot;
                     var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
-                    dc.Slots.Add(z);
+                    dc.Slots.Add(z); dc.SlotTiers.Add(2); dc.SlotLabels.Add(z.DisplayLabel);
                     trophySlot++;
                 }
             }
@@ -1143,12 +1185,51 @@ namespace GeodeEmpire.EditorTools
                 Sign(_stage2, "NEW ARRIVALS", new Vector3(3.9f, 1.85f, -RoomD / 2f + 0.03f), 180f, 0.7f);
             }
 
+            // Stage 3: the gallery, three lit plinths along the showroom's north wall, and a second case by the door
+            if (_stage3 != null)
+            {
+                var gallery = new GameObject("Gallery").transform;
+                gallery.SetParent(_stage3, false);
+                int gslot = _cabinet.Slots.Count;
+                _firstPlinthSlot = gslot;
+                // a metre apart against the north wainscot: no pocket a player could wedge into between them or beside the east wall
+                foreach (float gx in new[] { 4.2f, 5.2f, 6.2f })
+                {
+                    var pl = Prop("prop_plinth", gallery, new Vector3(gx, 0f, RoomD / 2f - 0.28f), 0f, "M_PlinthPaint,M_Felt,M_Brass", collider: true);
+                    var z = Support(Zone(gallery, $"Slot{gslot}", new Vector3(gx, 1.0f, RoomD / 2f - 0.28f), ZoneKind.DisplaySlot, $"gallery plinth {gslot - _cabinet.Slots.Count + 1}", 1, true, false, new Vector3(0.44f, 0.5f, 0.44f)), 0.19f, 0.19f);
+                    z.SlotIndex = gslot;
+                    var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
+                    _cabinet.Slots.Add(z); _cabinet.SlotTiers.Add(3); _cabinet.SlotLabels.Add(z.DisplayLabel);
+                    z.SetHighlightRenderers(pl.GetComponentsInChildren<Renderer>());
+                    MakeLight(gallery, "PlinthSpot", new Vector3(gx, 2.75f, RoomD / 2f - 0.75f), new Vector3(75f, 0f, 0f), LightType.Spot, new Color(1f, 0.97f, 0.9f), 4.5f, 3.2f, 38f, true);
+                    gslot++;
+                }
+                Sign(_stage3, "GALLERY", new Vector3(5.2f, 2.3f, RoomD / 2f - 0.03f), 0f, 0.9f);
+                // second case on the east wall, south of the first
+                var case2 = Prop("prop_shop_case", _stage3, new Vector3(RoomXMax - 0.295f, 0f, -1.75f), 90f, "M_WoodDark,M_CaseLight");
+                foreach (float shelfY in new[] { 0.5625f, 1.0625f })
+                    foreach (float lx in new[] { -0.55f, 0f, 0.55f })
+                    {
+                        var z = Support(Zone(case2.transform, $"Sale{slot}", new Vector3(lx, shelfY, 0.01f), ZoneKind.SaleSlot, $"sales slot {slot + 1}", 1, true, false, new Vector3(0.5f, 0.34f, 0.42f)), 0.26f, 0.2f);
+                        z.SlotIndex = slot;
+                        var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
+                        rs.SaleSlots.Add(z);
+                        var card = Prop("prop_price_card", case2.transform, new Vector3(lx, shelfY, -0.21f), 0f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
+                        rs.PriceCards.Add(card.transform);
+                        var bp = new GameObject("Browse").transform; bp.SetParent(case2.transform, false); bp.localPosition = new Vector3(lx, 0f, -0.95f); rs.BrowsePoints.Add(bp);
+                        slot++;
+                    }
+                foreach (float lx in new[] { -0.28f, 0.82f })
+                    MakeLight(case2.transform, "CaseLamp", new Vector3(lx, 1.02f, -0.05f), Vector3.zero, LightType.Point, new Color(1f, 0.97f, 0.9f), 0.6f, 0.8f, 0f, false);
+            }
+
             // signage and dressing
             Sign(parent, "GEODE WORKS  ·  SHOWROOM", new Vector3(PartitionX + 0.08f, 2.3f, -1.0f), -90f, 0.9f);
             Sign(parent, "FOR SALE", new Vector3(RoomXMax - 0.03f, 2.15f, 0.4f), 90f, 0.9f);
             Sign(parent, "OPEN", new Vector3(ShopDoorX + 0.9f, 2.5f, -RoomD / 2f + 0.03f), 180f, 0.7f);
             // (the cashier's stool that stood here sat inside the collection cabinet's footprint: removed in V5)
-            Prop("prop_cardboard_box", shop, new Vector3(6.55f, 0f, -2.35f), 20f, "M_Cardboard,M_Paper", scale: new Vector3(0.8f, 0.8f, 0.8f));
+            var cornerBox = Prop("prop_cardboard_box", shop, new Vector3(6.55f, 0f, -2.35f), 20f, "M_Cardboard,M_Paper", scale: new Vector3(0.8f, 0.8f, 0.8f));
+            if (_expansion != null) _expansion.HideAtStage3.Add(cornerBox);   // the second case takes that corner at Stage 3
             Prop("prop_label_stand", shop, new Vector3(PartitionX + 0.2f, 0.95f, -0.45f), 90f, "M_Paper", collider: false, scale: new Vector3(2f, 2f, 2f));
 
             // customers: a jointed figure template kept inactive, spawned by the shop
@@ -1237,6 +1318,8 @@ namespace GeodeEmpire.EditorTools
             hud.AddComponent<BenchHud>();
             hud.AddComponent<SawHud>();
             hud.AddComponent<CrackerHud>();
+            var exh = hud.AddComponent<ExhibitionDirector>();
+            exh.FirstPlinthSlot = _firstPlinthSlot;
             hud.AddComponent<TabletUI>();
             hud.AddComponent<AppraisalUI>();
             hud.AddComponent<PauseMenu>();
@@ -1252,6 +1335,7 @@ namespace GeodeEmpire.EditorTools
             src.playOnAwake = false;
             src.spatialBlend = 0f;
             amb.AddComponent<AmbiencePlayer>();
+            amb.AddComponent<MusicPlayer>();
         }
 
         private static void AddToBuildSettings(string scenePath)

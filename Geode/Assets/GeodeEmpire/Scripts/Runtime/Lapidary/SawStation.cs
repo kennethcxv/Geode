@@ -63,6 +63,13 @@ namespace GeodeEmpire.Lapidary
         public Transform CameraAnchor;
         public GameObject Teaser;       // the tarp, shown until the saw is bought
         public GameObject Machine;      // everything else, shown once bought
+        // Stage 3: the 24-inch slab saw, a second set of parts in the same bay; the trim saw's set is hidden while it is in
+        public GameObject LargeMachine;
+        public Transform LargeVise, LargeJaw, LargeWheel, LargeBlade, LargeNeedle, LargeValve, LargeNozzle;
+        public float LargeBladeRadius = 0.3f, LargeFlangeRadius = 0.045f;
+        public bool UsingLarge { get; private set; }
+        private GameObject _smallMachine; private Transform _smallVise, _smallJaw, _smallWheel, _smallBlade, _smallNeedle, _smallValve, _smallNozzle;
+        private float _smallBladeRadius, _smallFlangeRadius, _smallBladeCenterY;
         public Light TaskLight;
 
         // machine geometry (station-local metres); see Tools/Blender/gen_props.py saw family
@@ -191,7 +198,22 @@ namespace GeodeEmpire.Lapidary
         {
             bool owned = Owned;
             if (Teaser != null) Teaser.SetActive(!owned);
-            if (Machine != null) Machine.SetActive(owned);
+            // which machine is in the bay: the slab saw once Stage 3 is bought
+            if (_smallMachine == null) { _smallMachine = Machine; _smallVise = Vise; _smallJaw = Jaw; _smallWheel = Wheel; _smallBlade = Blade; _smallNeedle = Needle; _smallValve = Valve; _smallNozzle = Nozzle; _smallBladeRadius = BladeRadius; _smallFlangeRadius = FlangeRadius; _smallBladeCenterY = BladeCenterY; }
+            bool large = LargeMachine != null && WorkshopExpansion.Stage3Active && !Active;
+            if (large != UsingLarge || Machine == null)
+            {
+                UsingLarge = large;
+                Machine = large ? LargeMachine : _smallMachine;
+                Vise = large ? LargeVise : _smallVise; Jaw = large ? LargeJaw : _smallJaw; Wheel = large ? LargeWheel : _smallWheel; Blade = large ? LargeBlade : _smallBlade;
+                Needle = large ? LargeNeedle : _smallNeedle; Valve = large ? LargeValve : _smallValve; Nozzle = large ? LargeNozzle : _smallNozzle;
+                BladeRadius = large ? LargeBladeRadius : _smallBladeRadius; FlangeRadius = large ? LargeFlangeRadius : _smallFlangeRadius;
+                BladeCenterY = RailTopY + SledTopY + BladeRadius;
+                if (Vise != null) _viseHome = Vise.localPosition;
+                if (Jaw != null) _jawHome = Jaw.localPosition;
+            }
+            if (_smallMachine != null) _smallMachine.SetActive(owned && !UsingLarge);
+            if (LargeMachine != null) LargeMachine.SetActive(owned && UsingLarge);
             if (Clamp != null) Clamp.Locked = !owned;
             if (OutTray != null) OutTray.Locked = !owned;
             // a rock with a committed cut is held by the clamp until the cut is finished: parked in the vise where
@@ -218,7 +240,7 @@ namespace GeodeEmpire.Lapidary
             if (!Owned) return "Under the tarp: buy the Trim Saw on the tablet";
             if (e.IsOpened && !e.IsPiece) return "Split halves cannot be clamped: the saw takes whole rough or sawn pieces";
             if (e.IsPiece && e.Record.Piece.IsSlab && e.Record.Piece.Thickness < 0.012f) return "Too thin to cut again";
-            if (!e.IsPiece && LowestHeightOverPoses(e) > MaxPassHeight) return "Too tall to pass under the arbor whichever way it lies: slab-saw work";
+            if (!e.IsPiece && LowestHeightOverPoses(e) > MaxPassHeight) return UsingLarge ? "Too tall even for the slab saw's arbor" : "Too tall to pass under the arbor whichever way it lies: slab-saw work (Stage 3)";
             if (BladeSpent) return "The blade is worn out: fit a new one from the tablet";
             return null;
         }
@@ -852,6 +874,7 @@ namespace GeodeEmpire.Lapidary
             var parent = _rock.Record;
             var parentEntity = _rock;
             WorkshopAudio.Play("cut_through", _rock.transform.position, 0.9f);
+            MusicPlayer.Instance?.Duck(2f);
             _controller?.Impulse(0.25f);
             Haptics.Pulse(0.5f, 0.3f, 0.12f);
             float t = 0f;

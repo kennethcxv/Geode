@@ -456,7 +456,8 @@ namespace GeodeEmpire.Core
             if (!CanAfford(sup.Price)) { error = "Not enough cash"; return false; }
             var receiving = FindAnyObjectByType<ReceivingArea>();
             if (receiving == null) { error = "No receiving area"; return false; }
-            if (_crates.Count >= 4) { error = "The receiving pallet is full. Open or break down a crate first."; return false; }
+            int crateCap = State.WorkshopStage >= 3 ? 6 : 4;
+            if (_crates.Count >= crateCap) { error = "The receiving pallet is full. Open or break down a crate first."; return false; }
             TrySpend(sup.Price, "crate");
             var crate = Economy.CrateGenerator.Generate(State, sup, CreateSpecimenRecord);
             State.Stats.CratesPurchased++;
@@ -501,6 +502,7 @@ namespace GeodeEmpire.Core
             if (!up.Consumable && State.HasUpgrade(upgradeId)) { reason = "Installed"; return false; }
             if (!string.IsNullOrEmpty(up.Requires) && !State.HasUpgrade(up.Requires)) { reason = "Needs the " + Economy.UpgradeCatalog.Get(up.Requires).Name; return false; }
             if (up.Consumable && upgradeId == Economy.UpgradeCatalog.SawBlade && State.BladeWear < 0.2f) { reason = "Blade still sharp"; return false; }
+            if (upgradeId == Economy.UpgradeCatalog.Stage3 && Economy.Reputation.Tier(State) < 3) { reason = $"Needs a respected name ({Economy.Reputation.Word(State).ToLowerInvariant()} now)"; return false; }
             if (!CanAfford(up.Price)) { reason = "Not enough cash"; return false; }
             float cheapest = Economy.SupplierCatalog.Get(Economy.SupplierCatalog.Local).Price;
             if (State.Cash - up.Price < cheapest && !HasProcessableMaterial()) { reason = $"Keep {UI.UiKit.Money(cheapest)} for a crate"; return false; }
@@ -549,11 +551,24 @@ namespace GeodeEmpire.Core
                 State.DisplayCapacity += Workshop.WorkshopExpansion.Stage2DisplaySlots;
                 State.SaleCapacity += Workshop.WorkshopExpansion.Stage2SaleSlots;
             }
+            if (upgradeId == Economy.UpgradeCatalog.Stage3)
+            {
+                State.WorkshopStage = 3;
+                State.DisplayCapacity += Workshop.WorkshopExpansion.Stage3DisplaySlots;
+                State.SaleCapacity += Workshop.WorkshopExpansion.Stage3SaleSlots;
+            }
             Audio.WorkshopAudio.Play2D("ui_buy", 0.7f);
             if (upgradeId == Economy.UpgradeCatalog.Stage2)
             {
                 Audio.WorkshopAudio.Play2D("thud", 0.8f);
                 Notify("Workshop expanded: saw bay, polishing corner, rock rack, trophy wall and showroom shelf are in.", NotificationKind.Discovery);
+                foreach (var id in Economy.SupplierCatalog.EvaluateUnlocks(State))
+                    Notify($"New supplier available: {Economy.SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
+            }
+            else if (upgradeId == Economy.UpgradeCatalog.Stage3)
+            {
+                Audio.WorkshopAudio.Play2D("thud", 0.8f);
+                Notify("Stage 3: the slab saw is in the bay, the UV lamp is at the scale, the gallery plinths and the second case are in the showroom, the receiving bay is bigger.", NotificationKind.Discovery);
                 foreach (var id in Economy.SupplierCatalog.EvaluateUnlocks(State))
                     Notify($"New supplier available: {Economy.SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
             }

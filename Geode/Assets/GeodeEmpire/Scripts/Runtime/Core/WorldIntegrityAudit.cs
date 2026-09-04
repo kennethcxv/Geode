@@ -106,7 +106,10 @@ namespace GeodeEmpire.Core
                 if (mf == null || mf.sharedMesh == null) continue;
                 var rb = r.bounds;
                 var fr = Fixture(r.transform);
-                var verts = mf.sharedMesh.vertices;
+                // in Play Mode a static-batched renderer points at the combined scene mesh (not readable, already in world space):
+                // judge those by the corners and centre of their world bounds instead of their vertices
+                bool readable = mf.sharedMesh.isReadable;
+                Vector3[] verts = readable ? mf.sharedMesh.vertices : new[] { rb.center, new Vector3(rb.min.x, rb.min.y, rb.min.z), new Vector3(rb.max.x, rb.min.y, rb.min.z), new Vector3(rb.min.x, rb.max.y, rb.min.z), new Vector3(rb.max.x, rb.max.y, rb.min.z), new Vector3(rb.min.x, rb.min.y, rb.max.z), new Vector3(rb.max.x, rb.min.y, rb.max.z), new Vector3(rb.min.x, rb.max.y, rb.max.z), new Vector3(rb.max.x, rb.max.y, rb.max.z) };
                 int step = Mathf.Max(1, verts.Length / 1500);
                 foreach (var c in cols)
                 {
@@ -116,7 +119,7 @@ namespace GeodeEmpire.Core
                     var cb = c.bounds;
                     for (int i = 0; i < verts.Length; i += step)
                     {
-                        var w = r.transform.TransformPoint(verts[i]);
+                        var w = readable ? r.transform.TransformPoint(verts[i]) : verts[i];
                         if (!cb.Contains(w)) continue;
                         var cp = c.ClosestPoint(w);
                         if ((cp - w).sqrMagnitude < 1e-8f)
@@ -186,6 +189,7 @@ namespace GeodeEmpire.Core
                 // a station still under its cover (Stage-1 tarp / boxes) has no surface to offer yet
                 var saw = z.GetComponentInParent<Lapidary.SawStation>(); if (saw != null && saw.Machine != null && !saw.Machine.activeInHierarchy) continue;
                 var lap = z.GetComponentInParent<Lapidary.PolishStation>(); if (lap != null && lap.Machine != null && !lap.Machine.activeInHierarchy) continue;
+                var cr = z.GetComponentInParent<Cracking.CrackerStation>(); if (cr != null && cr.Machine != null && !cr.Machine.activeInHierarchy) continue;
                 var anchor = z.Anchor != null ? z.Anchor : z.transform;
                 float hx = z.SupportHalfSize.x, hz = z.SupportHalfSize.y;
                 int slots = z.Packed ? 1 : Mathf.Max(1, z.Capacity);
@@ -198,9 +202,9 @@ namespace GeodeEmpire.Core
                         results.Add(new Finding { Kind = "slot-no-surface", A = Name(z) + "#" + i, Amount = 0f });
                         continue;
                     }
-                    float aboveOk = z.Kind == ZoneKind.Cradle ? 0.06f : 0.03f;
+                    float aboveOk = z.Kind == ZoneKind.Cradle || z.Kind == ZoneKind.Cracker ? 0.06f : 0.03f;   // a rock sits up on the sandbag ring / the cracker's chain
                     if (centre.y - surface > aboveOk || centre.y - surface < -0.005f) results.Add(new Finding { Kind = "slot-height", A = $"{Name(z)}#{i} anchor {centre.y - surface:F3} m above its surface", Amount = Mathf.Abs(centre.y - surface) });
-                    if (z.Kind == ZoneKind.Saw || z.Kind == ZoneKind.Cradle) continue;   // held by jaws / nestled in a sandbag ring
+                    if (z.Kind == ZoneKind.Saw || z.Kind == ZoneKind.Cradle || z.Kind == ZoneKind.Cracker) continue;   // held by jaws / nestled in a sandbag ring / cupped by the chain
                     int unsupported = 0;
                     // the support rectangle's corners and edge midpoints, in the anchor's frame
                     var ring = new[] { new Vector3(-hx, 0, -hz), new Vector3(0, 0, -hz), new Vector3(hx, 0, -hz), new Vector3(hx, 0, 0), new Vector3(hx, 0, hz), new Vector3(0, 0, hz), new Vector3(-hx, 0, hz), new Vector3(-hx, 0, 0) };
@@ -251,7 +255,15 @@ namespace GeodeEmpire.Core
                 for (int j = 0; j < nz; j++)
                 {
                     var p = new Vector3(x0 + (i + 0.5f) * cell, 0f, z0 + (j + 0.5f) * cell);
-                    bool blocked = Physics.CheckCapsule(p + Vector3.up * (PlayerRadius + 0.02f), p + Vector3.up * (1.8f - PlayerRadius), PlayerRadius, ~0, QueryTriggerInteraction.Ignore);
+                    // the static world only: a rock or crate on the floor, or the player, is not a wall
+                    int hits = Physics.OverlapCapsuleNonAlloc(p + Vector3.up * (PlayerRadius + 0.02f), p + Vector3.up * (1.8f - PlayerRadius), PlayerRadius, _overlapHits, ~0, QueryTriggerInteraction.Ignore);
+                    bool blocked = false;
+                    for (int k = 0; k < hits && !blocked; k++)
+                    {
+                        var c = _overlapHits[k];
+                        if (c is CharacterController || c.GetComponentInParent<SpecimenEntity>() != null || c.GetComponentInParent<CrateEntity>() != null || c.GetComponentInParent<CharacterController>() != null) continue;
+                        blocked = true;
+                    }
                     free[i, j] = !blocked;
                     if (!blocked) freeCells++;
                 }

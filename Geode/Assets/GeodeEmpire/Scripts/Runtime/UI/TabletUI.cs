@@ -380,6 +380,24 @@ namespace GeodeEmpire.UI
             }
             UiKit.Label(_content, $"{known} of {MineralCatalog.All.Count} mineral families discovered", "muted");
 
+            // the career's conclusion: where the exhibition stands, and the button to open it
+            UiKit.Label(_content, $"CURATOR'S EXHIBITION  •  standing: {Reputation.Word(st)}", "section");
+            foreach (var ax in Exhibition.Axes(st))
+            {
+                var row = UiKit.Box(_content, "stat-row");
+                var kl = UiKit.Label(row, (ax.Met ? "✓  " : "○  ") + ax.Title, ax.Met ? "item-sub" : "item-title"); kl.style.flexGrow = 1;
+                UiKit.Label(row, ax.Detail, "muted");
+            }
+            if (st.ExhibitionsHeld > 0) UiKit.Label(_content, $"Held {st.ExhibitionsHeld} time{(st.ExhibitionsHeld == 1 ? "" : "s")}, last on {new System.DateTime(st.ExhibitionCompletedTicks).ToString("d MMM yyyy")}.", "muted");
+            var director = ExhibitionDirector.Instance;
+            if (Exhibition.Eligible(st) && director != null)
+            {
+                int on = director.PlinthCount(st);
+                var open = UiKit.Button(_content, on >= 3 ? "Open the exhibition" : $"Set three pieces on the gallery plinths ({on} of 3)", () => { if (on >= 3) { Close(); director.Open(); } }, on >= 3 ? "btn-primary" : "");
+                open.SetEnabled(on >= 3);
+            }
+            else UiKit.Label(_content, Reputation.NextStep(st), "muted");
+
             // collection goals: what the cabinet is working toward
             UiKit.Label(_content, $"COLLECTION GOALS  •  {CollectionGoals.DoneCount(st)} of {CollectionGoals.All.Length}", "section");
             foreach (var g in CollectionGoals.All)

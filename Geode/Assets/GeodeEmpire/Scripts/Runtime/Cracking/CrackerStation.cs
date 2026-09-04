@@ -501,6 +501,7 @@ namespace GeodeEmpire.Cracking
             session.FlushSave("cracker-opened");
             bool rare = g.Tier >= QualityTier.Exceptional;
             WorkshopAudio.Play("crack_final", _rock.transform.position, 1f, rare ? 0.92f : 1.05f);
+            MusicPlayer.Instance?.Duck(rare ? 4f : 2f);
             WorkshopAudio.Play("fragments", _rock.transform.position, 0.6f);
             _controller?.Impulse(0.7f);
             Haptics.Pulse(0.9f, 0.6f, 0.2f);

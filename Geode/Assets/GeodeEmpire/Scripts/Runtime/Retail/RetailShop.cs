@@ -118,7 +118,7 @@ namespace GeodeEmpire.Retail
         }
 
         // ---- stock ---------------------------------------------------------------------------
-        public static float AskingPrice(SpecimenRecord r) => Mathf.Round(r.EstimatedValue() * Markup);
+        public static float AskingPrice(SpecimenRecord r) => Mathf.Round(r.EstimatedValue() * Markup * (r.Certified ? 1.1f : 1f));
 
         private void OnPlaced(PlacementZone z, SpecimenEntity e)
         {

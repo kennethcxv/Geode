@@ -37,6 +37,7 @@ namespace GeodeEmpire.Economy
         public const string GeodeCracker = "geode_cracker";
         public const string PolishLap = "polish_lap";
         public const string Stage2 = "stage2_workshop";
+        public const string Stage3 = "stage3_workshop";
 
         public static readonly UpgradeDefinition[] All =
         {
@@ -88,6 +89,9 @@ namespace GeodeEmpire.Economy
             new UpgradeDefinition { Id = PolishLap, Name = "Flat Lap", Price = 420f, Order = 10, Requires = Stage2,
                 Description = "A 12-inch flat lap with a diamond pad and a drip feed.",
                 Effect = "Polish sawn faces: banded slabs and slices come up glossy and saturated, worth far more. Natural cavities stay as they are." },
+            new UpgradeDefinition { Id = Stage3, Name = "Stage 3: Specialist Lapidary", Price = 3200f, Order = 12, Requires = Stage2,
+                Description = "The established specialist: a 24-inch slab saw in the bay, a UV verification lamp at the scale, a gallery of lit plinths and a second case in the showroom, a bigger receiving bay.",
+                Effect = "The slab saw passes rock up to 25 cm; exceptional pieces are verified and certified; three gallery plinths and six more sales slots; six crates on the pallets. Needs a respected name in the trade." },
             new UpgradeDefinition { Id = Stage2, Name = "Stage 2: Lapidary Workshop", Price = 1400f, Order = 9, Requires = TrimSaw,
                 Description = "Contractors, a week of dust, and the room becomes a small professional lapidary shop.",
                 Effect = "A lit saw bay with pegboard tooling, a proper polishing corner (the Flat Lap can be fitted), a steel rock rack for nine rough or cut pieces, a trophy wall over the appraisal bench (8 more display slots), a wall shelf in the showroom (4 more sales slots), and access to oversized quarry lots." },
