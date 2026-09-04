@@ -517,6 +517,32 @@ def mat_leather(size, seed=13):
                 normal_strength=0.7, ao=curvature_ao(height, 2, 0.8))
 
 
+def mat_canvas(size, seed=18):
+    """Heavy cotton canvas: a fine plain weave (warp and weft threads), slubs, a faded khaki with grime in the folds
+    of use; matte."""
+    period = 8
+    ys, xs = np.mgrid[0:size, 0:size].astype(np.float64)
+    x = xs / size
+    y = ys / size
+    threads = period * 18
+    warp_t = 0.5 + 0.5 * np.sin(x * 2.0 * math.pi * threads)
+    weft_t = 0.5 + 0.5 * np.sin(y * 2.0 * math.pi * threads)
+    over = 0.5 + 0.5 * np.sin(x * 2.0 * math.pi * threads / 2.0) * np.sin(y * 2.0 * math.pi * threads / 2.0)   # over/under alternation
+    weave = warp_t * over + weft_t * (1.0 - over)
+    slubs = np.clip(fbm(size, period * 6, seed + 1, octaves=2) * 2.0 - 0.6, 0.0, 1.0) * 0.3
+    patches = normalize01(fbm(size, period, seed + 2, octaves=4))
+    height = normalize01(0.5 + 0.06 * (weave - 0.5) + 0.03 * slubs + 0.02 * (patches - 0.5))
+    khaki = color((0.5, 0.47, 0.38))
+    faded = color((0.6, 0.58, 0.5))
+    dirty = color((0.34, 0.31, 0.25))
+    albedo = mix(khaki[None, None, :], faded[None, None, :], (patches ** 1.5)[..., None] * 0.6)
+    albedo = mix(albedo, dirty[None, None, :], np.clip(1.0 - patches * 1.7, 0.0, 1.0)[..., None] * 0.5)
+    albedo = albedo * (0.9 + 0.2 * weave[..., None]) * (1.0 - 0.15 * slubs[..., None])
+    rough = 0.82 + 0.06 * (1.0 - weave) - 0.04 * patches
+    return dict(height=height, albedo=np.clip(albedo, 0, 1), roughness=np.clip(rough, 0.7, 0.95), metallic=0.0,
+                normal_strength=6.0, ao=curvature_ao(height, 2, 1.0))
+
+
 def mat_felt(size, seed=14):
     period = 10
     fuzz = fbm(size, period * 24, seed + 131, octaves=2)
@@ -571,6 +597,7 @@ MATERIALS = {
     "plywood": mat_plywood,
     "cardboard": mat_cardboard,
     "leather": mat_leather,
+    "canvas": mat_canvas,
     "felt": mat_felt,
     "concrete": mat_concrete,
     "plaster": mat_plaster,

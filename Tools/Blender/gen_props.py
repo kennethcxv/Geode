@@ -542,32 +542,38 @@ def door(rng):
 
 
 def saw_teaser(rng):
-    """A machine under a tarpaulin: draped folds, tied round with a rope. Slot 0 tarp, slot 1 rope."""
+    """The locked saw under a canvas dust cover (V6): the cloth follows the machine under it (cabinet, the blade
+    guard's hump, the motor's peak at the back left), wrinkled, with a pleated skirt to the floor, a rope round the
+    middle and a paper tag. Slot 0 canvas, slot 1 rope, slot 2 tag."""
     bm = bmesh.new()
-    box(bm, (1.0, 0.62, 0.08), (0, 0, 0.04), bevel=0.012, segments=3)
-    body = hq.rbox((0.92, 0.58, 1.0), (0, 0, 0.58), bevel=0.12, segments=6)
-    for i in range(5):
-        cx, cy, r = rng.uniform(-0.3, 0.3), rng.uniform(-0.15, 0.15), rng.uniform(0.12, 0.22)
-        for v in body.verts:
-            if v.co.z > 0.9:
-                dd = math.hypot(v.co.x - cx, v.co.y - cy)
-                v.co.z += max(0.0, r - dd) * 0.5
-    hq.displace(body, 0.018, 6.0, seed=11, octaves=2, mask=lambda v: min(1.0, max(0.0, (v.co.z - 0.1) / 0.5)))
-    hq.displace(body, 0.006, 22.0, seed=13, octaves=1)
-    # hanging folds: vertical pleats around the skirt that fade out toward the top where the cloth is stretched
+    def ring(w, h, r, z, dx=0.0, dy=0.0):
+        return [(x + dx, y + dy, zz) for (x, y, zz) in hq.ring_rrect(w, h, r, z, 44)]
+    rings = [ring(1.18, 0.7, 0.05, 0.0), ring(1.16, 0.68, 0.05, 0.5), ring(1.14, 0.66, 0.07, 0.86),
+             ring(1.02, 0.56, 0.12, 1.0, -0.04, 0.03), ring(0.8, 0.42, 0.14, 1.16, -0.1, 0.06),
+             ring(0.56, 0.3, 0.12, 1.3, -0.2, 0.08), ring(0.34, 0.2, 0.09, 1.4, -0.3, 0.1), ring(0.18, 0.12, 0.05, 1.45, -0.36, 0.1)]
+    body = hq.loft(rings, close_bottom=True, close_top=True)
+    # the guard's hump on the right of the peak: a second ridge pushed up through the cloth
     for v in body.verts:
-        if v.co.z < 0.75:
+        dd = math.hypot((v.co.x - 0.05) / 0.28, (v.co.y - 0.05) / 0.16)
+        if v.co.z > 0.95:
+            v.co.z += max(0.0, 1.0 - dd) * 0.22 * min(1.0, (v.co.z - 0.95) / 0.2)
+    hq.displace(body, 0.02, 4.0, seed=11, octaves=2, mask=lambda v: min(1.0, max(0.0, (v.co.z - 0.15) / 0.5)))
+    hq.displace(body, 0.006, 18.0, seed=13, octaves=1)
+    # hanging folds: pleats round the skirt that fade out toward the top where the cloth is stretched over the machine
+    for v in body.verts:
+        if v.co.z < 0.86:
             ang = math.atan2(v.co.y, v.co.x)
-            fade = 1.0 - v.co.z / 0.75
-            k = 0.022 * math.sin(ang * 9.0 + v.co.z * 4.0) * fade
+            fade = 1.0 - v.co.z / 0.86
+            k = 0.02 * math.sin(ang * 11.0 + v.co.z * 3.0) * fade
             r = math.hypot(v.co.x, v.co.y)
             if r > 1e-4:
                 v.co.x += v.co.x / r * k
                 v.co.y += v.co.y / r * k
-    add(bm, body, mat=0, sharp=80)
-    rope = [(0.49 * math.cos(a) * 1.02, 0.31 * math.sin(a) * 1.02, 0.62 + 0.02 * math.sin(a * 3)) for a in [i / 64 * math.tau for i in range(65)]]
+    add(bm, body, mat=0, sharp=85)
+    rope = [(0.59 * math.cos(a) * 1.02, 0.35 * math.sin(a) * 1.02, 0.62 + 0.015 * math.sin(a * 3)) for a in [i / 64 * math.tau for i in range(65)]]
     add(bm, hq.tube(rope, 0.008, segments=10), mat=1, sharp=70)
-    return bm, [ColBox((1.0, 0.62, 1.1), (0, 0, 0.55))]
+    add(bm, hq.rbox((0.07, 0.002, 0.045), (0.2, -0.36, 0.585), bevel=0.001, segments=1), mat=2)   # paper tag under the rope
+    return bm, [ColBox((1.18, 0.7, 1.45), (0, 0, 0.725))]
 
 
 def pallet(rng):

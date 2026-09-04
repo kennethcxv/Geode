@@ -51,12 +51,13 @@ namespace GeodeEmpire.EditorTools
             Lit("M_Rubber", null, new Color(0.9f, 0.88f, 0.86f), 1f, 0f, 2f, set: "rubber", bump: 0.6f);
             Lit("M_Plastic", null, new Color(0.24f, 0.25f, 0.28f), 0.55f, 0f, 1f);
             Lit("M_PlasticBlue", null, new Color(0.22f, 0.32f, 0.45f), 0.5f, 0f, 1f);
-            Lit("M_Tarp", null, new Color(0.22f, 0.3f, 0.24f), 0.2f, 0f, 1f);
             Lit("M_Paper", null, new Color(0.92f, 0.9f, 0.84f), 0.2f, 0f, 1f);
             Lit("M_Screen", null, new Color(0.05f, 0.06f, 0.08f), 0.9f, 0f, 1f, emission: new Color(0.1f, 0.14f, 0.18f));
             Lit("M_Brick", "T_Concrete", new Color(0.55f, 0.42f, 0.36f), 0.15f, 0f, 3f);
             Lit("M_Red", null, new Color(0.62f, 0.1f, 0.08f), 0.55f, 0.2f, 1f);
             Lit("M_Bulb", null, new Color(1f, 0.9f, 0.75f), 0.4f, 0f, 1f, emission: new Color(2.2f, 1.7f, 1.1f));
+            // the inside of a lit pendant shade glows with the bulb: an enamel white with a warm emissive lift
+            Lit("M_ShadeInner", null, new Color(0.95f, 0.93f, 0.88f), 0.45f, 0f, 1f, emission: new Color(0.9f, 0.72f, 0.5f));
             Lit("M_JarGlass", null, new Color(0.8f, 0.85f, 0.8f, 0.35f), 0.9f, 0f, 1f);
             Lit("M_Cream", null, new Color(0.88f, 0.86f, 0.8f), 0.25f, 0f, 1f);
             PosterGenerator.EnsurePosters();
@@ -86,7 +87,7 @@ namespace GeodeEmpire.EditorTools
             Lit("M_Hickory", "T_Wood", new Color(1f, 0.9f, 0.75f), 1f, 0f, 2f, set: "hardwood", bump: 0.6f);
             Lit("M_Bristle", "T_Straw", new Color(0.7f, 0.62f, 0.45f), 0.15f, 0f, 3f);
             Lit("M_PlasticDark", null, new Color(0.2f, 0.2f, 0.21f), 0.5f, 0f, 1f);
-            Lit("M_Tarp", null, new Color(0.22f, 0.3f, 0.24f), 0.2f, 0f, 1f);
+            Lit("M_Tarp", null, new Color(0.62f, 0.6f, 0.5f), 1f, 0f, 1.6f, set: "canvas", bump: 1f);   // canvas dust cover
             Lit("M_Rope", "T_Straw", new Color(0.72f, 0.64f, 0.5f), 0.1f, 0f, 4f);
             Lit("M_Enamel", null, new Color(1.6f, 1.55f, 1.45f), 1f, 0f, 1f, set: "painted_steel", bump: 0.3f);
             Lit("M_Rubble", "T_Concrete", new Color(0.42f, 0.38f, 0.33f), 0.12f, 0f, 6f);
@@ -360,9 +361,11 @@ namespace GeodeEmpire.EditorTools
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.5f, 0.52f, 0.58f);
-            RenderSettings.ambientEquatorColor = new Color(0.44f, 0.4f, 0.35f);
-            RenderSettings.ambientGroundColor = new Color(0.2f, 0.18f, 0.15f);
+            // V6 presentation: a lower, cooler ambient so the lamps carry the room (contrast between lit work areas and
+            // the corners), warm pendants a touch stronger
+            RenderSettings.ambientSkyColor = new Color(0.36f, 0.39f, 0.46f);
+            RenderSettings.ambientEquatorColor = new Color(0.33f, 0.3f, 0.27f);
+            RenderSettings.ambientGroundColor = new Color(0.14f, 0.125f, 0.105f);
             RenderSettings.fog = false;
             RenderSettings.skybox = null;
 
@@ -635,7 +638,7 @@ namespace GeodeEmpire.EditorTools
             foreach (var p in new[] { new Vector3(0f, 0f, -0.2f), new Vector3(1.4f, 0f, -1.6f), new Vector3(-2.4f, 0f, -1.2f), new Vector3(4.5f, 0f, -0.7f), new Vector3(5.7f, 0f, 1.3f) })
             {
                 Pendant(parent, new Vector3(p.x, RoomH, p.z));
-                MakeLight(lights, "Pendant", new Vector3(p.x, 2.2f, p.z), Vector3.zero, LightType.Point, new Color(1f, 0.9f, 0.76f), 2.0f, 7.5f, 0f, false);
+                MakeLight(lights, "Pendant", new Vector3(p.x, 2.2f, p.z), Vector3.zero, LightType.Point, new Color(1f, 0.9f, 0.74f), 2.5f, 7.5f, 0f, false);
             }
             // personal cabinet spots (cool white) from the room side of the partition
             MakeLight(lights, "CabinetSpotA", new Vector3(1.55f, 2.45f, -0.05f), new Vector3(62f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 2.4f, 3.2f, 55f, false);
@@ -661,7 +664,7 @@ namespace GeodeEmpire.EditorTools
 
         private static void Pendant(Transform parent, Vector3 ceilingPoint)
         {
-            var lamp = Prop("prop_pendant_lamp", parent, ceilingPoint, 0f, "M_MetalDark,M_Enamel", collider: false);
+            var lamp = Prop("prop_pendant_lamp", parent, ceilingPoint, 0f, "M_MetalDark,M_ShadeInner", collider: false);
             var bulb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             bulb.name = "Bulb"; bulb.transform.SetParent(lamp.transform, false);
             bulb.transform.localPosition = new Vector3(0f, -0.72f, 0f);
@@ -938,7 +941,7 @@ namespace GeodeEmpire.EditorTools
             var sawRoot = new GameObject("SawStation").transform;
             sawRoot.SetParent(parent, false);
             sawRoot.localPosition = new Vector3(2.0f, 0f, 2.28f);   // the machine's side table (x -1.075..-0.525) clears the bench (x < 0.9) and the wainscot
-            var teaser = Prop("prop_saw_teaser", sawRoot, Vector3.zero, 180f, "M_Tarp,M_Rope");
+            var teaser = Prop("prop_saw_teaser", sawRoot, Vector3.zero, 180f, "M_Tarp,M_Rope,M_Paper");
             var machine = new GameObject("Machine").transform;
             machine.SetParent(sawRoot, false);
             // 14-inch saw (see gen_props.py saw family): blade plane z 0.05, arbor y 1.113; the carriage vise rides the
