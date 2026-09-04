@@ -1129,7 +1129,23 @@ namespace GeodeEmpire.EditorTools
             Prop("prop_wall_clock", parent, new Vector3(0.3f, 2.45f, -RoomD / 2f + 0.02f), 180f, "M_Cream,M_Paper,M_MetalDark", collider: false);
             Poster(parent, "M_PosterMinerals", new Vector3(-1.5f, 1.25f, RoomD / 2f - 0.02f), 0f);
             Poster(parent, "M_PosterRocks", new Vector3(3.6f, 1.5f, RoomD / 2f - 0.02f), 0f);
-            Sign(parent, "RECEIVING", new Vector3(1.0f, 1.55f, -RoomD / 2f + 0.03f), 180f);
+            Sign(parent, "RECEIVING BAY", new Vector3(1.0f, 2.45f, -RoomD / 2f + 0.03f), 180f, 0.85f);
+            // the bay door: a roller shutter over the pallets, closed, with its guides, its box and a pull strap.
+            // The reference bay is defined by this door more than by anything else in the room.
+            var shutter = new GameObject("ReceivingShutter").transform;
+            shutter.SetParent(parent, false);
+            shutter.localPosition = new Vector3(1.0f, 0f, -RoomD / 2f + 0.055f);
+            for (int i = 0; i < 21; i++)
+            {
+                var slat = Box("Slat" + i, shutter, new Vector3(0f, 0.11f + i * 0.098f, 0f), new Vector3(1.76f, 0.086f, 0.035f), "M_Steel");
+                Object.DestroyImmediate(slat.GetComponent<Collider>());
+            }
+            for (int sx = -1; sx <= 1; sx += 2)
+                Box("ShutterGuide" + sx, shutter, new Vector3(sx * 0.925f, 1.12f, 0.005f), new Vector3(0.09f, 2.24f, 0.07f), "M_MetalDark");
+            Box("ShutterBox", shutter, new Vector3(0f, 2.36f, 0.01f), new Vector3(2.0f, 0.26f, 0.16f), "M_MetalDark");
+            Box("ShutterSill", shutter, new Vector3(0f, 0.03f, 0.0f), new Vector3(1.86f, 0.06f, 0.06f), "M_MetalDark");
+            var strap = Box("ShutterStrap", shutter, new Vector3(0.62f, 0.55f, -0.03f), new Vector3(0.05f, 0.5f, 0.012f), "M_Rope");
+            Object.DestroyImmediate(strap.GetComponent<Collider>());
             Sign(parent, "DEALER OUTBOX", new Vector3(-0.9f, 1.72f, -RoomD / 2f + 0.03f), 180f, 0.75f);   // clear of the door architrave (x > -1.76) and the intercom (top 1.46)
             Sign(parent, "GEODE WORKS", new Vector3(-2.3f, 2.5f, -RoomD / 2f + 0.03f), 180f, 1.3f);   // above the door frame (top 2.15)
             Sign(parent, "PRIVATE COLLECTION", new Vector3(PartitionX - 0.08f, 2.05f, 0.32f), 90f, 0.85f);

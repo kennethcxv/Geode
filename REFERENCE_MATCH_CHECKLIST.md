@@ -23,7 +23,7 @@ reference in a named way · **n/a** — the game has no such screen (feature wor
 | R13 | Packing station | ✔ | – | – | – | – | – | – | – | – | **n/a** |
 | R14 | New discovery | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | – | ✔ | **done** |
 | R15 | End-of-day report | ✔ | – | – | – | – | – | – | – | – | **n/a** |
-| R16 | Receiving bay | ✔ | ✔ | ✔ | ✔ | ✔ | – | ✔ | ✔ | ✔ | partial — pallets, no bay |
+| R16 | Receiving bay | ✔ | ✔ | ✔ | ✔ | ✔ | – | ✔ | ✔ | ✔ | partial — bay door built, no truck or yard |
 | R17 | Storage room | ✔ | – | – | – | – | – | – | – | – | **n/a** |
 | R18 | Office desk | ✔ | – | – | – | – | – | – | – | – | **n/a** |
 | R19 | Checkout | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | partial — mannequin customer |
@@ -50,7 +50,8 @@ reference in a named way · **n/a** — the game has no such screen (feature wor
 - The customer is a stylised mannequin (R02, R19). A believable figure is character art.
 - The shop cases and the display cabinet fill through play, so a fresh save's showroom is emptier
   than R06 and R08.
-- The receiving pallets stand in for R16's loading bay; there is no truck, roller door or yard.
+- R16's bay now has its roller shutter, guides, box and sill over the pallets, and names itself.
+  What it still lacks is the open door, the truck on the ramp and the yard beyond it.
 - The geode cracker (R09, R23) and the flat lap (R10, R20) are honest machines that read as
   machines, but they are plainer than the reference's industrial cracker and branded lap. The lap
   gained a finned motor and a maker's plate in this pass; the cracker has not been remodelled.
