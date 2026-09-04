@@ -999,7 +999,7 @@ namespace GeodeEmpire.Cracking
             // rest the flipped half on its real lowest lump, not its pole
             var landRot = Quaternion.AngleAxis(178f, axis) * startRot;
             float finalLift = (surfaceY - _rock.LowestOfTop(landRot)) - landWorld.y;
-            float dur = rare ? 1.5f : 1.15f;
+            float dur = rare ? 1.7f : 1.35f;
             // dolly the bench camera in to admire the interior, centred between the two halves
             Vector3 camFrom = CameraAnchor.position; Quaternion camFromRot = CameraAnchor.rotation;
             Vector3 mid = _rock.transform.position - camRight * (landDist * 0.5f);
@@ -1010,24 +1010,47 @@ namespace GeodeEmpire.Cracking
             while (t < 1f)
             {
                 t += Time.deltaTime / dur;
-                float e = 1f - Mathf.Pow(1f - Mathf.Clamp01(t), 2.2f);
+                float tc = Mathf.Clamp01(t);
+                // V6 §17: the shell gives first (a few millimetres and degrees along the seam), then the half tips over
+                // and away; no snap from closed to open
+                float e = tc < 0.15f ? Mathf.Lerp(0f, 0.017f, tc / 0.15f) : Mathf.Lerp(0.017f, 1f, 1f - Mathf.Pow(1f - (tc - 0.15f) / 0.85f, 2.2f));
                 float angle = Mathf.Lerp(0f, 178f, e);
-                float lift = Mathf.Sin(Mathf.Clamp01(t) * Mathf.PI) * R * 0.28f;
                 var rot = Quaternion.AngleAxis(angle, axis);
-                Vector3 pos = hinge + rot * (startPos - hinge) + slide * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.35f) / 0.65f)) + Vector3.up * (lift + finalLift * e);
+                Vector3 pos = hinge + rot * (startPos - hinge) + slide * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.35f) / 0.65f)) + Vector3.up * (finalLift * e);
+                // a dome turning about its rim sweeps part of itself below the seam: while the half is still over the
+                // cradle its lowest point is held above the seam plane, so it never passes through the cushion or the
+                // bottom half; the hold fades out as the slide carries it clear and it drops onto the bench
+                float lowest = pos.y + _rock.LowestOfTop(rot * startRot);
+                float hold = 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((tc - 0.55f) / 0.35f));
+                float dip = (0.006f - lowest) * hold;
+                if (dip > 0f) pos += Vector3.up * dip;
+                pos += Vector3.up * (Mathf.Sin(tc * Mathf.PI) * R * 0.05f);   // a little toss, as a struck shell has (kept low: the task lamp hangs over the landing spot)
                 top.localPosition = pos;
                 top.localRotation = rot * startRot;
-                light.intensity = Mathf.Sin(Mathf.Clamp01(t) * Mathf.PI) * (rare ? 1.5f : 0.9f);
+                light.intensity = Mathf.Sin(tc * Mathf.PI) * (rare ? 0.9f : 0.5f);
                 float ct = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.15f) / 0.85f));
                 CameraAnchor.SetPositionAndRotation(Vector3.Lerp(camFrom, camTo, ct), Quaternion.Slerp(camFromRot, camToRot, ct));
                 if (t > 0.35f && t < 0.4f) EffectsFactory.Instance?.Glints(_rock.transform.position + Vector3.up * R * 0.4f, R * 0.7f, attractive ? 18 : 8, SpecimenVisual.ApplySaturation(g.Palette.SurfaceA, g.Saturation));
                 yield return null;
             }
             CameraAnchor.SetPositionAndRotation(camTo, camToRot);
-            top.localPosition = landLocal + Vector3.up * finalLift;
-            top.localRotation = Quaternion.AngleAxis(178f, axis) * startRot;
-            WorkshopAudio.Play("rock_place", _rock.transform.TransformPoint(top.localPosition), 0.5f, 0.9f);
-            EffectsFactory.Instance?.Impact(_rock.transform.TransformPoint(top.localPosition) + Vector3.down * geo.TopY * 0.9f, Vector3.up, 0.3f);
+            Vector3 restPos = landLocal + Vector3.up * finalLift;
+            Quaternion restRot = Quaternion.AngleAxis(178f, axis) * startRot;
+            WorkshopAudio.Play("rock_place", _rock.transform.TransformPoint(restPos), 0.5f, 0.9f);
+            EffectsFactory.Instance?.Impact(_rock.transform.TransformPoint(restPos) + Vector3.down * geo.TopY * 0.9f, Vector3.up, 0.3f);
+            // the landed half settles: a damped rock about its contact edge, not a dead stop
+            float st = 0f;
+            while (st < 1f)
+            {
+                st += Time.deltaTime / 0.42f;
+                float k = Mathf.Clamp01(st);
+                float wob = Mathf.Sin(k * Mathf.PI * 2.5f) * (1f - k) * (1f - k);
+                top.localRotation = Quaternion.AngleAxis(178f + 5f * wob, axis) * startRot;
+                top.localPosition = restPos + Vector3.up * (Mathf.Abs(wob) * 0.004f);
+                yield return null;
+            }
+            top.localPosition = restPos;
+            top.localRotation = restRot;
             _rock.RebuildColliders();
             _rock.SetStaticCollidable();
             StartCoroutine(FadeLight(light, 1.2f));
