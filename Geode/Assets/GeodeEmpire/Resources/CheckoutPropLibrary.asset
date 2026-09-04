@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bae262e4094745bd8625df1d4dfd7d4, type: 3}
+  m_Name: CheckoutPropLibrary
+  m_EditorClassIdentifier: GeodeEmpire.Runtime::GeodeEmpire.Checkout.CheckoutPropLibrary
+  Entries:
+  - Stem: cash_bill_1
+    Prefab: {fileID: 8369548746681464380, guid: 10ecb853a078e4bacac8c821922f045b, type: 3}
+  - Stem: cash_bill_10
+    Prefab: {fileID: 887867898533010802, guid: 028d13ce858f84ef18ee788c2700bae1, type: 3}
+  - Stem: cash_bill_20
+    Prefab: {fileID: 386358617762839849, guid: 367ae4a8930fb42cb9001a4b8e4662bc, type: 3}
+  - Stem: cash_bill_5
+    Prefab: {fileID: 6854610615215452034, guid: e5abf71c6f7464c518105ab671ecc7c9, type: 3}
+  - Stem: cash_bill_50
+    Prefab: {fileID: 3786894368984792461, guid: 612ab39df8de24ef09236a27da6f9cce, type: 3}
+  - Stem: cash_coin_01
+    Prefab: {fileID: 5463129444382704552, guid: 60649b889a2d94a74a17bc97e3fcdbbd, type: 3}
+  - Stem: cash_coin_05
+    Prefab: {fileID: 1333555116926757903, guid: 5b4c2b020589448af85a6697f722aa84, type: 3}
+  - Stem: cash_coin_05_sheet01
+    Prefab: {fileID: 1516796610787978235, guid: 74f9ae49de180405fbdf45595c70e091, type: 3}
+  - Stem: cash_coin_10
+    Prefab: {fileID: 1571874456757546257, guid: d3756c6c80c5f4326b8f9a36a44f21b8, type: 3}
+  - Stem: cash_coin_25
+    Prefab: {fileID: 4865448912336919422, guid: 9c3abed3a9c434afb9dac64e1bff53a3, type: 3}
+  - Stem: cash_coin_50
+    Prefab: {fileID: 5214621644594596307, guid: c0dbfe6acf09e4c39a60e212de463dc5, type: 3}
+  - Stem: cash_drawer
+    Prefab: {fileID: 6399922437516495237, guid: c8650c704863f47dcb26843e28716af8, type: 3}
+  - Stem: cash_handoff_stack
+    Prefab: {fileID: 2100289973879689715, guid: 33fd8842073f54b74ae0826b0849fc57, type: 3}
+  - Stem: checkout_counter
+    Prefab: {fileID: 42447789341139518, guid: 8cbfc5508f2e443e68f9cb9ad3286b15, type: 3}
+  - Stem: customer_display
+    Prefab: {fileID: 2120225076003278555, guid: bf4d04784dfee472395e3c4ce915b95f, type: 3}
+  - Stem: payment_card
+    Prefab: {fileID: 1036826514336491617, guid: ec9b8c9f8dd444b75b6386a7a429004c, type: 3}
+  - Stem: payment_terminal
+    Prefab: {fileID: 3708498651541853616, guid: 9ec5634f9fc6e4616a381b2b857dcae7, type: 3}
+  - Stem: pos_monitor
+    Prefab: {fileID: 47512516445218597, guid: a9824b96eceec496c88062543c0dba80, type: 3}
+  - Stem: shopping_bag
+    Prefab: {fileID: 3101281351172900455, guid: 9a28b895cd495453aa92a489360c3e30, type: 3}

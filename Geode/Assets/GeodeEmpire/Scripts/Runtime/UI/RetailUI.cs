@@ -61,7 +61,7 @@ namespace GeodeEmpire.UI
 
         private void Update()
         {
-            if (_shop == null || _card == null) return;
+            if (_shop == null || _card == null || _register == null) return;
             bool rung = _register != null && _register.RungUp && _register.Transacting != null;
             bool station = rung && _register.Active;      // the counter view: a slim strip at the top, the counter itself stays clear
             if (rung)

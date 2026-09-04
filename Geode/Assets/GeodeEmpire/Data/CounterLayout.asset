@@ -1,0 +1,114 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5d9f98e0e2594bf89c6ab3ece82b501, type: 3}
+  m_Name: CounterLayout
+  m_EditorClassIdentifier: GeodeEmpire.Runtime::GeodeEmpire.Checkout.CounterLayout
+  Length: 2.6
+  Depth: 0.85
+  TopY: 0.95
+  Monitor:
+    X: 0.86
+    Z: -0.16
+    Yaw: 0
+  Terminal:
+    X: 0.38
+    Z: 0.3
+    Yaw: 0
+  CustomerDisplay:
+    X: 1.14
+    Z: -0.33
+    Yaw: 0
+  BagStation:
+    X: -1.02
+    Z: 0.08
+    Yaw: 0
+  Drawer: {x: 0.86, y: 0.72, z: -0.035}
+  DrawerTravel: 0.42
+  Staging:
+    MinX: -0.29
+    MaxX: 0.33
+    MinZ: -0.2
+    MaxZ: 0.1
+  ScannedStaging:
+    MinX: -0.92
+    MaxX: -0.32
+    MinZ: -0.27
+    MaxZ: 0.28
+  Bagging:
+    MinX: -1.24
+    MaxX: -0.8
+    MinZ: -0.1
+    MaxZ: 0.26
+  ChangeHandoff:
+    MinX: -0.3
+    MaxX: 0.08
+    MinZ: 0.14
+    MaxZ: 0.34
+  CustomerTender:
+    MinX: -0.11
+    MaxX: 0.15
+    MinZ: -0.4
+    MaxZ: -0.22
+  StaffStand:
+    X: 0.6
+    Z: 0.95
+    Yaw: 0
+  CustomerStand:
+    X: 0.1
+    Z: -0.8
+    Yaw: 0
+  EyeAboveCounter: 0.56
+  WorkingFov: 54
+  WorkingGlanceScale: 0.34
+  CashGlanceScale: 0.3
+  WorkingEye:
+    X: 0.15
+    Z: 1.05
+    Yaw: 0
+  WorkingLook:
+    X: 0.2
+    Z: -0.06
+    Yaw: 0
+  WorkingLookAboveCounter: 0.1
+  DrawerFov: 52
+  DrawerEye:
+    X: 0.8
+    Z: 1
+    Yaw: 0
+  DrawerEyeAboveCounter: 0.74
+  DrawerLook:
+    X: 0.84
+    Z: 0.34
+    Yaw: 0
+  DrawerLookAboveCounter: -0.06
+  CardFov: 46
+  CardEye:
+    X: 0.36
+    Z: 0.92
+    Yaw: 0
+  CardEyeAboveCounter: 0.36
+  CardLook:
+    X: 0.38
+    Z: 0.3
+    Yaw: 0
+  CardLookAboveCounter: 0.08
+  SlideDuration: 0.55
+  CardInsertTime: 0.72
+  CardAuthTime: 1.15
+  AutoPaymentHold: 0.38
+  BagDeliverTime: 0.78
+  BagCustomerHold: 1.25
+  PaidBagAcceptanceHold: 1.4
+  DrawerOpenSpeed: 3.2
+  DrawerCloseSpeed: 2.4
+  ProductPlaceSeconds: 0.58
+  TerminalBusyDotHz: 3

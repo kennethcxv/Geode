@@ -591,11 +591,14 @@ namespace GeodeEmpire.EditorTools
             Box("WallEastReveal", parent, new Vector3(RoomXMax + t + 0.01f, (wy0 + wy1) * 0.5f, (wz0 + wz1) * 0.5f), new Vector3(0.02f, wy1 - wy0, wz1 - wz0), "M_Plaster");   // outer skin behind the sky
             Box("WallWest", parent, new Vector3(RoomXMin - t / 2f, RoomH / 2f, 0f), new Vector3(t, RoomH, RoomD), "M_Plaster");
             // partition between workshop and showroom: solid to the south of the counter, solid north of it, open by the bench
-            Box("PartitionS", parent, new Vector3(PartitionX, RoomH / 2f, (-RoomD / 2f - 1.65f) * 0.5f), new Vector3(0.15f, RoomH, -1.65f - (-RoomD / 2f)), "M_PlasterWarm");   // south segment: z -2.7 .. -1.65, the counter gap starts at -1.65
-            Box("PartitionN", parent, new Vector3(PartitionX, RoomH / 2f, (-0.35f + 0.9f) * 0.5f), new Vector3(0.15f, RoomH, 1.25f), "M_PlasterWarm");
+            // the checkout counter itself closes the wall from the south wall to z -0.1, so there is no south segment:
+            // the serving opening is the counter's own 2.6 m run, with a bulkhead above it
+            Box("PartitionS", parent, new Vector3(PartitionX, RoomH / 2f, (-RoomD / 2f + -2.4f) * 0.5f), new Vector3(0.15f, RoomH, 0.3f), "M_PlasterWarm");
+            Box("PartitionCounterHeader", parent, new Vector3(PartitionX, (2.15f + RoomH) * 0.5f, (-2.4f + 0.2f) * 0.5f), new Vector3(0.15f, RoomH - 2.15f, 2.6f), "M_PlasterWarm");
+            Box("PartitionN", parent, new Vector3(PartitionX, RoomH / 2f, (0.2f + 0.9f) * 0.5f), new Vector3(0.15f, RoomH, 0.7f), "M_PlasterWarm");
             Box("PartitionHeader", parent, new Vector3(PartitionX, (2.25f + RoomH) * 0.5f, 1.8f), new Vector3(0.15f, RoomH - 2.25f, 1.8f), "M_PlasterWarm");
-            Box("PartitionTrimS", parent, new Vector3(PartitionX, 0.55f, (-RoomD / 2f - 1.65f) * 0.5f), new Vector3(0.19f, 1.1f, -1.65f - (-RoomD / 2f)), "M_Wainscot");
-            Box("PartitionTrimN", parent, new Vector3(PartitionX, 0.55f, (-0.35f + 0.9f) * 0.5f), new Vector3(0.19f, 1.1f, 1.25f), "M_Wainscot");
+            Box("PartitionTrimS", parent, new Vector3(PartitionX, 0.55f, (-RoomD / 2f + -2.4f) * 0.5f), new Vector3(0.19f, 1.1f, 0.3f), "M_Wainscot");
+            Box("PartitionTrimN", parent, new Vector3(PartitionX, 0.55f, (0.2f + 0.9f) * 0.5f), new Vector3(0.19f, 1.1f, 0.7f), "M_Wainscot");
             // ceiling beams and a service pipe give the ceiling some structure
             for (int i = -2; i <= 2; i++) Box("Beam" + i, parent, new Vector3(RoomCX + i * 2.4f, RoomH - 0.08f, 0f), new Vector3(0.14f, 0.16f, RoomD), "M_WoodDark");
             var pipe = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -958,7 +961,7 @@ namespace GeodeEmpire.EditorTools
             // ---- Display cabinet (east wall, visible from the bench) -------------------------
             var cabinet = new GameObject("DisplayCabinet").transform;
             cabinet.SetParent(parent, false);
-            cabinet.localPosition = new Vector3(PartitionX - 0.35f, 0f, 0.32f);   // against the partition trim, facing the workshop; its south end meets the counter's end at z -0.35
+            cabinet.localPosition = new Vector3(PartitionX - 0.35f, 0f, 0.95f);   // against the partition trim, facing the workshop; its south end clears the checkout counter (which ends at z -0.1)
             cabinet.localRotation = Quaternion.Euler(0f, 90f, 0f);
             var cabProp = Prop("prop_display_cabinet", cabinet, Vector3.zero, 0f, "M_WoodDark,M_CaseLight");
             var dc = cabinet.gameObject.AddComponent<DisplayCabinet>();
@@ -1217,45 +1220,22 @@ namespace GeodeEmpire.EditorTools
             rs.LabelFont = labelFont;
             rs.LabelMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/GeodeEmpire/Materials/M_WorldText_Medium.mat");
 
-            // counter set into the partition: cashier on the workshop side, customers on the shop side
-            var counter = Prop("prop_counter", shop, new Vector3(PartitionX, 0f, -1.0f), -90f, "M_WoodDark,M_CounterPaint");
-            var register = Prop("prop_register", shop, new Vector3(PartitionX - 0.1f, 0.95f, -1.42f), 90f, "M_Register,M_Screen,M_PlasticDark", collider: true);
-            var drawer = Prop("prop_register_drawer", register.transform, new Vector3(0f, 0.012f, 0.16f), 0f, "M_MetalDark,M_PlasticDark,M_PlasticDark,M_Note,M_Coin", collider: false);
-            var reg = register.AddComponent<CheckoutRegister>();
-            reg.Shop = rs;
-            reg.Drawer = drawer.transform;
-            foreach (var mr in register.GetComponentsInChildren<MeshRenderer>()) if (mr.gameObject == register) reg.Screen = mr;
-            reg.SetHighlightRenderers(register.GetComponentsInChildren<Renderer>());
-            // V6 checkout station: the card reader on the counter, the points the transaction moves things between,
-            // the counter camera, the packaging prefabs and the screens' text
-            var reader = Prop("prop_card_reader", shop, new Vector3(PartitionX + 0.15f, 0.95f, -1.2f), -90f, "M_ReaderBody,M_Screen,M_PlasticDark,M_SlotDark", collider: false);
-            foreach (var mr in reader.GetComponentsInChildren<MeshRenderer>()) if (mr.gameObject == reader) reg.ReaderScreen = mr;
-            Transform Point(string name, Transform parent, Vector3 local, Vector3 euler) { var t = new GameObject(name).transform; t.SetParent(parent, false); t.localPosition = local; t.localRotation = Quaternion.Euler(euler); return t; }
-            reg.ReaderSlot = Point("ReaderSlot", reader.transform, new Vector3(0f, 0.0475f, -0.074f), new Vector3(0f, 90f, 0f));   // card lengthwise in the slot, 3 cm proud of the front
-            reg.ReaderLabelPoint = Point("ReaderLabel", reader.transform, new Vector3(0f, 0.102f, 0.0625f), new Vector3(71.6f, 0f, 0f));   // on the sloped display, read from the customer's side
-            reg.RegisterLabelPoint = Point("RegisterLabel", register.transform, new Vector3(0f, 0.265f, 0.080f), Vector3.zero);   // a millimetre in front of the screen face, read from the cashier's side
-            reg.TenderPoint = Point("TenderPoint", shop, new Vector3(PartitionX + 0.1f, 0.952f, -1.05f), new Vector3(0f, 90f, 0f));
-            reg.HandoffMid = Point("HandoffMid", shop, new Vector3(PartitionX + 0.3f, 1.0f, -0.75f), new Vector3(0f, 90f, 0f));
-            reg.DrawerNotes = Point("DrawerNotes", drawer.transform, new Vector3(0f, 0.03f, -0.24f), Vector3.zero);
-            reg.DrawerChange = Point("DrawerChange", drawer.transform, new Vector3(0.09f, 0.03f, -0.24f), Vector3.zero);
-            var checkoutCam = Point("CheckoutCamera", shop, new Vector3(PartitionX - 1.35f, 1.8f, -1.25f), Vector3.zero);
-            checkoutCam.rotation = Quaternion.LookRotation((shop.TransformPoint(new Vector3(PartitionX + 0.2f, 1.12f, -1.05f)) - checkoutCam.position).normalized, Vector3.up);
-            reg.CameraAnchor = checkoutCam;
-            reg.PlayerHand = Point("PlayerHand", checkoutCam, new Vector3(0.12f, -0.16f, 0.48f), Vector3.zero);
-            reg.CardPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/GeodeEmpire/Models/Props/prop_bank_card.fbx");
-            reg.NotesPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/GeodeEmpire/Models/Props/prop_banknotes.fbx");
-            reg.BagPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/GeodeEmpire/Models/Props/prop_paper_bag.fbx");
-            reg.BoxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/GeodeEmpire/Models/Props/prop_gift_box.fbx");
-            reg.CardMaterials = new[] { WorkshopMaterials.Get("M_CardBlue"), WorkshopMaterials.Get("M_Chip"), WorkshopMaterials.Get("M_Stripe") };
-            reg.NotesMaterials = new[] { WorkshopMaterials.Get("M_Note"), WorkshopMaterials.Get("M_NoteBand") };
-            reg.BagMaterials = new[] { WorkshopMaterials.Get("M_Kraft") };
-            reg.BoxMaterials = new[] { WorkshopMaterials.Get("M_BoxWhite"), WorkshopMaterials.Get("M_Tissue") };
-            reg.LabelFont = rs.LabelFont; reg.LabelMaterial = rs.LabelMaterial;
-            var itemPoint = new GameObject("CounterItemPoint").transform; itemPoint.SetParent(shop, false); itemPoint.localPosition = new Vector3(PartitionX + 0.04f, 0.95f, -0.72f); rs.CounterItemPoint = itemPoint;
-            var custPoint = new GameObject("CounterCustomerPoint").transform; custPoint.SetParent(shop, false); custPoint.localPosition = new Vector3(3.35f, 0f, -0.85f); rs.CounterCustomerPoint = custPoint;
+            // THE CHECKOUT STATION. The counter, the POS, the card terminal, the cash drawer and the customer display
+            // are the Golf Simulator retail kit (Assets/checkout/glb -> Models/Checkout), placed from CounterLayout in
+            // the counter's own local frame. The counter runs 2.6 m along the partition from the south wall, cashier on
+            // the workshop side, customers in the showroom.
+            const float CounterZ = -1.1f;
+            var counterT = CheckoutStationBuilder.Build(shop, new Vector3(PartitionX, 0f, CounterZ), -90f, out var station);   // local +Z (staff, open shelves) faces the workshop
+            station.Shop = rs;
+            rs.CounterItemPoint = station.StagingPoint;
+            var custPoint = new GameObject("CounterCustomerPoint").transform;
+            custPoint.SetParent(shop, false);
+            custPoint.position = station.CustomerStandPoint.position;
+            custPoint.rotation = Quaternion.LookRotation((counterT.position - custPoint.position).normalized, Vector3.up);
+            rs.CounterCustomerPoint = custPoint;
             foreach (var qx in new[] { 4.0f, 4.65f, 5.3f })
             {
-                var q = new GameObject("QueuePoint").transform; q.SetParent(shop, false); q.localPosition = new Vector3(qx, 0f, -1.0f); rs.QueuePoints.Add(q);
+                var q = new GameObject("QueuePoint").transform; q.SetParent(shop, false); q.localPosition = new Vector3(qx, 0f, CounterZ); rs.QueuePoints.Add(q);
             }
             var doorPoint = new GameObject("DoorPoint").transform; doorPoint.SetParent(shop, false); doorPoint.localPosition = new Vector3(ShopDoorX, 0f, -RoomD / 2f + 0.35f); rs.DoorPoint = doorPoint;
             var outside = new GameObject("OutsidePoint").transform; outside.SetParent(shop, false); outside.localPosition = new Vector3(ShopDoorX, 0f, -RoomD / 2f - 1.45f); outside.localRotation = Quaternion.Euler(0f, 180f, 0f); rs.OutsidePoint = outside;
