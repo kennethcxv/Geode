@@ -325,7 +325,7 @@ namespace GeodeEmpire.Specimens
             var centers = new List<Vector3>();
             var radii = new List<float>();
             // Main lobe: biased below the fracture plane so the bottom (display) half is the deeper one.
-            float yOff = -Mathf.Min(rng.Range(0.02f, 0.12f) * R, 0.5f * r);
+            float yOff = -Mathf.Min(rng.Range(0.06f, 0.18f) * R, 0.5f * r);   // V6: rocks open below their widest section, the display half is the deep one
             centers.Add(new Vector3(0f, yOff, 0f));
             radii.Add(r);
             switch (g.Cavity)
@@ -349,6 +349,21 @@ namespace GeodeEmpire.Specimens
                     var off = rng.InsideUnitCircle() * (0.22f * R);
                     centers[0] = new Vector3(off.x, yOff, off.y);
                     break;
+                }
+            }
+            // V6 §16: satellite lobes push recesses and shadow pockets into the wall so the cavity is no longer one bowl;
+            // biased below the seam so the display half is the deep one. Nodules and pockets stay single.
+            if (g.Cavity != CavityArchetype.Nodule && g.Cavity != CavityArchetype.Pocket)
+            {
+                int extra = 1 + rng.Range(0, 3);
+                for (int i = 0; i < extra; i++)
+                {
+                    var dir = rng.OnUnitSphere();
+                    dir.y = -Mathf.Abs(dir.y) * 0.8f - 0.15f;
+                    dir.Normalize();
+                    float dist = r * rng.Range(0.45f, 0.75f);
+                    centers.Add(centers[0] + dir * dist);
+                    radii.Add(r * rng.Range(0.35f, 0.6f));
                 }
             }
             g.LobeCenters = centers.ToArray();

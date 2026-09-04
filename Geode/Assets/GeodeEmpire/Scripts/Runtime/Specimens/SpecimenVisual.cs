@@ -64,6 +64,12 @@ namespace GeodeEmpire.Specimens
         private static readonly int PolishId = Shader.PropertyToID("_Polish");
         private static readonly int WetId = Shader.PropertyToID("_Wet");
         private static readonly int DustId = Shader.PropertyToID("_Dust");
+        private static readonly int F0Id = Shader.PropertyToID("_F0");
+        private static readonly int ClarityId = Shader.PropertyToID("_Clarity");
+        private static readonly int ZoneBandsId = Shader.PropertyToID("_ZoneBands");
+        private static readonly int StriationId = Shader.PropertyToID("_Striation");
+        private static readonly int InclusionColorId = Shader.PropertyToID("_InclusionColor");
+        private static readonly int CrystalWetId = Shader.PropertyToID("_Wet");
 
         /// <summary>Transient: 1 straight out of the wash tub or off the saw, drying back to 0 over ~45 s. Never saved, never valued.</summary>
         public float Wetness { get; private set; }
@@ -505,6 +511,14 @@ namespace GeodeEmpire.Specimens
                 _mpb.SetFloat(InclusionsId, Mathf.Clamp01(fam.Inclusions * (1f - clarity * 0.9f) + (1f - clarity) * 0.25f));
                 _mpb.SetFloat(HighlightId, _highlight);
                 _mpb.SetFloat(DustId, Dust);
+                // V6 §20: the mineral's own identity: reflectance, clarity, phantom bands, prism striations, inclusion colour, wet film
+                _mpb.SetFloat(F0Id, fam.F0);
+                _mpb.SetFloat(ClarityId, clarity);
+                _mpb.SetFloat(ZoneBandsId, fam.ZoneBands);
+                _mpb.SetFloat(StriationId, fam.Striation);
+                var incCol = Color.Lerp(baseCol, Color.white, 0.55f); incCol.a = 1f;
+                _mpb.SetColor(InclusionColorId, fam.Metallic > 0.5f ? Color.Lerp(baseCol, Color.black, 0.4f) : incCol);
+                _mpb.SetFloat(CrystalWetId, Wetness);
                 r.SetPropertyBlock(_mpb);
             }
         }

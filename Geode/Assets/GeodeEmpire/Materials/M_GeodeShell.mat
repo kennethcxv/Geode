@@ -23,8 +23,56 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _CavAlbedo:
+        m_Texture: {fileID: 2800000, guid: 451f5855679ff4072a4f376ff1ddac26, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CavMask:
+        m_Texture: {fileID: 2800000, guid: 9ae83aaf7b7a242b39fbe4c70d5697c3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CavNormal:
+        m_Texture: {fileID: 2800000, guid: d1fdb57b8738d494e83c311bb670d4cd, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DruseAlbedo:
+        m_Texture: {fileID: 2800000, guid: eedcb983884364f52b2e2dbc3fd47c26, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DruseMask:
+        m_Texture: {fileID: 2800000, guid: 221c94b2010384cde9a301c2f617145f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DruseNormal:
+        m_Texture: {fileID: 2800000, guid: 89cc492b716cd4fb0866cdb7af1da570, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FracAlbedo:
+        m_Texture: {fileID: 2800000, guid: 0f581c486cc7c4a0f9ca3ac50c506bb0, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FracMask:
+        m_Texture: {fileID: 2800000, guid: 7ed0f2860e94c4529876989dcc869254, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FracNormal:
+        m_Texture: {fileID: 2800000, guid: c3a2a50dc1ca44ef9ae7eddb4177d66f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _NoiseTex:
         m_Texture: {fileID: 2800000, guid: dac6ac82b8cc24daf9e0e60a01b657cc, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RindAlbedo:
+        m_Texture: {fileID: 2800000, guid: e45118d2c31ec482e809607536163d0f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RindMask:
+        m_Texture: {fileID: 2800000, guid: 819438b68b50042748e77d28c97e21f6, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RindNormal:
+        m_Texture: {fileID: 2800000, guid: a9875eacfd2f847f2ad829375cac0c80, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _RockTex:
@@ -41,6 +89,8 @@ Material:
     - _CrackFade: 1
     - _CutGuideShow: 0
     - _CutShow: 0
+    - _DetailScale: 9
+    - _DetailStrength: 1
     - _Dirt: 0
     - _Dust: 0
     - _Highlight: 0

@@ -100,31 +100,46 @@ def warp(size, period, seed, strength=0.08):
     return (x + strength * wx) % 1.0, (y + strength * wy) % 1.0
 
 
-def worley(size, period, seed, jitter=0.9):
-    """Tileable cellular noise: returns (F1, F2, cell id) with distances in cell units."""
+def worley(size, period, seed, jitter=0.9, x=None, y=None):
+    """Tileable cellular noise: returns (F1, F2, cell id) with distances in cell units. x, y: optional warped coords."""
+    f1, f2, cid, _, _ = worley_vec(size, period, seed, jitter, x, y)
+    return f1, f2, cid
+
+
+def worley_vec(size, period, seed, jitter=0.9, x=None, y=None):
+    """Tileable cellular noise with the offset to the nearest seed: (F1, F2, cell id, dx, dy) in cell units."""
     rng = np.random.RandomState((seed * 7919) & 0x7FFFFFFF)
     cx = rng.uniform(0.0, 1.0, size=(period, period)) * jitter + (1.0 - jitter) * 0.5
     cy = rng.uniform(0.0, 1.0, size=(period, period)) * jitter + (1.0 - jitter) * 0.5
-    ys, xs = np.mgrid[0:size, 0:size].astype(np.float64)
-    px = xs / size * period
-    py = ys / size * period
+    if x is None:
+        ys, xs = np.mgrid[0:size, 0:size].astype(np.float64)
+        x = xs / size
+        y = ys / size
+    px = x * period
+    py = y * period
     ix = np.floor(px).astype(np.int64)
     iy = np.floor(py).astype(np.int64)
-    f1 = np.full((size, size), 9.0)
-    f2 = np.full((size, size), 9.0)
-    cid = np.zeros((size, size), dtype=np.int64)
+    f1 = np.full(px.shape, 9.0)
+    f2 = np.full(px.shape, 9.0)
+    cid = np.zeros(px.shape, dtype=np.int64)
+    vx = np.zeros(px.shape)
+    vy = np.zeros(px.shape)
     for oy in (-1, 0, 1):
         for ox in (-1, 0, 1):
             jx = (ix + ox) % period
             jy = (iy + oy) % period
             fx = cx[jy, jx] + (ix + ox)
             fy = cy[jy, jx] + (iy + oy)
-            d = np.sqrt((px - fx) ** 2 + (py - fy) ** 2)
+            ddx = px - fx
+            ddy = py - fy
+            d = np.sqrt(ddx * ddx + ddy * ddy)
             closer = d < f1
             f2 = np.where(closer, f1, np.minimum(f2, d))
             cid = np.where(closer, jy * period + jx, cid)
+            vx = np.where(closer, ddx, vx)
+            vy = np.where(closer, ddy, vy)
             f1 = np.where(closer, d, f1)
-    return f1, f2, cid
+    return f1, f2, cid, vx, vy
 
 
 def cell_random(cid, seed, period):
@@ -198,58 +213,81 @@ def srgb(lin):
 # ---------------------------------------------------------------------------------------------------------------------
 
 def mat_rind_weathered(size, seed=1):
-    """Weathered geode rind: pitted matrix, knobbly domes, iron staining, a few fine cracks."""
-    period = 8
+    """Weathered geode rind micro-detail (the mesh carries the macro shape): a botryoidal skin of rounded knobs at two
+    scales with dark creases between them, chalky pale dome tops, iron-stained patches, sharp little pits with dry rims,
+    and hairline cracks in a few patches. Relief is real: about 4 mm of height over an 11 cm tile."""
+    period = 6
     x, y = warp(size, period, seed, 0.06)
-    domes = fbm(size, period, seed + 1, octaves=4, x=x, y=y)                      # rounded knobs
-    f1, f2, cid = worley(size, period * 5, seed + 2)
-    pits = np.clip(1.0 - f1 * 1.6, 0.0, 1.0) ** 2 * (cell_random(cid, seed + 3, period * 5) > 0.55)   # scattered pits
-    grain = fbm(size, period * 12, seed + 4, octaves=3, gain=0.6)                  # fine matrix grain
-    cracks = np.clip((f2 - f1) * 6.0, 0.0, 1.0)                                    # cell edges -> hairline cracks
-    crack_mask = (cell_random(cid, seed + 5, period * 5) > 0.7).astype(np.float64)
-    height = 0.55 + 0.30 * domes - 0.28 * pits + 0.08 * grain - 0.06 * (1.0 - cracks) * crack_mask
-    height = normalize01(height)
-    stain = normalize01(fbm(size, period, seed + 6, octaves=3))
-    base = color((0.46, 0.40, 0.31))
-    iron = color((0.52, 0.33, 0.19))
-    pale = color((0.62, 0.58, 0.50))
-    albedo = mix(base[None, None, :], iron[None, None, :], (stain ** 2)[..., None] * 0.7)
-    albedo = mix(albedo, pale[None, None, :], np.clip(domes, 0.0, 1.0)[..., None] * 0.35)
-    albedo = albedo * (1.0 + 0.18 * grain[..., None]) * (1.0 - 0.35 * pits[..., None])
-    rough = 0.78 + 0.12 * pits - 0.08 * np.clip(domes, 0.0, 1.0) + 0.05 * grain
-    return dict(height=height, albedo=np.clip(albedo, 0, 1), roughness=np.clip(rough, 0.55, 0.98), metallic=0.0,
-                normal_strength=1.4, ao=curvature_ao(height, 3, 1.4))
+    patches = normalize01(fbm(size, period, seed + 1, octaves=4, x=x, y=y))              # slow tonal patches
+    grain = fbm(size, period * 16, seed + 4, octaves=3, gain=0.6)                          # fine matrix grain
+    # botryoidal domes: every cell a rounded knob (spherical profile), a few cells left low so the skin is not a grid
+    f1a, f2a, ca = worley(size, period * 3, seed + 2, jitter=0.85, x=x, y=y)
+    f1b, f2b, cb = worley(size, period * 7, seed + 8, jitter=0.9, x=x, y=y)
+    ra = cell_random(ca, seed + 3, period * 3)
+    rb = cell_random(cb, seed + 9, period * 7)
+    rad_a = 0.55 + 0.35 * ra
+    rad_b = 0.5 + 0.3 * rb
+    dome_a = np.sqrt(np.clip(1.0 - (f1a / rad_a) ** 2, 0.0, 1.0)) * (0.55 + 0.45 * (ra > 0.15))
+    dome_b = np.sqrt(np.clip(1.0 - (f1b / rad_b) ** 2, 0.0, 1.0)) * (rb > 0.3)
+    # pits: small sharp holes with a dry pale rim, scattered
+    f1p, f2p, cp = worley(size, period * 12, seed + 11, jitter=1.0)
+    rp = cell_random(cp, seed + 12, period * 12)
+    pit_r = 0.25 + 0.3 * rp
+    pits = np.clip(1.0 - f1p / pit_r, 0.0, 1.0) ** 1.4 * (rp > 0.7)
+    rim = np.clip(1.0 - np.abs(f1p - pit_r) * 9.0, 0.0, 1.0) * (rp > 0.7) * 0.5
+    cracks = np.clip(1.0 - np.abs(fbm(size, period * 3, seed + 5, octaves=4, x=x, y=y)) * 14.0, 0.0, 1.0)
+    cracks *= (normalize01(fbm(size, period, seed + 6, octaves=2)) > 0.72)
+    height = normalize01(0.2 + 0.5 * dome_a + 0.22 * dome_b + 0.04 * grain - 0.28 * pits + 0.02 * rim - 0.04 * cracks + 0.05 * (patches - 0.5))
+    crease = np.clip(1.0 - (dome_a * 0.7 + dome_b * 0.5), 0.0, 1.0)
+    base = color((0.46, 0.42, 0.35))
+    dark = color((0.22, 0.19, 0.16))
+    iron = color((0.52, 0.33, 0.18))
+    pale = color((0.66, 0.62, 0.55))
+    albedo = mix(base[None, None, :], iron[None, None, :], (patches ** 2)[..., None] * 0.7)
+    albedo = mix(albedo, dark[None, None, :], (crease ** 1.5)[..., None] * 0.7)
+    albedo = mix(albedo, pale[None, None, :], np.clip(dome_a * dome_a * (0.5 + 0.5 * dome_b), 0.0, 1.0)[..., None] * 0.55 + rim[..., None] * 0.5)
+    albedo = albedo * (1.0 + 0.14 * grain[..., None]) * (1.0 - 0.5 * pits[..., None]) * (1.0 - 0.5 * cracks[..., None])
+    rough = 0.8 + 0.12 * pits - 0.1 * dome_a * dome_b + 0.04 * grain - 0.05 * rim + 0.06 * crease
+    return dict(height=height, albedo=np.clip(albedo, 0, 1), roughness=np.clip(rough, 0.6, 0.98), metallic=0.0,
+                normal_strength=16.0, ao=curvature_ao(height, 5, 1.5))
 
 
 def mat_fracture_fresh(size, seed=2):
-    """Fresh conchoidal fracture: sharp ripple ridges radiating in rough arcs, tiny chips, pale dry stone."""
+    """Fresh fracture: conchoidal ripple sets from several impact points, crisp ridges between them, small chip facets,
+    a pale dry surface a shade lighter than the rind with a fine crystalline grain."""
     period = 6
     ys, xs = np.mgrid[0:size, 0:size].astype(np.float64)
     x = xs / size
     y = ys / size
-    # conchoidal ripples: sine rings around a few random centres, blended tileably through warped noise
-    ripples = np.zeros((size, size))
     rng = np.random.RandomState(seed)
-    for k in range(4):
+    ripples = np.zeros((size, size))
+    for k in range(5):
         cx, cy = rng.uniform(0, 1), rng.uniform(0, 1)
         dxm = np.minimum(np.abs(x - cx), 1.0 - np.abs(x - cx))
         dym = np.minimum(np.abs(y - cy), 1.0 - np.abs(y - cy))
         d = np.sqrt(dxm * dxm + dym * dym)
-        ripples += np.sin(d * (40.0 + 12 * k) + rng.uniform(0, 6.28)) * np.exp(-d * 2.2)
+        ring = np.sin(d * (55.0 + 18 * k) + rng.uniform(0, 6.28))
+        ring = np.sign(ring) * np.abs(ring) ** 0.6                                        # crisper crests
+        ripples += ring * np.exp(-d * 3.0) * rng.uniform(0.6, 1.0)
     ripples = normalize01(ripples) - 0.5
-    f1, f2, cid = worley(size, period * 6, seed + 11)
-    chips = np.clip(1.0 - f1 * 1.9, 0.0, 1.0) * (cell_random(cid, seed + 12, period * 6) > 0.8)
-    grain = fbm(size, period * 14, seed + 13, octaves=3, gain=0.55)
+    f1, f2, cid = worley(size, period * 3, seed + 11, jitter=0.95)
+    facet = cell_random(cid, seed + 12, period * 3)                                       # each cell a tilted facet
+    facet_edge = np.clip((f2 - f1) * 4.0, 0.0, 1.0)
+    chips = np.clip(1.0 - f1 * 2.4, 0.0, 1.0) ** 2 * (cell_random(cid, seed + 15, period * 3) > 0.82)
+    grain = fbm(size, period * 20, seed + 13, octaves=2, gain=0.55)
     ridges = fbm(size, period * 2, seed + 14, octaves=4, ridged=True)
-    height = 0.5 + 0.22 * ripples + 0.14 * (ridges - 0.5) - 0.2 * chips + 0.05 * grain
+    facet_soft = np.clip(facet_edge * 1.5, 0.0, 1.0) * (normalize01(fbm(size, period, seed + 16, octaves=2)) > 0.6)   # facets only in patches
+    height = 0.5 + 0.18 * ripples + 0.07 * (facet - 0.5) * facet_soft + 0.10 * (ridges - 0.5) - 0.2 * chips + 0.04 * grain
     height = normalize01(height)
-    base = color((0.74, 0.70, 0.62))
-    dark = color((0.46, 0.42, 0.36))
-    albedo = mix(base[None, None, :], dark[None, None, :], np.clip(chips * 1.5, 0, 1)[..., None])
-    albedo = albedo * (1.0 + 0.1 * grain[..., None]) * (1.0 - 0.15 * (0.5 - ripples)[..., None])
-    rough = 0.62 + 0.15 * chips + 0.06 * grain - 0.1 * np.clip(ripples, 0, 1)
-    return dict(height=height, albedo=np.clip(albedo, 0, 1), roughness=np.clip(rough, 0.45, 0.9), metallic=0.0,
-                normal_strength=1.1, ao=curvature_ao(height, 2, 1.2))
+    base = color((0.70, 0.66, 0.58))
+    dark = color((0.44, 0.40, 0.34))
+    warm = color((0.62, 0.52, 0.40))
+    albedo = mix(base[None, None, :], warm[None, None, :], np.clip(facet, 0, 1)[..., None] * 0.3)
+    albedo = mix(albedo, dark[None, None, :], np.clip(chips * 1.5 + (1.0 - facet_edge) * 0.12 * facet_soft, 0, 1)[..., None])
+    albedo = albedo * (1.0 + 0.1 * grain[..., None]) * (1.0 - 0.12 * (0.5 - ripples)[..., None])
+    rough = 0.6 + 0.15 * chips + 0.06 * grain - 0.12 * np.clip(ripples, 0, 1) + 0.04 * (1.0 - facet_edge) * facet_soft
+    return dict(height=height, albedo=np.clip(albedo, 0, 1), roughness=np.clip(rough, 0.42, 0.9), metallic=0.0,
+                normal_strength=10.0, ao=curvature_ao(height, 2, 1.2))
 
 
 def mat_cavity_wall(size, seed=3):
@@ -270,7 +308,38 @@ def mat_cavity_wall(size, seed=3):
     albedo = albedo * (1.0 + 0.08 * grain[..., None])
     rough = 0.42 - 0.12 * bumps + 0.05 * grain + 0.06 * bands
     return dict(height=height, albedo=np.clip(albedo, 0, 1), roughness=np.clip(rough, 0.25, 0.7), metallic=0.0,
-                normal_strength=1.0, ao=curvature_ao(height, 3, 1.3))
+                normal_strength=8.0, ao=curvature_ao(height, 3, 1.3))
+
+
+def mat_druse(size, seed=17):
+    """Druse floor: a mosaic of tiny crystal terminations, each cell a six-sided pyramid at its own height and turn,
+    glassy and near-white (the shell shader tints it in the mineral's colour where a carpet grows). About 1.5-2 mm
+    per crystal at the shader's cavity scale."""
+    period = 4
+    n = period * 5
+    f1, f2, cid, dx, dy = worley_vec(size, n, seed + 1, jitter=0.95)
+    r1 = cell_random(cid, seed + 2, n)
+    r2 = cell_random(cid, seed + 3, n)
+    r3 = cell_random(cid, seed + 4, n)
+    ang = r1 * math.pi / 3.0
+    ca, sa = np.cos(ang), np.sin(ang)
+    rx = dx * ca - dy * sa
+    ry = dx * sa + dy * ca
+    # hexagonal metric: the largest of three axis projections gives six flat facets meeting at the apex
+    dh = np.maximum(np.abs(rx), np.maximum(np.abs(rx * 0.5 + ry * 0.8660254), np.abs(rx * 0.5 - ry * 0.8660254)))
+    radius = 0.5 + 0.35 * r2
+    pyramid = np.clip(1.0 - dh / radius, 0.0, 1.0)
+    grain = fbm(size, period * 24, seed + 5, octaves=2, gain=0.5)
+    height = normalize01(pyramid * (0.55 + 0.45 * r3) + 0.3 * r2 + 0.015 * grain)
+    white = color((0.86, 0.86, 0.88))
+    grey = color((0.62, 0.62, 0.64))
+    warm = color((0.8, 0.78, 0.74))
+    albedo = mix(white[None, None, :], grey[None, None, :], (1.0 - r3)[..., None] * 0.5)
+    albedo = mix(albedo, warm[None, None, :], (r1 > 0.7)[..., None] * 0.35)
+    albedo = albedo * (0.8 + 0.3 * pyramid[..., None])                        # bases in shadow, tips bright
+    rough = 0.16 + 0.12 * (1.0 - pyramid) + 0.06 * (r2 - 0.5) + 0.03 * grain
+    return dict(height=height, albedo=np.clip(albedo, 0, 1), roughness=np.clip(rough, 0.08, 0.4), metallic=0.0,
+                normal_strength=18.0, ao=curvature_ao(height, 3, 1.4))
 
 
 def mat_agate_band(size, seed=4):
@@ -426,17 +495,26 @@ def mat_cardboard(size, seed=12):
 
 
 def mat_leather(size, seed=13):
+    """Full-grain leather: soft irregular pebbling (blurred cells folded into noise), fine creases, a worn sheen on the
+    high spots. Reads as hide at 30 cm, never as a honeycomb."""
     period = 9
-    f1, f2, cid = worley(size, period * 7, seed + 121, jitter=0.85)
-    pebble = np.clip(1.0 - f1 * 1.3, 0, 1) ** 1.5
-    creases = np.clip((f2 - f1) * 5.0, 0, 1)
+    x, y = warp(size, period, seed, 0.06)
+    f1a, f2a, ca = worley(size, period * 7, seed + 121, jitter=1.0)
+    ra = cell_random(ca, seed + 124, period * 7)
+    peb = np.clip(1.0 - f1a / (0.45 + 0.55 * ra), 0, 1)
+    peb = peb * peb * (3.0 - 2.0 * peb)                                           # rounded domes
+    # soften the cells into one another with two noise scales so no edge stays straight
+    soft = fbm(size, period * 4, seed + 126, octaves=3, x=x, y=y)
+    fine = fbm(size, period * 22, seed + 127, octaves=2)
+    grain = np.clip(0.55 * peb + 0.3 * (soft * 0.5 + 0.5) + 0.15 * (fine * 0.5 + 0.5), 0.0, 1.0)
+    creases = np.clip((f2a - f1a) * 2.2, 0, 1)
     wear = normalize01(fbm(size, period, seed + 122, octaves=3))
-    height = normalize01(0.5 + 0.12 * pebble - 0.04 * (1.0 - creases))
-    base = color((0.30, 0.16, 0.09))
-    albedo = tint(base, pebble - 0.5, 0.25) * (1.0 + 0.15 * (wear - 0.5)[..., None])
-    rough = 0.55 - 0.15 * pebble + 0.15 * (1.0 - creases) - 0.1 * (wear > 0.7)
-    return dict(height=height, albedo=np.clip(albedo, 0, 1), roughness=np.clip(rough, 0.3, 0.75), metallic=0.0,
-                normal_strength=0.9, ao=curvature_ao(height, 2, 1.0))
+    height = normalize01(0.5 + 0.08 * grain - 0.04 * (1.0 - creases) * (1.0 - peb) + 0.02 * fine)
+    base = color((0.31, 0.18, 0.10))
+    albedo = tint(base, grain - 0.5, 0.2) * (1.0 - 0.12 * (1.0 - creases)[..., None] * (1.0 - peb)[..., None]) * (1.0 + 0.14 * (wear - 0.5)[..., None])
+    rough = 0.62 - 0.16 * grain + 0.1 * (1.0 - creases) * (1.0 - peb) - 0.14 * np.clip(wear - 0.6, 0, 1) * 2.5
+    return dict(height=height, albedo=np.clip(albedo, 0, 1), roughness=np.clip(rough, 0.32, 0.75), metallic=0.0,
+                normal_strength=0.7, ao=curvature_ao(height, 2, 0.8))
 
 
 def mat_felt(size, seed=14):
@@ -482,6 +560,7 @@ MATERIALS = {
     "rind_weathered": mat_rind_weathered,
     "fracture_fresh": mat_fracture_fresh,
     "cavity_wall": mat_cavity_wall,
+    "druse": mat_druse,
     "agate_band": mat_agate_band,
     "painted_steel": mat_painted_steel,
     "cast_iron": mat_cast_iron,

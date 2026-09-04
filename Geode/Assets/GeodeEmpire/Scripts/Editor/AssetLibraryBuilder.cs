@@ -36,6 +36,13 @@ namespace GeodeEmpire.EditorTools
             var shellMat = LoadOrCreateMaterial("M_GeodeShell", "GeodeEmpire/GeodeShell");
             shellMat.SetTexture("_NoiseTex", noise);
             shellMat.SetTexture("_RockTex", rock);
+            // V6 material pipeline: the tileable detail sets from Tools/Blender/gen_textures.py
+            WireDetailSet(shellMat, "_Rind", "rind_weathered");
+            WireDetailSet(shellMat, "_Frac", "fracture_fresh");
+            WireDetailSet(shellMat, "_Cav", "cavity_wall");
+            WireDetailSet(shellMat, "_Druse", "druse");
+            shellMat.SetFloat("_DetailScale", 9f);
+            shellMat.SetFloat("_DetailStrength", 1f);
             var crackMat = LoadOrCreateMaterial("M_CrackLine", "Universal Render Pipeline/Unlit");
             crackMat.SetColor("_BaseColor", new Color(0.05f, 0.04f, 0.03f, 1f));
             EditorUtility.SetDirty(crystalMat);
@@ -69,6 +76,20 @@ namespace GeodeEmpire.EditorTools
             AssetDatabase.SaveAssets();
             Debug.Log($"[AssetLibraryBuilder] Library built: {found}/{ArchetypeFiles.Length} crystal meshes, materials at {MaterialFolder}");
             return lib;
+        }
+
+        public const string GeneratedTextureFolder = "Assets/GeodeEmpire/Textures/Generated/";
+
+        /// <summary>Assigns &lt;family&gt;_albedo/_normal/_mask.png from the generated folder to &lt;prefix&gt;Albedo/Normal/Mask.</summary>
+        public static void WireDetailSet(Material m, string prefix, string family)
+        {
+            foreach (var (suffix, prop) in new[] { ("_albedo", "Albedo"), ("_normal", "Normal"), ("_mask", "Mask") })
+            {
+                string path = GeneratedTextureFolder + family + suffix + ".png";
+                var t = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                if (t == null) Debug.LogWarning($"[AssetLibraryBuilder] Missing detail texture: {path}");
+                m.SetTexture(prefix + prop, t);
+            }
         }
 
         public static Material LoadOrCreateMaterial(string name, string shaderName)

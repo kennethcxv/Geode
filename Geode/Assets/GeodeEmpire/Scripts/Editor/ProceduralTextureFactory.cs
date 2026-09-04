@@ -106,7 +106,7 @@ namespace GeodeEmpire.EditorTools
                     float grain = TileableFbm(u, v, 6, 6, seed, 0.55f);
                     float speck = TileableFbm(u, v, 48, 2, seed + 31);
                     float cracks = 1f - Mathf.Abs(TileableFbm(u, v, 3, 4, seed + 77) - 0.5f) * 2f;
-                    float val = Mathf.Clamp01(grain * 0.75f + speck * 0.3f - Mathf.Pow(cracks, 8f) * 0.35f + 0.05f);
+                    float val = Mathf.Clamp01(grain * 0.75f + speck * 0.3f - Mathf.Pow(cracks, 8f) * 0.12f + 0.05f);
                     px[y * size + x] = new Color(val, val, val, 1f);
                 }
             }
