@@ -67,6 +67,8 @@ namespace GeodeEmpire.Player
             if (InputLocked || !GameInput.GameplayEnabled)
             {
                 SetTarget(null);
+                // the prompt has to go with the target: without this the last world prompt hangs over a station view
+                if (!string.IsNullOrEmpty(Prompt)) RefreshPrompt();
                 if (Inspecting) EndInspect();
                 return;
             }

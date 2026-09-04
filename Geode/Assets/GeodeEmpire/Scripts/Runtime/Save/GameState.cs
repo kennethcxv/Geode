@@ -279,6 +279,8 @@ namespace GeodeEmpire.Save
         public int Prestige;
         /// <summary>Workshop stage: 0 = the V3 garage, 1 = the Stage-2 lapidary expansion.</summary>
         public int WorkshopStage;
+        /// <summary>What is physically in the till. A fixture, not banked cash: a sale moves both, and they must agree.</summary>
+        public Checkout.MoneyStack CashDrawer;
         /// <summary>Diamond blade wear 0..1; a worn blade cuts slowly and chips, a new one is bought on the tablet.</summary>
         public float BladeWear;
 

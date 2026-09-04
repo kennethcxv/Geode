@@ -118,7 +118,12 @@ namespace GeodeEmpire.Retail
         }
 
         // ---- stock ---------------------------------------------------------------------------
-        public static float AskingPrice(SpecimenRecord r) => Mathf.Round(r.EstimatedValue() * Markup * (r.Certified ? 1.1f : 1f));
+        /// <summary>
+        /// What the shelf asks. Real shops price on the .95, and it matters here for more than flavour: a whole-dollar
+        /// till never sees a coin, and counting change out of the drawer is half of what a checkout is.
+        /// </summary>
+        public static float AskingPrice(SpecimenRecord r)
+            => Mathf.Max(0.95f, Mathf.Round(r.EstimatedValue() * Markup * (r.Certified ? 1.1f : 1f)) - 0.05f);
 
         private void OnPlaced(PlacementZone z, SpecimenEntity e)
         {

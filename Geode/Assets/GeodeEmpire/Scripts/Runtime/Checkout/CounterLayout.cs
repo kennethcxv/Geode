@@ -56,23 +56,23 @@ namespace GeodeEmpire.Checkout
 
         [Header("Camera (Golf's derived working composition: the eye is pinned to the work, not the floor)")]
         /// <summary>Eye above the counter TOP. Golf 0.56: a standing eye sits too high to read a counter as a work surface.</summary>
-        public float EyeAboveCounter = 0.56f;
+        public float EyeAboveCounter = 0.62f;
         public float WorkingFov = 54f;
         public float WorkingGlanceScale = 0.34f;
         public float CashGlanceScale = 0.30f;
-        public Pose WorkingEye = new Pose(0.15f, 1.05f);
+        public Pose WorkingEye = new Pose(0.15f, 1.25f);
         public Pose WorkingLook = new Pose(0.20f, -0.06f);
-        public float WorkingLookAboveCounter = 0.10f;
+        public float WorkingLookAboveCounter = 0.18f;
 
-        public float DrawerFov = 52f;
-        public Pose DrawerEye = new Pose(0.80f, 1.00f);
-        public float DrawerEyeAboveCounter = 0.74f;
-        public Pose DrawerLook = new Pose(0.84f, 0.34f);
-        public float DrawerLookAboveCounter = -0.06f;
+        public float DrawerFov = 50f;
+        public Pose DrawerEye = new Pose(0.86f, 1.35f);
+        public float DrawerEyeAboveCounter = 0.65f;
+        public Pose DrawerLook = new Pose(0.86f, 0.21f);
+        public float DrawerLookAboveCounter = -0.05f;
 
-        public float CardFov = 46f;
-        public Pose CardEye = new Pose(0.36f, 0.92f);
-        public float CardEyeAboveCounter = 0.36f;
+        public float CardFov = 52f;
+        public Pose CardEye = new Pose(0.38f, 1.00f);
+        public float CardEyeAboveCounter = 0.44f;
         public Pose CardLook = new Pose(0.38f, 0.30f);
         public float CardLookAboveCounter = 0.08f;
 

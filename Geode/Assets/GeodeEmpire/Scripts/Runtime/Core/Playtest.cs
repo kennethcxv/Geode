@@ -2812,6 +2812,97 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        /// <summary>V6 Golf-derived checkout round: one customer, a forced payment method, every physical step captured.</summary>
+        public void RunStation(string method = "cash", string size = "") { if (!Running) StartCoroutine(StationCheckout(method, size)); }
+
+        private IEnumerator StationCheckout(string method, string size)
+        {
+            Running = true;
+            Phase = "station-" + method;
+            foreach (var st in Workshop.Tutorial.Steps) Workshop.Tutorial.Notify(st.DoneBy);
+            var shop = Retail.RetailShop.Instance;
+            var station = Find<GeodeEmpire.Checkout.CheckoutStation>();
+            if (shop == null || station == null) { L("no shop/station"); Running = false; yield break; }
+            Retail.Customer.ForcedMethod = method == "card" ? 1 : 0;
+            if (string.IsNullOrEmpty(size)) yield return StockDirect(4); else yield return StockSized(size, 2);
+            var drawerBefore = station.Drawer != null ? station.Drawer.Copy() : null;
+            // some archetypes cannot afford a big piece; keep sending shoppers in until one actually reaches the counter
+            Retail.Customer c = null;
+            for (int attempt = 0; attempt < 5 && (c == null || c.State != Retail.Customer.Phase.AtCounter); attempt++)
+            {
+                c = shop.SpawnNow();
+                float w = 0f;
+                while (c != null && c.State != Retail.Customer.Phase.AtCounter && c.State != Retail.Customer.Phase.Done && w < 70f) { w += Time.deltaTime; yield return null; }
+                if (c != null && c.State == Retail.Customer.Phase.AtCounter && c.Wanted != null) break;
+                L($"  attempt {attempt + 1}: {(c == null ? "no spawn" : c.State.ToString())} - trying another shopper");
+                while (c != null && c.State != Retail.Customer.Phase.Done) yield return null;
+            }
+            if (c == null || c.State != Retail.Customer.Phase.AtCounter || c.Wanted == null) { L("no customer at the counter"); Retail.Customer.ForcedMethod = -1; Running = false; yield break; }
+            string wantedId = c.Wanted.Id;
+            float price = c.Wanted.Record.AskingPrice, cashBefore = S.State.Cash;
+            L($"at counter: {c.Archetype.Name} pays by {c.Method} for {c.Wanted.Record.DisplayName} ({c.Wanted.Geology.SizeClass}) {price}");
+            // stand where the cashier stands and take the register
+            var stand = station.StaffStandPoint;
+            yield return RouteTo(new Vector3(stand.position.x, 0f, stand.position.z), 0.35f);
+            D.LookAt(station.MonitorRig.transform.position);
+            yield return null; yield return null;
+            Snap("00_arrival");
+            station.Enter();
+            yield return new WaitForSeconds(0.3f);
+            L($"entered: state={station.State} active={station.Active}");
+            int shots = 1;
+            var seen = new List<string>();
+            float guard = 0f, busyShot = 0f, stall = 0f;
+            while (station.Tx != null && station.State != GeodeEmpire.Checkout.CheckoutState.TransactionComplete && guard < 90f)
+            {
+                yield return new WaitForSeconds(0.25f); guard += 0.25f;
+                if (station.Busy)
+                {
+                    busyShot += 0.25f;
+                    if (busyShot >= 0.5f) { busyShot = 0f; Snap($"{shots++:00}_{station.State}_busy"); }
+                    continue;
+                }
+                busyShot = 0f;
+                string label = station.State.ToString();
+                if (seen.Count == 0 || seen[seen.Count - 1] != label)
+                {
+                    seen.Add(label);
+                    var tx = station.Tx;
+                    if (tx != null) L($"  {label}: stage={tx.Stage} total={tx.Total:F2} tendered={tx.TenderedTotal:F2} change={tx.ChangeDue:F2} hand={tx.HandTotal:F2} status='{station.StatusLine}'");
+                    else L($"  {label}: (station reset)");
+                    var cam = Camera.main;
+                    string head = c != null ? cam.WorldToViewportPoint(c.transform.position + Vector3.up * 1.62f).ToString("F2") : "(gone)";
+                    L($"    cam={cam.transform.position:F2} fov={cam.fieldOfView:F0} head vp={head} drawer={station.DrawerOpen:F2} trace={station.Trace}");
+                    Snap($"{shots++:00}_{label}");
+                }
+                if (!station.HarnessStep())
+                {
+                    stall += 0.2f;
+                    if (stall > 6f) { L($"  STALLED at {station.State} trace={station.Trace} busy={station.Busy} stage={(station.Tx != null ? station.Tx.Stage.ToString() : "-")}"); break; }
+                    yield return new WaitForSeconds(0.2f);
+                }
+                else stall = 0f;
+            }
+            yield return new WaitForSeconds(0.6f);
+            Snap("99_reset");
+            var rec = S.State.FindSpecimen(wantedId);
+            L($"after: cash {cashBefore} -> {S.State.Cash} {Chk(S.State.Cash > cashBefore)} recordLoc={(rec != null ? rec.Location.ToString() : "missing")} {Chk(rec != null && rec.Location == SpecimenLocation.Sold)} states={string.Join(">", seen)}");
+            var drawerAfter = station.Drawer;
+            float delta = drawerAfter != null && drawerBefore != null ? drawerAfter.Total - drawerBefore.Total : 0f;
+            L($"drawer: {(drawerBefore != null ? drawerBefore.Total : 0f):F2} -> {(drawerAfter != null ? drawerAfter.Total : 0f):F2} delta={delta:F2} expected={(method == "cash" ? price : 0f):F2} {Chk(method != "cash" || Mathf.Abs(delta - price) < 0.011f)}");
+            float leaveWait = 0f;
+            while (c != null && c.State != Retail.Customer.Phase.Done && leaveWait < 30f) { leaveWait += Time.deltaTime; yield return null; }
+            yield return null; yield return null;
+            L($"customer gone={Chk(c == null)} entity gone={Chk(S.GetEntity(wantedId) == null)} station idle={Chk(station.Tx == null)} active={station.Active}");
+            int leftovers = 0;
+            foreach (var go in FindObjectsByType<GameObject>(FindObjectsSortMode.None))
+                if (go.name == "Card" || go.name == "Bag" || go.name.StartsWith("Tender_") || go.name.StartsWith("Change_")) leftovers++;
+            L($"leftover checkout objects={leftovers} {Chk(leftovers == 0)}");
+            Retail.Customer.ForcedMethod = -1;
+            Phase = "done";
+            Running = false;
+        }
+
         private static Transform FindDeep(Transform t, string name) { foreach (Transform ch in t) { if (ch.name == name) return ch; var d = FindDeep(ch, name); if (d != null) return d; } return null; }
 
         /// <summary>Harness: n appraised pieces of one size class on the sale fixtures (seeds searched for the class), so a checkout round can exercise the bag, the box and the two-handed lift.</summary>

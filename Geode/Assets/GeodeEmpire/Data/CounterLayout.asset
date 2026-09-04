@@ -66,36 +66,36 @@ MonoBehaviour:
     X: 0.1
     Z: -0.8
     Yaw: 0
-  EyeAboveCounter: 0.56
+  EyeAboveCounter: 0.62
   WorkingFov: 54
   WorkingGlanceScale: 0.34
   CashGlanceScale: 0.3
   WorkingEye:
     X: 0.15
-    Z: 1.05
+    Z: 1.25
     Yaw: 0
   WorkingLook:
     X: 0.2
     Z: -0.06
     Yaw: 0
-  WorkingLookAboveCounter: 0.1
-  DrawerFov: 52
+  WorkingLookAboveCounter: 0.18
+  DrawerFov: 50
   DrawerEye:
-    X: 0.8
+    X: 0.86
+    Z: 1.35
+    Yaw: 0
+  DrawerEyeAboveCounter: 0.65
+  DrawerLook:
+    X: 0.86
+    Z: 0.21
+    Yaw: 0
+  DrawerLookAboveCounter: -0.05
+  CardFov: 52
+  CardEye:
+    X: 0.38
     Z: 1
     Yaw: 0
-  DrawerEyeAboveCounter: 0.74
-  DrawerLook:
-    X: 0.84
-    Z: 0.34
-    Yaw: 0
-  DrawerLookAboveCounter: -0.06
-  CardFov: 46
-  CardEye:
-    X: 0.36
-    Z: 0.92
-    Yaw: 0
-  CardEyeAboveCounter: 0.36
+  CardEyeAboveCounter: 0.44
   CardLook:
     X: 0.38
     Z: 0.3
