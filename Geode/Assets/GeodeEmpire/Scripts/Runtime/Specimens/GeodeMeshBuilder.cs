@@ -551,11 +551,15 @@ namespace GeodeEmpire.Specimens
                 var inst = c;
                 inst.Position = rot * c.Position;
                 inst.Rotation = rot * c.Rotation;
-                // tip past a cut plane: the saw took the top off it
+                // tip past a cut plane: the saw took the top off it; and a point rooted within the kerf's chipping band
+                // (the blade's 3 mm plus the shatter either side of it) is ruined the same way, which is the real cost
+                // of sawing a carpet of small points: two centre halves add up to about one natural split
                 Vector3 tip = c.Position + (c.Rotation * Vector3.up) * c.Height;
                 float dt = Vector3.Dot(tip, n);
                 bool cut = (piece.HasHi && dt > piece.Hi) || (piece.HasLo && dt < piece.Lo);
-                inst.Truncated = cut;
+                float band = 0.004f + c.Footprint * 0.6f;
+                bool grazed = (piece.HasHi && d > piece.Hi - band) || (piece.HasLo && d < piece.Lo + band);
+                inst.Truncated = cut || grazed;
                 wKept += cut ? w * 0.4f : w;
                 kept.Add(inst);
             }
@@ -883,8 +887,10 @@ namespace GeodeEmpire.Specimens
             var list = new List<CrystalInstance>(400);
             bool druzy = g.IsDruzy;
             var style = druzy ? PlacementStyle.Carpet : fam.Placement;
-            // a carpet packs hundreds of similar points shoulder to shoulder (V6 §19), so it samples a finer cell grid
-            int N = style == PlacementStyle.Carpet && !druzy ? 56 : PlaceLon, M = style == PlacementStyle.Carpet && !druzy ? 20 : PlaceLat;
+            // a carpet packs hundreds of similar points shoulder to shoulder (V6 §19), and scattered / clustered vugs
+            // still cover most of their lining, so those styles sample a finer cell grid
+            bool fine = !druzy && (style == PlacementStyle.Carpet || style == PlacementStyle.Scattered || style == PlacementStyle.Clustered);
+            int N = fine ? 56 : PlaceLon, M = fine ? 20 : PlaceLat;
             // patches: a slow noise over the cavity makes some regions crowd and others thin out, so the carpet
             // never reads as an even grid
             var patch = new Noise3D(SeededRandom.Combine(g.Seed, 0xD1));
@@ -912,7 +918,7 @@ namespace GeodeEmpire.Specimens
 
             // V6 §16: crystals line a cavity that still reads deep: the family's scale range is taken at 0.68 of its V5 value
             // and the growth cores / giants bring the big ones back where they belong; a carpet's points are smaller still
-            float baseH = cavR * Mathf.Lerp(fam.ScaleMin, fam.ScaleMax, g.CrystalScale) * (style == PlacementStyle.Carpet && !druzy ? 0.56f : 0.68f);
+            float baseH = cavR * Mathf.Lerp(fam.ScaleMin, fam.ScaleMax, g.CrystalScale) * (druzy ? 0.68f : style == PlacementStyle.Carpet ? 0.56f : fine ? 0.5f : 0.68f);
             float density = Mathf.Lerp(fam.DensityMin, fam.DensityMax, g.CrystalDensity);
             var palette = g.Palette;
 
@@ -966,9 +972,9 @@ namespace GeodeEmpire.Specimens
                             p = density * best * 1.3f + 0.03f;
                             break;
                         }
-                        case PlacementStyle.Scattered: p = density * 0.55f; break;
+                        case PlacementStyle.Scattered: p = density * 0.9f; break;
                         case PlacementStyle.Embedded: p = density * 0.6f; inset = -0.3f; tilt = 60f; break;
-                        case PlacementStyle.Sprays: p = density * 0.28f; break;
+                        case PlacementStyle.Sprays: p = density * 0.42f; break;
                         default: p = cell.Lat > 0.42f ? density : 0.02f; isTile = true; break; // Banded
                     }
                     arch = fam.Archetypes[rng.PickWeighted(fam.ArchetypeWeights)];
@@ -1021,7 +1027,7 @@ namespace GeodeEmpire.Specimens
 
                 // spacing rejection (crystals may touch, tiles may overlap a little)
                 bool blocked = false;
-                float spacing = isTile ? 0.55f : style == PlacementStyle.Carpet ? 0.36f : 0.42f;   // carpet crystals touch
+                float spacing = isTile ? 0.55f : style == PlacementStyle.Carpet ? 0.36f : fine ? 0.38f : 0.42f;   // carpet crystals touch
                 for (int j = 0; j < placed.Count; j++)
                 {
                     var o = placed[j];

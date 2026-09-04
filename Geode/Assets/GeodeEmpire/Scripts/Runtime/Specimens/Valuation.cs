@@ -164,7 +164,11 @@ namespace GeodeEmpire.Specimens
             }
             else
             {
-                value = basev * Mathf.Pow(Mathf.Clamp01(retained), 0.85f) * (0.35f + 0.65f * Mathf.Clamp01(opening)) * (0.8f + 0.2f * Mathf.Clamp01(symmetry)) * (1f + 0.12f * Mathf.Clamp01(polish)) * thin;
+                // linear in what the piece kept (two halves never add up to more than the rock by being two), a premium
+                // for a flat face that opens the cavity squarely (the piece stands and shows its full section), the
+                // polish on top; the kerf band the blade ruins is what the saw pays against the hammer
+                float facePremium = 1f + 0.08f * Mathf.Clamp01(opening) * Mathf.Clamp01(symmetry);
+                value = basev * Mathf.Clamp01(retained) * (0.35f + 0.65f * Mathf.Clamp01(opening)) * (0.8f + 0.2f * Mathf.Clamp01(symmetry)) * facePremium * (1f + 0.12f * Mathf.Clamp01(polish)) * thin;
             }
             float d = Mathf.Clamp01(crystalDamageFraction);
             value *= (1f - d * 0.85f) * (1f - Mathf.Clamp01(shellDamage) * 0.25f);

@@ -434,9 +434,12 @@ namespace GeodeEmpire.Specimens
             _mpb.SetFloat(CavitySmoothId, fam.Id == MineralId.Agate ? 0.65f : 0.35f);
             _mpb.SetFloat(CavityDruzyId, CavityDruzyAmount(g));
             var druzyCol = Color.Lerp(pal.SurfaceA, pal.SurfaceB, 0.5f);
-            // metallic ores: the druzy floor is dark steel, not chrome; a cloudy specimen's floor is milky like its points
+            // metallic ores: the druzy floor is dark steel, not chrome; a cloudy specimen's floor is milky like its points;
+            // under scattered / clustered / spray habits the lining is a pale quartz druse, only tinted by the family
             if (fam.Metallic > 0.5f) druzyCol = Color.Lerp(druzyCol, pal.DeepA, 0.65f);
             else druzyCol = Color.Lerp(druzyCol, Color.Lerp(druzyCol, Color.white, 0.5f), (1f - g.Clarity) * 0.45f);
+            if (!g.IsDruzy && fam.Placement != PlacementStyle.Carpet && fam.Placement != PlacementStyle.Banded)
+                druzyCol = Color.Lerp(new Color(0.84f, 0.83f, 0.8f), druzyCol, fam.Metallic > 0.5f ? 0.55f : 0.3f);
             _mpb.SetColor(CavityCrystalColorId, ApplySaturation(druzyCol, g.Saturation));
             _mpb.SetFloat(HighlightId, _highlight);
             _mpb.SetFloatArray(SectorCrackId, _sectorCrack);
@@ -470,12 +473,14 @@ namespace GeodeEmpire.Specimens
             float density = Mathf.Lerp(fam.DensityMin, fam.DensityMax, g.CrystalDensity);
             switch (fam.Placement)
             {
+                // V6: no bare bowls. A vug with scattered or clustered crystals is lined with a fine druse (quartz or
+                // calcite) that the accent crystals sit on, the way real vugs are
                 case PlacementStyle.Carpet: return Mathf.Clamp01(density * 1.1f - 0.15f);
                 case PlacementStyle.Banded: return 0.85f;
-                case PlacementStyle.Clustered: return Mathf.Clamp01(density * 0.4f);
-                case PlacementStyle.Scattered: return 0.12f;
-                case PlacementStyle.Sprays: return 0.1f;
-                default: return 0f;
+                case PlacementStyle.Clustered: return Mathf.Clamp01(0.35f + density * 0.4f);
+                case PlacementStyle.Scattered: return 0.55f;
+                case PlacementStyle.Sprays: return 0.5f;
+                default: return 0.3f;
             }
         }
 

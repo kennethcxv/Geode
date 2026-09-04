@@ -298,7 +298,10 @@ namespace GeodeEmpire.EditorTools
                     var go = new GameObject("Specimen");
                     go.transform.SetParent(rig.transform, false);
                     var vis = go.AddComponent<SpecimenVisual>();
-                    vis.Build(g, cells[n].Condition ?? new SpecimenCondition { Opened = opened, Cleaned = 1f }, lib, cells[n].Piece, cells[n].Polish);
+                    // the beauty state: washed and rinsed (an unrinsed opened rock sits under the rock-flour film)
+                    var cond = cells[n].Condition ?? new SpecimenCondition { Opened = opened, Cleaned = 1f };
+                    if (opened) cond.Rinsed = true;
+                    vis.Build(g, cond, lib, cells[n].Piece, cells[n].Polish);
                     float radius = vis.Geometry.MaxRadius;
                     if (opened)
                     {

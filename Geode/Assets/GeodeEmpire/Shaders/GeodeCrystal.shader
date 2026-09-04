@@ -124,11 +124,14 @@ Shader "GeodeEmpire/Crystal"
                 // clarity: a cloudy crystal is milky and scatters light near the surface; a clear one carries its colour deep
                 // a cloudy crystal is whitened, not greyed: it keeps its hue under the milk
                 float3 milky = lerp(surf, saturate(surf * 0.55 + 0.45), 0.7);
-                body = lerp(milky, body, saturate(_Clarity * 0.85 + 0.15));
+                // only a translucent mineral clouds up: an opaque one (malachite, hematite) just loses its gloss
+                float cloudiness = (1.0 - saturate(_Clarity * 0.85 + 0.15)) * smoothstep(0.08, 0.5, _Translucency);
+                body = lerp(body, milky, cloudiness);
                 float zone = smoothstep(0.4, 0.95, IN.color.a);
                 body = lerp(body, _ZoneColor.rgb * IN.color.rgb, _ZoningStrength * zone);
                 // colour concentrates toward the tip; the base runs pale and milky (amethyst, citrine and fluorite all do)
-                float baseFade = (1.0 - smoothstep(0.05, 0.4, IN.color.a)) * _ZoningStrength * (1.0 - _Metallic);
+                // (a translucent-crystal trait: opaque and rounded habits keep their colour to the base)
+                float baseFade = (1.0 - smoothstep(0.05, 0.4, IN.color.a)) * _ZoningStrength * (1.0 - _Metallic) * smoothstep(0.3, 0.6, _Translucency);
                 body = lerp(body, milky * 1.05, baseFade * 0.5);
                 // phantom / colour bands along the growth axis (fluorite, rhodochrosite, malachite, tourmaline): each
                 // crystal's bands sit at their own phase, taken from where it stands
@@ -215,7 +218,7 @@ Shader "GeodeEmpire/Crystal"
                 emis += SampleSH(N) * lerp(deep, surf, 0.5) * transAmt * 0.12 * (1.0 - _Metallic);   // ambient scattered inside the body
                 // a cloudy crystal scatters light back out from just under its faces: a wrapped fill in its milky colour
                 // keeps the shadow side from going black (otherwise only the lamp-lit tips read and the rest looks like floor)
-                float cloud = (1.0 - _Clarity) * (1.0 - _Metallic);
+                float cloud = (1.0 - _Clarity) * (1.0 - _Metallic) * smoothstep(0.08, 0.5, _Translucency);
                 emis += (fillAcc * 0.3 + SampleSH(N) * 0.6) * milky * cloud;
                 emis *= 1.0 - 0.7 * dust;
                 emis += _Highlight * float3(1.0, 0.92, 0.7) * 0.28;
