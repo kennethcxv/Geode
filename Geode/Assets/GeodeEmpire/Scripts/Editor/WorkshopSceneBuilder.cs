@@ -32,23 +32,23 @@ namespace GeodeEmpire.EditorTools
             WorkshopTextures.EnsureAll();
             Directory.CreateDirectory(Folder);
             // physical albedos: concrete/plaster/wood sit at 0.3-0.55, not white, so the lamps stop blowing the room out
-            Lit("M_Concrete", "T_Concrete", new Color(0.72f, 0.71f, 0.68f), 0.22f, 0f, 3.5f);
-            Lit("M_Plaster", "T_Plaster", new Color(0.74f, 0.71f, 0.65f), 0.12f, 0f, 2f);
-            Lit("M_Ceiling", "T_Plaster", new Color(0.62f, 0.61f, 0.58f), 0.1f, 0f, 2f);
-            Lit("M_Wood", "T_Wood", new Color(0.74f, 0.66f, 0.55f), 0.32f, 0f, 1f);
-            Lit("M_WoodDark", "T_WoodDark", new Color(0.85f, 0.8f, 0.74f), 0.38f, 0f, 1f);
+            Lit("M_Concrete", "T_Concrete", new Color(0.86f, 0.85f, 0.82f), 1f, 0f, 2.5f, set: "concrete", bump: 0.9f);
+            Lit("M_Plaster", "T_Plaster", new Color(0.9f, 0.88f, 0.84f), 1f, 0f, 1.5f, set: "plaster", bump: 0.6f);
+            Lit("M_Ceiling", "T_Plaster", new Color(0.78f, 0.77f, 0.74f), 1f, 0f, 1.5f, set: "plaster", bump: 0.5f);
+            Lit("M_Wood", "T_Wood", new Color(1f, 0.96f, 0.9f), 1f, 0f, 1f, set: "hardwood", bump: 0.7f);
+            Lit("M_WoodDark", "T_WoodDark", new Color(0.62f, 0.55f, 0.5f), 1f, 0f, 1f, set: "hardwood", bump: 0.7f);
             Lit("M_WoodPainted", null, new Color(0.62f, 0.66f, 0.6f), 0.45f, 0f, 1f);
-            Lit("M_Metal", "T_Metal", new Color(0.82f, 0.82f, 0.84f), 0.62f, 0.85f, 1f);
-            Lit("M_Steel", "T_Metal", new Color(0.58f, 0.6f, 0.63f), 0.7f, 0.9f, 1f);
+            Lit("M_Metal", "T_Metal", new Color(0.9f, 0.9f, 0.92f), 1f, 1f, 1f, set: "brushed_stainless", bump: 0.5f);
+            Lit("M_Steel", "T_Metal", new Color(0.72f, 0.74f, 0.77f), 1f, 1f, 1f, set: "brushed_stainless", bump: 0.6f);
             Lit("M_Felt", null, new Color(0.12f, 0.24f, 0.18f), 0.08f, 0f, 1f);
             Lit("M_CaseLight", null, new Color(1f, 0.97f, 0.9f), 0.3f, 0f, 1f, emission: new Color(2.4f, 2.2f, 1.9f));
             Lit("M_Register", null, new Color(0.2f, 0.2f, 0.21f), 0.5f, 0.1f, 1f);
-            Lit("M_CounterPaint", null, new Color(0.24f, 0.3f, 0.28f), 0.4f, 0f, 1f);
-            Lit("M_Brass", "T_Metal", new Color(0.78f, 0.62f, 0.34f), 0.68f, 0.9f, 1f);
-            Lit("M_MetalDark", "T_Metal", new Color(0.32f, 0.32f, 0.34f), 0.55f, 0.7f, 1f);
-            Lit("M_Cardboard", "T_Cardboard", new Color(0.82f, 0.78f, 0.7f), 0.1f, 0f, 1f);
+            Lit("M_CounterPaint", null, new Color(0.85f, 0.95f, 0.9f), 1f, 0f, 1.5f, set: "painted_steel", bump: 0.4f);
+            Lit("M_Brass", "T_Metal", new Color(0.92f, 0.72f, 0.4f), 1f, 1f, 1f, set: "brushed_stainless", bump: 0.4f);
+            Lit("M_MetalDark", "T_Metal", new Color(0.7f, 0.7f, 0.72f), 1f, 1f, 1f, set: "cast_iron", bump: 0.8f);
+            Lit("M_Cardboard", "T_Cardboard", new Color(0.95f, 0.92f, 0.86f), 1f, 0f, 1.5f, set: "cardboard", bump: 0.6f);
             Lit("M_Straw", "T_Straw", new Color(0.85f, 0.8f, 0.68f), 0.2f, 0f, 1f);
-            Lit("M_Rubber", null, new Color(0.12f, 0.11f, 0.1f), 0.25f, 0f, 1f);
+            Lit("M_Rubber", null, new Color(0.9f, 0.88f, 0.86f), 1f, 0f, 2f, set: "rubber", bump: 0.6f);
             Lit("M_Plastic", null, new Color(0.24f, 0.25f, 0.28f), 0.55f, 0f, 1f);
             Lit("M_PlasticBlue", null, new Color(0.22f, 0.32f, 0.45f), 0.5f, 0f, 1f);
             Lit("M_Tarp", null, new Color(0.22f, 0.3f, 0.24f), 0.2f, 0f, 1f);
@@ -63,25 +63,25 @@ namespace GeodeEmpire.EditorTools
             Lit("M_PosterMinerals", "T_PosterMinerals", Color.white, 0.25f, 0f, 1f);
             Lit("M_PosterRocks", "T_PosterRocks", Color.white, 0.25f, 0f, 1f);
             Lit("M_PlasterWarm", "T_Plaster", new Color(0.7f, 0.66f, 0.58f), 0.12f, 0f, 2f);
-            Lit("M_Wainscot", "T_WoodDark", new Color(0.7f, 0.66f, 0.6f), 0.35f, 0f, 1f);
+            Lit("M_Wainscot", "T_WoodDark", new Color(0.55f, 0.48f, 0.42f), 1f, 0f, 1f, set: "hardwood", bump: 0.6f);
             var glass = Lit("M_Glass", null, new Color(0.7f, 0.85f, 0.95f, 0.18f), 0.95f, 0f, 1f);
             SetTransparent(Lit("M_Water", null, new Color(0.24f, 0.36f, 0.4f, 0.72f), 0.96f, 0f, 1f));
-            Lit("M_MachinePaint", "T_Metal", new Color(0.56f, 0.62f, 0.58f), 0.55f, 0.15f, 1f);
+            Lit("M_MachinePaint", "T_Metal", new Color(1f, 1f, 1f), 1f, 1f, 1.5f, set: "painted_steel", bump: 0.7f);
             Lit("M_Dial", null, new Color(0.92f, 0.9f, 0.84f), 0.35f, 0f, 1f);
             Lit("M_UvLens", null, new Color(0.35f, 0.2f, 0.6f), 0.7f, 0f, 1f);
             Lit("M_PlinthPaint", null, new Color(0.74f, 0.72f, 0.68f), 0.35f, 0f, 1f);   // gallery off-white
-            Lit("M_Felt", null, new Color(0.18f, 0.2f, 0.28f), 0.15f, 0f, 1f);
+            Lit("M_Felt", null, new Color(0.95f, 0.95f, 1f), 1f, 0f, 2f, set: "felt", bump: 0.6f);
             Lit("M_BladeRim", "T_Metal", new Color(0.3f, 0.29f, 0.28f), 0.3f, 0.6f, 1f);
             // V5 hero-asset materials: real material separation on the rebuilt props
-            Lit("M_Leather", "T_Cardboard", new Color(0.34f, 0.23f, 0.16f), 0.38f, 0f, 2.5f);
-            Lit("M_Stainless", "T_Metal", new Color(0.8f, 0.81f, 0.83f), 0.7f, 0.6f, 1f);
-            Lit("M_Aluminium", "T_Metal", new Color(0.74f, 0.75f, 0.77f), 0.5f, 0.9f, 1f);
-            Lit("M_Hickory", "T_Wood", new Color(0.7f, 0.58f, 0.42f), 0.42f, 0f, 1.5f);
+            Lit("M_Leather", "T_Cardboard", new Color(1f, 0.95f, 0.9f), 1f, 0f, 2.5f, set: "leather", bump: 0.9f);
+            Lit("M_Stainless", "T_Metal", new Color(0.95f, 0.96f, 0.97f), 1f, 1f, 1f, set: "brushed_stainless", bump: 0.5f);
+            Lit("M_Aluminium", "T_Metal", new Color(0.95f, 0.96f, 0.98f), 1f, 1f, 1f, set: "aluminium", bump: 0.4f);
+            Lit("M_Hickory", "T_Wood", new Color(1f, 0.9f, 0.75f), 1f, 0f, 2f, set: "hardwood", bump: 0.6f);
             Lit("M_Bristle", "T_Straw", new Color(0.7f, 0.62f, 0.45f), 0.15f, 0f, 3f);
             Lit("M_PlasticDark", null, new Color(0.2f, 0.2f, 0.21f), 0.5f, 0f, 1f);
             Lit("M_Tarp", null, new Color(0.22f, 0.3f, 0.24f), 0.2f, 0f, 1f);
             Lit("M_Rope", "T_Straw", new Color(0.72f, 0.64f, 0.5f), 0.1f, 0f, 4f);
-            Lit("M_Enamel", null, new Color(0.9f, 0.9f, 0.86f), 0.7f, 0f, 1f);
+            Lit("M_Enamel", null, new Color(1.6f, 1.55f, 1.45f), 1f, 0f, 1f, set: "painted_steel", bump: 0.3f);
             Lit("M_Rubble", "T_Concrete", new Color(0.42f, 0.38f, 0.33f), 0.12f, 0f, 6f);
             SetTransparent(glass);
             // loupe lens: magnifies the opaque scene behind it
@@ -95,7 +95,15 @@ namespace GeodeEmpire.EditorTools
             AssetDatabase.SaveAssets();
         }
 
-        private static Material Lit(string name, string texName, Color color, float smoothness, float metallic, float tiling, Color? emission = null)
+        public const string GeneratedFolder = "Assets/GeodeEmpire/Textures/Generated";
+
+        /// <summary>
+        /// A URP Lit material. With <paramref name="set"/> (a Tools/Blender/gen_textures.py family) the material carries the
+        /// generated albedo, tangent normal and metallic/occlusion/smoothness mask so stone, metal, wood, rubber, cloth and
+        /// paper answer light differently (V6 §5-§10); <paramref name="smoothness"/> and <paramref name="metallic"/> then scale
+        /// the mask, and <paramref name="color"/> tints the albedo. Without a set it is the V5 flat material.
+        /// </summary>
+        private static Material Lit(string name, string texName, Color color, float smoothness, float metallic, float tiling, Color? emission = null, string set = null, float bump = 1f)
         {
             string path = $"{Folder}/{name}.mat";
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -103,9 +111,25 @@ namespace GeodeEmpire.EditorTools
             if (m == null) { m = new Material(shader); AssetDatabase.CreateAsset(m, path); }
             if (m.shader != shader) m.shader = shader;
             m.SetColor("_BaseColor", color);
-            var tex = texName != null ? AssetDatabase.LoadAssetAtPath<Texture2D>(ProceduralTextureFactory.TextureFolder + "/" + texName + ".png") : null;
+            Texture2D tex = null, normal = null, mask = null;
+            if (set != null)
+            {
+                tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{GeneratedFolder}/{set}_albedo.png");
+                normal = AssetDatabase.LoadAssetAtPath<Texture2D>($"{GeneratedFolder}/{set}_normal.png");
+                mask = AssetDatabase.LoadAssetAtPath<Texture2D>($"{GeneratedFolder}/{set}_mask.png");
+                if (tex == null) Debug.LogWarning($"[WorkshopMaterials] generated set '{set}' missing: run Tools/Blender/gen_textures.py");
+            }
+            if (tex == null && texName != null) tex = AssetDatabase.LoadAssetAtPath<Texture2D>(ProceduralTextureFactory.TextureFolder + "/" + texName + ".png");
             m.SetTexture("_BaseMap", tex);
             m.SetTextureScale("_BaseMap", new Vector2(tiling, tiling));
+            m.SetTexture("_BumpMap", normal);
+            m.SetFloat("_BumpScale", bump);
+            if (normal != null) m.EnableKeyword("_NORMALMAP"); else m.DisableKeyword("_NORMALMAP");
+            m.SetTexture("_MetallicGlossMap", mask);
+            m.SetTexture("_OcclusionMap", mask);
+            m.SetFloat("_OcclusionStrength", mask != null ? 0.8f : 1f);
+            if (mask != null) { m.EnableKeyword("_METALLICSPECGLOSSMAP"); m.EnableKeyword("_OCCLUSIONMAP"); }
+            else { m.DisableKeyword("_METALLICSPECGLOSSMAP"); m.DisableKeyword("_OCCLUSIONMAP"); }
             m.SetFloat("_Smoothness", smoothness);
             m.SetFloat("_Metallic", metallic);
             if (emission.HasValue)
