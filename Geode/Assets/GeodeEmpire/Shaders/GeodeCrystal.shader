@@ -122,14 +122,14 @@ Shader "GeodeEmpire/Crystal"
                 float3 body = lerp(deep, surf, saturate(fres * 0.7 + 0.28 + (1.0 - _Translucency) * 0.22));
                 body *= lerp(0.82, 1.0, _Metallic);
                 // clarity: a cloudy crystal is milky and scatters light near the surface; a clear one carries its colour deep
-                float milkLum = dot(surf, float3(0.3, 0.59, 0.11));
-                float3 milky = lerp(surf, float3(milkLum, milkLum, milkLum) * 0.5 + 0.45, 0.6);
+                // a cloudy crystal is whitened, not greyed: it keeps its hue under the milk
+                float3 milky = lerp(surf, saturate(surf * 0.55 + 0.45), 0.7);
                 body = lerp(milky, body, saturate(_Clarity * 0.85 + 0.15));
                 float zone = smoothstep(0.4, 0.95, IN.color.a);
                 body = lerp(body, _ZoneColor.rgb * IN.color.rgb, _ZoningStrength * zone);
                 // colour concentrates toward the tip; the base runs pale and milky (amethyst, citrine and fluorite all do)
-                float baseFade = (1.0 - smoothstep(0.15, 0.7, IN.color.a)) * _ZoningStrength * (1.0 - _Metallic);
-                body = lerp(body, milky * 1.05, baseFade * 0.7);
+                float baseFade = (1.0 - smoothstep(0.05, 0.4, IN.color.a)) * _ZoningStrength * (1.0 - _Metallic);
+                body = lerp(body, milky * 1.05, baseFade * 0.5);
                 // phantom / colour bands along the growth axis (fluorite, rhodochrosite, malachite, tourmaline): each
                 // crystal's bands sit at their own phase, taken from where it stands
                 if (_ZoneBands > 0.5)
@@ -180,25 +180,43 @@ Shader "GeodeEmpire/Crystal"
                 s.normalTS = half3(0, 0, 1);
 
                 Light mainLight = GetMainLight(inputData.shadowCoord);
-                float3 H = normalize(mainLight.direction + V);
-                float spec = pow(saturate(dot(N, H)), 32.0) * mainLight.shadowAttenuation;
+                // the workshop's lamps are additional lights and the sun rarely reaches a bench indoors: every light-keyed
+                // effect (glints, transmission, the cloudy fill, the rim) follows whichever lights actually reach the crystal
+                float3 fillAcc = 0.0, transAcc = 0.0, specAcc = 0.0;
+                {
+                    float3 lc = mainLight.color * mainLight.shadowAttenuation;
+                    fillAcc += lc * saturate(dot(N, mainLight.direction) * 0.5 + 0.5);
+                    transAcc += lc * pow(saturate(dot(V, -(mainLight.direction + N * 0.35))), 3.5);
+                    specAcc += lc * pow(saturate(dot(N, normalize(mainLight.direction + V))), 32.0);
+                }
+            #if defined(_ADDITIONAL_LIGHTS)
+                uint pixelLightCount = GetAdditionalLightsCount();
+                LIGHT_LOOP_BEGIN(pixelLightCount)
+                    Light al = GetAdditionalLight(lightIndex, inputData.positionWS, inputData.shadowMask);
+                    float3 ac = al.color * al.distanceAttenuation * al.shadowAttenuation;
+                    fillAcc += ac * saturate(dot(N, al.direction) * 0.5 + 0.5);
+                    transAcc += ac * pow(saturate(dot(V, -(al.direction + N * 0.35))), 3.5);
+                    specAcc += ac * pow(saturate(dot(N, normalize(al.direction + V))), 32.0);
+                LIGHT_LOOP_END
+            #endif
                 float2 spUV = (IN.positionWS.xz * 0.7 + IN.positionWS.yx * 0.45) * _SparkleScale + V.xy * 2.5 + N.xz * 1.7;
                 // glints from the smooth noise channel (the per-texel channel streaks under anisotropic filtering)
                 float sp = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, spUV).a;
                 sp = pow(saturate(sp * 1.15), 14.0) * _Sparkle;
-                float3 emis = fres * _RimColor.rgb * _RimStrength * (mainLight.color * 0.45 + 0.15) * lerp(surf, 1.0, 0.4);
-                emis += sp * mainLight.color * (0.35 + spec * 1.5) * mainLight.shadowAttenuation * stria;
+                float3 emis = fres * _RimColor.rgb * _RimStrength * (fillAcc * 0.45 + 0.15) * lerp(surf, 1.0, 0.4);
+                emis += sp * (fillAcc * 0.35 + specAcc * 1.5) * stria;
                 // transmission: light through the body toward the eye, strongest where the crystal is thin (the tips),
                 // in the deep colour, plus a little sky fill from behind; a cloudy crystal glows instead of passing light
                 float thick = lerp(1.0, 0.3, IN.color.a);
-                float transT = pow(saturate(dot(V, -(mainLight.direction + N * 0.35))), 3.5) * mainLight.shadowAttenuation;
                 float transAmt = _Translucency * (1.0 - 0.35 * dust) * lerp(0.45, 1.0, _Clarity);
-                float3 transCol = lerp(deep, surf, 1.0 - _Clarity) * mainLight.color;
-                emis += transCol * transAmt * (transT * 0.9 + 0.12 * thick) * (1.0 - _Metallic);
+                float3 transCol = lerp(deep, surf, 1.0 - _Clarity);
+                emis += transCol * transAmt * (transAcc * 0.9 + 0.12 * thick * fillAcc) * (1.0 - _Metallic);
                 emis += SampleSH(-N) * deep * transAmt * 0.18 * (1.0 - _Metallic);
                 emis += SampleSH(N) * lerp(deep, surf, 0.5) * transAmt * 0.12 * (1.0 - _Metallic);   // ambient scattered inside the body
-                float back = pow(saturate(dot(-mainLight.direction, V) * 0.5 + 0.5), 5.0) * _Translucency * 0.15;
-                emis += back * deep * mainLight.color * mainLight.shadowAttenuation;
+                // a cloudy crystal scatters light back out from just under its faces: a wrapped fill in its milky colour
+                // keeps the shadow side from going black (otherwise only the lamp-lit tips read and the rest looks like floor)
+                float cloud = (1.0 - _Clarity) * (1.0 - _Metallic);
+                emis += (fillAcc * 0.3 + SampleSH(N) * 0.6) * milky * cloud;
                 emis *= 1.0 - 0.7 * dust;
                 emis += _Highlight * float3(1.0, 0.92, 0.7) * 0.28;
                 s.emission = emis;

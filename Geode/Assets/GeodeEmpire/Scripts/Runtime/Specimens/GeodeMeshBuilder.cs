@@ -874,14 +874,17 @@ namespace GeodeEmpire.Specimens
         private struct Cell
         {
             public float Sign; public int K; public int I; public Vector3 Dir; public Vector3 Pos; public float Width; public float Lat;
-        }
+         public float Thickness; }
 
         private static List<CrystalInstance> PlaceCrystals(SpecimenGeology g, Shape shape, float cavR)
         {
             var fam = g.Family;
             var rng = new SeededRandom(SeededRandom.Combine(g.Seed, 0xC7));
             var list = new List<CrystalInstance>(400);
-            int N = PlaceLon, M = PlaceLat;
+            bool druzy = g.IsDruzy;
+            var style = druzy ? PlacementStyle.Carpet : fam.Placement;
+            // a carpet packs hundreds of similar points shoulder to shoulder (V6 §19), so it samples a finer cell grid
+            int N = style == PlacementStyle.Carpet && !druzy ? 56 : PlaceLon, M = style == PlacementStyle.Carpet && !druzy ? 20 : PlaceLat;
             // patches: a slow noise over the cavity makes some regions crowd and others thin out, so the carpet
             // never reads as an even grid
             var patch = new Noise3D(SeededRandom.Combine(g.Seed, 0xD1));
@@ -902,17 +905,15 @@ namespace GeodeEmpire.Specimens
                         var d = Dir(latJ, lon, s);
                         float ro = shape.Outer(d);
                         float ri = shape.Inner(d, ro);
-                        cells.Add(new Cell { Sign = s, K = k, I = i, Dir = d, Pos = d * ri, Width = 2f * Mathf.PI * ri * cl / nEff, Lat = (k + 0.5f) / M });
+                        cells.Add(new Cell { Sign = s, K = k, I = i, Dir = d, Pos = d * ri, Width = 2f * Mathf.PI * ri * cl / nEff, Lat = (k + 0.5f) / M, Thickness = ro - ri });
                     }
                 }
             }
 
-            bool druzy = g.IsDruzy;
             // V6 §16: crystals line a cavity that still reads deep: the family's scale range is taken at 0.68 of its V5 value
-            // and the growth cores / giants bring the big ones back where they belong
-            float baseH = cavR * Mathf.Lerp(fam.ScaleMin, fam.ScaleMax, g.CrystalScale) * 0.68f;
+            // and the growth cores / giants bring the big ones back where they belong; a carpet's points are smaller still
+            float baseH = cavR * Mathf.Lerp(fam.ScaleMin, fam.ScaleMax, g.CrystalScale) * (style == PlacementStyle.Carpet && !druzy ? 0.56f : 0.68f);
             float density = Mathf.Lerp(fam.DensityMin, fam.DensityMax, g.CrystalDensity);
-            var style = druzy ? PlacementStyle.Carpet : fam.Placement;
             var palette = g.Palette;
 
             // cluster centres: clustered placement crowds round them; every other style still grows from a few
@@ -958,7 +959,7 @@ namespace GeodeEmpire.Specimens
                 {
                     switch (style)
                     {
-                        case PlacementStyle.Carpet: p = density; break;
+                        case PlacementStyle.Carpet: p = Mathf.Min(1f, density * 1.15f); break;
                         case PlacementStyle.Clustered:
                         {
                             float best = ClusterWeight(cell.Dir, 0.45f);
@@ -972,16 +973,36 @@ namespace GeodeEmpire.Specimens
                     }
                     arch = fam.Archetypes[rng.PickWeighted(fam.ArchetypeWeights)];
                     if (style == PlacementStyle.Sprays && arch == CrystalArchetype.Needle) p *= 0.8f;
-                    float var = Mathf.Lerp(rng.Range(0.55f, 1.55f), rng.Range(0.85f, 1.15f), symmetry);
+                    // a carpet's points are alike in size (the odd giant and a few runts aside); other habits vary more
+                    float var = style == PlacementStyle.Carpet
+                        ? Mathf.Lerp(rng.Range(0.78f, 1.28f), rng.Range(0.9f, 1.1f), symmetry)
+                        : Mathf.Lerp(rng.Range(0.55f, 1.55f), rng.Range(0.85f, 1.15f), symmetry);
                     // growth centres: cores carry the big crystals with their bases buried in the substrate, fringes
                     // the small shallow ones; the odd giant and plenty of runts break the even look
                     float core = ClusterWeight(cell.Dir, 0.6f);
-                    var *= Mathf.Lerp(0.7f, 1.55f, core);
-                    if (rng.Chance(0.07f)) var *= rng.Range(1.6f, 2.3f);
-                    else if (rng.Chance(0.25f)) var *= rng.Range(0.45f, 0.7f);
+                    // V6 §19: a carpet is mostly terminations (the prisms are buried in the crowd, only the tips stand
+                    // proud); the full points stay in the growth cores, and a carpet grows nearly normal to the wall
+                    if (style == PlacementStyle.Carpet && (arch == CrystalArchetype.QuartzPoint || arch == CrystalArchetype.QuartzStubby) && rng.Chance(Mathf.Lerp(0.75f, 0.25f, core)))
+                        arch = CrystalArchetype.QuartzTermination;
+                    if (style == PlacementStyle.Carpet) tilt = Mathf.Min(tilt, 12f);
+                    if (style == PlacementStyle.Carpet)
+                    {
+                        var *= Mathf.Lerp(0.85f, 1.3f, core);
+                        if (rng.Chance(0.04f)) var *= rng.Range(1.3f, 1.7f);
+                        else if (rng.Chance(0.2f)) var *= rng.Range(0.6f, 0.8f);
+                    }
+                    else
+                    {
+                        var *= Mathf.Lerp(0.7f, 1.55f, core);
+                        if (rng.Chance(0.07f)) var *= rng.Range(1.6f, 2.3f);
+                        else if (rng.Chance(0.25f)) var *= rng.Range(0.45f, 0.7f);
+                    }
                     inset = Mathf.Lerp(0.05f, 0.3f, core) * (style == PlacementStyle.Embedded ? -1f : 1f);
                     if (style == PlacementStyle.Embedded) inset = -0.3f;
                     h = baseH * var;
+                    // a buried base may not push out through a thin shell (it would fail containment and leave the
+                    // thin half bare): the burial is capped by the wall under this cell
+                    if (inset > 0f) inset = Mathf.Min(inset, Mathf.Max(0.02f, cell.Thickness * 0.7f / Mathf.Max(0.001f, h)));
                     if (isTile)
                     {
                         h = cell.Width * rng.Range(1.05f, 1.3f);
@@ -1000,7 +1021,7 @@ namespace GeodeEmpire.Specimens
 
                 // spacing rejection (crystals may touch, tiles may overlap a little)
                 bool blocked = false;
-                float spacing = isTile ? 0.55f : 0.42f;
+                float spacing = isTile ? 0.55f : style == PlacementStyle.Carpet ? 0.36f : 0.42f;   // carpet crystals touch
                 for (int j = 0; j < placed.Count; j++)
                 {
                     var o = placed[j];
@@ -1118,6 +1139,7 @@ namespace GeodeEmpire.Specimens
         {
             CrystalArchetype.QuartzPoint => 0.35f,
             CrystalArchetype.QuartzStubby => 0.72f,
+            CrystalArchetype.QuartzTermination => 0.72f,
             CrystalArchetype.QuartzCluster => 0.62f,
             CrystalArchetype.Cube => 1.05f,
             CrystalArchetype.Octahedron => 1.3f,

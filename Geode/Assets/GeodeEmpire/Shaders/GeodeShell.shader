@@ -496,7 +496,9 @@ Shader "GeodeEmpire/GeodeShell"
                 float dz1 = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xz * 55.0 + IN.positionOS.y * 31.0).a;
                 float dz2 = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.zy * 47.0 + IN.positionOS.x * 29.0).a;
                 float dzFacet = saturate(detLum * 1.3);
-                float3 druzyCol = _CavityCrystalColor.rgb * lerp(0.5, 1.3, dzFacet) * lerp(0.92, 1.05, dz1);
+                // the druse floor sits a shade paler and less saturated than the points above it (tiny crystals scatter more)
+                float dzLum = dot(_CavityCrystalColor.rgb, float3(0.3, 0.59, 0.11));
+                float3 druzyCol = lerp(_CavityCrystalColor.rgb, float3(dzLum, dzLum, dzLum) * 1.2, 0.3) * lerp(0.5, 1.3, dzFacet) * lerp(0.92, 1.05, dz1);
                 cav = lerp(cav, druzyCol, _CavityDruzy * c.g);
                 // rock flour from the break: a pale matte powder that lies in the low ground until the rinse
                 float dustAmt = saturate(_Dust) * saturate(0.3 + 0.6 * dz2) * lerp(0.7, 1.0, 1.0 - detOcc);
@@ -513,7 +515,8 @@ Shader "GeodeEmpire/GeodeShell"
                 float extSmooth = texFam == 1 ? 0.24 : texFam == 3 ? 0.1 : 0.18;
                 extSmooth = lerp(extSmooth, lerp(0.05, 0.55, detSmooth), 0.6);              // the tile's roughness map carries the micro variation
                 extSmooth = lerp(extSmooth, 0.06, dirtMask) + chipAmt * 0.3;
-                float cavSmooth = lerp(lerp(_CavitySmoothness, 0.82, _CavityDruzy), lerp(0.1, 0.85, detSmooth), 0.5) * (1.0 - 0.6 * dustAmt);
+                // druse scatters (thousands of tiny facets): satin, not gloss, or the floor goes black off the highlight
+                float cavSmooth = lerp(lerp(_CavitySmoothness, 0.62, _CavityDruzy), lerp(0.1, 0.7, detSmooth), 0.5) * (1.0 - 0.6 * dustAmt);
                 float rimSmooth = sawn ? sawnSmooth : lerp(0.16, lerp(0.05, 0.5, detSmooth), 0.6);
                 float smooth = extSmooth * c.r + cavSmooth * c.g + rimSmooth * c.b;
                 smooth += (grain - 0.5) * (sawn ? 0.02 : 0.06) + crackFrost * 0.06 * c.r;

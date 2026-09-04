@@ -35,10 +35,9 @@ OUT_DIR = os.environ.get("CRYSTAL_OUT", os.path.join(lib.UNITY_ASSETS, "Models",
 # Archetypes (each returns a bmesh, +Z up, base near z=0)
 # ---------------------------------------------------------------------------
 def quartz_point(rng, radius=0.18, prism_h=0.68, term_h=0.32, ditrigonal=0.14, term_alt=0.07,
-                 jitter_deg=5.0, apex_off=0.05, striations=True):
-    """Hexagonal prism with a six-face termination. The prism carries faint horizontal striations (real quartz
-    prism faces are striated at right angles to the c-axis), so the faces catch light in bands instead of reading
-    as one flat polygon."""
+                 jitter_deg=5.0, apex_off=0.05, striations=False):
+    """Hexagonal prism with a six-face termination. Prism striations are the crystal shader's job now (V6 §20:
+    `_Striation` along the archetype uv), so the mesh stays at its budget: 13 faces before the bevel."""
     n = 6
     radii = [radius * (1 + ditrigonal * (1 if i % 2 == 0 else -1)) for i in range(n)]
     angs = [math.radians(60 * i + rng.uniform(-jitter_deg, jitter_deg)) for i in range(n)]
@@ -64,6 +63,12 @@ def quartz_point(rng, radius=0.18, prism_h=0.68, term_h=0.32, ditrigonal=0.14, t
         j = (i + 1) % n
         faces.append((top + i, top + j, apex))
     return lib.bm_from_pydata(verts, faces)
+
+
+def quartz_termination(rng):
+    """The geode carpet point (V6 §19): a short prism buried in the crowd and a tall six-face termination with
+    alternating steep and shallow faces, so a carpet reads as tips standing proud, not as loose prisms."""
+    return quartz_point(rng, radius=0.36, prism_h=0.22, term_h=0.78, ditrigonal=0.12, term_alt=0.1, jitter_deg=4.0, apex_off=0.06)
 
 
 def cube(rng, size=0.6, corner=0.12):
@@ -193,7 +198,7 @@ def botryoidal(rng, disc_r=0.5, count=11):
         r = rng.uniform(0.0, disc_r * 0.62)
         a = rng.uniform(0, 2 * math.pi)
         rad = rng.uniform(0.13, 0.3)
-        sph = lib.bm_icosphere(rad, subdivisions=3, center=(r * math.cos(a), r * math.sin(a), rad * 0.5))
+        sph = lib.bm_icosphere(rad, subdivisions=2, center=(r * math.cos(a), r * math.sin(a), rad * 0.5))
         for v in sph.verts:
             v.co.z = rad * 0.5 + (v.co.z - rad * 0.5) * rng.uniform(0.85, 1.0) if False else v.co.z
         lib.bm_append(bm, sph)
@@ -428,6 +433,8 @@ ARCHETYPES = [
     ("crystal_tetrahedron", tetrahedron, 0.02, 122, False),
     ("crystal_sheaf", sheaf, 0.003, 123, False),
     ("crystal_hopper", hopper_cube, 0.008, 124, False),
+    # V6 habits
+    ("crystal_quartz_termination", quartz_termination, 0.012, 125, False),
 ]
 
 

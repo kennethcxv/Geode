@@ -434,8 +434,9 @@ namespace GeodeEmpire.Specimens
             _mpb.SetFloat(CavitySmoothId, fam.Id == MineralId.Agate ? 0.65f : 0.35f);
             _mpb.SetFloat(CavityDruzyId, CavityDruzyAmount(g));
             var druzyCol = Color.Lerp(pal.SurfaceA, pal.SurfaceB, 0.5f);
-            // metallic ores: the druzy floor is dark steel, not chrome
+            // metallic ores: the druzy floor is dark steel, not chrome; a cloudy specimen's floor is milky like its points
             if (fam.Metallic > 0.5f) druzyCol = Color.Lerp(druzyCol, pal.DeepA, 0.65f);
+            else druzyCol = Color.Lerp(druzyCol, Color.Lerp(druzyCol, Color.white, 0.5f), (1f - g.Clarity) * 0.45f);
             _mpb.SetColor(CavityCrystalColorId, ApplySaturation(druzyCol, g.Saturation));
             _mpb.SetFloat(HighlightId, _highlight);
             _mpb.SetFloatArray(SectorCrackId, _sectorCrack);

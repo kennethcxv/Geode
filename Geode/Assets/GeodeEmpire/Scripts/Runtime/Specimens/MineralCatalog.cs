@@ -21,6 +21,7 @@ namespace GeodeEmpire.Specimens
         Botryoidal = 12, AragoniteSpray = 13,
         TabularPlate = 14, Dodecahedron = 15, TrigonalPrism = 16, Fishtail = 17,
         BarrelPrism = 18, Rosette = 19, Tetragonal = 20, Tetrahedron = 21, Sheaf = 22, Hopper = 23,
+        QuartzTermination = 24,
     }
 
     public enum PlacementStyle { Carpet, Clustered, Scattered, Embedded, Sprays, Banded }

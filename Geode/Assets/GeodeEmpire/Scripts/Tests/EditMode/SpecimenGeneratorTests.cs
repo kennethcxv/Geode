@@ -56,7 +56,7 @@ namespace GeodeEmpire.Tests
                 var g = SpecimenGenerator.Generate(seed);
                 var geo = GeodeMeshBuilder.Build(g);
                 Assert.Greater(geo.Crystals.Count, 0, $"seed {seed} ({g.Mineral}, {g.Cavity}) has no crystals");
-                Assert.Less(geo.Crystals.Count, 900, $"seed {seed} too many crystals");
+                Assert.Less(geo.Crystals.Count, 1500, $"seed {seed} too many crystals");   // V6 carpets pack up to ~1200 points
                 Assert.Greater(geo.MaxRadius, 0.03f);
                 Assert.Less(geo.MaxRadius, 0.3f);
                 foreach (var v in geo.Bottom.Vertices) Assert.IsFalse(float.IsNaN(v.x) || float.IsNaN(v.y) || float.IsNaN(v.z));

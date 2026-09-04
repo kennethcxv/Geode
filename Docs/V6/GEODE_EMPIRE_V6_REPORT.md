@@ -18,6 +18,14 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - Asset builder wires every detail set from `Textures/Generated` (`WireDetailSet`); the legacy `T_Rock` crack lines softened.
 - Harness: `hero_bench2.sh <seeds>` captures dirty / washed / opened-dusty / rinsed (sets `Condition.Cleaned = 1` and `Condition.Rinsed = true` then `RefreshCondition()`); `diag_streak*.sh` capture debug modes at 2560x1440 and crop the rock.
 
+## V6.1c — crystal habits and carpets (S9, 2026-09-04)
+- `gen_crystals.py`: prism striations dropped from the meshes (the shader's `_Striation` carries them), so a quartz point is 70 faces / 136 triangles instead of 178 faces; the botryoidal tile went from 3,546 to 906 faces; a new `crystal_quartz_termination` habit (short buried prism, tall six-face termination with alternating steep/shallow faces) = `CrystalArchetype.QuartzTermination` (25 archetypes, library rebuilt).
+- Placement (`GeodeMeshBuilder.PlaceCrystals`): carpets sample a 56x20 cell grid (others 40x14), points 0.56 of the family scale, size variance 0.78-1.28 with 4% giants x1.3-1.7 and 20% runts, quartz points on the fringe swap to terminations (75% on the fringe, 25% in the cores), tilt <= 12 degrees, spacing 0.36 so points touch, fill probability x1.15; burial capped by the local wall thickness (`Cell.Thickness`). The hero amethyst went from 384 loose chunks to 788 packed points at fewer triangles than before.
+- Crystal shader: every light-keyed term (glints, transmission, rim, the new cloudy scatter fill) now accumulates over the additional lights through `LIGHT_LOOP_BEGIN/END` (the bench lamp is an additional light; the sun never reaches the bench), milky bodies keep their hue, the pale-base fade sits only in the bottom 40% of a point.
+- Shell: the druse floor is satin (smoothness 0.62 under carpets) and paler/less saturated than the points, milkier for cloudy specimens (`SpecimenVisual` blends the druse colour toward white by clarity).
+- Perf with the 788-point amethyst opened in the player's view at the bench (Editor, fixed 1080p): 287 draw calls, 58 set-pass calls, 1.50 M triangles across all passes, 637 MB allocated, 56-59 fps.
+- Captures: `Docs/V6/v61/v61c_*.jpg` (amethyst 7D1 opened two angles + dusty, rhodochrosite, the cloudy thin-shelled amethyst 2B77E opened two angles + rough).
+
 ## Defects discovered
 - (V5 baseline, from the owner's screenshots and the captures above) boxy dark saw; dough-like rough geode; muddy, shallow, sparse opened geode; colour-only material differences; mannequin customers; abstract checkout.
 - V6.1b root causes behind the "dough" and "fur":
@@ -28,9 +36,6 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
   5. Triplanar x-plane UVs were transposed and back faces unmirrored, so knobs lit as dents on some faces.
   6. The rocks had no `DepthNormals` pass, so SSAO (source DepthNormals) never saw them.
   7. The main "fur": `pits`, cavity glitter and crystal sparkle thresholded the noise texture's per-texel channel, and with `anisotropicFiltering = ForceEnable` white noise filters into streaks along the foreshortened axis. Every surface feature now uses the tile or a smooth noise channel.
-
-## Defects discovered
-- (V5 baseline, from the owner's screenshots and the captures above) boxy dark saw; dough-like rough geode; muddy, shallow, sparse opened geode; colour-only material differences; mannequin customers; abstract checkout.
 
 ## Measurements
 - Editor perf at a fixed 1080p game view during the retail stress: ~850 draw calls, 150-180 set-pass calls, 5.7 M triangles, 8.5 M vertices, 730 MB allocated / 1.77 GB reserved, 16-33 fps (M2, 8 GB).
@@ -44,10 +49,10 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - Softening `T_Rock`'s crack lines and moving SSAO off the rocks were both tried as streak fixes before the anisotropic-noise cause was found; the first is kept (harmless, slightly cleaner coarse rinds), the second was never needed (source was already DepthNormals; the missing pass was the defect).
 
 ## Known-good milestone commits
-- V6.0 `1e923ff`, V6.1a `07186f9`, V6.1b (this commit): material pipeline + geode hero pass.
+- V6.0 `1e923ff`, V6.1a `07186f9`, V6.1b `b720789` (material pipeline + geode hero pass), V6.1c (this commit): crystal habits and carpets.
 
 ## Remaining work
-- V6.1 remainder: S9 crystal archetype remodel (carpet terminations, buried prisms, lower triangle budgets, lite meshes for runts), S8 containment / tilt toward clusters, S6 per-direction wall thinning, S7 terraces, S10 luster classes, S11 SpecimenVisual hygiene + perf gate, S12 machine scaffolding, S13 acceptance gate (RunGeodeGate, standalone, report). Known visual nits: the agate face's fracture relief is strong, the staged seam frost is still chalky at full stress.
+- V6.1 remainder: S8 tilt toward clusters, S6 per-direction wall thinning, S7 terraces, S10 luster classes for the non-quartz habits, S11 SpecimenVisual hygiene + perf gate (LOD for opened rocks on shelves), S12 machine scaffolding, S13 acceptance gate (RunGeodeGate matrix over all 24 families, standalone, report). Known visual nits: the agate face's fracture relief is strong, the staged seam frost is still chalky at full stress, non-quartz carpets (calcite, fluorite) still use the V5 habits at V5 sizes.
 - Then V6.2 machines .. V6.9 and the FINAL acceptance per the brief.
 
 ## Final acceptance status

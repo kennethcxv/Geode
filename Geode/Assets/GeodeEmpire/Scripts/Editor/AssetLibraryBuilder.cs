@@ -19,6 +19,7 @@ namespace GeodeEmpire.EditorTools
             "crystal_druzy_tile", "crystal_botryoidal", "crystal_aragonite_spray",
             "crystal_tabular_plate", "crystal_dodecahedron", "crystal_trigonal_prism", "crystal_fishtail",
             "crystal_barrel_prism", "crystal_rosette", "crystal_tetragonal", "crystal_tetrahedron", "crystal_sheaf", "crystal_hopper",
+            "crystal_quartz_termination",
         };
 
         [MenuItem("GeodeEmpire/Assets/Build Specimen Assets")]
