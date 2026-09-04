@@ -2906,6 +2906,79 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        /// <summary>A whole sale worked with nothing but the interact button and the target cycle: the controller path.</summary>
+        public void RunStationButtons(string method = "cash", string size = "") { if (!Running) StartCoroutine(StationButtons(method, size)); }
+
+        private IEnumerator StationButtons(string method, string size)
+        {
+            Running = true;
+            Phase = "station-buttons";
+            foreach (var st in Workshop.Tutorial.Steps) Workshop.Tutorial.Notify(st.DoneBy);
+            var shop = Retail.RetailShop.Instance;
+            var station = Find<GeodeEmpire.Checkout.CheckoutStation>();
+            if (shop == null || station == null) { L("no shop/station"); Running = false; yield break; }
+            Retail.Customer.ForcedMethod = method == "card" ? 1 : 0;
+            if (string.IsNullOrEmpty(size)) yield return StockDirect(4); else yield return StockSized(size, 2);
+            Retail.Customer c = null;
+            for (int attempt = 0; attempt < 4 && (c == null || c.State != Retail.Customer.Phase.AtCounter); attempt++)
+            {
+                c = shop.SpawnNow();
+                float w = 0f;
+                while (c != null && c.State != Retail.Customer.Phase.AtCounter && c.State != Retail.Customer.Phase.Done && w < 70f) { w += Time.deltaTime; yield return null; }
+                if (c != null && c.State == Retail.Customer.Phase.AtCounter && c.Wanted != null) break;
+                while (c != null && c.State != Retail.Customer.Phase.Done) yield return null;
+            }
+            if (c == null || c.State != Retail.Customer.Phase.AtCounter || c.Wanted == null) { L("no customer at the counter"); Retail.Customer.ForcedMethod = -1; Running = false; yield break; }
+            float price = c.Wanted.Record.AskingPrice, cashBefore = S.State.Cash;
+            L($"buttons: {c.Archetype.Name} pays by {c.Method} for {c.Wanted.Record.DisplayName} {price:F2}");
+            var stand = station.StaffStandPoint;
+            yield return RouteTo(new Vector3(stand.position.x, 0f, stand.position.z), 0.35f);
+            station.Enter();
+            int presses = 0, cycles = 0;
+            float guard = 0f;
+            while (station.Tx != null && station.State != GeodeEmpire.Checkout.CheckoutState.TransactionComplete && guard < 90f)
+            {
+                yield return new WaitForSeconds(0.2f); guard += 0.2f;
+                if (station.Busy) continue;
+                var tx = station.Tx;
+                if (tx == null) break;
+                if (tx.Stage == GeodeEmpire.Checkout.TxStage.CardEntry)
+                {
+                    // the keypad: cycle to the digit's key and press it, exactly as a controller would
+                    string want = GeodeEmpire.Checkout.Money.Cents(tx.Total).ToString();
+                    string action = tx.CardEntryDigits.Length < want.Length ? "digit:" + want[tx.CardEntryDigits.Length] : "confirm";
+                    int spins = 0;
+                    while (spins++ < 40 && (station.Hovered == null || station.Hovered.Kind != GeodeEmpire.Checkout.CheckoutTargetKind.TerminalKey || station.Hovered.Payload != action))
+                        station.CycleTarget(1);
+                    if (station.PressInteract()) presses++;
+                    cycles += spins;
+                    continue;
+                }
+                if (tx.Stage == GeodeEmpire.Checkout.TxStage.CashDrawer && tx.Deposited)
+                {
+                    int remaining = GeodeEmpire.Checkout.Money.Cents(tx.ChangeDue) - GeodeEmpire.Checkout.Money.Cents(tx.HandTotal);
+                    if (remaining <= 0) { station.ConfirmChangeFromInput(); presses++; continue; }
+                    var plan = GeodeEmpire.Checkout.Money.MakeChangeFrom(tx.DrawerContents(station.Drawer), GeodeEmpire.Checkout.Money.Dollars(remaining));
+                    if (plan == null) { station.ConfirmChangeFromInput(); presses++; continue; }
+                    float denom = 0f;
+                    for (int i = 0; i < GeodeEmpire.Checkout.Money.Denoms.Length; i++) if (plan[i] > 0) { denom = GeodeEmpire.Checkout.Money.Denoms[i]; break; }
+                    int spins = 0;
+                    while (spins++ < 40 && (station.Hovered == null || station.Hovered.Kind != GeodeEmpire.Checkout.CheckoutTargetKind.DrawerWell || Mathf.Abs(station.Hovered.Denom - denom) > 0.001f))
+                        station.CycleTarget(1);
+                    if (station.PressInteract()) presses++;
+                    cycles += spins;
+                    continue;
+                }
+                if (station.PressInteract()) presses++;
+            }
+            yield return new WaitForSeconds(0.8f);
+            var rec = S.State.FindSpecimen(c != null ? "" : "");
+            L($"buttons done: presses={presses} cycles={cycles} cash {cashBefore:F2} -> {S.State.Cash:F2} {Chk(Mathf.Abs(S.State.Cash - cashBefore - price) < 0.011f)} state={station.State} idle={Chk(station.Tx == null)}");
+            Retail.Customer.ForcedMethod = -1;
+            Phase = "done";
+            Running = false;
+        }
+
         private static Transform FindDeep(Transform t, string name) { foreach (Transform ch in t) { if (ch.name == name) return ch; var d = FindDeep(ch, name); if (d != null) return d; } return null; }
 
         /// <summary>Harness: n appraised pieces of one size class on the sale fixtures (seeds searched for the class), so a checkout round can exercise the bag, the box and the two-handed lift.</summary>

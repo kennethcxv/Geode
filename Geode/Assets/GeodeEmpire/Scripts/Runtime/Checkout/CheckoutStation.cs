@@ -380,14 +380,17 @@ namespace GeodeEmpire.Checkout
         private CheckoutTarget ObviousTarget()
         {
             if (Tx == null) return null;
-            CheckoutTarget only = null;
-            int count = 0;
+            CheckoutTarget first = null;
+            bool ambiguous = false;
             foreach (var t in _targets)
             {
                 if (!Live(t) || t.Kind == CheckoutTargetKind.DrawerWell || t.Kind == CheckoutTargetKind.TerminalKey) continue;
-                only = t; count++;
+                if (first == null) { first = t; continue; }
+                // a laid-out handful of notes is one thing you take, however many pieces it is drawn from
+                if (t.Kind != first.Kind) ambiguous = true;
+                else if (t.Kind != CheckoutTargetKind.Tender) ambiguous = true;
             }
-            return count == 1 ? only : null;
+            return ambiguous ? null : first;
         }
 
         // ------------------------------------------------------------------------------------------------------
@@ -438,6 +441,13 @@ namespace GeodeEmpire.Checkout
             RefreshScreens();
             var target = Flow.RecoveryResume ?? CheckoutState.WaitingForScan;
             Flow.Resume(Time.time, target, "recovered");
+        }
+
+        /// <summary>Every transition the station asks for must be legal; a refusal is a contract break worth hearing about.</summary>
+        private void Go(CheckoutState next, string reason)
+        {
+            if (!Flow.To(next, Time.time, reason))
+                Debug.LogWarning($"[Checkout] illegal transition {Flow.Current} -> {next} ({reason})");
         }
 
         private CheckoutFacts Facts() => new CheckoutFacts
@@ -598,15 +608,11 @@ namespace GeodeEmpire.Checkout
             WorkshopAudio.Play("register", DrawerRig.transform.position, 0.35f, 1.3f);
             yield return new WaitForSeconds(0.35f);
 
-            if (Money.Cents(Tx.ChangeDue) == 0)
-            {
-                Busy = false;
-                yield return GiveChange();
-                yield break;
-            }
+            // even an exact payment goes through the change step: the flow contract has no edge that skips it, and the
+            // player still closes the drawer themselves
             Mark("takeCash:selecting");
-            Flow.To(CheckoutState.SelectingChange, Time.time, "counting the change");
-            StatusLine = $"Count {UI.UiKit.Money(Tx.ChangeDue)} change";
+            Go(CheckoutState.SelectingChange, "counting the change");
+            StatusLine = Money.Cents(Tx.ChangeDue) == 0 ? "Exact - close the drawer" : $"Count {UI.UiKit.Money(Tx.ChangeDue)} change";
             RefreshScreens();
             Busy = false;
         }
@@ -638,6 +644,9 @@ namespace GeodeEmpire.Checkout
             _money.ShowChange(Tx.Hand, new Vector3(Layout.ChangeHandoff.CentreX, Layout.TopY, Layout.ChangeHandoff.CentreZ));
             RefreshScreens();
         }
+
+        /// <summary>Confirm the counted change from an input press (Space, the POS Done button, or the controller).</summary>
+        public void ConfirmChangeFromInput() => ConfirmChange();
 
         private void ConfirmChange()
         {
@@ -931,6 +940,30 @@ namespace GeodeEmpire.Checkout
         // ------------------------------------------------------------------------------------------------------
         // harness: the same physical actions a player takes, chosen deterministically
         // ------------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// The button press, whatever pressed it: mouse, [E] or the gamepad's south face. With something under the
+        /// pointer or the cycle, that is what is acted on; with nothing, the obvious next thing is what the press means.
+        /// </summary>
+        public bool PressInteract()
+        {
+            if (Busy || Tx == null) return false;
+            var target = Hovered ?? ObviousTarget();
+            if (target == null) return false;
+            Activate(target);
+            return true;
+        }
+
+        /// <summary>Move the highlight to the next live pickable. This is the controller's pointer.</summary>
+        public bool CycleTarget(int direction)
+        {
+            var live = new List<CheckoutTarget>();
+            foreach (var t in _targets) if (Live(t)) live.Add(t);
+            if (live.Count == 0) { SetHovered(null); _cycleIndex = -1; return false; }
+            _cycleIndex = ((_cycleIndex < 0 ? 0 : _cycleIndex + direction) % live.Count + live.Count) % live.Count;
+            SetHovered(live[_cycleIndex]);
+            return true;
+        }
+
         /// <summary>Take the next physical action the counter is waiting for. Returns false while an animation owns the step.</summary>
         public bool HarnessStep()
         {
