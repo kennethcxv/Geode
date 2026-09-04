@@ -102,7 +102,7 @@ namespace GeodeEmpire.Lapidary
 
         public void RefreshOwned()
         {
-            bool owned = Owned;
+            bool owned = Owned && GeodeEmpire.Build.PlaceableFixture.SitedFor(this);   // bought is not installed: the player sites it in build mode
             if (Machine != null) Machine.SetActive(owned);
             if (Before != null) Before.SetActive(!owned);
             if (Lap != null) Lap.Locked = !owned;

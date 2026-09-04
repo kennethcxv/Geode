@@ -12,7 +12,7 @@ namespace GeodeEmpire.Core
     public static class GameInput
     {
         private static InputActionMap _player;
-        private static InputAction _move, _look, _interact, _strike, _inspect, _drop, _rotate, _scroll, _sprint, _back, _pause, _tablet, _loupe;
+        private static InputAction _move, _look, _interact, _strike, _inspect, _drop, _rotate, _scroll, _sprint, _back, _pause, _tablet, _loupe, _build, _inventory;
         private static bool _ready;
         private static double _lastGamepadTime = -1, _lastKbmTime = 0;
 
@@ -48,6 +48,8 @@ namespace GeodeEmpire.Core
             _pause = _player.FindAction("Pause", true);
             _tablet = _player.FindAction("Tablet", true);
             _loupe = _player.FindAction("Loupe", false);
+            _build = _player.FindAction("Build", false);
+            _inventory = _player.FindAction("Inventory", false);
             _player.Enable();
             var ui = asset.FindActionMap("UI");
             ui?.Enable();
@@ -100,6 +102,8 @@ namespace GeodeEmpire.Core
         public static bool PausePressed => _ready && _pause.WasPressedThisFrame();
         public static bool TabletPressed => _ready && _tablet.WasPressedThisFrame();
         public static bool LoupePressed => _ready && _loupe != null && _loupe.WasPressedThisFrame();
+        public static bool BuildPressed => _ready && _build != null && _build.WasPressedThisFrame();
+        public static bool InventoryPressed => _ready && _inventory != null && _inventory.WasPressedThisFrame();
 
         /// <summary>Human-readable glyph for an action in the current scheme.</summary>
         public static string Glyph(string action)
@@ -119,6 +123,8 @@ namespace GeodeEmpire.Core
                 case "Move": return gp ? "L-Stick" : "WASD";
                 case "Look": return gp ? "R-Stick" : "Mouse";
                 case "Sprint": return gp ? "L3" : "Shift";
+                case "Build": return gp ? "D-Up" : "B";
+                case "Inventory": return gp ? "D-Down" : "I";
             }
             return action;
         }

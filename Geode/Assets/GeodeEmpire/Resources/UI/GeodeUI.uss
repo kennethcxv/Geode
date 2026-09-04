@@ -346,3 +346,19 @@
 .btn-primary:hover { background-color: rgba(139, 92, 246, 0.45); border-color: rgb(167, 130, 250); }
 .btn-primary:focus { background-color: rgba(139, 92, 246, 0.55); border-color: rgb(196, 170, 255); }
 .btn-primary:active { background-color: rgba(139, 92, 246, 0.7); }
+
+/* ---- build mode (R11): layout editing that reads as part of the product ---------------- */
+.build-overview { position: absolute; left: 28px; top: 96px; width: 300px; padding: 16px 18px; }
+.build-budget { margin-top: 4px; }
+.build-tip { font-size: 14px; color: rgba(240,236,228,0.55); white-space: normal; margin-top: 10px; }
+.build-detail { position: absolute; right: 28px; top: 232px; width: 340px; padding: 18px 20px; }
+.build-status { font-size: 16px; margin-top: 10px; white-space: normal; }
+.build-bottom { position: absolute; left: 0; right: 0; bottom: 26px; align-items: center; }
+.build-tabs { margin-bottom: 8px; }
+.build-strip { padding: 8px; border-radius: 10px; background-color: rgba(19, 16, 22, 0.9); border-width: 1px; border-color: rgba(255,244,220,0.11); }
+.build-cell { width: 128px; padding: 10px 10px 8px 10px; margin-right: 6px; border-radius: 8px; background-color: rgba(255,248,236,0.04); border-width: 1px; border-color: rgba(255,244,220,0.08); align-items: center; }
+.build-cell-on { border-color: rgba(232,190,112,0.85); background-color: rgba(232,190,112,0.16); }
+.build-cell-name { font-size: 15px; -unity-text-align: middle-center; white-space: normal; }
+.build-rail { margin-top: 10px; }
+.build-reason { position: absolute; left: 50%; top: 62%; translate: -50% 0; font-size: 19px; padding: 8px 16px; border-radius: 6px; -unity-text-align: middle-center; }
+.build-reason-bad { color: rgb(255, 186, 170); background-color: rgba(70, 18, 14, 0.78); border-width: 1px; border-color: rgba(232,116,96,0.55); }

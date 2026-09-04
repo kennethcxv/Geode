@@ -196,7 +196,7 @@ namespace GeodeEmpire.Lapidary
         /// <summary>Tarp until bought; the machine afterwards. The clamp only takes rock once the saw exists.</summary>
         public void RefreshOwned()
         {
-            bool owned = Owned;
+            bool owned = Owned && GeodeEmpire.Build.PlaceableFixture.SitedFor(this);   // bought is not installed: the player sites it in build mode
             if (Teaser != null) Teaser.SetActive(!owned);
             // which machine is in the bay: the slab saw once Stage 3 is bought
             if (_smallMachine == null) { _smallMachine = Machine; _smallVise = Vise; _smallJaw = Jaw; _smallWheel = Wheel; _smallBlade = Blade; _smallNeedle = Needle; _smallValve = Valve; _smallNozzle = Nozzle; _smallBladeRadius = BladeRadius; _smallFlangeRadius = FlangeRadius; _smallBladeCenterY = BladeCenterY; }

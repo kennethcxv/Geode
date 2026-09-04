@@ -238,6 +238,17 @@ namespace GeodeEmpire.Save
         public string Body;
     }
 
+    /// <summary>Where a placeable fixture stands. Absent from the list means "never placed": it uses the authored default.</summary>
+    [Serializable]
+    public sealed class FixturePose
+    {
+        public string Id;
+        public Vector3 Position;
+        public float Yaw;
+        /// <summary>The player has positioned it. Until then a bought fixture waits in the receiving bay.</summary>
+        public bool Placed;
+    }
+
     /// <summary>Whole career save. Versioned; new fields get sensible defaults on load.</summary>
     [Serializable]
     public sealed class GameState
@@ -275,6 +286,8 @@ namespace GeodeEmpire.Save
         public long ExhibitionCompletedTicks;
         public int ExhibitionsHeld;
         public List<string> ExhibitedIds = new List<string>();
+        /// <summary>Player-authored fixture layout (build mode). Empty on a fresh save: everything sits where the scene put it.</summary>
+        public List<FixturePose> Fixtures = new List<FixturePose>();
         public bool SliceTeaseShown;
         public int Prestige;
         /// <summary>Workshop stage: 0 = the V3 garage, 1 = the Stage-2 lapidary expansion.</summary>
@@ -297,6 +310,21 @@ namespace GeodeEmpire.Save
         }
 
         public bool HasUpgrade(string id) => Upgrades.Contains(id);
+
+        public FixturePose Fixture(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            for (int i = 0; i < Fixtures.Count; i++) if (Fixtures[i].Id == id) return Fixtures[i];
+            return null;
+        }
+
+        public FixturePose SetFixture(string id, Vector3 pos, float yaw, bool placed)
+        {
+            var p = Fixture(id);
+            if (p == null) { p = new FixturePose { Id = id }; Fixtures.Add(p); }
+            p.Position = pos; p.Yaw = yaw; p.Placed = placed;
+            return p;
+        }
 
         /// <summary>Append a line to a specimen's history (kept short: the last 40 events).</summary>
         public static void Log(SpecimenRecord r, string kind, float value = 0f, string note = null)
