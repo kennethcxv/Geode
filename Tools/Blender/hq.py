@@ -434,6 +434,80 @@ class ColBox:
         self.center = center
 
 
+def bake_wear(bm, edge_deg=8.0, cavity_deg=10.0, cell=0.045):
+    """Per-loop colour for the GeodeEmpire/WornSurface shader, computed on the assembled prop so bevel bands count as
+    edges and the seams between parts as cavities: R = convex edge-ness (paint wears off edges and corners),
+    G = concave edge-ness (grime collects in seams and recesses), B = upward-facing (dust and coolant settle), A = 1.
+    Long edges are subdivided first so flat panels get interior vertices: vertex colour interpolates across a face,
+    and without them a bevelled cabinet would read as worn over its whole side. Exported linear (see lib.export_fbx),
+    read in Unity as the mesh's vertex colour."""
+    for _ in range(6):
+        long_edges = [e for e in bm.edges if e.calc_length() > cell * 1.5]
+        if not long_edges:
+            break
+        bmesh.ops.subdivide_edges(bm, edges=long_edges, cuts=1, use_grid_fill=True)
+    bm.normal_update()
+    bm.verts.ensure_lookup_table()
+    bm.verts.index_update()
+    edge_w = [0.0] * len(bm.verts)
+    cav_w = [0.0] * len(bm.verts)
+    lim_e = math.radians(edge_deg)
+    lim_c = math.radians(cavity_deg)
+    span = math.radians(25.0)   # a 3-segment bevel (22.5 deg steps) reads as a worn edge, a flat panel (0) does not
+    for e in bm.edges:
+        if not e.is_manifold:
+            continue
+        try:
+            ang = e.calc_face_angle_signed(0.0)   # positive on convex edges
+        except ValueError:
+            continue
+        if ang > lim_e:
+            w = min(1.0, (ang - lim_e) / span)
+            for v in e.verts:
+                edge_w[v.index] = max(edge_w[v.index], w)
+        elif ang < -lim_c:
+            w = min(1.0, (-ang - lim_c) / span)
+            for v in e.verts:
+                cav_w[v.index] = max(cav_w[v.index], w)
+    # occlusion: parts are separate shells, so seams and recesses never share a concave edge; a short hemisphere
+    # ray cast per vertex finds them (deterministic ray set, BVH in C, a few seconds for a 20k-vertex machine)
+    from mathutils.bvhtree import BVHTree
+    from mathutils import Vector
+    bvh = BVHTree.FromBMesh(bm, epsilon=0.0)
+    golden = math.pi * (3.0 - math.sqrt(5.0))
+    dirs = []
+    for i in range(14):
+        z = 1.0 - (i + 0.5) / 14.0 * 0.92          # hemisphere, skipping the grazing rim
+        r = math.sqrt(max(0.0, 1.0 - z * z))
+        a = golden * i
+        dirs.append(Vector((r * math.cos(a), r * math.sin(a), z)))
+    reach = 0.12
+    occ = [0.0] * len(bm.verts)
+    for v in bm.verts:
+        n = v.normal
+        if n.length < 1e-6:
+            continue
+        # local frame around the normal
+        up = Vector((0.0, 0.0, 1.0)) if abs(n.z) < 0.9 else Vector((1.0, 0.0, 0.0))
+        t = n.cross(up).normalized()
+        b = n.cross(t)
+        origin = v.co + n * 0.002
+        hits = 0.0
+        for d in dirs:
+            wd = t * d.x + b * d.y + n * d.z
+            loc, nrm, idx, dist = bvh.ray_cast(origin, wd, reach)
+            if loc is not None:
+                hits += 1.0 - dist / reach * 0.5
+        occ[v.index] = hits / len(dirs)
+    layer = bm.loops.layers.color.get("Wear") or bm.loops.layers.color.new("Wear")
+    for f in bm.faces:
+        for loop in f.loops:
+            v = loop.vert
+            cav = max(cav_w[v.index], min(1.0, occ[v.index] * 1.4 - 0.1))
+            loop[layer] = (edge_w[v.index], max(0.0, cav), max(0.0, v.normal.z), 1.0)
+    return bm
+
+
 def col_objects(name, boxes):
     """Turn ColBox list into tiny cube mesh objects named COL_<i> (Unity converts them to BoxColliders)."""
     objs = []

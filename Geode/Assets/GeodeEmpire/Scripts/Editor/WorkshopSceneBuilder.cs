@@ -66,12 +66,19 @@ namespace GeodeEmpire.EditorTools
             Lit("M_Wainscot", "T_WoodDark", new Color(0.55f, 0.48f, 0.42f), 1f, 0f, 1f, set: "hardwood", bump: 0.6f);
             var glass = Lit("M_Glass", null, new Color(0.7f, 0.85f, 0.95f, 0.18f), 0.95f, 0f, 1f);
             SetTransparent(Lit("M_Water", null, new Color(0.24f, 0.36f, 0.4f, 0.72f), 0.96f, 0f, 1f));
-            Lit("M_MachinePaint", "T_Metal", new Color(1f, 1f, 1f), 1f, 1f, 1.5f, set: "painted_steel", bump: 0.7f);
+            // V6 machine finishes: worn paint, cast iron and aluminium over bare steel (vertex-mask wear from the Blender bake)
+            Worn("M_MachinePaint", new Color(0.44f, 0.49f, 0.37f), "painted_steel", "brushed_stainless", new Color(0.7f, 0.7f, 0.68f), 0.6f, 0.1f, 0.55f, 0.4f, 0.3f);
+            Worn("M_MachineIron", new Color(0.3f, 0.3f, 0.31f), "cast_iron", "brushed_stainless", new Color(0.6f, 0.6f, 0.58f), 0.35f, 0.08f, 0.6f, 0.3f, 0.3f, 1.4f);
+            Worn("M_MachineAlu", new Color(0.78f, 0.79f, 0.8f), "aluminium", "brushed_stainless", new Color(0.85f, 0.85f, 0.86f), 0.3f, 0f, 0.4f, 0.25f, 0.3f, 1.2f, 0.9f);
+            Lit("M_Nameplate", null, new Color(0.85f, 0.8f, 0.66f), 0.8f, 0.9f, 4f, set: "brushed_stainless", bump: 0.4f);
+            Lit("M_BladeLabel", null, new Color(0.62f, 0.12f, 0.09f), 0.55f, 0.1f, 1f);
+            // coolant: a murky grey-green slurry, not clean water (rock flour never settles out of a working saw)
+            Lit("M_Coolant", null, new Color(0.36f, 0.4f, 0.38f), 0.82f, 0f, 1f);
             Lit("M_Dial", null, new Color(0.92f, 0.9f, 0.84f), 0.35f, 0f, 1f);
             Lit("M_UvLens", null, new Color(0.35f, 0.2f, 0.6f), 0.7f, 0f, 1f);
             Lit("M_PlinthPaint", null, new Color(0.74f, 0.72f, 0.68f), 0.35f, 0f, 1f);   // gallery off-white
             Lit("M_Felt", null, new Color(0.95f, 0.95f, 1f), 1f, 0f, 2f, set: "felt", bump: 0.6f);
-            Lit("M_BladeRim", "T_Metal", new Color(0.3f, 0.29f, 0.28f), 0.3f, 0.6f, 1f);
+            Lit("M_BladeRim", null, new Color(0.56f, 0.55f, 0.53f), 0.3f, 0.55f, 1f, set: "cast_iron", bump: 0.6f);   // diamond segments: sintered grey matrix
             // V5 hero-asset materials: real material separation on the rebuilt props
             Lit("M_Leather", "T_Cardboard", new Color(1f, 0.95f, 0.9f), 1f, 0f, 2.5f, set: "leather", bump: 0.9f);
             Lit("M_Stainless", "T_Metal", new Color(0.95f, 0.96f, 0.97f), 1f, 1f, 1f, set: "brushed_stainless", bump: 0.5f);
@@ -141,6 +148,46 @@ namespace GeodeEmpire.EditorTools
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
+        }
+
+        /// <summary>
+        /// V6 machine material: paint or a cast finish over bare metal, worn by the mesh's baked vertex masks
+        /// (Tools/Blender/hq.bake_wear: R edges, G recesses, B up) through GeodeEmpire/WornSurface.
+        /// </summary>
+        private static Material Worn(string name, Color color, string paintSet, string metalSet, Color metalColor, float wear, float chips, float grime, float stain, float dust, float tiling = 1f, float smoothScale = 1f)
+        {
+            string path = $"{Folder}/{name}.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            var shader = Shader.Find("GeodeEmpire/WornSurface");
+            if (shader == null) throw new System.Exception("GeodeEmpire/WornSurface shader missing");
+            if (m == null) { m = new Material(shader); AssetDatabase.CreateAsset(m, path); }
+            if (m.shader != shader) m.shader = shader;
+            m.SetColor("_BaseColor", color);
+            m.SetColor("_MetalColor", metalColor);
+            m.SetTexture("_BaseMap", Gen($"{paintSet}_albedo"));
+            m.SetTexture("_BumpMap", Gen($"{paintSet}_normal"));
+            m.SetTexture("_MaskMap", Gen($"{paintSet}_mask"));
+            m.SetTexture("_MetalMap", Gen($"{metalSet}_albedo"));
+            m.SetTexture("_MetalBump", Gen($"{metalSet}_normal"));
+            m.SetTexture("_MetalMask", Gen($"{metalSet}_mask"));
+            m.SetTexture("_NoiseTex", AssetDatabase.LoadAssetAtPath<Texture2D>(ProceduralTextureFactory.TextureFolder + "/T_Noise.png"));
+            m.SetFloat("_Tiling", tiling);
+            m.SetFloat("_Wear", wear);
+            m.SetFloat("_Chips", chips);
+            m.SetFloat("_Grime", grime);
+            m.SetFloat("_Stain", stain);
+            m.SetFloat("_Dust", dust);
+            m.SetFloat("_SmoothnessScale", smoothScale);
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        private static Texture2D Gen(string file)
+        {
+            var t = AssetDatabase.LoadAssetAtPath<Texture2D>($"{GeneratedFolder}/{file}.png");
+            if (t == null) Debug.LogWarning($"[WorkshopMaterials] generated texture missing: {file}");
+            return t;
         }
 
         private static void SetTransparent(Material m)
@@ -896,9 +943,9 @@ namespace GeodeEmpire.EditorTools
             machine.SetParent(sawRoot, false);
             // 14-inch saw (see gen_props.py saw family): blade plane z 0.05, arbor y 1.113; the carriage vise rides the
             // operator side of the blade (z -0.056) and its jaws squeeze along X, so the carriage never crosses the blade
-            var sawBody = Prop("prop_saw_station", machine, Vector3.zero, 0f, "M_MachinePaint,M_Water,M_Glass,M_Rubber,M_Red,M_Steel,M_Dial", collider: true);
-            var blade = Prop("prop_saw_blade", machine, new Vector3(0f, 1.113f, 0.05f), 0f, "M_Metal,M_MetalDark,M_BladeRim", collider: false);
-            var vise = Prop("prop_saw_vise", machine, new Vector3(0.42f, 0.915f, -0.056f), 0f, "M_MachinePaint,M_Rubber,M_Steel", collider: true);
+            var sawBody = Prop("prop_saw_station", machine, Vector3.zero, 0f, "M_MachinePaint,M_Coolant,M_Glass,M_Rubber,M_Red,M_Steel,M_Dial,M_MachineIron,M_MachineAlu,M_PlasticDark,M_Nameplate", collider: true);
+            var blade = Prop("prop_saw_blade", machine, new Vector3(0f, 1.113f, 0.05f), 0f, "M_Metal,M_MetalDark,M_BladeRim,M_BladeLabel", collider: false);
+            var vise = Prop("prop_saw_vise", machine, new Vector3(0.42f, 0.915f, -0.056f), 0f, "M_MachinePaint,M_Rubber,M_Steel,M_MachineAlu", collider: true);
             var jaw = Prop("prop_saw_jaw", vise.transform, new Vector3(0.04f, 0.02f, 0f), 0f, "M_MachinePaint,M_Rubber,M_Steel", collider: false);
             var wheel = Prop("prop_saw_wheel", vise.transform, new Vector3(0.26f, 0.08f, 0f), 0f, "M_Steel,M_PlasticDark", collider: false);
             var needle = Prop("prop_saw_needle", machine, new Vector3(-0.385f, 0.71f, -0.396f), 0f, "M_Red", collider: false);
@@ -908,7 +955,7 @@ namespace GeodeEmpire.EditorTools
             var sawCam = new GameObject("SawCamera").transform;
             sawCam.SetParent(sawRoot, false);
             var sawLight = MakeLight(machine, "SawLight", new Vector3(0.1f, 1.75f, -0.35f), new Vector3(72f, 0f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 0.8f, 2.2f, 58f, false);
-            MakeLight(sawRoot, "SawBayLamp", new Vector3(-0.5f, 2.2f, -0.3f), Vector3.zero, LightType.Point, new Color(1f, 0.93f, 0.82f), 1.0f, 3.2f, 0f, false);
+            MakeLight(sawRoot, "SawBayLamp", new Vector3(-0.5f, 2.2f, -0.3f), Vector3.zero, LightType.Point, new Color(1f, 0.93f, 0.82f), 2.2f, 3.6f, 0f, false);
             sawLight.enabled = false;
             var clampZone = Support(Zone(sawRoot, "ClampZone", new Vector3(0.36f, 0.935f, -0.02f), ZoneKind.Saw, "the saw clamp", 1, true, true, new Vector3(0.36f, 0.3f, 0.4f)), 0.16f, 0.16f);   // over the sled's far end; the station poses the rock at the blade
             clampZone.SetHighlightRenderers(vise.GetComponentsInChildren<Renderer>());
@@ -924,9 +971,9 @@ namespace GeodeEmpire.EditorTools
             // Stage 3: the 24-inch slab saw in the same bay (same cabinet footprint, a taller gantry, a 0.3 m blade)
             var large = new GameObject("LargeMachine").transform;
             large.SetParent(sawRoot, false);
-            var largeBody = Prop("prop_saw_station_large", large, Vector3.zero, 0f, "M_MachinePaint,M_Water,M_Glass,M_Rubber,M_Red,M_Steel,M_Dial", collider: true);
-            var largeBlade = Prop("prop_saw_blade_large", large, new Vector3(0f, 0.935f + 0.3f, 0.05f), 0f, "M_Metal,M_MetalDark,M_BladeRim", collider: false);
-            var largeVise = Prop("prop_saw_vise", large, new Vector3(0.42f, 0.915f, -0.056f), 0f, "M_MachinePaint,M_Rubber,M_Steel", collider: true);
+            var largeBody = Prop("prop_saw_station_large", large, Vector3.zero, 0f, "M_MachinePaint,M_Coolant,M_Glass,M_Rubber,M_Red,M_Steel,M_Dial,M_MachineIron,M_MachineAlu,M_PlasticDark,M_Nameplate", collider: true);
+            var largeBlade = Prop("prop_saw_blade_large", large, new Vector3(0f, 0.935f + 0.3f, 0.05f), 0f, "M_Metal,M_MetalDark,M_BladeRim,M_BladeLabel", collider: false);
+            var largeVise = Prop("prop_saw_vise", large, new Vector3(0.42f, 0.915f, -0.056f), 0f, "M_MachinePaint,M_Rubber,M_Steel,M_MachineAlu", collider: true);
             var largeJaw = Prop("prop_saw_jaw", largeVise.transform, new Vector3(0.04f, 0.02f, 0f), 0f, "M_MachinePaint,M_Rubber,M_Steel", collider: false);
             var largeWheel = Prop("prop_saw_wheel", largeVise.transform, new Vector3(0.26f, 0.08f, 0f), 0f, "M_Steel,M_PlasticDark", collider: false);
             var largeNeedle = Prop("prop_saw_needle", large, new Vector3(-0.385f, 0.71f, -0.396f), 0f, "M_Red", collider: false);

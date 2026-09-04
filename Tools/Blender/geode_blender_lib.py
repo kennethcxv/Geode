@@ -263,6 +263,7 @@ def export_fbx(objs, path, tag="export"):
         axis_up="Y",
         bake_space_transform=True,
         mesh_smooth_type="FACE",
+        colors_type="LINEAR",
         use_mesh_modifiers=True,
         add_leaf_bones=False,
         bake_anim=False,
