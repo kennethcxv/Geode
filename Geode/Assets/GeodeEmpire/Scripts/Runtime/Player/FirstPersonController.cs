@@ -34,6 +34,7 @@ namespace GeodeEmpire.Player
         private float _bobTime;
         private Transform _stationAnchor;
         private float _stationBlend;
+        private float _stationFov;
         private Vector3 _camLocalPos;
         private Quaternion _camLocalRot;
 
@@ -95,9 +96,10 @@ namespace GeodeEmpire.Player
             _pitch = Mathf.Clamp(pitch, -PitchLimit, PitchLimit);
         }
 
-        public void EnterStationView(Transform anchor)
+        public void EnterStationView(Transform anchor, float fov = 0f)
         {
             _stationAnchor = anchor;
+            _stationFov = fov > 0f ? fov : StationFov;
             MovementEnabled = false;
             LookEnabled = false;
         }
@@ -166,7 +168,7 @@ namespace GeodeEmpire.Player
             float dt = Time.deltaTime;
             _stationBlend = Mathf.MoveTowards(_stationBlend, _stationAnchor != null ? 1f : 0f, dt * 2.6f);
             float t = Mathf.SmoothStep(0f, 1f, _stationBlend);
-            Camera.fieldOfView = Mathf.Lerp(GameSettings.Current.FieldOfView, StationFov, t);
+            Camera.fieldOfView = Mathf.Lerp(GameSettings.Current.FieldOfView, _stationFov > 0f ? _stationFov : StationFov, t);
             Vector3 homePos = CameraPivot.TransformPoint(_camLocalPos);
             Quaternion homeRot = CameraPivot.rotation * _camLocalRot;
             if (_stationAnchor != null || _stationBlend > 0f)

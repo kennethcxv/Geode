@@ -126,9 +126,10 @@
 .unity-base-popup-field__arrow { -unity-background-image-tint-color: rgb(226,178,96); }
 
 /* ---- retail --------------------------------------------------------------------- */
-.retail-chip { position: absolute; right: 28px; top: 96px; padding: 8px 14px; border-left-width: 3px; border-left-color: rgba(240,236,228,0.35); }
+.retail-chip { position: absolute; left: 28px; top: 106px; padding: 8px 14px; border-left-width: 3px; border-left-color: rgba(240,236,228,0.35); }
 .retail-chip-waiting { border-left-color: rgb(226, 178, 96); background-color: rgba(40, 32, 20, 0.9); }
 .checkout-card { position: absolute; left: 50%; top: 62%; translate: -50% 0; width: 520px; align-items: center; padding: 16px 24px; }
+.checkout-card-station { top: auto; bottom: 16px; width: auto; min-width: 380px; padding: 8px 22px; }
 
 /* ---- settings page ---- */
 .settings { width: 100%; }

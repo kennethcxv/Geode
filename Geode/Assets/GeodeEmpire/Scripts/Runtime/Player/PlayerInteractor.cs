@@ -273,7 +273,8 @@ namespace GeodeEmpire.Player
             }
             else if (Target != null)
             {
-                p = $"[{GameInput.Glyph("Interact")}] {Target.GetPrompt(this)}";
+                string tp = Target.GetPrompt(this);
+                p = string.IsNullOrEmpty(tp) ? "" : $"[{GameInput.Glyph("Interact")}] {tp}";
                 h = Target.GetHint(this) ?? "";
                 // a piece on a shelf (the crosshair finds the slot, or the rock itself): its label sits under the prompt, small, where the eye already is
                 string label = Target is SpecimenEntity se ? se.GetHint(this)

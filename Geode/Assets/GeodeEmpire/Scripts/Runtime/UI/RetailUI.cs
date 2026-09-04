@@ -14,7 +14,7 @@ namespace GeodeEmpire.UI
         private RetailShop _shop;
         private CheckoutRegister _register;
         private VisualElement _chip, _card;
-        private Label _chipText, _cardWho, _cardWhat, _cardPrice, _cardProfit, _cardPrompt;
+        private Label _chipText, _cardSection, _cardWho, _cardWhat, _cardPrice, _cardProfit, _cardPrompt;
         private float _flash;
         private string _soldWhat, _soldPrice, _soldProfit;
 
@@ -32,7 +32,7 @@ namespace GeodeEmpire.UI
 
             _card = UiKit.Box(root, "card", "checkout-card");
             _card.pickingMode = PickingMode.Ignore;
-            UiKit.Label(_card, "CHECKOUT", "section");
+            _cardSection = UiKit.Label(_card, "CHECKOUT", "section");
             _cardWho = UiKit.Label(_card, "", "item-sub");
             _cardWhat = UiKit.Label(_card, "", "appraisal-name", "bold");
             _cardPrice = UiKit.Label(_card, "", "appraisal-value");
@@ -62,17 +62,21 @@ namespace GeodeEmpire.UI
         private void Update()
         {
             if (_shop == null || _card == null) return;
-            bool rung = _register != null && _register.RungUp && _shop.AtCounter != null && _shop.AtCounter.Wanted != null;
+            bool rung = _register != null && _register.RungUp && _register.Transacting != null;
+            bool station = rung && _register.Active;      // the counter view: a slim strip at the top, the counter itself stays clear
             if (rung)
             {
-                var c = _shop.AtCounter;
-                var rec = c.Wanted.Record;
-                float dealer = rec.EstimatedValue();
+                var c = _register.Transacting;
+                var rec = c.Wanted != null ? c.Wanted.Record : null;
+                string what = rec != null ? rec.DisplayName : _soldWhat;
+                float price = _register.Price;
+                float dealer = rec != null ? rec.EstimatedValue() : 0f;
                 _cardWho.text = $"{c.Archetype.Name}  •  {c.Archetype.Blurb}";
-                _cardWhat.text = rec.DisplayName;
-                _cardPrice.text = UiKit.Money(rec.AskingPrice);
-                _cardProfit.text = dealer > 0f ? $"{UiKit.Money(rec.AskingPrice - dealer)} over the dealer's price" : "";
-                _cardPrompt.text = $"[{GameInput.Glyph("Interact")}] Take payment";
+                _cardWhat.text = station ? $"{what}   {UiKit.Money(price)}" : what;
+                _cardPrice.text = UiKit.Money(price);
+                _cardProfit.text = dealer > 0f ? $"{UiKit.Money(price - dealer)} over the dealer's price" : "";
+                string status = _register.StatusLine;
+                _cardPrompt.text = _register.Busy || string.IsNullOrEmpty(status) ? status : $"[{GameInput.Glyph("Interact")}] {status}";
                 _card.RemoveFromClassList("checkout-sold");
             }
             else if (_flash > 0f)
@@ -85,8 +89,12 @@ namespace GeodeEmpire.UI
                 _cardPrompt.text = "Thank you, come again";
                 _card.AddToClassList("checkout-sold");
             }
+            _card.EnableInClassList("checkout-card-station", station);
+            var detail = station ? DisplayStyle.None : DisplayStyle.Flex;
+            _cardSection.style.display = detail; _cardWho.style.display = detail; _cardPrice.style.display = detail; _cardProfit.style.display = detail;
             _card.style.display = rung || _flash > 0f ? DisplayStyle.Flex : DisplayStyle.None;
-            if (_flash > 0f) { _flash -= Time.deltaTime; if (_flash <= 0f) Refresh(); }
+            // the SOLD payoff waits until the piece has gone across and the station has reset
+            if (_flash > 0f && !rung) { _flash -= Time.deltaTime; if (_flash <= 0f) Refresh(); }
         }
 
         private void Refresh()

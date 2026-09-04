@@ -58,6 +58,59 @@ namespace GeodeEmpire.Retail
         public SpecimenEntity Wanted { get; private set; }
         public float Budget { get; private set; }
         public bool Bought { get; private set; }
+        /// <summary>V6 checkout: how this customer pays (seeded; the harness can force one).</summary>
+        public enum Payment { Cash, Card }
+        public Payment Method { get; private set; }
+        public static int ForcedMethod = -1;
+        public Transform HandPoint => _handPoint;
+        public bool Reaching { get; private set; }
+        public bool Receiving { get; private set; }
+        public void Reach(bool on) { Reaching = on; if (on) Receiving = false; }
+        /// <summary>
+        /// Palm-open to receive what is coming: nothing (change) or a bag in one hand, a box or a bare piece in both.
+        /// The receiving pose is the carry pose, so the handoff lands in the grip that keeps it (§53).
+        /// </summary>
+        public void Receive(bool on, GameObject package = null, SpecimenEntity piece = null)
+        {
+            Receiving = on;
+            if (on) { Reaching = false; _pendingPackage = package; _pendingPiece = piece; SetHold(package, piece); }
+        }
+        private bool _twoHands, _carryLow;
+        private float _holdHalf = 0.1f;           // half-width of what the hands close on, along the figure's right axis
+        private Bounds _carryFoot;                // closed footprint of a bare carried piece (specimen-local)
+        private GameObject _pendingPackage;
+        private SpecimenEntity _pendingPiece;
+
+        private void SetHold(GameObject package, SpecimenEntity piece)
+        {
+            _twoHands = package != null ? package.name != "Bag" : piece != null;
+            _carryLow = !_twoHands;
+            if (package != null) _holdHalf = package.transform.localScale.x * (_carryLow ? 0.1f : 0.15f);
+            else if (piece != null) { _carryFoot = piece.FootprintFor(DisplayPose.Closed); _holdHalf = _carryFoot.extents.x + 0.01f; }
+            else _holdHalf = 0.06f;
+        }
+
+        /// <summary>
+        /// Where the object in (or coming to) the hands sits in the world this frame: a bag hangs from the one hand with
+        /// its wide face along the walk; a box or a bare piece sits on the body's midline between both hands, base at
+        /// hand height, upright and facing the way the figure faces.
+        /// </summary>
+        public void HoldPose(out Vector3 pos, out Quaternion rot)
+        {
+            Vector3 facing = Vector3.ProjectOnPlane(-transform.forward, Vector3.up);
+            if (facing.sqrMagnitude < 1e-4f) facing = Vector3.forward;
+            var pkg = _package != null ? _package : _pendingPackage;
+            var piece = _carriedOut != null ? _carriedOut : _pendingPiece;
+            rot = Quaternion.LookRotation(_carryLow && pkg != null ? -transform.right : facing.normalized, Vector3.up);
+            var hand = _handPoint != null ? _handPoint : transform;
+            Vector3 p = hand.position + Vector3.down * 0.02f;
+            if (_twoHands) p -= Vector3.Project(p - transform.position, transform.right);   // between the hands: on the midline
+            if (pkg == null && piece != null) p += Vector3.up * (-_carryFoot.min.y) - rot * new Vector3(_carryFoot.center.x, 0f, _carryFoot.center.z);
+            pos = p;
+        }
+        public void SayLine(string text) => Say(text);
+        private bool _awaitingHandover;
+        private GameObject _package;
         public int Id { get; private set; }
         public int Priority => _agent != null ? _agent.avoidancePriority : 50;
         public float Speed => _agent != null ? _agent.velocity.magnitude : 0f;
@@ -108,6 +161,7 @@ namespace GeodeEmpire.Retail
             Budget = Mathf.Clamp(Mathf.Round(Mathf.Max(Archetype.BudgetFloor, anchor * rng.Range(Archetype.BudgetMin, Archetype.BudgetMax)) / 5f) * 5f, 10f, 9999f);
             _agent = GetComponent<NavMeshAgent>();
             _baseSpeed = rng.Range(0.9f, 1.25f);
+            Method = ForcedMethod >= 0 ? (Payment)ForcedMethod : (rng.Chance(0.55f) ? Payment.Card : Payment.Cash);
             _agent.speed = _baseSpeed;
             _agent.angularSpeed = 220f;
             _agent.acceleration = 3.2f;
@@ -160,8 +214,8 @@ namespace GeodeEmpire.Retail
             if (_armR != null)
             {
                 _handPoint = new GameObject("HandPoint").transform;
-                if (_foreR != null) { _handPoint.SetParent(_foreR, false); _handPoint.localPosition = new Vector3(0.02f, -0.34f, 0.1f); }
-                else { _handPoint.SetParent(_armR, false); _handPoint.localPosition = new Vector3(0.04f, -0.62f, 0.12f); }
+                if (_foreR != null) { _handPoint.SetParent(_foreR, false); _handPoint.localPosition = new Vector3(0.02f, -0.34f, -0.05f); }
+                else { _handPoint.SetParent(_armR, false); _handPoint.localPosition = new Vector3(0.04f, -0.62f, -0.1f); }
             }
             // plan: look at 2-4 stocked slots, the families they came in for first, then nearest
             var avail = _shop.Available(this);
@@ -512,7 +566,7 @@ namespace GeodeEmpire.Retail
                 case Phase.AtCounter:
                     FaceTowards(_shop.CounterItemPoint != null ? _shop.CounterItemPoint.position - transform.right * 0.2f : transform.position - transform.forward, dt);
                     _queueTimer += dt;
-                    if (_queueTimer > Archetype.Patience * 1.6f) { PutBack(); Leave(false); }
+                    if (!_awaitingHandover && _queueTimer > Archetype.Patience * 1.6f) { PutBack(); Leave(false); }
                     break;
                 case Phase.Thanking:
                     _timer -= dt;
@@ -576,6 +630,50 @@ namespace GeodeEmpire.Retail
             _shop.RefreshLabels();
         }
 
+        /// <summary>The money is taken but the piece is still being packed: wait for it, however long the player takes.</summary>
+        public void AwaitHandover() { _awaitingHandover = true; }
+
+        /// <summary>
+        /// V6 §54: the purchased object itself (in its package, if any) is placed in this hand by the checkout and is
+        /// carried out as the same object; nothing is respawned.
+        /// </summary>
+        public void TakeOwnership(SpecimenEntity piece, GameObject package)
+        {
+            Bought = true;
+            Wanted = null;
+            _awaitingHandover = false;
+            Receiving = false; Reaching = false;
+            _carriedOut = piece;
+            _package = package;
+            _pendingPackage = null; _pendingPiece = null;
+            SetHold(package, piece);   // a bag hangs from one hand; a box or a bare piece takes both
+            _ownsHold = true;
+            if (piece != null)
+            {
+                piece.Locked = true;
+                piece.SetPhysics(false);
+                piece.SetCollidersEnabled(false);
+            }
+            var hand = _handPoint != null ? _handPoint : transform;
+            if (package != null) package.transform.SetParent(hand, true);
+            else if (piece != null) piece.transform.SetParent(hand, true);
+            KeepUpright();
+            State = Phase.Thanking;
+            _timer = 1.1f;
+            Say("Thanks!");
+        }
+
+        /// <summary>What the customer owns stays in the hold pose whatever the arms do: upright, base at hand height, on the midline for two hands.</summary>
+        private void KeepUpright()
+        {
+            if (!_ownsHold) return;
+            var t = _package != null ? _package.transform : _carriedOut != null ? _carriedOut.transform : null;
+            if (t == null) return;
+            HoldPose(out var p, out var r);
+            t.SetPositionAndRotation(p, r);
+        }
+        private bool _ownsHold;
+
         /// <summary>Money taken: a beat of thanks at the counter, then out.</summary>
         public void Paid() => Paid(null);
 
@@ -613,6 +711,7 @@ namespace GeodeEmpire.Retail
             _shop.ReleaseBrowse(this);
             _shop.Remove(this);
             if (_carriedOut != null) { GameSession.Instance?.Despawn(_carriedOut); _carriedOut = null; }
+            if (_package != null) { Destroy(_package); _package = null; }
             Destroy(gameObject);
         }
 
@@ -655,24 +754,36 @@ namespace GeodeEmpire.Retail
             // knees: the trailing leg bends as it comes through, the planted leg stays straight
             float kneeL = Mathf.Max(0f, Mathf.Sin(_stride + 1.1f)) * gait * 42f;
             float kneeR = Mathf.Max(0f, Mathf.Sin(_stride + 1.1f + Mathf.PI)) * gait * 42f;
-            if (_shinL != null) _shinL.localRotation = Quaternion.Euler(kneeL, 0f, 0f);
-            if (_shinR != null) _shinR.localRotation = Quaternion.Euler(kneeR, 0f, 0f);
+            if (_shinL != null) _shinL.localRotation = Quaternion.Euler(-kneeL, 0f, 0f);   // the foot swings back under the knee (front is -Z)
+            if (_shinR != null) _shinR.localRotation = Quaternion.Euler(-kneeR, 0f, 0f);
             float t = Time.time + _fidget;
             bool standing = gait < 0.15f;
             bool browsing = State == Phase.Browsing && standing;
             bool waiting = (State == Phase.Queued || State == Phase.AtCounter) && standing;
             float armSwing = swing * 0.6f;
+            // the right arm holds a piece only while one is actually in the hand: on the counter it hangs like the other
+            bool carrying = (Wanted != null && Wanted.transform.IsChildOf(transform)) || _carriedOut != null;
             // left hand: swings, or comes up to the chin for a moment while weighing something up
             var leftIdle = Quaternion.Euler(-armSwing, 0f, 4f);
-            if (browsing && Mathf.Sin(t * 0.6f) > 0.55f) leftIdle = Quaternion.Euler(-88f, 0f, 34f);
+            if (browsing && Mathf.Sin(t * 0.6f) > 0.55f) leftIdle = Quaternion.Euler(88f, 0f, -30f);
+            bool bothHands = _twoHands && (carrying || Receiving);
+            // both hands: forearms level at the waist, yawed inward until the hands close on the sides of what they hold
+            // (hands rest 0.22 out from the midline and reach ~0.38 forward in this pose)
+            float holdYaw = bothHands ? Mathf.Asin(Mathf.Clamp((0.22f - (_holdHalf + 0.03f)) / 0.38f, 0f, 0.85f)) * Mathf.Rad2Deg : 0f;
+            if (bothHands) leftIdle = Quaternion.Euler(24f, -holdYaw, 6f);
+            var holdR = _carryLow ? Quaternion.Euler(18f, 0f, -6f) : Quaternion.Euler(24f, holdYaw, -6f);
             if (_armL != null) _armL.localRotation = Quaternion.Slerp(_armL.localRotation, leftIdle, dt * 5f);
-            if (_armR != null) _armR.localRotation = Quaternion.Slerp(_armR.localRotation, Wanted != null ? Quaternion.Euler(-62f, 0f, -6f) : Quaternion.Euler(armSwing, 0f, -4f), dt * 6f);
+            if (_armR != null) _armR.localRotation = Quaternion.Slerp(_armR.localRotation, carrying ? holdR : Quaternion.Euler(armSwing, 0f, -4f), dt * 6f);
             // elbows: a resting bend that opens with the swing, sharper when the hand is at the chin or carrying a piece
             bool chin = browsing && Mathf.Sin(t * 0.6f) > 0.55f;
-            float elbowL = chin ? -70f : -(14f + Mathf.Max(0f, -armSwing) * 0.8f);
-            float elbowR = Wanted != null ? -55f : -(14f + Mathf.Max(0f, armSwing) * 0.8f);
+            float elbowL = bothHands ? 80f : chin ? 70f : 14f + Mathf.Max(0f, -armSwing) * 0.8f;
+            float elbowR = carrying ? (_carryLow ? 28f : 80f) : 14f + Mathf.Max(0f, armSwing) * 0.8f;
+            // at the counter: the right arm reaches out to present cash or a card, or comes up palm-open to receive
+            if (Reaching) { elbowR = 12f; if (_armR != null) _armR.localRotation = Quaternion.Slerp(_armR.localRotation, Quaternion.Euler(78f, 0f, -8f), dt * 6f); }
+            else if (Receiving) { elbowR = _carryLow ? 28f : 80f; if (_armR != null) _armR.localRotation = Quaternion.Slerp(_armR.localRotation, holdR, dt * 6f); }
             if (_foreL != null) _foreL.localRotation = Quaternion.Slerp(_foreL.localRotation, Quaternion.Euler(elbowL, 0f, 0f), dt * 5f);
             if (_foreR != null) _foreR.localRotation = Quaternion.Slerp(_foreR.localRotation, Quaternion.Euler(elbowR, 0f, 0f), dt * 5f);
+            KeepUpright();
             if (_torso != null)
             {
                 float bob = Mathf.Abs(Mathf.Sin(_stride)) * 0.012f * gait;

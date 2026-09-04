@@ -838,9 +838,84 @@ def register_drawer(rng):
         add(bm, hq.lathe([(0, 0), (0.028, 0), (0.028, 0.03), (0, 0.03)], segments=24), T(-0.1 + i * 0.066, -0.06, 0.014), mat=1)     # coin cups
     for i in range(3):
         box(bm, (0.08, 0.14, 0.006), (-0.09 + i * 0.09, -0.24, 0.02), bevel=0.001, mat=1)                                           # note wells
+        # a stack of notes in each well, held by the well's spring clip (slot 3), and a label tab on the divider (slot 2)
+        for k in range(5):
+            add(bm, hq.rbox((0.068, 0.13, 0.0006), (-0.09 + i * 0.09, -0.24, 0.024 + k * 0.0009), bevel=0.0002, segments=1), R(rng.uniform(-2, 2), "Z"), mat=3)
+        box(bm, (0.05, 0.004, 0.02), (-0.09 + i * 0.09, -0.312, 0.035), bevel=0.001, mat=2)
+        box(bm, (0.012, 0.13, 0.01), (-0.09 + i * 0.09, -0.24, 0.032), bevel=0.001, mat=1)
+    for i in range(4):
+        for k in range(rng.randint(3, 9)):
+            add(bm, hq.cyl(0.0105 + 0.002 * (i % 2), 0.0018, segments=18, center=(0, 0, 0)), T(-0.1 + i * 0.066 + rng.uniform(-0.008, 0.008), -0.06 + rng.uniform(-0.008, 0.008), 0.016 + k * 0.0019), mat=4)   # coins
     box(bm, (0.3, 0.012, 0.075), (0, -0.336, 0.04), bevel=0.004, segments=2)                                                         # front plate
     box(bm, (0.08, 0.008, 0.012), (0, -0.346, 0.04), bevel=0.003, mat=2)                                                             # pull
     return bm, None
+
+
+def card_reader(rng):
+    """Counter card terminal (V6 checkout): a sloped body on a swivel mount, a display (slot 1), a keypad (slot 2),
+    the card slot at the bottom front, and a contactless mark on the top. Origin at the base centre; the display faces
+    the customer (-Y)."""
+    bm = bmesh.new()
+    add(bm, hq.lathe([(0, 0), (0.05, 0), (0.052, 0.006), (0.048, 0.012), (0.02, 0.014), (0, 0.014)], segments=32), mat=0)   # mount foot
+    add(bm, hq.cyl(0.018, 0.03, segments=20, center=(0, 0, 0.014)), mat=2)                                              # swivel post
+    body = hq.rbox((0.09, 0.15, 0.05), (0, 0.0, 0.07), bevel=0.006, segments=3)
+    for v in body.verts:
+        if v.co.z > 0.07:
+            v.co.z += 0.05 * (v.co.y + 0.075) / 0.15                                                                   # slopes up toward the back
+    add(bm, body, mat=0)
+    add(bm, hq.rbox((0.074, 0.05, 0.003), (0, 0.035, 0.117), bevel=0.001, segments=1), R(-18.4, "X") @ T(0, 0, 0.0), mat=1)   # display
+    for i in range(3):
+        for j in range(4):
+            add(bm, hq.rbox((0.018, 0.012, 0.004), (0, 0, 0), bevel=0.001, segments=1), T(-0.024 + i * 0.024, -0.052 + j * 0.017, 0.093 + 0.05 * (-0.052 + j * 0.017 + 0.075) / 0.15) @ R(-18.4, "X"), mat=2)
+    add(bm, hq.rbox((0.06, 0.02, 0.004), (0, -0.07, 0.048), bevel=0.001, segments=1), mat=3)                             # card slot (dark)
+    add(bm, hq.torus(0.008, 0.0015, seg_major=20, seg_minor=6, center=(0.03, 0.06, 0.128)), mat=2)                        # contactless mark
+    return bm, None
+
+
+def bank_card(rng):
+    """Payment card 85.6 x 54 x 0.8 mm, a chip (slot 1) and a stripe. Origin at the centre; lies in XY, face up."""
+    bm = bmesh.new()
+    add(bm, hq.rbox((0.0856, 0.054, 0.0008), (0, 0, 0.0004), bevel=0.0003, segments=1), mat=0)
+    add(bm, hq.rbox((0.011, 0.009, 0.0004), (-0.026, 0.008, 0.001), bevel=0.0001, segments=1), mat=1)
+    add(bm, hq.rbox((0.0856, 0.008, 0.0002), (0, 0.018, 0.0009), bevel=0.0001, segments=1), mat=2)
+    return bm, None
+
+
+def banknotes(rng):
+    """A few folded notes held together (slot 0 paper, slot 1 print band). Origin at the centre of the bundle base."""
+    bm = bmesh.new()
+    for k in range(4):
+        note = hq.rbox((0.15, 0.068, 0.0005), (0, 0, 0.0005 + k * 0.0007), bevel=0.0002, segments=1)
+        for v in note.verts:
+            v.co.z += 0.003 * math.sin((v.co.x + 0.075) / 0.15 * math.pi) * (1.0 + 0.4 * k)   # a slight curl
+        add(bm, note, R(rng.uniform(-6, 6), "Z"), mat=0)
+    add(bm, hq.rbox((0.15, 0.02, 0.0004), (0, 0.0, 0.0032), bevel=0.0001, segments=1), mat=1)
+    return bm, None
+
+
+def paper_bag(rng):
+    """Kraft paper bag for small pieces: a soft box with a rolled top, creased sides. Origin at the base centre; scaled to
+    the piece by the checkout."""
+    bm = bmesh.new()
+    body = hq.loft([hq.ring_rrect(0.2, 0.12, 0.02, 0.0, 32), hq.ring_rrect(0.2, 0.12, 0.025, 0.14, 32), hq.ring_rrect(0.19, 0.1, 0.03, 0.26, 32), hq.ring_rrect(0.16, 0.05, 0.02, 0.3, 32)], close_bottom=True, close_top=False)
+    hq.displace(body, 0.004, 14.0, seed=51, octaves=1)
+    add(bm, body, mat=0, sharp=70)
+    add(bm, hq.rbox((0.17, 0.06, 0.018), (0, 0, 0.305), bevel=0.008, segments=2), mat=0)   # rolled top
+    return bm, [ColBox((0.2, 0.12, 0.31), (0, 0, 0.155))]
+
+
+def gift_box(rng):
+    """Open presentation box with tissue paper for medium pieces (slot 0 card, slot 1 tissue). Origin at the base centre."""
+    bm = bmesh.new()
+    box(bm, (0.3, 0.24, 0.01), (0, 0, 0.005), bevel=0.002, segments=1)
+    for sx in (-1, 1):
+        box(bm, (0.01, 0.24, 0.16), (sx * 0.145, 0, 0.08), bevel=0.002, segments=1)
+    for sy in (-1, 1):
+        box(bm, (0.3, 0.01, 0.16), (0, sy * 0.115, 0.08), bevel=0.002, segments=1)
+    tissue = hq.loft([hq.ring_rrect(0.27, 0.21, 0.03, 0.012, 32), hq.ring_rrect(0.29, 0.23, 0.03, 0.1, 32), hq.ring_rrect(0.34, 0.28, 0.04, 0.19, 32)], close_bottom=True, close_top=False)
+    hq.displace(tissue, 0.012, 9.0, seed=53, octaves=2)
+    add(bm, tissue, mat=1, sharp=80)
+    return bm, [ColBox((0.3, 0.24, 0.16), (0, 0, 0.08))]
 
 
 def price_card(rng):
@@ -1473,6 +1548,11 @@ PROPS = [
     ("prop_counter", counter, 235),
     ("prop_register", register, 236),
     ("prop_price_card", price_card, 237),
+    ("prop_card_reader", card_reader, 263),
+    ("prop_bank_card", bank_card, 264),
+    ("prop_banknotes", banknotes, 265),
+    ("prop_paper_bag", paper_bag, 266),
+    ("prop_gift_box", gift_box, 267),
     ("prop_register_drawer", register_drawer, 258),
     ("prop_workbench", workbench, 204),
     ("prop_cradle", cradle, 205),

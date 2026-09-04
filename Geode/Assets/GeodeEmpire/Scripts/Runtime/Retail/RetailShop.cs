@@ -324,7 +324,10 @@ namespace GeodeEmpire.Retail
         }
 
         /// <summary>The player rang it up and took the money: the specimen leaves the career for good.</summary>
-        public bool CompleteSale(Customer c)
+        public bool CompleteSale(Customer c) => CompleteSale(c, true);
+
+        /// <summary>handOver=false: the money changes hands but the piece stays on the counter for the checkout to pack and pass across.</summary>
+        public bool CompleteSale(Customer c, bool handOver)
         {
             var session = GameSession.Instance;
             if (c == null || c.Wanted == null || AtCounter != c) return false;
@@ -343,8 +346,8 @@ namespace GeodeEmpire.Retail
             if (price > st.BiggestRetailSale) { st.BiggestRetailSale = price; st.BiggestRetailSaleName = rec.DisplayName; }
             if (price > st.BiggestSale) { st.BiggestSale = price; st.BiggestSaleName = rec.DisplayName; }
             session.AddCash(price, "retail");
-            LeaveQueue(c);
-            c.Paid(e);   // the piece leaves with the buyer; it is despawned at the door
+            if (handOver) { LeaveQueue(c); c.Paid(e); }   // the piece leaves with the buyer; it is despawned at the door
+            else c.AwaitHandover();                        // the checkout packs it and hands it across; the queue moves once they leave
             Metrics.LastSaleSeconds = Time.time - _counterSince;
             Metrics.SaleSecondsTotal += Metrics.LastSaleSeconds; Metrics.SalesTimed++;
             WorkshopAudio.Play2D("register", 0.8f);

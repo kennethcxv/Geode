@@ -53,7 +53,7 @@ namespace GeodeEmpire.Core
         {
             System.IO.Directory.CreateDirectory(SnapDir);
             string path = $"{SnapDir}/{_snap++:D2}_{name}.png";
-            ScreenCapture.CaptureScreenshot(path);
+            ScreenCapture.CaptureScreenshot(path, 2);   // the Editor's Game view is small; twice its size keeps screen text legible in review
             L($"snap {path}");
         }
 
@@ -2514,9 +2514,7 @@ namespace GeodeEmpire.Core
                 float cashBefore = s.State.Cash;
                 int salesBefore = s.State.Stats.RetailSales;
                 reg.Interact(P);
-                yield return null;
-                reg.Interact(P);
-                yield return null;
+                yield return reg.CompleteFromHere(0.05f);
                 bool again = shop.CompleteSale(c);
                 var rec = s.State.FindSpecimen(soldId);
                 L($"sold {soldId} for {price}: cash {cashBefore}->{s.State.Cash} {Chk(Mathf.Approximately(s.State.Cash, cashBefore + price))} loc={rec.Location} {Chk(rec.Location == SpecimenLocation.Sold)} entityGone={Chk(s.GetEntity(soldId) == null)} secondSale={Chk(!again)} sales={s.State.Stats.RetailSales} {Chk(s.State.Stats.RetailSales == salesBefore + 1)}");
@@ -2741,7 +2739,7 @@ namespace GeodeEmpire.Core
                 yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Ring up");
                 yield return new WaitForSeconds(0.3f);
                 Snap("checkout_card");
-                yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Take");
+                yield return reg.CompleteFromHere(0.3f);
                 yield return new WaitForSeconds(0.5f);
                 L($"  sale: cash {cashBefore} -> {S.State.Cash} retailSales={S.State.Stats.RetailSales} forSale={S.State.ForSaleCount()}");
                 while (c != null && c.State != Retail.Customer.Phase.Done) yield return null;
@@ -2752,7 +2750,94 @@ namespace GeodeEmpire.Core
         }
 
         /// <summary>Crack every remaining rock on the bench quickly (for economy/pacing checks).</summary>
-        /// <summary>Walk behind the counter and ring up the customer standing at it (two presses).</summary>
+        public void RunCheckout(string method = "cash", string size = "") { if (!Running) StartCoroutine(Checkout(method, size)); }
+
+        /// <summary>
+        /// V6 §55 checkout round: one customer with a forced payment method, the transaction stepped from the counter
+        /// camera with a capture at every step; then the identity, cash, queue and leftover checks.
+        /// </summary>
+        private IEnumerator Checkout(string method, string size)
+        {
+            Running = true;
+            Phase = "checkout-" + method;
+            foreach (var s in Workshop.Tutorial.Steps) Workshop.Tutorial.Notify(s.DoneBy);   // no tutorial card over the counter
+            var shop = Retail.RetailShop.Instance;
+            var reg = Find<Retail.CheckoutRegister>();
+            if (shop == null || reg == null) { L("no shop/register"); Running = false; yield break; }
+            Retail.Customer.ForcedMethod = method == "card" ? 1 : 0;
+            if (string.IsNullOrEmpty(size)) yield return StockDirect(4); else yield return StockSized(size, 2);
+            var c = shop.SpawnNow();
+            float t = 0f;
+            while (c != null && c.State != Retail.Customer.Phase.AtCounter && c.State != Retail.Customer.Phase.Leaving && c.State != Retail.Customer.Phase.Done && t < 90f) { t += Time.deltaTime; yield return null; }
+            if (c == null || c.State != Retail.Customer.Phase.AtCounter || c.Wanted == null) { L($"no customer at the counter (state={(c != null ? c.State.ToString() : "gone")})"); Retail.Customer.ForcedMethod = -1; Running = false; yield break; }
+            string wantedId = c.Wanted.Id; float price = c.Wanted.Record.AskingPrice; float cashBefore = S.State.Cash;
+            L($"at counter: {c.Archetype.Name} pays by {c.Method} for {c.Wanted.Record.DisplayName} ({c.Wanted.Geology.SizeClass}) {price}");
+            yield return RouteTo(new Vector3(reg.transform.position.x - 0.85f, 0f, reg.transform.position.z + 0.15f), 0.3f);
+            D.LookAt(c.transform.position + Vector3.up * 1.3f);
+            yield return null; yield return null;
+            Snap("00_arrival");
+            yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Ring up");
+            L($"rung up: stage={reg.Stage} active={reg.Active} price={reg.Price} status='{reg.StatusLine}'");
+            int shots = 1; var stages = new List<string>();
+            float guard = 0f, busyShot = 0f;
+            while (reg.Stage != Retail.CheckoutRegister.Step.Idle && guard < 60f)
+            {
+                yield return new WaitForSeconds(0.25f); guard += 0.25f;
+                if (reg.Busy) { busyShot += 0.25f; if (busyShot >= 0.5f) { busyShot = 0f; Snap($"{shots++:00}_{reg.Stage}_busy"); } continue; }
+                busyShot = 0f;
+                stages.Add(reg.Stage.ToString());
+                L($"  step {reg.Stage}: tendered={reg.Tendered} change={reg.Change} status='{reg.StatusLine}'");
+                var cam = Camera.main;
+                L($"    cam={cam.transform.position:F2} fov={cam.fieldOfView:F0} head vp={cam.WorldToViewportPoint(c.transform.position + Vector3.up * 1.62f):F2}");
+                if (c != null) { string A(string n) { var tr = c.transform.Find(n) ?? FindDeep(c.transform, n); return tr != null ? tr.localEulerAngles.ToString("F0") : "-"; } L($"    arms L={A("ArmL")}/{A("ForearmL")} R={A("ArmR")}/{A("ForearmR")} handSide={(c.HandPoint != null ? Vector3.Dot(c.HandPoint.position - c.transform.position, c.transform.right) : 0f):F2}"); }
+                foreach (var nm in new[] { "Cash", "Change", "Card", "Bag", "Box" }) { var go = GameObject.Find(nm); if (go != null) { var v = cam.WorldToViewportPoint(go.transform.position); L($"    {nm} vp=({v.x:F2},{v.y:F2},{v.z:F2}) parent={(go.transform.parent != null ? go.transform.parent.name : "-")} pos={go.transform.position:F2}"); } }
+                Snap($"{shots++:00}_{reg.Stage}");
+                yield return new WaitForSeconds(0.2f);
+                Snap($"{shots++:00}_{reg.Stage}_b");
+                reg.Advance();
+            }
+            yield return new WaitForSeconds(0.5f);
+            Snap("99_reset");
+            var rec = S.State.FindSpecimen(wantedId);
+            L($"after: cash {cashBefore} -> {S.State.Cash} {Chk(Mathf.Approximately(S.State.Cash, cashBefore + price))} recordLoc={rec.Location} {Chk(rec.Location == SpecimenLocation.Sold)} stages={string.Join(">", stages)}");
+            // the same object walks out: the carried entity is the one that was rung up
+            t = 0f;
+            while (c != null && c.State != Retail.Customer.Phase.Done && t < 30f) { t += Time.deltaTime; yield return null; }
+            yield return null; yield return null;      // Done is set the frame the figure is destroyed
+            L($"customer gone={Chk(c == null)} entity gone={Chk(S.GetEntity(wantedId) == null)} station idle={Chk(reg.Stage == Retail.CheckoutRegister.Step.Idle)} active={reg.Active}");
+            int leftovers = 0; foreach (var go in FindObjectsByType<GameObject>(FindObjectsSortMode.None)) if (go.name == "Cash" || go.name == "Change" || go.name == "Card" || go.name == "Bag" || go.name == "Box") leftovers++;
+            L($"leftover checkout objects={leftovers} {Chk(leftovers == 0)}");
+            Retail.Customer.ForcedMethod = -1;
+            Phase = "done";
+            Running = false;
+        }
+
+        private static Transform FindDeep(Transform t, string name) { foreach (Transform ch in t) { if (ch.name == name) return ch; var d = FindDeep(ch, name); if (d != null) return d; } return null; }
+
+        /// <summary>Harness: n appraised pieces of one size class on the sale fixtures (seeds searched for the class), so a checkout round can exercise the bag, the box and the two-handed lift.</summary>
+        private IEnumerator StockSized(string size, int n)
+        {
+            var shop = Retail.RetailShop.Instance;
+            var want = (SizeClass)System.Enum.Parse(typeof(SizeClass), size, true);
+            int placed = 0;
+            for (ulong seed = 0x5100UL; seed < 0x5100UL + 6000UL && placed < n; seed += 7UL)
+            {
+                if (SpecimenGenerator.Generate(seed).SizeClass != want) continue;
+                PlacementZone free = null;
+                foreach (var z in shop.SaleSlots) if (z.gameObject.activeInHierarchy && !z.Locked && z.IsEmpty) { free = z; break; }
+                if (free == null) break;
+                var r = S.CreateSpecimenRecord(seed, "test", "");
+                r.Location = SpecimenLocation.World; r.Condition.Opened = true; r.Appraised = true;
+                r.AppraisedValue = Valuation.DamagedValue(r.Geology, 0f, 0f);
+                var e = S.Spawn(r, new Vector3(-1.5f, 0.12f, -0.55f), Quaternion.identity, false);
+                yield return null;
+                free.Place(e);
+                placed++;
+            }
+            L($"  stocked {placed} {want} -> forSale={S.State.ForSaleCount()}");
+        }
+
+        /// <summary>Walk behind the counter and ring up the customer standing at it, then run the steps.</summary>
         private IEnumerator ServeCounter(Retail.Customer c)
         {
             var reg = Find<Retail.CheckoutRegister>();
@@ -2760,7 +2845,7 @@ namespace GeodeEmpire.Core
             string what = c.Wanted.Record.DisplayName; float price = c.Wanted.Record.AskingPrice; float cashBefore = S.State.Cash;
             yield return RouteTo(new Vector3(reg.transform.position.x - 0.85f, 0f, reg.transform.position.z + 0.15f), 0.3f);
             yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Ring up");
-            yield return LookAndInteract(reg.transform.position + Vector3.up * 0.12f, "Take");
+            yield return reg.CompleteFromHere(0.2f);
             yield return new WaitForSeconds(0.3f);
             if (S.State.Cash > cashBefore) L($"  served {c.Archetype.Name}: {what} for {price}: cash {cashBefore} -> {S.State.Cash}");
             else L($"  SALE FAILED for {c.Archetype.Name}: {what} for {price} (cash unchanged at {S.State.Cash}, prompt='{P.Prompt}')");

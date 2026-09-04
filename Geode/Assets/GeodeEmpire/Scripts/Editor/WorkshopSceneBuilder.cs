@@ -63,6 +63,18 @@ namespace GeodeEmpire.EditorTools
             Lit("M_Trousers", null, new Color(1f, 1f, 1f), 1f, 0f, 3f, set: "canvas", bump: 0.7f).SetTexture("_BaseMap", null);
             Lit("M_Skin", null, new Color(1f, 1f, 1f), 0.32f, 0f, 1f);
             Lit("M_Hair", null, new Color(1f, 1f, 1f), 0.38f, 0f, 1f);
+            // V6 checkout hardware and packaging
+            Lit("M_ReaderBody", null, new Color(0.12f, 0.12f, 0.13f), 0.55f, 0.05f, 1f);
+            Lit("M_SlotDark", null, new Color(0.02f, 0.02f, 0.02f), 0.3f, 0f, 1f);
+            Lit("M_CardBlue", null, new Color(0.16f, 0.32f, 0.62f), 0.78f, 0.1f, 1f);
+            Lit("M_Chip", null, new Color(0.85f, 0.7f, 0.35f), 0.8f, 0.9f, 1f);
+            Lit("M_Stripe", null, new Color(0.08f, 0.08f, 0.09f), 0.4f, 0f, 1f);
+            Lit("M_Note", null, new Color(0.6f, 0.65f, 0.54f), 0.25f, 0f, 1f);
+            Lit("M_NoteBand", null, new Color(0.9f, 0.88f, 0.8f), 0.3f, 0f, 1f);
+            Lit("M_Coin", null, new Color(0.75f, 0.68f, 0.5f), 0.7f, 0.9f, 1f);
+            Lit("M_Kraft", null, new Color(0.72f, 0.6f, 0.42f), 1f, 0f, 2f, set: "cardboard", bump: 0.6f);
+            Lit("M_BoxWhite", null, new Color(0.92f, 0.9f, 0.86f), 0.35f, 0f, 1f);
+            Lit("M_Tissue", null, new Color(0.96f, 0.94f, 0.9f), 0.2f, 0f, 1f);
             Lit("M_ShadeInner", null, new Color(0.95f, 0.93f, 0.88f), 0.45f, 0f, 1f, emission: new Color(0.9f, 0.72f, 0.5f));
             Lit("M_JarGlass", null, new Color(0.8f, 0.85f, 0.8f, 0.35f), 0.9f, 0f, 1f);
             Lit("M_Cream", null, new Color(0.88f, 0.86f, 0.8f), 0.25f, 0f, 1f);
@@ -1208,12 +1220,37 @@ namespace GeodeEmpire.EditorTools
             // counter set into the partition: cashier on the workshop side, customers on the shop side
             var counter = Prop("prop_counter", shop, new Vector3(PartitionX, 0f, -1.0f), -90f, "M_WoodDark,M_CounterPaint");
             var register = Prop("prop_register", shop, new Vector3(PartitionX - 0.1f, 0.95f, -1.42f), 90f, "M_Register,M_Screen,M_PlasticDark", collider: true);
-            var drawer = Prop("prop_register_drawer", register.transform, new Vector3(0f, 0.012f, 0.16f), 0f, "M_MetalDark,M_PlasticDark,M_PlasticDark", collider: false);
+            var drawer = Prop("prop_register_drawer", register.transform, new Vector3(0f, 0.012f, 0.16f), 0f, "M_MetalDark,M_PlasticDark,M_PlasticDark,M_Note,M_Coin", collider: false);
             var reg = register.AddComponent<CheckoutRegister>();
             reg.Shop = rs;
             reg.Drawer = drawer.transform;
             foreach (var mr in register.GetComponentsInChildren<MeshRenderer>()) if (mr.gameObject == register) reg.Screen = mr;
             reg.SetHighlightRenderers(register.GetComponentsInChildren<Renderer>());
+            // V6 checkout station: the card reader on the counter, the points the transaction moves things between,
+            // the counter camera, the packaging prefabs and the screens' text
+            var reader = Prop("prop_card_reader", shop, new Vector3(PartitionX + 0.15f, 0.95f, -1.2f), -90f, "M_ReaderBody,M_Screen,M_PlasticDark,M_SlotDark", collider: false);
+            foreach (var mr in reader.GetComponentsInChildren<MeshRenderer>()) if (mr.gameObject == reader) reg.ReaderScreen = mr;
+            Transform Point(string name, Transform parent, Vector3 local, Vector3 euler) { var t = new GameObject(name).transform; t.SetParent(parent, false); t.localPosition = local; t.localRotation = Quaternion.Euler(euler); return t; }
+            reg.ReaderSlot = Point("ReaderSlot", reader.transform, new Vector3(0f, 0.0475f, -0.074f), new Vector3(0f, 90f, 0f));   // card lengthwise in the slot, 3 cm proud of the front
+            reg.ReaderLabelPoint = Point("ReaderLabel", reader.transform, new Vector3(0f, 0.102f, 0.0625f), new Vector3(71.6f, 0f, 0f));   // on the sloped display, read from the customer's side
+            reg.RegisterLabelPoint = Point("RegisterLabel", register.transform, new Vector3(0f, 0.265f, 0.080f), Vector3.zero);   // a millimetre in front of the screen face, read from the cashier's side
+            reg.TenderPoint = Point("TenderPoint", shop, new Vector3(PartitionX + 0.1f, 0.952f, -1.05f), new Vector3(0f, 90f, 0f));
+            reg.HandoffMid = Point("HandoffMid", shop, new Vector3(PartitionX + 0.3f, 1.0f, -0.75f), new Vector3(0f, 90f, 0f));
+            reg.DrawerNotes = Point("DrawerNotes", drawer.transform, new Vector3(0f, 0.03f, -0.24f), Vector3.zero);
+            reg.DrawerChange = Point("DrawerChange", drawer.transform, new Vector3(0.09f, 0.03f, -0.24f), Vector3.zero);
+            var checkoutCam = Point("CheckoutCamera", shop, new Vector3(PartitionX - 1.35f, 1.8f, -1.25f), Vector3.zero);
+            checkoutCam.rotation = Quaternion.LookRotation((shop.TransformPoint(new Vector3(PartitionX + 0.2f, 1.12f, -1.05f)) - checkoutCam.position).normalized, Vector3.up);
+            reg.CameraAnchor = checkoutCam;
+            reg.PlayerHand = Point("PlayerHand", checkoutCam, new Vector3(0.12f, -0.16f, 0.48f), Vector3.zero);
+            reg.CardPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/GeodeEmpire/Models/Props/prop_bank_card.fbx");
+            reg.NotesPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/GeodeEmpire/Models/Props/prop_banknotes.fbx");
+            reg.BagPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/GeodeEmpire/Models/Props/prop_paper_bag.fbx");
+            reg.BoxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/GeodeEmpire/Models/Props/prop_gift_box.fbx");
+            reg.CardMaterials = new[] { WorkshopMaterials.Get("M_CardBlue"), WorkshopMaterials.Get("M_Chip"), WorkshopMaterials.Get("M_Stripe") };
+            reg.NotesMaterials = new[] { WorkshopMaterials.Get("M_Note"), WorkshopMaterials.Get("M_NoteBand") };
+            reg.BagMaterials = new[] { WorkshopMaterials.Get("M_Kraft") };
+            reg.BoxMaterials = new[] { WorkshopMaterials.Get("M_BoxWhite"), WorkshopMaterials.Get("M_Tissue") };
+            reg.LabelFont = rs.LabelFont; reg.LabelMaterial = rs.LabelMaterial;
             var itemPoint = new GameObject("CounterItemPoint").transform; itemPoint.SetParent(shop, false); itemPoint.localPosition = new Vector3(PartitionX + 0.04f, 0.95f, -0.72f); rs.CounterItemPoint = itemPoint;
             var custPoint = new GameObject("CounterCustomerPoint").transform; custPoint.SetParent(shop, false); custPoint.localPosition = new Vector3(3.35f, 0f, -0.85f); rs.CounterCustomerPoint = custPoint;
             foreach (var qx in new[] { 4.0f, 4.65f, 5.3f })
