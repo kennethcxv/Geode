@@ -110,6 +110,45 @@ namespace GeodeEmpire.Cracking
         /// <summary>The bench clamp (upgrade) is closed by the player each time a rock is set: only then does it hold.</summary>
         public bool ClampOwned => GameSession.Instance != null && GameSession.Instance.State != null && UpgradeCatalog.Has(GameSession.Instance.State, UpgradeCatalog.BenchClamp);
         public bool ClampClosed { get; private set; }
+        /// <summary>A wooden wedge pushed under the low side (V5 §13 support pad): a rocking rock stands firm enough to work.</summary>
+        public bool Shimmed { get; private set; }
+        public Material ShimMaterial;
+        private Transform _shim;
+
+        public void PlaceShim()
+        {
+            if (_rock == null || Shimmed) return;
+            Shimmed = true;
+            if (_shim == null)
+            {
+                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.name = "Shim";
+                Destroy(go.GetComponent<Collider>());
+                go.transform.SetParent(transform, true);
+                go.transform.localScale = new Vector3(0.07f, 0.022f, 0.045f);
+                var mr = go.GetComponent<MeshRenderer>();
+                if (ShimMaterial != null) mr.sharedMaterial = ShimMaterial;
+                _shim = go.transform;
+            }
+            // under the side the rock leans away from: opposite its hull centre, on the ring
+            var rend = _rock.GetComponentInChildren<Renderer>();
+            Vector3 centre = rend != null ? rend.bounds.center : _rock.transform.position;
+            Vector3 off = centre - CradleCenter.position; off.y = 0f;
+            if (off.sqrMagnitude < 1e-4f) off = -CradleCenter.forward;
+            Vector3 dir = -off.normalized;
+            float ring = HasHeavyCradle ? 0.14f : 0.085f;
+            _shim.position = CradleCenter.position + dir * ring * 0.95f + Vector3.up * 0.012f;
+            _shim.rotation = Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(-12f, 0f, 0f);
+            _shim.gameObject.SetActive(true);
+            WorkshopAudio.Play("wood_knock", _shim.position, 0.5f, 1.15f);
+            UpdateSeat();
+        }
+
+        private void ClearShim()
+        {
+            Shimmed = false;
+            if (_shim != null) _shim.gameObject.SetActive(false);
+        }
 
         public void CloseClamp()
         {
@@ -455,6 +494,7 @@ namespace GeodeEmpire.Cracking
             bool heavy = HasHeavyCradle;
             _rock.SupportProfile(_rock.transform.rotation, Workshop.Preparation.RingContactHeight, out float h, out float w);
             Stability = Workshop.Preparation.Stability(h, w, _rock.Radius, heavy ? 0.14f : 0.085f, g.SizeClass == SizeClass.Oversized && !heavy, ClampClosed);
+            if (Shimmed) Stability = Mathf.Max(Stability, 0.82f);   // the wedge takes the rock
             _model.Stability = Stability;
         }
 
@@ -468,6 +508,7 @@ namespace GeodeEmpire.Cracking
             if (TraceExits) { LastExitReason = new System.Diagnostics.StackTrace(1, false).ToString(); Debug.Log("[CrackingBench] Exit\n" + LastExitReason); }
             CursorController.MarkInputConsumed();   // the Back press that leaves the bench must not also pause
             Active = false;
+            ClearShim();
             if (_controller != null) _controller.ExitStationView();
             if (_player != null) _player.InputLocked = false;
             RestTools();
@@ -509,6 +550,7 @@ namespace GeodeEmpire.Cracking
 
             if (GameInput.BackPressed && !_swinging) { Exit(); return; }
             if (GameInput.InteractPressed && !_swinging && !_charging && ClampOwned && !ClampClosed) CloseClamp();
+            if (GameInput.DropPressed && !_swinging && !_charging && !Shimmed && Stability < 0.75f) PlaceShim();
 
             // rotate the rock on the cradle
             float rot = GameInput.Rotate * 95f * dt + GameInput.Scroll.y * 0.12f;

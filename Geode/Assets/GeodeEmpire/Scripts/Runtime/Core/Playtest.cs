@@ -764,6 +764,11 @@ namespace GeodeEmpire.Core
             yield return D.Tap(Key.G, 0.08f); yield return new WaitForSeconds(0.25f);
             yield return D.Tap(Key.G, 0.08f); yield return new WaitForSeconds(0.25f);
             L($"called: predicted={r.Predicted} hollow={r.PredictedHollow} tier={r.PredictedTier} prompt='{P.Prompt}' held={(P.Held != null)}");
+            // the tap: knock on the shell while inspecting, read the grade (a thick shell or clay can mislead it)
+            D.SetMouseButton(1, true); yield return new WaitForSeconds(0.3f);
+            yield return D.ClickHold(0, 0.08f); yield return new WaitForSeconds(0.4f);
+            L($"tap: shell={P.Held.Geology.ShellThickness:F2} cavity={P.Held.Geology.CavityFraction:F2} dirt={(P.Held.Visual != null ? P.Held.Visual.DirtRemaining : 0f):F2} prompt='{P.Prompt}'");
+            D.SetMouseButton(1, false); yield return new WaitForSeconds(0.2f);
             Snap("call_inspect");
             D.SetMouseButton(1, false); yield return new WaitForSeconds(0.3f);
             if (P.Held == null) { L("the call dropped the rock!"); Running = false; yield break; }
@@ -975,6 +980,12 @@ namespace GeodeEmpire.Core
             L($"tilt S: seat={bench.Stability:F2} tilt={bench.TiltAngle:F0}");
             D.KeyDown(Key.A); yield return new WaitForSeconds(0.3f); D.KeyUp(); yield return null;
             L($"tilt A: seat={bench.Stability:F2} tilt={bench.TiltAngle:F0}");
+            // the support pad: a shim under the low side takes a rocking rock to a workable seat (forced here: this rock may already sit firm)
+            float seatBefore = bench.Stability;
+            bench.PlaceShim();
+            yield return new WaitForSeconds(0.3f);
+            L($"shim: seat {seatBefore:F2} -> {bench.Stability:F2} shimmed={bench.Shimmed} wedge={(GameObject.Find("Shim") != null && GameObject.Find("Shim").activeInHierarchy)}");
+            Snap("prep_shimmed");
             L(Core.CollisionAudit.Report("tilted on cradle"));
             // 3. leave with the rock, wash it, come back
             if (bench.Active) { if (UseGamepad) yield return D.PadTap(GamepadButton.East, 0.1f); else yield return D.Tap(Key.Escape, 0.1f); }

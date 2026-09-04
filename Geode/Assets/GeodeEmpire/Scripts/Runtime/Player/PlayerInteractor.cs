@@ -174,12 +174,19 @@ namespace GeodeEmpire.Player
         {
             var g = Held.Geology;
             float hollow = Mathf.InverseLerp(0.15f, 0.85f, g.CavityFraction);
-            int bank = hollow < 0.33f ? 0 : hollow < 0.66f ? 1 : 2;
-            float pitch = Mathf.Lerp(1.25f, 0.75f, Mathf.InverseLerp(0.035f, 0.165f, g.Size));
-            GeodeEmpire.Audio.WorkshopAudio.Play("knock_" + bank, Held.transform.position, 0.8f, pitch);
-            Haptics.Pulse(0.15f, 0.05f, 0.05f);
+            // what the ear actually gets (V5 §47): a thick shell muffles a cavity, clay deadens the whole rock, so the
+            // tap can mislead; the four grades are dense thud, muted response, slight resonance, clear hollow ring
+            float thick = Mathf.InverseLerp(0.18f, 0.30f, g.ShellThickness);
+            float dirt = Held.Visual != null ? Mathf.Clamp01(Held.Visual.DirtRemaining) : 0f;
+            float heard = hollow * (1f - 0.45f * thick) * (1f - 0.35f * dirt);
+            int grade = heard < 0.2f ? 0 : heard < 0.45f ? 1 : heard < 0.7f ? 2 : 3;
+            int bank = grade == 0 ? 0 : grade == 3 ? 2 : 1;
+            float pitch = Mathf.Lerp(1.25f, 0.75f, Mathf.InverseLerp(0.035f, 0.165f, g.Size)) * (grade == 2 ? 1.06f : 1f);
+            GeodeEmpire.Audio.WorkshopAudio.Play("knock_" + bank, Held.transform.position, grade == 0 ? 0.9f : 0.8f, pitch);
+            Haptics.Pulse(grade == 0 ? 0.22f : 0.15f, 0.05f, 0.05f);
             _tapKick = 1f;
-            _tapNote = bank == 2 ? "Rings hollow" : bank == 1 ? "Dull ring: some cavity" : "Thuds solid";
+            _tapNote = grade switch { 0 => "Dense thud", 1 => "Muted response", 2 => "Slight resonance", _ => "Clear hollow ring" };
+            if (dirt > 0.35f && grade < 3) _tapNote += " (through the clay)";
             GeodeEmpire.Workshop.Tutorial.Notify("tapped");
             RefreshPrompt();
         }
@@ -226,6 +233,7 @@ namespace GeodeEmpire.Player
             float dirtLeft = e.Visual != null ? e.Visual.DirtRemaining : 0f;
             string dirt = dirtLeft > 0.35f ? "caked in clay" : dirtLeft > 0.08f ? "dusty" : "clean";
             string reading = $"{SpecimenGeology.SizeWord(g.SizeClass)} rock, {weight}, {dirt}";
+            if (e.Record != null && !string.IsNullOrEmpty(e.Record.Locality)) reading += $"  •  from {e.Record.Locality}";
             // a clean shell shows its seam, chips, staining and any mineral showing through
             if (dirtLeft <= 0.1f)
             {

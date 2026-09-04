@@ -150,6 +150,7 @@ namespace GeodeEmpire.UI
             else if (_bench.Charge >= CrackingBench.ForceFirm) state = 2;
             else if (_bench.Charge > 0.02f) state = 3;
             else if (_bench.Cleanliness < 0.5f) state = 12;
+            else if (_bench.Stability < 0.75f && !_bench.Shimmed && !_bench.ClampClosed) state = 15;
             else if (_bench.ClampOwned && !_bench.ClampClosed) state = 14;
             else if (_bench.ChipSector >= 0 && _bench.AimSector == _bench.ChipSector && !_bench.Model.IsCracked(_bench.ChipSector)) state = 11;
             else if (_bench.Placement < 0.5f) state = 7;
@@ -172,6 +173,7 @@ namespace GeodeEmpire.UI
                     12 => "Caked in clay: the seam is hidden. Wash it first, or work round the middle by eye.",
                     13 => $"It shifted on the cradle and the blow lost energy. Seat it firmer: {GameInput.Glyph("Move")} tilts the rock.",
                     14 => $"Close the bench clamp [{GameInput.Glyph("Interact")}] once the rock sits how you want it: it holds the shell firm.",
+                    15 => $"It rocks on the cradle: {GameInput.Glyph("Move")} tilts it onto a flatter face, [{GameInput.Glyph("Drop")}] wedges a shim under the low side.",
                     // damage, and why
                     20 + (int)StressModel.Cause.Heavy => "Something broke inside: that blow was too heavy for this shell.",
                     20 + (int)StressModel.Cause.OffSeam => "Something broke inside: off the seam, the shock goes into the cavity instead of the ring.",

@@ -25,7 +25,11 @@ namespace GeodeEmpire.Core
             bc._path = path;
             bc._delay = float.TryParse(Arg(args, "-geode-delay"), out var d) ? d : 6f;
             bc._continue = Array.IndexOf(args, "-geode-continue") >= 0;
+            bc._newGame = Array.IndexOf(args, "-geode-new") >= 0;
             bc._quit = Array.IndexOf(args, "-geode-quit") >= 0;
+            bc._run = Arg(args, "-geode-run");
+            bc._log = Arg(args, "-geode-log");
+            bc._wait = float.TryParse(Arg(args, "-geode-wait"), out var w) ? w : 300f;
         }
 
         private static string Arg(string[] args, string key)
@@ -36,7 +40,9 @@ namespace GeodeEmpire.Core
 
         private string _path;
         private float _delay;
-        private bool _continue, _quit;
+        private bool _continue, _quit, _newGame;
+        private string _run, _log;
+        private float _wait;
 
         private IEnumerator Start()
         {
@@ -45,6 +51,25 @@ namespace GeodeEmpire.Core
             {
                 GameSession.PendingStart = SessionStartMode.Continue;
                 SceneManager.LoadScene("Workshop");
+            }
+            else if (_newGame)
+            {
+                GameSession.PendingStart = SessionStartMode.NewGame;
+                SceneManager.LoadScene("Workshop");
+            }
+            // `-geode-run <RunMethod>`: a parameterless Playtest routine runs in the built player; its log lands at `-geode-log <path>`
+            if (!string.IsNullOrEmpty(_run))
+            {
+                yield return new WaitForSecondsRealtime(5f);
+                var pt = Playtest.Get();
+                pt.SnapDir = Path.Combine(Path.GetDirectoryName(_path) ?? ".", "run");
+                var method = typeof(Playtest).GetMethod(_run);
+                if (method != null && method.GetParameters().Length == 0) method.Invoke(pt, null);
+                else Debug.LogWarning($"[BootCapture] no parameterless Playtest.{_run}");
+                float t = 0f;
+                yield return new WaitForSecondsRealtime(2f);
+                while (pt.Running && t < _wait) { t += 0.5f; yield return new WaitForSecondsRealtime(0.5f); }
+                if (!string.IsNullOrEmpty(_log)) File.WriteAllText(_log, pt.Dump() + (pt.Running ? "\n[BootCapture] TIMEOUT\n" : "\n[BootCapture] routine finished\n"));
             }
             yield return new WaitForSecondsRealtime(_delay);
             string dir = Path.GetDirectoryName(_path);

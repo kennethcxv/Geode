@@ -732,6 +732,7 @@ namespace GeodeEmpire.EditorTools
             var heavyCradle = Prop("prop_heavy_cradle", bench, new Vector3(0.25f, 0.9f, -0.05f), 0f, "M_MetalDark,M_Leather,M_Rubber", collider: true);
             heavyCradle.SetActive(false);
             var cb = bench.gameObject.AddComponent<CrackingBench>();
+            cb.ShimMaterial = WorkshopMaterials.Get("M_Wood");
             cb.Cradle = cradleZone;
             cb.CradleCenter = cradleAnchor;
             cb.CradleVisual = cradleProp;
@@ -1140,7 +1141,8 @@ namespace GeodeEmpire.EditorTools
                     pl.shadows = LightShadows.None;
                 }
             // island table: four more, unlocked by the Showroom Island Table upgrade
-            var table = Prop("prop_shop_table", shop, new Vector3(4.75f, 0f, 0.7f), 0f, "M_WoodDark,M_Felt");
+            // a quarter metre west of the case so a browser at the table's east end and one at the case's south end never share a capsule (retail stress collision loops)
+            var table = Prop("prop_shop_table", shop, new Vector3(4.5f, 0f, 0.7f), 0f, "M_WoodDark,M_Felt");
             foreach (var lp in new[] { new Vector3(-0.4f, 0f, -0.215f), new Vector3(0.4f, 0f, -0.215f), new Vector3(-0.4f, 0f, 0.215f), new Vector3(0.4f, 0f, 0.215f) })
             {
                 float side = Mathf.Sign(lp.z);

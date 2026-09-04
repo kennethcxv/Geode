@@ -22,7 +22,7 @@ namespace GeodeEmpire.UI
             _card = UiKit.Box(root, "card", "appraisal-card");
             _card.style.position = Position.Absolute;
             _card.style.right = 40;
-            _card.style.top = Length.Percent(22);
+            _card.style.top = Length.Percent(12);   // high enough that a tall card (records, certification, auction hint) clears the tutorial card on 3:2 screens
             _name = UiKit.Label(_card, "", "appraisal-name", "bold");
             _mineral = UiKit.Label(_card, "", "appraisal-line", "muted");
             _size = UiKit.Label(_card, "", "appraisal-line");

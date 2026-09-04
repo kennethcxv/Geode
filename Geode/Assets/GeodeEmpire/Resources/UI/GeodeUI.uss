@@ -39,7 +39,7 @@
 .cash-value { font-size: 30px; color: rgb(226, 178, 96); }
 .cash-delta { font-size: 18px; margin-left: 12px; }
 
-.tutorial { position: absolute; left: 50%; bottom: 40px; translate: -50% 0; max-width: 860px; -unity-text-align: middle-center; font-size: 20px; padding: 14px 24px; border-left-width: 3px; border-left-color: rgb(226, 178, 96); }
+.tutorial { position: absolute; left: 50%; bottom: 28px; translate: -50% 0; max-width: 860px; -unity-text-align: middle-center; font-size: 20px; padding: 14px 24px; border-left-width: 3px; border-left-color: rgb(226, 178, 96); }
 
 .notify-stack { position: absolute; right: 28px; top: 24px; align-items: flex-end; }
 .notify { margin-bottom: 8px; font-size: 17px; max-width: 480px; padding: 10px 16px; }
@@ -96,7 +96,7 @@
 
 .appraisal-card { width: 520px; }
 .appraisal-name { font-size: 32px; }
-.appraisal-line { font-size: 17px; margin-top: 3px; }
+.appraisal-line { font-size: 17px; margin-top: 2px; }
 .appraisal-value { font-size: 40px; color: rgb(226,178,96); margin-top: 6px; }
 .appraisal-record { font-size: 16px; color: rgb(156,212,146); margin-top: 6px; letter-spacing: 1px; }
 
