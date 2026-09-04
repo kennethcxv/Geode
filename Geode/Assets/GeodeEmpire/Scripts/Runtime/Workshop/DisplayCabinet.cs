@@ -37,8 +37,9 @@ namespace GeodeEmpire.Workshop
             if (session != null)
             {
                 session.Loaded += RefreshCapacity;
+                session.Loaded += SnapshotGoals;
                 session.StateChanged += RefreshCapacity;
-                if (session.State != null) RefreshCapacity();
+                if (session.State != null) { RefreshCapacity(); SnapshotGoals(); }
             }
         }
 
@@ -66,6 +67,34 @@ namespace GeodeEmpire.Workshop
             }
         }
 
+        private readonly HashSet<string> _doneGoals = new HashSet<string>();
+
+        private void SnapshotGoals()
+        {
+            _doneGoals.Clear();
+            var s = GameSession.Instance != null ? GameSession.Instance.State : null;
+            if (s == null) return;
+            foreach (var g in CollectionGoals.All) if (g.Done(s)) _doneGoals.Add(g.Id);
+        }
+
+        /// <summary>V5 §71: a goal met is announced; the goal one piece away is named, so the next rock has a reason.</summary>
+        private void NoteGoals(GameSession session)
+        {
+            var s = session.State;
+            foreach (var g in CollectionGoals.All)
+            {
+                if (!g.Done(s) || _doneGoals.Contains(g.Id)) continue;
+                _doneGoals.Add(g.Id);
+                session.Notify($"Collection goal met: {g.Title}", NotificationKind.Discovery);
+            }
+            var near = CollectionGoals.NearestGoal(s);
+            if (near != null)
+            {
+                var p = near.Progress(s);
+                if (p.need > 1 && p.have == p.need - 1) session.Notify($"One more for {near.Title.ToLowerInvariant()}", NotificationKind.Info);
+            }
+        }
+
         private void OnPlaced(PlacementZone z, SpecimenEntity e)
         {
             var session = GameSession.Instance;
@@ -78,6 +107,7 @@ namespace GeodeEmpire.Workshop
             Tutorial.Notify("specimen_sorted");
             foreach (var id in SupplierCatalog.EvaluateUnlocks(session.State))
                 session.Notify($"New supplier available: {SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
+            NoteGoals(session);
             UpdateLabel(z);
             session.RaiseStateChanged();
             session.FlushSave("displayed");

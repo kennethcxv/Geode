@@ -34,18 +34,9 @@ namespace GeodeEmpire.Economy
 
             var mineralCounts = new Dictionary<MineralId, int>();
             var sizeWeights = sup.SizeWeights ?? SpecimenGenerator.NeutralSizeWeights;
-            for (int i = 0; i < count; i++)
+            var picks = new List<(ulong seed, SpecimenGeology geo)>(count);
+            (ulong seed, SpecimenGeology geo) Choose(QualityTier target, SizeClass sizeTarget, bool wantPreferred, bool wantCavity)
             {
-                var target = targets[i];
-                // the source's physical size mix, and the teaching crate keeps its first rock hand-sized
-                var sizeTarget = (SizeClass)rng.PickWeighted(sizeWeights);
-                // the teaching crate keeps its first rock and its good pieces hand-sized: a fist-sized cavity to learn on
-                if (state.CrateCounter == 1 && (i == 0 || target >= QualityTier.Good)) sizeTarget = SizeClass.Medium;
-                ulong chosen = 0;
-                SpecimenGeology chosenGeo = null;
-                // a focused source draws most of its rocks from its preferred families
-                bool wantPreferred = sup.PreferredMinerals != null && sup.PreferredMinerals.Length > 0 && rng.Chance(sup.PreferredShare);
-                bool wantCavity = sup.PreferredCavities != null && sup.PreferredCavities.Length > 0 && rng.Chance(sup.CavityShare);
                 for (int attempt = 0; attempt < MaxAttemptsPerRock; attempt++)
                 {
                     ulong seed = rng.NextULong();
@@ -62,16 +53,44 @@ namespace GeodeEmpire.Economy
                     int limit = state.CrateCounter == 1 ? 2 : 3;
                     if (wantPreferred) limit = 12;   // a focused lot is allowed to repeat its mineral
                     if (have >= limit && attempt < MaxAttemptsPerRock - 20) continue;
-                    chosen = seed;
-                    chosenGeo = g;
-                    break;
+                    return (seed, g);
                 }
-                if (chosenGeo == null)
+                ulong fallback = rng.NextULong();
+                return (fallback, SpecimenGenerator.Generate(fallback));
+            }
+            for (int i = 0; i < count; i++)
+            {
+                var target = targets[i];
+                // the source's physical size mix, and the teaching crate keeps its first rock hand-sized
+                var sizeTarget = (SizeClass)rng.PickWeighted(sizeWeights);
+                // the teaching crate keeps its first rock and its good pieces hand-sized: a fist-sized cavity to learn on
+                if (state.CrateCounter == 1 && (i == 0 || target >= QualityTier.Good)) sizeTarget = SizeClass.Medium;
+                // a focused source draws most of its rocks from its preferred families
+                bool wantPreferred = sup.PreferredMinerals != null && sup.PreferredMinerals.Length > 0 && rng.Chance(sup.PreferredShare);
+                bool wantCavity = sup.PreferredCavities != null && sup.PreferredCavities.Length > 0 && rng.Chance(sup.CavityShare);
+                var pick = Choose(target, sizeTarget, wantPreferred, wantCavity);
+                mineralCounts[pick.geo.Mineral] = mineralCounts.GetValueOrDefault(pick.geo.Mineral) + 1;
+                picks.Add(pick);
+            }
+            // the quarry sells by weight: a mixed crate is never a dead loss (V5 §68, no softlocks). A crate that comes in
+            // under its floor at dealer prices trades its poorest rock for a decent one until it clears.
+            if (sup.FloorFactor > 0f)
+            {
+                float floor = sup.Price * sup.FloorFactor;
+                float Total() { float v = 0f; foreach (var pk in picks) v += Valuation.DamagedValue(pk.geo, 0.05f, 0f); return v; }
+                for (int pass = 0; pass < 5 && Total() < floor; pass++)
                 {
-                    chosen = rng.NextULong();
-                    chosenGeo = SpecimenGenerator.Generate(chosen);
+                    int lowest = 0; float lowV = float.MaxValue;
+                    for (int i = 0; i < picks.Count; i++) { float v = Valuation.DamagedValue(picks[i].geo, 0.05f, 0f); if (v < lowV) { lowV = v; lowest = i; } }
+                    var up = picks[lowest].geo.Tier >= QualityTier.Decent ? QualityTier.Good : QualityTier.Decent;
+                    mineralCounts[picks[lowest].geo.Mineral] = Mathf.Max(0, mineralCounts.GetValueOrDefault(picks[lowest].geo.Mineral) - 1);
+                    var pick = Choose(up, (SizeClass)rng.PickWeighted(sizeWeights), false, false);
+                    mineralCounts[pick.geo.Mineral] = mineralCounts.GetValueOrDefault(pick.geo.Mineral) + 1;
+                    picks[lowest] = pick;
                 }
-                mineralCounts[chosenGeo.Mineral] = mineralCounts.GetValueOrDefault(chosenGeo.Mineral) + 1;
+            }
+            foreach (var (chosen, chosenGeo) in picks)
+            {
                 var rec = createRecord(chosen, sup.Id, crate.Id);
                 rec.Locality = crate.Locality;
                 rec.AcquiredAtTicks = System.DateTime.UtcNow.Ticks;

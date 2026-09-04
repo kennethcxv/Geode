@@ -49,7 +49,10 @@ namespace GeodeEmpire.Economy
         public static int DoneCount(GameState s) { int n = 0; foreach (var g in All) if (g.Done(s)) n++; return n; }
 
         /// <summary>The nearest unmet goal, as a hint after a rock: what the collection is missing.</summary>
-        public static string NearestGap(GameState s)
+        public static string NearestGap(GameState s) { var g = NearestGoal(s); return g != null ? g.Title.ToLowerInvariant() : ""; }
+
+        /// <summary>The unmet goal with the most of its progress made.</summary>
+        public static Goal NearestGoal(GameState s)
         {
             Goal best = null; float bestFrac = -1f;
             foreach (var g in All)
@@ -59,7 +62,7 @@ namespace GeodeEmpire.Economy
                 float frac = p.need > 0 ? p.have / (float)p.need : 0f;
                 if (frac > bestFrac) { bestFrac = frac; best = g; }
             }
-            return best != null ? best.Title.ToLowerInvariant() : "";
+            return best;
         }
     }
 }

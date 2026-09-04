@@ -503,7 +503,7 @@ namespace GeodeEmpire.Core
             if (!string.IsNullOrEmpty(up.Requires) && !State.HasUpgrade(up.Requires)) { reason = "Needs the " + Economy.UpgradeCatalog.Get(up.Requires).Name; return false; }
             if (up.Consumable && upgradeId == Economy.UpgradeCatalog.SawBlade && State.BladeWear < 0.2f) { reason = "Blade still sharp"; return false; }
             if (upgradeId == Economy.UpgradeCatalog.Stage3 && Economy.Reputation.Tier(State) < 3) { reason = $"Needs a respected name ({Economy.Reputation.Word(State).ToLowerInvariant()} now)"; return false; }
-            if (!CanAfford(up.Price)) { reason = "Not enough cash"; return false; }
+            if (!CanAfford(up.Price)) { reason = $"{UI.UiKit.Money(up.Price - State.Cash)} more"; return false; }
             float cheapest = Economy.SupplierCatalog.Get(Economy.SupplierCatalog.Local).Price;
             if (State.Cash - up.Price < cheapest && !HasProcessableMaterial()) { reason = $"Keep {UI.UiKit.Money(cheapest)} for a crate"; return false; }
             return true;

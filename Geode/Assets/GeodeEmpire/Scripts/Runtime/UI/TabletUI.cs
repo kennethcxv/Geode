@@ -253,7 +253,7 @@ namespace GeodeEmpire.UI
                 if (unlocked)
                 {
                     bool afford = _s.CanAfford(sup.Price);
-                    var buy = UiKit.Button(side, afford ? "Order crate" : "Not enough cash", () => Buy(sup), afford ? "btn-primary" : "");
+                    var buy = UiKit.Button(side, afford ? "Order crate" : $"{UiKit.Money(sup.Price - st.Cash)} more", () => Buy(sup), afford ? "btn-primary" : "");
                     buy.style.marginTop = 8;
                     buy.SetEnabled(afford && pallet < 4);
                 }
