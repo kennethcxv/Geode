@@ -278,6 +278,9 @@ namespace GeodeEmpire.Retail
         {
             _customers.Remove(c);
             ReleaseBrowse(c);
+            // whoever leaves the shop leaves the line, however they left: a queue holding a departed shopper leaves
+            // the next one standing at position 1 forever, and the counter never sees them
+            LeaveQueue(c);
             if (AtCounter == c) AtCounter = null;
             RefreshLabels();
             Changed?.Invoke();

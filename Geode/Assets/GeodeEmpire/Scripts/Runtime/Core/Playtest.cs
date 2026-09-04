@@ -2455,6 +2455,7 @@ namespace GeodeEmpire.Core
             // 1. stock three slots directly (the walking path is covered by RetailCycle)
             var stock = new List<SpecimenEntity>();
             foreach (var e in s.Entities.Values) if (e.IsOpened && e.Record.Appraised && e.Record.Location == SpecimenLocation.World) stock.Add(e);
+            if (stock.Count == 0) { yield return StockDirect(3); }   // a fresh career has nothing lying about to shelve
             int placed = 0;
             foreach (var e in stock)
             {
@@ -2470,7 +2471,7 @@ namespace GeodeEmpire.Core
             var ids = new List<string>(); var prices = new Dictionary<string, float>();
             foreach (var z in shop.SaleSlots) { var e = z.First; if (e != null) { ids.Add(e.Id); prices[e.Id] = e.Record.AskingPrice; } }
             L($"stocked {placed}: forSale={s.State.ForSaleCount()} prices=[{string.Join(",", prices.Values)}]");
-            L($"  prices set: {Chk(placed > 0 && prices.Values.All(p => p > 0f))}");
+            L($"  prices set: {Chk(prices.Count > 0 && prices.Values.All(p => p > 0f))}");
             s.FlushSave("test");
             s.ContinueGame();
             yield return null;
@@ -2516,6 +2517,10 @@ namespace GeodeEmpire.Core
                 int salesBefore = s.State.Stats.RetailSales;
                 station2.Enter();
                 yield return station2.CompleteFromHere(0.1f);
+                // the piece leaves with the buyer, so wait for them out of the shop before asking whether it is gone
+                float outWait = 0f;
+                while (c != null && c.State != Retail.Customer.Phase.Done && outWait < 25f) { outWait += Time.deltaTime; yield return null; }
+                yield return null; yield return null;
                 bool again = shop.CompleteSale(c);
                 var rec = s.State.FindSpecimen(soldId);
                 L($"sold {soldId} for {price}: cash {cashBefore}->{s.State.Cash} {Chk(Mathf.Approximately(s.State.Cash, cashBefore + price))} loc={rec.Location} {Chk(rec.Location == SpecimenLocation.Sold)} entityGone={Chk(s.GetEntity(soldId) == null)} secondSale={Chk(!again)} sales={s.State.Stats.RetailSales} {Chk(s.State.Stats.RetailSales == salesBefore + 1)}");
@@ -2836,6 +2841,67 @@ namespace GeodeEmpire.Core
                 if (go.name == "Card" || go.name == "Bag" || go.name.StartsWith("Tender_") || go.name.StartsWith("Change_")) leftovers++;
             L($"leftover checkout objects={leftovers} {Chk(leftovers == 0)}");
             Retail.Customer.ForcedMethod = -1;
+            Phase = "done";
+            Running = false;
+        }
+
+        /// <summary>Repeated customers through the station back to back: the till has to keep balancing sale after sale.</summary>
+        public void RunStationRepeat(int customers = 3) { if (!Running) StartCoroutine(StationRepeat(customers)); }
+
+        private IEnumerator StationRepeat(int customers)
+        {
+            Running = true;
+            Phase = "station-repeat";
+            foreach (var st in Workshop.Tutorial.Steps) Workshop.Tutorial.Notify(st.DoneBy);
+            var shop = Retail.RetailShop.Instance;
+            var station = Find<GeodeEmpire.Checkout.CheckoutStation>();
+            if (shop == null || station == null) { L("no shop/station"); Running = false; yield break; }
+            yield return StockDirect(6);
+            var stand = station.StaffStandPoint;
+            yield return RouteTo(new Vector3(stand.position.x, 0f, stand.position.z), 0.35f);
+            float cash0 = S.State.Cash;
+            var drawer0 = station.Drawer != null ? station.Drawer.Copy() : null;
+            int served = 0;
+            float soldTotal = 0f;
+            for (int n = 0; n < customers; n++)
+            {
+                Retail.Customer c = null;
+                for (int attempt = 0; attempt < 3 && (c == null || c.State != Retail.Customer.Phase.AtCounter); attempt++)
+                {
+                    c = shop.SpawnNow();
+                    float w = 0f;
+                    while (c != null && c.State != Retail.Customer.Phase.AtCounter && c.State != Retail.Customer.Phase.Done && w < 70f) { w += Time.deltaTime; yield return null; }
+                    if (c != null && c.State == Retail.Customer.Phase.AtCounter && c.Wanted != null) break;
+                    while (c != null && c.State != Retail.Customer.Phase.Done) yield return null;
+                }
+                if (c == null || c.State != Retail.Customer.Phase.AtCounter || c.Wanted == null)
+                {
+                    L($"  customer {n + 1}: never reached the counter (state={(c == null ? "gone" : c.State.ToString())} atCounter={(shop.AtCounter != null ? shop.AtCounter.Archetype.Name : "none")} queue={shop.QueueLength} inShop={shop.Customers.Count} forSale={S.State.ForSaleCount()})");
+                    continue;
+                }
+                float price = c.Wanted.Record.AskingPrice, before = S.State.Cash;
+                string what = c.Wanted.Record.DisplayName, id = c.Wanted.Id;
+                var drawerBefore = station.Drawer.Copy();
+                station.Enter();
+                yield return station.CompleteFromHere(0.2f);
+                yield return new WaitForSeconds(0.8f);
+                float delta = S.State.Cash - before;
+                float tillDelta = station.Drawer.Total - drawerBefore.Total;
+                bool cashSale = c != null && c.Method == Retail.Customer.Payment.Cash;
+                bool ok = Mathf.Abs(delta - price) < 0.011f && S.State.FindSpecimen(id) != null && S.State.FindSpecimen(id).Location == SpecimenLocation.Sold;
+                bool tillOk = !cashSale || Mathf.Abs(tillDelta - price) < 0.011f;
+                if (ok) { served++; soldTotal += price; }
+                L($"  customer {n + 1}: {what} for {price:F2} by {(cashSale ? "cash" : "card")} -> cash +{delta:F2} till +{tillDelta:F2} {Chk(ok)} till {Chk(tillOk)} station idle={Chk(station.Tx == null)}");
+                Snap($"repeat_{n + 1}");
+                float leave = 0f;
+                while (c != null && c.State != Retail.Customer.Phase.Done && leave < 25f) { leave += Time.deltaTime; yield return null; }
+            }
+            L($"repeat end: served={served}/{customers} cash {cash0:F2} -> {S.State.Cash:F2} (+{S.State.Cash - cash0:F2}, sold {soldTotal:F2}) {Chk(Mathf.Abs(S.State.Cash - cash0 - soldTotal) < 0.02f)}");
+            L($"  till {(drawer0 != null ? drawer0.Total : 0f):F2} -> {station.Drawer.Total:F2} pieces={station.Drawer.Pieces}");
+            int leftovers = 0;
+            foreach (var go in FindObjectsByType<GameObject>(FindObjectsSortMode.None))
+                if (go.name == "Card" || go.name == "Bag" || go.name.StartsWith("Tender_") || go.name.StartsWith("Change_")) leftovers++;
+            L($"  leftover checkout objects={leftovers} {Chk(leftovers == 0)}");
             Phase = "done";
             Running = false;
         }
