@@ -49,7 +49,9 @@ namespace GeodeEmpire.Retail
         private readonly Dictionary<PlacementZone, Customer> _browseClaims = new Dictionary<PlacementZone, Customer>();
 
         /// <summary>Navigation health counters, read by the retail stress test.</summary>
-        public sealed class NavMetrics { public int StuckRecoveries, Repositions, PathFailures; public float LastSaleSeconds, SaleSecondsTotal; public int SalesTimed; }
+        public sealed class NavMetrics { public int StuckRecoveries, Repositions, PathFailures; public float LastSaleSeconds, SaleSecondsTotal; public int SalesTimed;
+            /// <summary>Where the layout actually jammed, so a failing stress run names a place rather than a number.</summary>
+            public readonly System.Collections.Generic.List<string> JamReports = new System.Collections.Generic.List<string>(); }
         private float _counterSince;
         [System.NonSerialized] public NavMetrics Metrics = new NavMetrics();
         private float _nextSpawnIn = 25f;
@@ -223,8 +225,12 @@ namespace GeodeEmpire.Retail
             bool reserved = false;
             if (occ != null) foreach (var c in _customers) if (c != null && c.Wanted == occ) reserved = true;
             if (occ != null) tm.Text = ShortName(occ.Record.DisplayName) + "\n" + UI.UiKit.Money(occ.Record.AskingPrice) + (reserved ? "\nRESERVED" : "");
-            else tm.Text = z.Locked ? "" : "FOR SALE\n—";
-            card.gameObject.SetActive(!z.Locked);
+            else tm.Text = "";
+            // a card belongs to a piece: a shelf of blank cards over nothing is the surest tell of an empty shop,
+            // and the reference showroom only ever prices what is actually standing there
+            bool show = !z.Locked && occ != null;
+            card.gameObject.SetActive(show);
+            tm.gameObject.SetActive(show);
         }
 
         private static string ShortName(string name) => name.Length > 22 ? name.Substring(0, 21) + "…" : name;

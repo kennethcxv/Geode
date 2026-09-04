@@ -125,6 +125,7 @@ namespace GeodeEmpire.UI
             UiKit.KeyHint(_keybar, GameInput.Glyph("Tablet"), "Tablet");
             UiKit.KeyHint(_keybar, GameInput.Glyph("Inspect"), "Inspect");
             UiKit.KeyHint(_keybar, GameInput.Glyph("Build"), "Build Mode");
+            UiKit.KeyHint(_keybar, GameInput.Glyph("Inventory"), "Inventory");
             UiKit.KeyHint(_keybar, GameInput.Glyph("Pause"), "Menu");
         }
 
@@ -166,7 +167,7 @@ namespace GeodeEmpire.UI
         private void RefreshKeybar()
         {
             var caps = _keybar.Query<Label>(className: "keycap").ToList();
-            string[] wanted = { GameInput.Glyph("Tablet"), GameInput.Glyph("Inspect"), GameInput.Glyph("Build"), GameInput.Glyph("Pause") };
+            string[] wanted = { GameInput.Glyph("Tablet"), GameInput.Glyph("Inspect"), GameInput.Glyph("Build"), GameInput.Glyph("Inventory"), GameInput.Glyph("Pause") };
             for (int i = 0; i < caps.Count && i < wanted.Length; i++) caps[i].text = wanted[i];
         }
 

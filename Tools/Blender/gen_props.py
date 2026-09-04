@@ -1700,7 +1700,172 @@ def pallet_jack(rng):
     return bm, [ColBox((0.5, 1.5, 0.16), (0, 0.32, 0.08)), ColBox((0.5, 0.3, 1.1), (0, -0.34, 0.55))]
 
 
+
+# ---------------------------------------------------------------------------------------------------
+# M7 retail pass (R06 showroom). Slot order is fixed by the scene builder's material lists, so every
+# generator below numbers its slots 0 = carcass / body, 1 = the second surface, 2 = the accent.
+# ---------------------------------------------------------------------------------------------------
+
+def display_wall(rng):
+    """Tall retail shelving 1.5 x 0.4 x 2.25: a dark carcass with a panelled back (slot 1), four open shelves
+    with a bull-nosed front edge, LED strip housings under the three upper shelves (slot 2 emissive), a plinth
+    and a crown. Front is -Y. Origin at the base centre."""
+    bm = bmesh.new()
+    W, D, H = 1.5, 0.4, 2.25
+    t = 0.032
+    SHELVES = (0.42, 0.87, 1.32, 1.77)
+    # plinth and its shadow gap
+    box(bm, (W, D, 0.09), (0, 0.005, 0.045), bevel=0.005, segments=2)
+    box(bm, (W - 0.06, D - 0.04, 0.03), (0, 0.005, 0.105), bevel=0.003)
+    # side pilasters, back panel, crown
+    for sx in (-1, 1):
+        box(bm, (t, D, H - 0.12), (sx * (W / 2 - t / 2), 0.005, 0.12 + (H - 0.12) / 2), bevel=0.004, segments=2)
+    add(bm, hq.rbox((W - 2 * t, 0.016, H - 0.16), (0, D / 2 - 0.008, 0.12 + (H - 0.16) / 2), bevel=0.002), mat=1)
+    for sz in (0.12, 0.6, 1.05, 1.5, 1.95):   # the back panel's rails read as boarding, not a flat sheet
+        add(bm, hq.rbox((W - 2 * t, 0.006, 0.02), (0, D / 2 - 0.019, sz), bevel=0.002), mat=1)
+    box(bm, (W, D, t), (0, 0.005, H - t / 2), bevel=0.004, segments=2)
+    box(bm, (W + 0.05, D + 0.035, 0.05), (0, 0.005, H + 0.025), bevel=0.008, segments=3)
+    box(bm, (W + 0.03, D + 0.02, 0.018), (0, 0.005, H - 0.035), bevel=0.004)
+    # shelves: a board, a bull-nose front lip, and a light housing on the underside of the one above
+    for i, sz in enumerate(SHELVES):
+        box(bm, (W - 2 * t, D - 0.03, 0.028), (0, 0.02, sz - 0.014), bevel=0.004, segments=2)
+        box(bm, (W - 2 * t, 0.024, 0.042), (0, -D / 2 + 0.027, sz - 0.006), bevel=0.008, segments=3)
+        for sx in (-1, 1):   # shelf pins, seated in the pilaster and running across the shelf's underside
+            add(bm, hq.cyl(0.005, 0.05, segments=10), T(sx * (W / 2 - t - 0.005), 0.16, sz - 0.024) @ R(90, "X"), mat=2)
+    for sz in SHELVES[1:] + (H - t,):
+        add(bm, hq.rbox((W - 2 * t - 0.09, 0.035, 0.016), (0, -0.045, sz - 0.036), bevel=0.004), mat=0)
+        add(bm, hq.rbox((W - 2 * t - 0.11, 0.022, 0.006), (0, -0.045, sz - 0.046), bevel=0.002), mat=2)
+    cols = [ColBox((W, D, 0.12), (0, 0.005, 0.06))]
+    for sx in (-1, 1):
+        cols.append(ColBox((t, D, H - 0.12), (sx * (W / 2 - t / 2), 0.005, 0.12 + (H - 0.12) / 2)))
+    cols.append(ColBox((W - 2 * t, 0.02, H - 0.16), (0, D / 2 - 0.01, 0.12 + (H - 0.16) / 2)))
+    cols.append(ColBox((W + 0.05, D + 0.035, 0.13), (0, 0.005, H - 0.01)))
+    for sz in SHELVES:
+        cols.append(ColBox((W - 2 * t, D - 0.03, 0.03), (0, 0.02, sz - 0.015)))
+    return bm, cols
+
+
+def glass_counter(rng):
+    """Island display counter 1.45 x 0.8 x 0.95: a panelled wood plinth, glazed sides and top (slot 1) between
+    four corner posts, an internal glass shelf, and a brass lock plate and kick strip (slot 2). The top surface is
+    at 0.95. Origin at the base centre.
+
+    The width is a circulation number, not a styling one: the showroom is 3.96 m of usable floor between the
+    partition and the wall case, and a customer has to be able to pass a standing player on either side of the
+    island, so the island may not take more than 1.46 m of it."""
+    bm = bmesh.new()
+    W, D, H = 1.45, 0.8, 0.95
+    post = 0.05
+    base_h, glass_h = 0.30, 0.60
+    # plinth: a kick, a panelled body and a nosing the glass sits on
+    box(bm, (W - 0.06, D - 0.06, 0.05), (0, 0, 0.025), bevel=0.004)
+    box(bm, (W - 0.02, D - 0.02, base_h - 0.09), (0, 0, 0.05 + (base_h - 0.09) / 2), bevel=0.006, segments=2)
+    for sy in (-1, 1):
+        for px in (-0.42, 0.0, 0.42):
+            add(bm, hq.rbox((0.37, 0.012, 0.15), (px, sy * (D / 2 - 0.017), 0.155), bevel=0.004, segments=2), mat=0)
+    for sx in (-1, 1):
+        add(bm, hq.rbox((0.012, 0.5, 0.15), (sx * (W / 2 - 0.017), 0, 0.155), bevel=0.004, segments=2), mat=0)
+    box(bm, (W, D, 0.04), (0, 0, base_h - 0.02), bevel=0.006, segments=3)
+    # corner posts and the top frame
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            box(bm, (post, post, glass_h), (sx * (W / 2 - post / 2), sy * (D / 2 - post / 2), base_h + glass_h / 2),
+                bevel=0.005, segments=2)
+    for sy in (-1, 1):
+        box(bm, (W, post, 0.055), (0, sy * (D / 2 - post / 2), H - 0.0275), bevel=0.006, segments=3)
+    for sx in (-1, 1):
+        box(bm, (post, D - 2 * post, 0.055), (sx * (W / 2 - post / 2), 0, H - 0.0275), bevel=0.006, segments=3)
+    # glazing: four panes, an internal shelf and the top light
+    gw, gd = W - 2 * post, D - 2 * post
+    for sy in (-1, 1):
+        add(bm, hq.rbox((gw, 0.008, glass_h - 0.01), (0, sy * (D / 2 - post / 2), base_h + glass_h / 2)), mat=1)
+    for sx in (-1, 1):
+        add(bm, hq.rbox((0.008, gd, glass_h - 0.01), (sx * (W / 2 - post / 2), 0, base_h + glass_h / 2)), mat=1)
+    add(bm, hq.rbox((gw - 0.02, gd - 0.02, 0.01), (0, 0, base_h + 0.28)), mat=1)
+    add(bm, hq.rbox((W - 2 * post - 0.01, D - 2 * post - 0.01, 0.012), (0, 0, H - 0.061)), mat=1)
+    # brass: the lock escutcheon on the customer side, and a kick strip along the plinth
+    add(bm, hq.cyl(0.019, 0.008, segments=20), T(0, -D / 2 + post / 2, base_h + 0.22) @ R(90, "X"), mat=2)
+    add(bm, hq.cyl(0.005, 0.01, segments=10), T(0, -D / 2 + post / 2 - 0.006, base_h + 0.22) @ R(90, "X"), mat=2)
+    add(bm, hq.rbox((W - 0.14, 0.01, 0.016), (0, -D / 2 + 0.004, 0.09), bevel=0.003), mat=2)
+    return bm, [ColBox((W, D, H), (0, 0, H / 2))]
+
+
+def shop_plant(rng):
+    """Potted shop plant, 1.15 tall: a tapered glazed pot (slot 0) over dark soil (slot 1) with a fan of
+    strap leaves (slot 2). Origin at the base centre."""
+    bm = bmesh.new()
+    add(bm, hq.lathe([(0, 0), (0.15, 0), (0.155, 0.012), (0.175, 0.2), (0.19, 0.33), (0.2, 0.36),
+                      (0.192, 0.365), (0.182, 0.34), (0.167, 0.21), (0.147, 0.02), (0, 0.02)],
+                     segments=40, loop=True), mat=0)
+    add(bm, hq.lathe([(0, 0.325), (0.16, 0.335), (0.178, 0.345)], segments=32, close_top=False), mat=1)
+    # leaves: a strap tapering to a point, bowed outward, in three tiers around the pot
+    for tier, (n, tilt, length, phase) in enumerate(((6, 50.0, 0.34, 0.0), (5, 32.0, 0.52, 30.0), (4, 14.0, 0.68, 60.0))):
+        for i in range(n):
+            a = 360.0 * i / n + phase + rng.uniform(-7.0, 7.0)
+            L = length * rng.uniform(0.9, 1.08)
+            rings = []
+            for k in range(9):
+                u = k / 8.0
+                # bow: the leaf arcs out and then droops at the tip
+                r = 0.055 * (1.0 - u * u * 0.9) + 0.004
+                bend = math.radians(tilt) * (0.35 + 0.65 * u)
+                x = math.sin(bend) * L * u
+                z = math.cos(bend) * L * u
+                rings.append([(x, -r, 0.34 + z), (x + 0.006 * (1 - u), 0.0, 0.345 + z),
+                              (x, r, 0.34 + z), (x - 0.006 * (1 - u), 0.0, 0.335 + z)])
+            leaf = hq.loft(rings, close_bottom=True, close_top=True)
+            add(bm, leaf, R(a, "Z"), mat=2, sharp=70)
+    return bm, [ColBox((0.4, 0.4, 0.38), (0, 0, 0.19))]
+
+
+def logo_mountains(rng):
+    """The Geode Emporium mark: three overlapping peaks in relief with inlaid caps (slot 1), 1.3 x 0.52.
+    Wall prop in the pegboard convention: it stands in XZ with its face toward -Y, origin at the bottom centre."""
+    bm = bmesh.new()
+    peaks = ((-0.40, 0.30, 0.34), (0.02, 0.46, 0.52), (0.42, 0.28, 0.32))
+    for i, (cx, half, h) in enumerate(peaks):
+        body = hq.extrude_profile([(cx - half, 0.0), (cx + half, 0.0), (cx, h)], 0.045, axis="Y", center=(0, 0, 0))
+        add(bm, body, mat=0, sharp=70)
+        # snow cap: the top fifth of the peak, proud of the face
+        cut = 0.30
+        hw = half * cut
+        cap = hq.extrude_profile([(cx - hw, h * (1 - cut)), (cx + hw, h * (1 - cut)), (cx, h)], 0.052, axis="Y",
+                                 center=(0, -0.004, 0))
+        add(bm, cap, mat=1, sharp=70)
+    add(bm, hq.rbox((1.3, 0.022, 0.016), (0, 0.012, 0.0), bevel=0.004), mat=0)   # a ground rule under the range
+    return bm, None
+
+
+def pendant_globe(rng):
+    """Retail pendant: a brass ceiling rose and rod carrying a spun cup and an opal globe (slot 1). Origin at the
+    ceiling attachment (top); the globe centre is 0.62 m below it."""
+    bm = bmesh.new()
+    add(bm, hq.lathe([(0.035, 0), (0.04, -0.012), (0.036, -0.03), (0.012, -0.034), (0, -0.034), (0, 0)],
+                     segments=32, loop=True), mat=0)
+    add(bm, hq.cyl(0.008, 0.46, segments=16, center=(0, 0, -0.5)), mat=0)
+    add(bm, hq.lathe([(0, -0.5), (0.02, -0.5), (0.075, -0.545), (0.082, -0.56), (0.078, -0.564),
+                      (0.068, -0.55), (0.018, -0.508), (0, -0.508)], segments=36, loop=True), mat=0)
+    add(bm, hq.uv_sphere(0.115, segments=32, rings=18, center=(0, 0, -0.62), squash=0.88), mat=1)
+    add(bm, hq.torus(0.086, 0.008, seg_major=32, seg_minor=10, center=(0, 0, -0.556)), mat=0)
+    return bm, None
+
+
+def display_riser(rng):
+    """Display riser 0.22 x 0.22 x 0.075: a bevelled block with a felt top (slot 1), the black base a shop stands
+    a hero piece on. Origin at the base centre."""
+    bm = bmesh.new()
+    box(bm, (0.22, 0.22, 0.07), (0, 0, 0.035), bevel=0.008, segments=3)
+    add(bm, hq.rbox((0.2, 0.2, 0.008), (0, 0, 0.073), bevel=0.002), mat=1)
+    return bm, [ColBox((0.22, 0.22, 0.077), (0, 0, 0.0385))]
+
+
 PROPS = [
+    ("prop_display_wall", display_wall, 281),
+    ("prop_glass_counter", glass_counter, 282),
+    ("prop_shop_plant", shop_plant, 283),
+    ("prop_logo_mountains", logo_mountains, 284),
+    ("prop_pendant_globe", pendant_globe, 285),
+    ("prop_display_riser", display_riser, 286),
     ("prop_office_desk", office_desk, 271),
     ("prop_laptop", laptop, 272),
     ("prop_letter_tray", letter_tray, 273),
@@ -1774,8 +1939,8 @@ PROPS = [
 ]
 
 # props whose origin is not the base centre (tool tips, ceiling attachment, blade axle)
-KEEP_ORIGIN = {"prop_pendant_lamp", "prop_saw_blade", "prop_saw_blade_large", "prop_chisel", "prop_chisel_fine", "prop_wedge", "prop_wall_clock", "prop_saw_wheel", "prop_saw_needle", "prop_saw_valve", "prop_cracker_lever", "prop_register_drawer"}
-KEEP_XY = {"prop_cork_board", "prop_laptop", "prop_letter_tray", "prop_mug", "prop_hammer", "prop_lump_hammer", "prop_loupe", "prop_price_card", "prop_tablet", "prop_label_stand", "prop_scale_station", "prop_pegboard", "prop_window_frame", "prop_task_lamp"}
+KEEP_ORIGIN = {"prop_pendant_globe", "prop_pendant_lamp", "prop_saw_blade", "prop_saw_blade_large", "prop_chisel", "prop_chisel_fine", "prop_wedge", "prop_wall_clock", "prop_saw_wheel", "prop_saw_needle", "prop_saw_valve", "prop_cracker_lever", "prop_register_drawer"}
+KEEP_XY = {"prop_logo_mountains", "prop_cork_board", "prop_laptop", "prop_letter_tray", "prop_mug", "prop_hammer", "prop_lump_hammer", "prop_loupe", "prop_price_card", "prop_tablet", "prop_label_stand", "prop_scale_station", "prop_pegboard", "prop_window_frame", "prop_task_lamp"}
 MAX_VERTS = 40000
 
 

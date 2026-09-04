@@ -95,7 +95,49 @@ One rectangle, three zones, so the shell stays cheap and the composition reads.
 | M4 | **Build mode**: ghost, validation, clearance volumes, route graph, customer-route test | §6, §12, R11 |
 | M5 | Growth loop: purchase → delivery → player places the machine → persists | §5, §14 |
 | M6 | Back of house dressed: receiving bay, storage racks, office desk | R16, R17, R18 |
-| M7 | Showroom retail pass and starter stock | §4.1, R06 |
+| M7 | Showroom retail pass, standing stock and the inventory screen | §4.1, R03, R06, R19 |
 | M8 | Integrity sweep, customer stress test, persistence, performance, final captures | §7, §13, §15, §17 |
 
 Each milestone ends in a Play Mode capture, a console check and a commit.
+
+
+---
+
+## D. Decisions taken during execution
+
+**M6 — the boarded hoarding was dropped.** The plan proposed boarding the two back-of-house
+openings at Stage 1 and taking the hoarding down at Stage 2. In the Editor it read as a bug rather
+than as a building site: a blank board across a framed opening in a room the player can already
+see into. The back of house is instead gated by the Stage-2 root, which is what the rest of the
+expansion already uses.
+
+**M7 — the shop's standing stock is scenery; the player's stock is not.** R06's showroom is full,
+shelf after shelf. Filling the *sale slots* on a fresh save would have handed the player a
+business that was already running, which §5 explicitly rejects. So the display walls, the wall
+shelves and the island's interior carry the shop's own standing stock (`ShopStock`: real generator
+specimens, deterministic seed, no colliders, nothing in the save — the same pattern as `RoughRow`
+on the workshop benches), and the six sale slots in the wall case stay empty until the player puts
+something in one. The empty case next to full shelves is the goal, stated in the room.
+
+**M7 — the stock generator is biased to the families a shop sells.** A neutral roll returns mostly
+pale quartz and calcite; forty of those is a wall of grey, and R06 is a purple shop. `ShopStock`
+rerolls the seed until it draws one of fourteen weighted showroom families. The geology generator
+itself is untouched.
+
+**M7 — the island's width is a circulation number.** The showroom has 3.96 m of usable floor
+between the partition wainscot and the wall case. A customer has to be able to pass a standing
+player on either side, so the island counter was rebuilt in Blender at 1.45 m, leaving 1.25 m of
+aisle on both sides. The first 1.7 m version failed the §13 stress test.
+
+**M7 — two real navigation defects came out of the §13 test, not out of the layout.**
+`HasArrived`'s own comment said "someone (usually the player) standing on the browse point must
+never park a customer forever", but `SomeoneStandingNear` only ever checked other customers. And
+the player's `NavMeshObstacle` had `carving = false`, so a walker whose path ran through where the
+player was standing was pushed sideways into a wall by local avoidance and stalled there — every
+time at the same spot, 1.6 m from the door with a complete path. Carving only while stationary
+makes a stopped player something the path is planned around. Repositions went 2 → 0 and stuck
+recoveries 14–25 → 2 across three runs.
+
+**Left deliberately quiet.** The showroom's west board (the partition north of the staff door)
+carries one lit wall shelf at Stage 1 and the third display run at Stage 2: the shop is meant to
+visibly gain a wall of stock when the workshop expands.

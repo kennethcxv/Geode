@@ -291,6 +291,16 @@ namespace GeodeEmpire.Retail
 
         private bool SomeoneStandingNear(Vector3 point, float radius)
         {
+            // The player counts, and until now did not: HasArrived's own comment says "someone (usually the player)
+            // standing on the browse point must never park a customer forever", but only other customers were
+            // checked. A player parked on a queue spot slowed the walker to a crawl (YieldToOthers) without ever
+            // letting it arrive, which is what drove the shop's stuck recoveries and its two teleports.
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                Vector3 dp = cam.transform.position - point; dp.y = 0f;
+                if (dp.sqrMagnitude < radius * radius) return true;
+            }
             foreach (var o in _shop.Customers)
             {
                 if (o == null || o == this || o.Walking) continue;
@@ -329,6 +339,12 @@ namespace GeodeEmpire.Retail
                 _agent.SetDestination(_target);
                 return;
             }
+            if (_stuckLevel == 3 && _shop.Metrics.JamReports.Count < 20)
+            {
+                var cam0 = Camera.main;
+                float pd = cam0 != null ? Vector3.Distance(new Vector3(cam0.transform.position.x, 0f, cam0.transform.position.z), new Vector3(transform.position.x, 0f, transform.position.z)) : -1f;
+                _shop.Metrics.JamReports.Add($"stuck3 {State} at ({transform.position.x:F2},{transform.position.z:F2}) -> ({_target.x:F2},{_target.z:F2}) v={_agent.velocity.magnitude:F2} spd={_agent.speed:F2} stopped={_agent.isStopped} next=({_agent.nextPosition.x:F2},{_agent.nextPosition.z:F2}) player={pd:F2} onMesh={_agent.isOnNavMesh}");
+            }
             if (_stuckLevel <= 4)
             {
                 for (int i = 0; i < 8; i++)
@@ -347,6 +363,8 @@ namespace GeodeEmpire.Retail
             {
                 if (NavMesh.SamplePosition(_target, out var hit, 0.8f, NavMesh.AllAreas)) _agent.Warp(hit.position);
                 _shop.Metrics.Repositions++;
+                if (_shop.Metrics.JamReports.Count < 20)
+                    _shop.Metrics.JamReports.Add($"{State} at ({transform.position.x:F2},{transform.position.z:F2}) -> ({_target.x:F2},{_target.z:F2}) remaining={_agent.remainingDistance:F2} path={_agent.pathStatus}");
                 _stuckLevel = 0;
                 _fallback = true;
             }
@@ -359,6 +377,30 @@ namespace GeodeEmpire.Retail
             Vector3 d = transform.position + Vector3.up * 0.9f - cam.transform.position;
             if (d.sqrMagnitude > 12f * 12f) return false;
             return Vector3.Angle(cam.transform.forward, d) < cam.fieldOfView * 0.7f;
+        }
+
+        /// <summary>
+        /// Pinned by the player: slide sideways rather than grind to a halt. The agent plans over a NavMesh the
+        /// player is not carved into, so a walker whose path runs through where the player is now standing leans
+        /// into them until it gives up and is teleported. The stress harness parks the player on the browse line
+        /// for two minutes and that is exactly what happened: customers stuck against the south wall on their way
+        /// out, path complete, 1.6 m from the door. This steers them round.
+        /// </summary>
+        private void Unpin(float dt)
+        {
+            if (!Walking || _agent == null || !_agent.isOnNavMesh || _agent.pathPending) return;
+            if (_stuckLevel == 0 && _progressTimer < 0.8f) return;          // judged by ground covered, not by the
+            if (_agent.velocity.sqrMagnitude > 0.16f && _stuckLevel == 0) return;   // velocity avoidance keeps up
+            var cam = Camera.main;
+            if (cam == null) return;
+            Vector3 d = transform.position - cam.transform.position; d.y = 0f;
+            float dist = d.magnitude;
+            if (dist > 1.0f || dist < 0.001f) return;
+            Vector3 away = d / dist;
+            Vector3 want = _target - transform.position; want.y = 0f;
+            Vector3 side = Vector3.Cross(Vector3.up, away);
+            if (Vector3.Dot(side, want) < 0f) side = -side;                 // go round on the side the goal is on
+            _agent.Move((side * 1.0f + away * 0.35f).normalized * _agent.speed * 0.6f * dt);
         }
 
         /// <summary>Personal space: slow for whoever is ahead (the lower-priority walker gives way) and never push through the player.</summary>
@@ -487,6 +529,7 @@ namespace GeodeEmpire.Retail
             _navTimer += dt;
             TrackProgress(dt);
             YieldToOthers(dt);
+            Unpin(dt);
             TurnBody(dt);
             Animate(dt);
             if (_bubble != null) { _bubbleTimer -= dt; if (_bubbleTimer <= 0f) { Destroy(_bubble.gameObject); _bubble = null; } else FaceBubble(); }

@@ -362,3 +362,51 @@
 .build-rail { margin-top: 10px; }
 .build-reason { position: absolute; left: 50%; top: 62%; translate: -50% 0; font-size: 19px; padding: 8px 16px; border-radius: 6px; -unity-text-align: middle-center; }
 .build-reason-bad { color: rgb(255, 186, 170); background-color: rgba(70, 18, 14, 0.78); border-width: 1px; border-color: rgba(232,116,96,0.55); }
+
+/* ---- inventory screen (R03) ------------------------------------------------------------ */
+.inv-panel { position: absolute; left: 26px; top: 26px; bottom: 74px; width: 706px; padding: 18px 20px 12px 20px;
+            background-color: rgba(14, 12, 17, 0.965); }
+.inv-tabs { margin-top: 12px; margin-bottom: 4px; flex-shrink: 0; }
+.inv-chips { flex-direction: row; flex-wrap: wrap; margin: 6px 0 8px 0; flex-shrink: 0; }
+.inv-chip { font-size: 14px; letter-spacing: 1px; padding: 5px 11px; margin: 0 6px 6px 0; border-radius: 13px;
+            background-color: rgba(255, 248, 236, 0.05); border-width: 1px; border-color: rgba(255,244,220,0.1);
+            color: rgba(238,233,226,0.66); -unity-text-align: middle-center; }
+.inv-chip:hover { background-color: rgba(255, 248, 236, 0.1); }
+.inv-chip-on { background-color: rgba(232,190,112,0.18); border-color: rgba(232,190,112,0.8); color: rgb(244, 226, 194); }
+.inv-filters { flex-direction: row; align-items: center; margin-bottom: 8px; flex-shrink: 0; }
+.inv-filters .section { margin-right: 12px; }
+.inv-search { width: 260px; margin: 0; }
+.inv-search .unity-base-text-field__input { background-color: rgba(12, 10, 15, 0.7); border-width: 1px;
+            border-color: rgba(255,244,220,0.13); border-radius: 6px; padding: 4px 8px; color: rgb(238,233,226); font-size: 15px; }
+.inv-search-hint { font-size: 13px; margin-left: 10px; }
+.inv-thead { flex-direction: row; align-items: center; padding: 0 6px 6px 6px; flex-shrink: 0;
+            border-bottom-width: 1px; border-bottom-color: rgba(255,244,220,0.14); }
+.inv-th { font-size: 12px; letter-spacing: 2px; color: rgba(238,233,226,0.45); }
+.inv-th:hover { color: rgb(232,190,112); }
+.inv-scroll { flex-grow: 1; flex-shrink: 1; margin-top: 2px; }
+.inv-row { flex-direction: row; align-items: center; padding: 4px 6px; border-bottom-width: 1px;
+            border-bottom-color: rgba(255,244,220,0.055); }
+.inv-row:hover { background-color: rgba(255, 248, 236, 0.05); }
+.inv-row-on { background-color: rgba(232,190,112,0.12); }
+.inv-subrow { flex-direction: row; align-items: center; padding: 2px 6px 2px 44px; background-color: rgba(0,0,0,0.22); }
+.inv-cell { font-size: 15px; color: rgb(232, 227, 220); }
+.inv-plate { width: 44px; height: 26px; border-radius: 4px; margin-right: 8px; flex-shrink: 0;
+            background-color: rgba(28,26,32,1); background-size: cover; border-width: 1px; border-color: rgba(255,255,255,0.08); }
+.inv-col-item { flex-grow: 1; flex-shrink: 1; width: 190px; overflow: hidden; -unity-text-overflow-position: end; }
+.inv-col-cat { width: 82px; flex-shrink: 0; font-size: 14px; }
+.inv-col-qty { width: 42px; flex-shrink: 0; -unity-text-align: middle-right; padding-right: 10px; }
+.inv-col-qty2 { width: 72px; flex-shrink: 0; -unity-text-align: middle-right; padding-right: 10px; font-size: 14px; }
+.inv-col-qual { width: 88px; flex-shrink: 0; }
+.inv-col-cond { width: 96px; flex-shrink: 0; }
+.inv-col-val { width: 86px; flex-shrink: 0; -unity-text-align: middle-right; }
+.inv-stars { flex-direction: row; align-items: center; }
+.inv-star { font-size: 13px; color: rgba(238,233,226,0.22); margin-right: 1px; }
+.inv-star-on { color: rgb(232,190,112); }
+.inv-cond { flex-direction: row; align-items: center; }
+.inv-cond .muted { font-size: 14px; }
+.inv-dot { width: 7px; height: 7px; border-radius: 4px; margin-right: 7px; flex-shrink: 0; }
+.inv-bullet { width: 14px; font-size: 13px; color: rgb(232,190,112); flex-shrink: 0; }
+.inv-empty { font-size: 15px; padding: 16px 6px 4px 6px; white-space: normal; }
+.inv-foot { flex-direction: row; align-items: center; padding-top: 8px; flex-shrink: 0;
+            border-top-width: 1px; border-top-color: rgba(255,244,220,0.14); }
+.inv-rail { position: relative; left: auto; bottom: auto; margin-top: 8px; flex-shrink: 0; }

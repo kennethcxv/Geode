@@ -13,10 +13,10 @@ Evidence for this phase: `Geode/Assets/Output/rebuild/` (`before/`, `after/`, `m
 |----|------|-------------|------------------|----------------|-----------------|:--:|:--:|-------|
 | R01 | 04_07_35 PM (1) | Collection — tablet tab, display cabinet wall | lit cabinet, plates of real rock, rarity chips | cabinet empty on a fresh save | starter collection piece; cabinet lighting | – | – | carried from pass 1 |
 | R02 | 04_07_35 PM (2) | Dealer / suppliers — tablet tab, intercom | dealer figure, crate imagery | no dealer figure | out of scope: character art | – | – | carried, deliberate gap |
-| R03 | 04_07_36 PM (3) | Inventory list | dense sortable table of stock | no inventory screen | **build the inventory screen** (`I` in the reference key rail) | – | – | M7 |
+| R03 | 04_07_36 PM (3) | Inventory list | dense sortable table of stock | no inventory screen | **build the inventory screen** (`I` in the reference key rail) | – | – | **done M7** |
 | R04 | 04_07_37 PM (4) | Appraisal card | labelled facts, value set apart | – | keep | – | – | done in pass 1 |
 | R05 | 04_07_37 PM (5) | Management laptop | business app over a desk | no laptop | office desk + laptop opens the tablet | ✔ | ✔ | M6 |
-| R06 | 04_07_37 PM (6) | Showroom | wall shelving full of lit stock, glass island counter with hero pieces and price cards, plants, logo wall, cart panel | shop is empty, same orange boards as the workshop, blank price cards, garish rug | retail identity: darker walls, lit shelving, glass counter, starter stock, logo wall | ✔ | ✔ | M7 |
+| R06 | 04_07_37 PM (6) | Showroom | wall shelving full of lit stock, glass island counter with hero pieces and price cards, plants, logo wall, cart panel | shop is empty, same orange boards as the workshop, blank price cards, garish rug | retail identity: darker walls, lit shelving, glass counter, starter stock, logo wall | ✔ | ✔ | **done M7** |
 | R07 | 04_09_08 PM | Collection browser | tile grid of real specimens | – | keep | – | – | done in pass 1 |
 | R08 | 04_10_10 PM | Upgrades | left list + right detail | – | extend with the new placeable fixtures | – | – | M5 |
 | R09 | 04_10_36 PM | Geode cracker | industrial press, gauge HUD | bench press, plain | rebuild as a hydraulic press | ✔ | – | M2 |
@@ -29,7 +29,7 @@ Evidence for this phase: `Geode/Assets/Output/rebuild/` (`before/`, `after/`, `m
 | R16 | 04_12_28 PM | **Receiving bay** | open roller door, box truck on a ramp, daylight, crates on pallets, pallet jack, hanging RECEIVING BAY / QUALITY INSPECTION signs, stainless inspection table, labelled bin shelving, stacked pallets | corner behind the counter, no bay, no daylight | build the receiving bay in the back of house | ✔ | ✔ | M6 |
 | R17 | 04_12_33 PM | **Office desk** | banker's lamp, laptop with the business app, letter trays, clipboard, cork board, mug, specimen tray | no counterpart | office desk in the back of house; the laptop opens the tablet | ✔ | ✔ | M6 |
 | R18 | 04_12_38 PM | **Storage room** | steel racks of labelled crates, sorting table under a task lamp, INVENTORY STORAGE sign, chalkboard, rolling cart | no counterpart | storage racks in the back of house | ✔ | ✔ | M6 |
-| R19 | 04_12_43 PM | Checkout | counter, register, customer side | mannequin customer | keep; re-site at the partition | – | ✔ | M7 |
+| R19 | 04_12_43 PM | Checkout | counter, register, customer side | mannequin customer | keep; re-site at the partition | – | ✔ | **done M7** (counter at the partition since M1; queue and browse lines re-verified under the §13 stress test) |
 | R20 | 04_12_55 PM | Lap polisher, hands-on | wet lap, grit, hands | no grit or water on show | dressing pass | ✔ | – | M2 |
 | R21 | 04_13_01 PM | Appraisal bench | labelled specimens in a row | – | keep, extend the row | – | ✔ | M2 |
 | R22 | 04_13_07 PM | Trim saw | saw on a blue base cabinet | no plinth | machine livery plinth + mat | ✔ | ✔ | M2 |
