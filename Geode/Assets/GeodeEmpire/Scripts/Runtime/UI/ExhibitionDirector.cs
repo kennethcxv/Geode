@@ -28,10 +28,12 @@ namespace GeodeEmpire.UI
         private Transform _anchor;
 
         private void Awake() { Instance = this; }
-        private void OnDestroy() { if (Instance == this) Instance = null; }
+        private void OnDestroy() { if (Instance == this) Instance = null; if (_session != null) _session.Loaded -= Abort; }
 
         private void Start()
         {
+            _session = GameSession.Instance;
+            if (_session != null) _session.Loaded += Abort;
             var root = HudController.Instance.GetComponent<UIDocument>().rootVisualElement;
             _plaque = UiKit.Box(root, "card");
             _plaque.style.position = Position.Absolute; _plaque.style.left = Length.Percent(50); _plaque.style.top = Length.Percent(74);
@@ -47,6 +49,23 @@ namespace GeodeEmpire.UI
         }
 
         public int PlinthCount(GameState s) => FirstPlinthSlot >= 0 ? Exhibition.OnPlinths(s, FirstPlinthSlot).Count : 0;
+
+        private GameSession _session;
+
+        /// <summary>A load in the middle of the pass (a relaunch, Continue from the title): nothing was recorded, so the room simply is not open yet. Camera, input and HUD come back.</summary>
+        private void Abort()
+        {
+            if (!Running) return;
+            StopAllCoroutines();
+            if (_plaque != null) _plaque.style.display = DisplayStyle.None;
+            if (_dim != null && _dim.style.display == DisplayStyle.Flex) { _dim.style.display = DisplayStyle.None; CursorController.ExitMenu(); }
+            var controller = FindAnyObjectByType<FirstPersonController>();
+            if (controller != null) controller.ExitStationView();
+            var player = FindAnyObjectByType<PlayerInteractor>();
+            if (player != null) player.InputLocked = false;
+            if (HudController.Instance != null) HudController.Instance.SetFreeRoamVisible(true);
+            Running = false;
+        }
 
         public void Open()
         {

@@ -77,10 +77,7 @@ namespace GeodeEmpire.Save
             try
             {
                 if (!File.Exists(path)) return null;
-                var s = JsonUtility.FromJson<GameState>(File.ReadAllText(path));
-                if (s == null || string.IsNullOrEmpty(s.SaveId)) return null;
-                Migrate(s);
-                return s;
+                return Parse(File.ReadAllText(path));
             }
             catch (Exception e)
             {
@@ -89,16 +86,55 @@ namespace GeodeEmpire.Save
             }
         }
 
+        /// <summary>A save file's text to a migrated state (null when it is not a save at all). The loader and the migration tests share it.</summary>
+        public static GameState Parse(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            var s = JsonUtility.FromJson<GameState>(json);
+            if (s == null || string.IsNullOrEmpty(s.SaveId)) return null;
+            Migrate(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Older files come forward one version at a time. Version 1 is the V4 career (pieces, cut lineage, Stage 2);
+        /// version 2 (V5) adds provenance, calls, history, favourites, certification, the market, auctions and the exhibition:
+        /// every new field gets its quiet default so a V4 save keeps playing without a seam.
+        /// </summary>
         private static void Migrate(GameState s)
         {
             if (s.Version < 1) s.Version = 1;
             if (s.DisplayCapacity <= 0) s.DisplayCapacity = 8;
+            s.Upgrades ??= new System.Collections.Generic.List<string>();
+            s.UnlockedSuppliers ??= new System.Collections.Generic.List<string>();
+            s.TutorialSteps ??= new System.Collections.Generic.List<string>();
+            s.Encyclopedia ??= new System.Collections.Generic.List<EncyclopediaEntry>();
+            s.Crates ??= new System.Collections.Generic.List<CrateRecord>();
+            s.Specimens ??= new System.Collections.Generic.List<SpecimenRecord>();
+            s.Stats ??= new Statistics();
+            // V5 (version 2): market, auctions, letters, exhibition
+            s.OfferedLots ??= new System.Collections.Generic.List<string>();
+            s.Commissions ??= new System.Collections.Generic.List<Commission>();
+            s.AuctionLots ??= new System.Collections.Generic.List<AuctionLot>();
+            s.PendingLetters ??= new System.Collections.Generic.List<LetterRecord>();
+            s.ExhibitedIds ??= new System.Collections.Generic.List<string>();
             foreach (var r in s.Specimens)
             {
                 r.Condition ??= new GeodeEmpire.Specimens.SpecimenCondition();
                 r.SectorStress ??= Array.Empty<float>();
                 r.Impacts ??= new System.Collections.Generic.List<Vector4>();
+                r.History ??= new System.Collections.Generic.List<SpecimenEvent>();
+                r.ProcessedBy ??= "";
+                if (s.Version < 2)
+                {
+                    // a V4 rock came from somewhere: its source's first named locality
+                    if (string.IsNullOrEmpty(r.Locality) && !string.IsNullOrEmpty(r.SupplierId)) r.Locality = GeodeEmpire.Economy.CrateGenerator.DefaultLocalities(r.SupplierId)[0];
+                    if (r.AcquiredAtTicks == 0) r.AcquiredAtTicks = r.DiscoveredAtTicks > 0 ? r.DiscoveredAtTicks : s.CreatedTicks;
+                    if (r.OriginalMassKg <= 0f && r.Geology != null) r.OriginalMassKg = r.Geology.MassKg;
+                }
             }
+            foreach (var c in s.Crates) if (c != null && string.IsNullOrEmpty(c.Locality) && !string.IsNullOrEmpty(c.SupplierId)) c.Locality = GeodeEmpire.Economy.CrateGenerator.DefaultLocalities(c.SupplierId)[0];
+            s.Version = GameState.CurrentVersion;
         }
 
         public static void Delete()
