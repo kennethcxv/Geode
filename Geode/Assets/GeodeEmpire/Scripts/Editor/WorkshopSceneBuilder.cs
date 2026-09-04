@@ -1162,7 +1162,8 @@ namespace GeodeEmpire.EditorTools
             Prop("prop_wedge", pegTools, new Vector3(0.4f, 1.63f, 0f), 0f, "M_MetalDark", collider: false).transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
             // every station names itself over the bench it belongs to, so the room reads at a glance from the door
             Sign(parent, "HAMMER & CHISEL", new Vector3(-0.05f, 2.4f, RoomD / 2f - 0.03f), 0f, 1.05f);
-            Sign(parent, "WASH STATION", new Vector3(-2.1f, 2.4f, RoomD / 2f - 0.03f), 0f, 0.9f);
+            Sign(parent, "WASH STATION", new Vector3(-1.42f, 2.4f, RoomD / 2f - 0.03f), 0f, 0.9f);
+            Sign(parent, "GEODE CRACKER", new Vector3(-2.62f, 2.4f, RoomD / 2f - 0.03f), 0f, 0.85f);   // the cracker names itself, as the reference machines do
             Sign(parent, "DIAMOND SAW", new Vector3(1.95f, 2.4f, RoomD / 2f - 0.03f), 0f, 0.9f);
             Sign(parent, "APPRAISAL", new Vector3(RoomXMin + 0.03f, 2.15f, 0.95f), -90f, 0.9f);
             Sign(parent, "LAP STATION", new Vector3(RoomXMin + 0.03f, 2.15f, -1.15f), -90f, 0.9f);
