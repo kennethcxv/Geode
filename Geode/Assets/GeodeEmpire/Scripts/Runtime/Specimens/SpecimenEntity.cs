@@ -326,7 +326,15 @@ namespace GeodeEmpire.Specimens
 
         public string GetPrompt(PlayerInteractor player) => IsOpened ? $"Pick up {Record.DisplayName}" : $"Pick up rock  {Geology.MassKg:F1} kg";
 
-        public string GetHint(PlayerInteractor player) => null;
+        /// <summary>A piece on a shelf reads like its label: what it is, what it is worth, where it came from.</summary>
+        public string GetHint(PlayerInteractor player)
+        {
+            if (!IsOpened || Zone == null || (Zone.Kind != ZoneKind.DisplaySlot && Zone.Kind != ZoneKind.SaleSlot)) return null;
+            var g = Geology;
+            string line = $"{g.Family.Name}  •  {Specimens.Valuation.TierLabel(Specimens.Valuation.TierFromValue(Record.EstimatedValue()))}  •  {UI.UiKit.Money(Record.EstimatedValue())}";
+            string prov = UI.TabletUI.Provenance(Record, true);
+            return prov.Length > 0 ? line + "  •  " + prov : line;
+        }
 
         public void Interact(PlayerInteractor player)
         {

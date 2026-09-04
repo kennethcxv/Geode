@@ -168,6 +168,7 @@ namespace GeodeEmpire.Core
                     case SpecimenLocation.Sold:
                     case SpecimenLocation.Discarded:
                     case SpecimenLocation.Cut:
+                    case SpecimenLocation.Consigned:   // with the auction house: nothing in the world until the hammer
                         continue;
                     case SpecimenLocation.InCrate:
                     {
@@ -462,6 +463,7 @@ namespace GeodeEmpire.Core
             var crate = Economy.CrateGenerator.Generate(State, sup, CreateSpecimenRecord);
             State.Stats.CratesPurchased++;
             receiving.Deliver(crate);
+            Economy.Auction.OnDelivery(this);   // the courier collects consigned pieces and brings back the hammer
             Audio.WorkshopAudio.Play2D("ui_buy", 0.7f);
             Notify($"{sup.Name} ordered. Delivery at the pallet.", NotificationKind.Success);
             Tutorial.Notify("crate_bought");
@@ -484,7 +486,7 @@ namespace GeodeEmpire.Core
             if (State == null) return false;
             foreach (var s in State.Specimens)
             {
-                if (s.Location == SpecimenLocation.Sold || s.Location == SpecimenLocation.Discarded || s.Location == SpecimenLocation.Cut || s.Location == SpecimenLocation.DisplaySlot) continue;
+                if (s.Location == SpecimenLocation.Sold || s.Location == SpecimenLocation.Discarded || s.Location == SpecimenLocation.Cut || s.Location == SpecimenLocation.DisplaySlot || s.Location == SpecimenLocation.Consigned) continue;
                 return true;   // includes stock on the sales fixtures: it can always be taken back to the dealer
             }
             return false;

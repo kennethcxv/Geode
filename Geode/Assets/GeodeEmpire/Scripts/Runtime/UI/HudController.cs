@@ -158,7 +158,8 @@ namespace GeodeEmpire.UI
             _prompt.text = _player.Prompt;
             _prompt.style.display = string.IsNullOrEmpty(_player.Prompt) ? DisplayStyle.None : DisplayStyle.Flex;
             _hint.text = _player.Hint;
-            _hint.style.display = string.IsNullOrEmpty(_player.Hint) ? DisplayStyle.None : DisplayStyle.Flex;
+            // one bottom-centre message at a time: a tutorial step outranks the control hint (V5 §54, no centre-screen clutter)
+            _hint.style.display = string.IsNullOrEmpty(_player.Hint) || Tutorial.Current != null ? DisplayStyle.None : DisplayStyle.Flex;
             _ring.style.display = hasTarget && !_player.Inspecting ? DisplayStyle.Flex : DisplayStyle.None;
             _crosshair.style.display = _player.Inspecting || !GameSettings.Current.CrosshairVisible ? DisplayStyle.None : DisplayStyle.Flex;
         }

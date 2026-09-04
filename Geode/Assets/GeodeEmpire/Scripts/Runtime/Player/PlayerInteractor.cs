@@ -267,6 +267,10 @@ namespace GeodeEmpire.Player
             {
                 p = $"[{GameInput.Glyph("Interact")}] {Target.GetPrompt(this)}";
                 h = Target.GetHint(this) ?? "";
+                // a piece on a shelf (the crosshair finds the slot, or the rock itself): its label sits under the prompt, small, where the eye already is
+                string label = Target is SpecimenEntity se ? se.GetHint(this)
+                    : Target is PlacementZone pz && (pz.Kind == ZoneKind.DisplaySlot || pz.Kind == ZoneKind.SaleSlot) && pz.Occupants.Count == 1 ? pz.Occupants[0].GetHint(this) : null;
+                if (!string.IsNullOrEmpty(label)) { p += "\n<size=16><color=#CFC7B8>" + label + "</color></size>"; if (h == label) h = ""; }
             }
             if (Held != null && !Inspecting)
             {

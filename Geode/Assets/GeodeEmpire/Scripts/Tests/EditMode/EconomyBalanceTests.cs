@@ -320,6 +320,40 @@ namespace GeodeEmpire.Tests
             Assert.Greater(lateSinkShare / Mathf.Max(1, lateWorlds), 0.25f, "late money must still have somewhere to go: specialty and occasional lots, blades");
         }
 
+
+        [Test]
+        public void AuctionChannel_IsATradeOffNotADominantChannel()
+        {
+            // 1500 exceptional-or-better pieces from the premium crate: sold rate, net return against the estimate, and the museum bump
+            var s = NewState(9090UL);
+            int exc = 0, museum = 0, excSold = 0, museumSold = 0; float excNet = 0f, museumNet = 0f, best = 0f;
+            var sup = SupplierCatalog.Get(SupplierCatalog.Premium);
+            while (exc + museum < 1500)
+            {
+                var crate = CrateGenerator.Generate(s, sup, (seed, id, cid) => Create(s, seed, id, cid));
+                foreach (var id in crate.SpecimenIds)
+                {
+                    var r = s.FindSpecimen(id);
+                    r.Condition.Opened = true; r.Appraised = true; r.AppraisedValue = Valuation.DamagedValue(r.Geology, 0.03f, 0f);
+                    if (!Auction.IsEligible(r)) continue;
+                    float estimate = Auction.Estimate(r), mult = Auction.HammerMultiplier(s, r);
+                    bool isMuseum = Valuation.TierFromValue(r.EstimatedValue()) >= QualityTier.MuseumGrade;
+                    bool sold = estimate * mult >= estimate * Auction.ReserveFraction;
+                    float net = sold ? mult * (1f - Auction.Commission) : 0f;
+                    best = Mathf.Max(best, mult);
+                    if (isMuseum) { museum++; if (sold) { museumSold++; museumNet += net; } } else { exc++; if (sold) { excSold++; excNet += net; } }
+                }
+            }
+            float excRate = excSold / (float)Mathf.Max(1, exc), museumRate = museumSold / (float)Mathf.Max(1, museum);
+            float excMean = excNet / Mathf.Max(1, excSold), museumMean = museumNet / Mathf.Max(1, museumSold);
+            Debug.Log($"Auction: exceptional {exc} lots, {excRate * 100f:F0}% sold, net {excMean:F2}x estimate when sold  •  museum {museum} lots, {museumRate * 100f:F0}% sold, net {museumMean:F2}x  •  best hammer {best:F2}x");
+            Assert.That(excRate, Is.InRange(0.55f, 0.9f), "an exceptional lot usually sells, and sometimes passes: a real gamble");
+            Assert.That(excMean, Is.InRange(0.95f, 1.2f), "net of commission an exceptional lot lands near the dealer estimate: the showroom's 1.4x stays the patient choice");
+            Assert.Greater(museumMean, excMean, "the room bids up a museum piece");
+            Assert.Less(museumMean, 1.4f, "even a museum piece does not beat the showroom by design");
+            Assert.LessOrEqual(best, 1.9f, "no absurd hammer");
+        }
+
         [Test]
         public void LateGame_MoneySinksRemainWorthBuying()
         {

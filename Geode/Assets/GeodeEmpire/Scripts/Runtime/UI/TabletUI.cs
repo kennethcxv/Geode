@@ -157,6 +157,9 @@ namespace GeodeEmpire.UI
             _root.panel.focusController.IgnoreEvent(e);
         }
 
+        /// <summary>Dev/QA: show a tab directly.</summary>
+        public void ShowTab(int i) => SelectTab(i);
+
         private void SelectTab(int i)
         {
             _tab = i;
@@ -411,6 +414,13 @@ namespace GeodeEmpire.UI
                 if (!done) UiKit.Label(_content, g.Detail, "muted").style.marginLeft = 24;
             }
 
+            // lots with the auction house
+            if (st.AuctionLots.Count > 0)
+            {
+                UiKit.Label(_content, "AT AUCTION", "section");
+                foreach (var lot in st.AuctionLots) { var ll = UiKit.Label(_content, Auction.LotLine(st, lot), "item-sub"); ll.style.whiteSpace = WhiteSpace.Normal; ll.style.marginLeft = 24; }
+            }
+
             // the pieces on display, grouped by kind, with their short histories; a star marks a favourite (never sold by mistake)
             var kept = new List<SpecimenRecord>();
             foreach (var r in st.Specimens) if (r.Location == SpecimenLocation.DisplaySlot) kept.Add(r);
@@ -433,7 +443,7 @@ namespace GeodeEmpire.UI
                         var card = UiKit.Box(_content, "item-card");
                         var row = UiKit.Box(card, "row"); row.style.alignItems = Align.Center;
                         var text = UiKit.Box(row, "grow");
-                        UiKit.Label(text, $"{(r.Favorite ? "★ " : "")}{r.LocationIndex + 1}.  {r.DisplayName}", "item-title", "medium");
+                        UiKit.Label(text, $"{(r.Favorite ? "★ " : "")}{r.LocationIndex + 1}.  {r.DisplayName}" + (r.ConsignedAtCrate > 0 ? "   (consigned: the courier collects it with the next delivery)" : ""), "item-title", "medium");
                         UiKit.Label(text, Provenance(r), "item-sub");
                         string hist = HistoryText(r, 5);
                         if (hist.Length > 0) { var hl = UiKit.Label(text, hist, "muted"); hl.style.whiteSpace = WhiteSpace.Normal; }
@@ -441,6 +451,36 @@ namespace GeodeEmpire.UI
                         var rec = r;
                         var fav = UiKit.Button(side, rec.Favorite ? "Unstar" : "★ Favourite", () => { rec.Favorite = !rec.Favorite; _s.QueueSave("favorite"); _s.RaiseStateChanged(); Refresh(); }, "");
                         fav.style.marginTop = 4;
+                        // a name of your own for a kept piece (the card, the label and the exhibition all use it)
+                        var nameField = new TextField { value = rec.CustomName ?? "", maxLength = 40 };
+                        nameField.style.display = DisplayStyle.None; nameField.style.marginTop = 6; nameField.style.width = 300;
+                        card.Add(nameField);
+                        var nameBtn = UiKit.Button(side, string.IsNullOrEmpty(rec.CustomName) ? "Name it" : "Rename", () =>
+                        {
+                            bool open = nameField.style.display == DisplayStyle.Flex;
+                            nameField.style.display = open ? DisplayStyle.None : DisplayStyle.Flex;
+                            if (!open) nameField.Focus();
+                        }, "");
+                        nameBtn.style.marginTop = 4;
+                        // the auction: exceptional pieces only, a reserve under them, the house's cut on top
+                        if (Auction.IsEligible(rec) || rec.ConsignedAtCrate > 0)
+                        {
+                            string cannot = rec.ConsignedAtCrate > 0 ? null : Auction.CannotConsign(st, rec);
+                            var auc = UiKit.Button(side, rec.ConsignedAtCrate > 0 ? "Withdraw from auction" : cannot ?? $"Consign  •  est. {UiKit.Money(Auction.Estimate(rec))}", () =>
+                            {
+                                if (rec.ConsignedAtCrate > 0) { Auction.Withdraw(_s, rec); Refresh(); return; }
+                                if (Auction.Consign(_s, rec, out string why)) Refresh(); else _s.Notify(why, NotificationKind.Warning);
+                            }, "");
+                            auc.style.marginTop = 4;
+                            auc.SetEnabled(rec.ConsignedAtCrate > 0 || cannot == null);
+                        }
+                        nameField.RegisterCallback<KeyDownEvent>(ev =>
+                        {
+                            if (ev.keyCode != KeyCode.Return && ev.keyCode != KeyCode.KeypadEnter) return;
+                            string v = nameField.value.Trim();
+                            rec.CustomName = v.Length > 0 ? v : null;
+                            _s.QueueSave("rename"); _s.RaiseStateChanged(); Refresh();
+                        });
                     }
                 }
             }

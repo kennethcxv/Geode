@@ -10,12 +10,12 @@ namespace GeodeEmpire.UI
     public sealed class BenchHud : MonoBehaviour
     {
         private CrackingBench _bench;
-        private VisualElement _root, _reticle, _panel, _forceFill, _progressFill, _progressRow, _result;
+        private VisualElement _root, _reticle, _panel, _result;
         private Label _title, _cracks, _hint, _resultName, _resultNote, _resultPrompt, _zone, _seat, _tool;
         private string _lastSeat = "", _lastTool = "";
         private int _lastZone = -1;
         private float _flash;
-        private int _lastCracks = -1;
+        private int _lastCracks = -1, _lastRingPct = -1;
         private int _lastHintState = -1;
         private ControlScheme _lastScheme;
 
@@ -34,24 +34,12 @@ namespace GeodeEmpire.UI
 
             _panel = UiKit.Box(_root, "card", "bench-panel");
             _title = UiKit.Label(_panel, "CRACKING BENCH", "bench-title");
+            // physical-first (V5 §55): the raised hammer, the whoosh and the seam overlay carry force and progress; the panel
+            // only names the force zone and counts the ring
             var forceRow = UiKit.Box(_panel, "row");
             forceRow.style.justifyContent = Justify.SpaceBetween;
             UiKit.Label(forceRow, "Force", "muted");
-            _zone = UiKit.Label(forceRow, "", "muted");
-            var fbg = UiKit.Box(_panel, "meter-bg");
-            _forceFill = UiKit.Box(fbg, "meter-fill", "meter-fill-force");
-            // zone ticks on the meter: tap | careful | firm | heavy
-            foreach (float z in new[] { CrackingBench.ForceTap, CrackingBench.ForceCareful, CrackingBench.ForceFirm })
-            {
-                var tick = UiKit.Box(fbg);
-                tick.style.position = Position.Absolute; tick.style.left = Length.Percent(z * 100f); tick.style.top = 0; tick.style.bottom = 0;
-                tick.style.width = 2; tick.style.backgroundColor = new Color(1f, 1f, 1f, 0.35f);
-                tick.pickingMode = PickingMode.Ignore;
-            }
-            _progressRow = UiKit.Box(_panel);
-            UiKit.Label(_progressRow, "Fracture ring", "muted");
-            var pbg = UiKit.Box(_progressRow, "meter-bg");
-            _progressFill = UiKit.Box(pbg, "meter-fill");
+            _zone = UiKit.Label(forceRow, "", "accent", "medium");
             _cracks = UiKit.Label(_panel, "", "");
             _seat = UiKit.Label(_panel, "", "muted");
             _tool = UiKit.Label(_panel, "", "muted");
@@ -133,22 +121,20 @@ namespace GeodeEmpire.UI
             // the reticle tells placement: white on the seam, amber off it
             var rc = _bench.AimValid ? Color.Lerp(new Color(1f, 0.72f, 0.3f), Color.white, _bench.Placement) : new Color(1f, 1f, 1f, 0.5f);
             _reticle.style.borderTopColor = rc; _reticle.style.borderBottomColor = rc; _reticle.style.borderLeftColor = rc; _reticle.style.borderRightColor = rc;
-            _forceFill.style.width = Length.Percent(_bench.Charge * 100f);
             int zone = _bench.Charge <= 0.02f ? 0 : _bench.Charge < CrackingBench.ForceTap ? 1 : _bench.Charge < CrackingBench.ForceCareful ? 2 : _bench.Charge < CrackingBench.ForceFirm ? 3 : 4;
             if (zone != _lastZone) { _lastZone = zone; _zone.text = zone == 0 ? "" : CrackingBench.ForceZoneName(_bench.Charge).ToUpper(); }
             _flash = Mathf.Max(0f, _flash - Time.deltaTime * 3f);
             bool lamp = _bench.HasLamp;
-            _progressRow.style.display = lamp ? DisplayStyle.Flex : DisplayStyle.None;
-            if (lamp) _progressFill.style.width = Length.Percent(_bench.Model.Progress() * 100f);
             string seat = "Seat: " + Workshop.Preparation.SeatWord(_bench.Stability) + (_bench.ClampClosed ? "  •  clamped" : _bench.ClampOwned ? "  •  clamp open" : "") + (_bench.Cleanliness < 0.5f ? "  •  clay hides the seam" : "");
             string tool = _bench.ToolName + (_bench.HasLamp && _bench.AimValid && _bench.Rock != null ? "  •  shell " + ThicknessWord(_bench.Rock.Geology.SectorThicknessAt(_bench.AimSector)) + " here" : "");
             if (tool != _lastTool) { _lastTool = tool; _tool.text = tool; }
             if (seat != _lastSeat) { _lastSeat = seat; _seat.text = seat; _seat.style.color = _bench.Stability < StressModel.UnstableBelow ? new Color(1f, 0.55f, 0.35f) : _bench.Stability < 0.8f ? new Color(1f, 0.85f, 0.5f) : new Color(0.75f, 0.75f, 0.72f); }
             int cracks = _bench.Model.CrackedCount();
-            if (cracks != _lastCracks)
+            int ringPct = lamp ? Mathf.RoundToInt(_bench.Model.Progress() * 10f) * 10 : -1;
+            if (cracks != _lastCracks || ringPct != _lastRingPct)
             {
-                _lastCracks = cracks;
-                _cracks.text = cracks == 0 ? "No cracks yet" : $"{cracks} of {StressModel.Sectors} seam segments cracked";
+                _lastCracks = cracks; _lastRingPct = ringPct;
+                _cracks.text = (cracks == 0 ? "No cracks yet" : $"{cracks} of {StressModel.Sectors} seam segments cracked") + (lamp && cracks > 0 ? $"  •  ring {ringPct}% worked" : "");
             }
             // the hint only changes with state, never per frame: build the string when the state does
             int state;

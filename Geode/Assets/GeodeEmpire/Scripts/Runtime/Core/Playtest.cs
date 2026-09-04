@@ -480,7 +480,14 @@ namespace GeodeEmpire.Core
             }
             yield return null;
             if (placed > 0) outbox.Ship();
-            L($"  sold {placed} direct: cash={S.State.Cash} sold={S.State.Stats.SpecimensSold}");
+            // whatever the tray would not take goes to the dealer on paper: no opened rock is left lying in a crate (it would sit in its open pose against the slats)
+            int direct = 0;
+            foreach (var e in new List<SpecimenEntity>(S.Entities.Values))
+            {
+                if (!e.IsOpened || e.Record.Location != SpecimenLocation.InCrate) continue;
+                var r = e.Record; r.Location = SpecimenLocation.Sold; S.State.Stats.SpecimensSold++; S.AddCash(r.AppraisedValue, "test"); S.Despawn(e); direct++;
+            }
+            L($"  sold {placed} direct{(direct > 0 ? $" + {direct} leftovers" : "")}: cash={S.State.Cash} sold={S.State.Stats.SpecimensSold}");
             yield return BreakDownEmptyCrates();
         }
 
@@ -614,6 +621,14 @@ namespace GeodeEmpire.Core
             yield return DismissLetters();
             if (Economy.Exhibition.Eligible(st) && director.PlinthCount(st) >= 3)
             {
+                // V5 §72 recovery: quit in the middle of the pass. Nothing is recorded until the room closes, so the reload
+                // finds the pieces on the plinths, the invitation already read, and the exhibition still open on the tablet.
+                director.Open();
+                yield return new WaitForSeconds(3.0f);
+                L($"mid-pass: running={director.Running} inputLocked={P.InputLocked} held={st.ExhibitionsHeld}");
+                L(RunSaveReloadCheck());
+                st = S.State; director = UI.ExhibitionDirector.Instance;
+                L($"after mid-pass reload: held={st.ExhibitionsHeld} eligible={Economy.Exhibition.Eligible(st)} onPlinths={director.PlinthCount(st)} running={director.Running} inputLocked={P.InputLocked} inMenu={CursorController.InMenu}");
                 director.Open();
                 float t0 = Time.time; bool snapped = false;
                 while (director.Running && Time.time - t0 < 30f)
@@ -1987,6 +2002,167 @@ namespace GeodeEmpire.Core
         }
 
         /// <summary>Run C step: take the nicest opened specimen we can find to display slot 0 and verify it stuck.</summary>
+        /// <summary>V5 §80 resolution checks: the same screens at whatever Game view size is set (1080p/1440p/4K), captured for review.</summary>
+        public void RunUiSweep(string tag) { if (!Running) StartCoroutine(UiSweep(tag)); }
+
+        private IEnumerator UiSweep(string tag)
+        {
+            Running = true; Phase = "uisweep";
+            L($"== UiSweep {tag} screen={Screen.width}x{Screen.height}");
+            S.AddCash(2000f, "test");
+            SpawnTestStock(3, 0f);
+            yield return new WaitForSeconds(0.5f);
+            // 1. free roam: crosshair, prompt and the tutorial card over an opened rock on the floor
+            SpecimenEntity first = null; foreach (var e in S.Entities.Values) if (e.IsOpened) { first = e; break; }
+            if (first != null)
+            {
+                yield return RouteTo(StandNear(first.transform.position, 0.9f), 0.3f);
+                D.LookAt(first.transform.position); yield return new WaitForSeconds(0.4f);
+                Snap($"{tag}_roam_prompt"); yield return new WaitForSecondsRealtime(0.2f);
+                L($"prompt='{P.Prompt}' hint='{P.Hint}' tutorial={(Tutorial.Current != null ? Tutorial.Current.Id : "none")}");
+            }
+            // 2. a kept piece reads like its label when looked at
+            yield return DisplayKeepCore();
+            yield return new WaitForSeconds(0.4f);
+            Snap($"{tag}_cabinet_label"); yield return new WaitForSecondsRealtime(0.2f);
+            L($"label hint='{P.Hint}' prompt='{P.Prompt.Replace("\n", " / ")}'");
+            foreach (var en in S.Entities.Values) if (en.Record.Location == SpecimenLocation.DisplaySlot) { L($"  displayed {en.Id}: zone={(en.Zone != null ? en.Zone.name + "/" + en.Zone.Kind : "none")} opened={en.IsOpened} hint='{en.GetHint(P)}' target={(P.Target as SpecimenEntity)?.Id}"); break; }
+            // 3. the appraisal card
+            SpecimenEntity rock = null; foreach (var e in S.Entities.Values) if (e.IsOpened && e.Record.Location == SpecimenLocation.World) { rock = e; break; }
+            var scale = Find<AppraisalStation>();
+            if (rock != null) { if (rock.Zone != null) rock.Zone.Take(rock, true); scale.Scale.Place(rock); }
+            Vector3 sp = ZonePos(ZoneKind.Scale);
+            yield return RouteTo(StandNear(sp, 0.95f), 0.3f);
+            D.LookAt(sp); yield return new WaitForSeconds(2.8f);
+            Snap($"{tag}_appraisal_card"); yield return new WaitForSecondsRealtime(0.2f);
+            // 4. the tablet's pages
+            var tablet = UI.TabletUI.Instance;
+            tablet.Open(); yield return null;
+            for (int t = 0; t < 4; t++) { tablet.ShowTab(t); yield return new WaitForSeconds(0.4f); Snap($"{tag}_tablet_{t}"); }
+            tablet.Close(); yield return new WaitForSeconds(0.3f);
+            // 5. the pause menu
+            var pause = UI.PauseMenu.Instance;
+            pause.Open(); yield return new WaitForSecondsRealtime(0.3f); Snap($"{tag}_pause"); yield return new WaitForSecondsRealtime(0.2f); pause.Close(); yield return new WaitForSecondsRealtime(0.3f);   // the pause menu stops scaled time
+            // 6. the bench panel mid wind-up on a rough rock
+            if (S.Crates.Count == 0) { S.BuyCrate("local", out string err); yield return new WaitForSeconds(1.4f); }
+            CrateEntity crate = null; foreach (var c in S.Crates.Values) { crate = c; break; }
+            if (crate != null && !crate.IsOpened)
+            {
+                Vector3 cratePos = crate.transform.position; Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
+                yield return Walk(stand, 0.3f);
+                yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
+                yield return new WaitForSeconds(0.9f);
+            }
+            SpecimenEntity rough = null; foreach (var e in S.Entities.Values) if (!e.IsOpened && e.Record.Location == SpecimenLocation.InCrate) { rough = e; break; }
+            if (rough != null)
+            {
+                yield return FetchRock(rough);
+                if (P.Held != null)
+                {
+                    Vector3 cradle = ZonePos(ZoneKind.Cradle);
+                    yield return RouteTo(new Vector3(cradle.x, 0f, cradle.z - 0.95f), 0.25f);
+                    yield return LookAndInteract(cradle, "Set on the cradle");
+                    yield return new WaitForSeconds(1.0f);
+                    var bench = Find<CrackingBench>();
+                    if (bench.Active)
+                    {
+                        yield return AimCursor(bench, bench.SeamCursorHint());
+                        D.SetMouseButton(0, true); yield return new WaitForSeconds(0.45f);
+                        Snap($"{tag}_bench_windup"); yield return new WaitForSecondsRealtime(0.2f);
+                        D.SetMouseButton(0, false); yield return new WaitForSeconds(0.6f);
+                        Snap($"{tag}_bench_after"); yield return new WaitForSecondsRealtime(0.2f);
+                        if (UseGamepad) yield return D.PadTap(GamepadButton.East, 0.1f); else yield return D.Tap(Key.Escape, 0.1f);
+                        yield return new WaitForSeconds(0.5f);
+                    }
+                }
+            }
+            L("UI SWEEP DONE");
+            Phase = "done"; Running = false;
+        }
+
+        /// <summary>V5 §62 auction: consign a displayed exceptional piece, the courier collects it with the next crate, the hammer three crates on, the letter, the save.</summary>
+        public void RunAuction() { if (!Running) StartCoroutine(AuctionRun()); }
+
+        private IEnumerator AuctionRun()
+        {
+            Running = true; Phase = "auction";
+            var st = S.State;
+            L($"== Auction cash={st.Cash} rep={Economy.Reputation.Word(st)}");
+            S.AddCash(3000f, "test");
+            st.Stats.SpecimensSold += 60; st.Stats.CustomersServed += 20; st.Stats.CleanOpens += 10;   // a known name (reputation tier 2): the house takes consignments
+            SpawnTestStock(4, 0f);
+            yield return DisplayKeepCore();
+            st = S.State;
+            SpecimenRecord kept = null; foreach (var r in st.Specimens) if (r.Location == SpecimenLocation.DisplaySlot) { kept = r; break; }
+            if (kept == null) { L("nothing displayed"); Running = false; yield break; }
+            // a second exceptional piece straight into the cabinet, so one lot can pass while the other sells
+            SpecimenEntity second = null; foreach (var e in S.Entities.Values) if (e.IsOpened && e.Record.Location == SpecimenLocation.World && e.Record.Id != kept.Id && Economy.Auction.IsEligible(e.Record)) { second = e; break; }
+            if (second == null) foreach (var e in S.Entities.Values) if (e.IsOpened && e.Record.Location == SpecimenLocation.World && e.Record.Id != kept.Id) { second = e; break; }
+            L($"rep={Economy.Reputation.Word(st)} ({Economy.Reputation.Score(st)}) second={(second != null ? second.Record.DisplayName + " eligible=" + Economy.Auction.IsEligible(second.Record) : "none")}");
+            var cabinet = Find<Workshop.DisplayCabinet>();
+            if (second != null) foreach (var z in cabinet.Slots) if (z.IsEmpty && !z.Locked && z.gameObject.activeInHierarchy && z.RefusalReason(second) == null && z.FitRefusal(second) == null) { z.Place(second, true); break; }
+            string secondId = second != null ? second.Record.Id : null;
+            L($"eligible kept={Economy.Auction.IsEligible(kept)} cannot='{Economy.Auction.CannotConsign(st, kept)}' estimate={Economy.Auction.Estimate(kept)} mult={Economy.Auction.HammerMultiplier(st, kept):F2}");
+            bool ok = Economy.Auction.Consign(S, kept, out string why);
+            L($"consign kept: {(ok ? "ok" : why)} consignedAt={kept.ConsignedAtCrate}");
+            if (second != null) { bool ok2 = Economy.Auction.Consign(S, second.Record, out string why2); L($"consign second: {(ok2 ? "ok" : why2)} mult={Economy.Auction.HammerMultiplier(st, second.Record):F2}"); }
+            // withdraw and re-consign: the tablet's other button
+            Economy.Auction.Withdraw(S, kept); L($"withdrawn: consignedAt={kept.ConsignedAtCrate}");
+            Economy.Auction.Consign(S, kept, out why);
+            yield return new WaitForSeconds(0.4f);
+            Snap("auction_consigned");
+            // the courier comes with the next crate
+            int before = S.Entities.Count;
+            if (!S.BuyCrate("local", out string err)) { L("buy failed: " + err); Running = false; yield break; }
+            yield return new WaitForSeconds(0.8f);
+            st = S.State;
+            L($"after delivery: kept loc={kept.Location} entity={(S.GetEntity(kept.Id) != null)} lots={st.AuctionLots.Count} entities {before}->{S.Entities.Count} displayed={st.DisplayedCount()}");
+            foreach (var lot in st.AuctionLots) L("  lot: " + Economy.Auction.LotLine(st, lot));
+            L(RunSaveReloadCheck());
+            st = S.State;
+            L($"after reload: lots={st.AuctionLots.Count} kept loc={st.FindSpecimen(kept.Id)?.Location} entity={(S.GetEntity(kept.Id) != null)}");
+            // three more crates: sell each crate straight to the dealer so the pallet stays free
+            for (int i = 0; i < Economy.Auction.ResolveAfterCrates; i++)
+            {
+                yield return OpenNewestCrate();   // an unopened crate keeps its rocks and its pallet cell
+                yield return SellCrateDirect();
+                yield return BreakDownEmptyCrates();
+                float cashBefore = S.State.Cash;
+                if (!S.BuyCrate("local", out err)) { L($"buy {i} failed: " + err); break; }
+                yield return new WaitForSeconds(0.6f);
+                st = S.State;
+                L($"crate {st.CrateCounter}: lots={st.AuctionLots.Count} sold={st.Stats.AuctionsSold} passed={st.Stats.AuctionsPassed} revenue={st.Stats.AuctionRevenue} cash {cashBefore}->{st.Cash} letters={st.PendingLetters.Count}");
+            }
+            yield return new WaitForSeconds(0.5f);
+            yield return DismissLetters();
+            st = S.State;
+            var keptNow = st.FindSpecimen(kept.Id);
+            L($"kept: loc={keptNow?.Location} history=[{UI.TabletUI.HistoryText(keptNow, 6).Replace("\n", " | ")}]");
+            if (secondId != null) { var s2 = st.FindSpecimen(secondId); var e2 = S.GetEntity(secondId); L($"second: loc={s2?.Location}/{s2?.LocationIndex} entity={(e2 != null)} at={(e2 != null ? e2.transform.position.ToString() : "-")} displayed={st.DisplayedCount()}"); }
+            L(Core.CollisionAudit.Report("auction return"));
+            L(RunSaveReloadCheck());
+            L($"stats: sold={S.State.Stats.AuctionsSold} passed={S.State.Stats.AuctionsPassed} revenue={S.State.Stats.AuctionRevenue} biggest={S.State.Stats.BiggestSale} ({S.State.Stats.BiggestSaleName})");
+            // a lot that passes: a fresh exceptional piece consigned, its reserve set out of reach, hammered, brought back
+            st = S.State;
+            var rec = S.CreateSpecimenRecord(0x7D1UL, "regional", ""); rec.Location = SpecimenLocation.World; rec.Condition.Opened = true; rec.Condition.Rinsed = true; rec.Appraised = true; rec.AppraisedValue = Valuation.DamagedValue(rec.Geology, 0f, 0f);
+            var ent = S.Spawn(rec, new Vector3(-1.0f, 0.3f, -0.4f), Quaternion.identity, false); ent.ApplyOpenPose();
+            foreach (var z in cabinet.Slots) if (z.IsEmpty && !z.Locked && z.gameObject.activeInHierarchy && z.RefusalReason(ent) == null && z.FitRefusal(ent) == null) { z.Place(ent, true); break; }
+            bool ok3 = Economy.Auction.Consign(S, rec, out string why3);
+            L($"pass test: consign {(ok3 ? "ok" : why3)} loc={rec.Location}");
+            yield return OpenNewestCrate(); yield return SellCrateDirect(); yield return BreakDownEmptyCrates();
+            if (!S.BuyCrate("local", out err)) L("pass test: buy failed: " + err); yield return new WaitForSeconds(0.6f);
+            st = S.State;
+            foreach (var lot in st.AuctionLots) if (lot.SpecimenId == rec.Id) { lot.Reserve = 99999f; L($"pass test: collected, reserve forced to {lot.Reserve}"); }
+            for (int i = 0; i < Economy.Auction.ResolveAfterCrates; i++) { yield return OpenNewestCrate(); yield return SellCrateDirect(); yield return BreakDownEmptyCrates(); if (!S.BuyCrate("local", out err)) L($"pass test: buy {i} failed: " + err); yield return new WaitForSeconds(0.6f); }
+            yield return DismissLetters();
+            st = S.State;
+            var back = st.FindSpecimen(rec.Id); var backE = S.GetEntity(rec.Id);
+            L($"pass test: loc={back?.Location}/{back?.LocationIndex} entity={(backE != null)} at={(backE != null ? backE.transform.position.ToString() : "-")} zone={(backE != null && backE.Zone != null ? backE.Zone.name : "-")} passed={st.Stats.AuctionsPassed} displayed={st.DisplayedCount()}");
+            L(Core.CollisionAudit.Report("passed lot back"));
+            L(RunSaveReloadCheck());
+            Phase = "done"; Running = false;
+        }
+
         public void RunDisplayKeep() { if (!Running) StartCoroutine(DisplayKeep()); }
 
         private IEnumerator DisplayKeep()
@@ -2063,6 +2239,31 @@ namespace GeodeEmpire.Core
             L($"A on '{before}': cash {cashBefore}->{S.State.Cash} crates={S.Crates.Count} focus={tablet.FocusedText} open={tablet.IsOpen}");
             yield return Pad(GamepadButton.East);
             L($"B: tablet open={tablet.IsOpen} pause open={pause.IsOpen}");
+
+            // V5: the collection page's per-piece buttons (favourite, name, consign) are reachable on the pad
+            Phase = "collection";
+            SpawnTestStock(2, 0f);
+            foreach (var en in new List<SpecimenEntity>(S.Entities.Values)) if (en.IsOpened && en.Record.Location == SpecimenLocation.World) { var cab = Find<Workshop.DisplayCabinet>(); foreach (var z in cab.Slots) if (z.IsEmpty && !z.Locked && z.gameObject.activeInHierarchy && z.RefusalReason(en) == null && z.FitRefusal(en) == null) { z.Place(en, true); break; } break; }
+            S.State.Stats.SpecimensSold += 60; S.State.Stats.CustomersServed += 20; S.RaiseStateChanged();
+            if (!tablet.IsOpen) yield return Pad(GamepadButton.Select);
+            tablet.ShowTab(2); yield return null;
+            string seenConsign = null, seenName = null, seenFav = null;
+            for (int i = 0; i < 40 && (seenConsign == null || seenName == null); i++)
+            {
+                yield return Pad(GamepadButton.DpadDown);
+                string f = (tablet.FocusedText ?? "").Replace("Button:", "");
+                if (f.StartsWith("Consign")) seenConsign = f; if (f == "Name it" || f == "Rename") seenName = f; if (f.Contains("Favourite") || f == "Unstar") seenFav = f;
+            }
+            L($"collection pad focus: favourite='{seenFav}' name='{seenName}' consign='{seenConsign}'");
+            if (seenName != null)
+            {
+                // land on the name button again and press it: the field opens (typing is keyboard-only by design)
+                for (int i = 0; i < 40 && (tablet.FocusedText ?? "").Replace("Button:", "") != seenName; i++) yield return Pad(GamepadButton.DpadUp);
+                yield return Pad(GamepadButton.South);
+                L($"A on '{seenName}': focus={tablet.FocusedText} open={tablet.IsOpen}");
+            }
+            yield return Pad(GamepadButton.East);
+            L($"B: tablet open={tablet.IsOpen}");
 
             Phase = "pause";
             yield return Pad(GamepadButton.Start);

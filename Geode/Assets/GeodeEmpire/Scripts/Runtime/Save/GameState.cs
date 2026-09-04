@@ -12,6 +12,8 @@ namespace GeodeEmpire.Save
         SaleSlot = 9,
         /// <summary>In the wash tub being scrubbed.</summary>
         WashTub = 10,
+        /// <summary>With the auction house: collected by the courier, waiting for the hammer (V5 §62). No entity in the world.</summary>
+        Consigned = 16,
         /// <summary>Sawn into pieces: the record stays as the lineage's parent, nothing spawns for it.</summary>
         Cut = 11,
         /// <summary>Clamped in the saw (LocationIndex unused).</summary>
@@ -45,6 +47,8 @@ namespace GeodeEmpire.Save
         public float AcquisitionCost;
         public float OriginalMassKg;
         public bool Favorite;
+        /// <summary>Consigned to auction on the tablet: the courier collects it with the next crate delivery (0 = not consigned).</summary>
+        public int ConsignedAtCrate;
         /// <summary>Stage 3: verified under the UV lamp and certified (exceptional pieces): a documented piece asks a little more.</summary>
         public bool Certified;
         public string Fluorescence = "";
@@ -211,13 +215,35 @@ namespace GeodeEmpire.Save
         public int RocksCracked;
         public int CommissionsFilled;
         public float CommissionRevenue;
+        public int AuctionsSold, AuctionsPassed;
+        public float AuctionRevenue;
+    }
+
+    /// <summary>A piece with the auction house: collected at one crate, resolved a few crates later at a seeded hammer price.</summary>
+    [Serializable]
+    public sealed class AuctionLot
+    {
+        public string SpecimenId;
+        public int CollectedAtCrate;
+        public int ResolveAtCrate;
+        public float Estimate;
+        public float Reserve;
+    }
+
+    /// <summary>A dealer letter waiting to be read; persisted so a crash between the event and the reading loses nothing.</summary>
+    [Serializable]
+    public sealed class LetterRecord
+    {
+        public string Title;
+        public string Body;
     }
 
     /// <summary>Whole career save. Versioned; new fields get sensible defaults on load.</summary>
     [Serializable]
     public sealed class GameState
     {
-        public const int CurrentVersion = 1;
+        /// <summary>1 = V4 career; 2 = V5 (provenance, calls, history, favourites, certification, market, auctions, letters, exhibition).</summary>
+        public const int CurrentVersion = 2;
 
         public int Version = CurrentVersion;
         public string SaveId;
@@ -237,6 +263,8 @@ namespace GeodeEmpire.Save
         public List<string> OfferedLots = new List<string>();
         public int LastOfferCrate;
         public List<Commission> Commissions = new List<Commission>();
+        public List<AuctionLot> AuctionLots = new List<AuctionLot>();
+        public List<LetterRecord> PendingLetters = new List<LetterRecord>();
         public int CommissionCounter;
         public int LastCommissionMilestone;
         public Statistics Stats = new Statistics();

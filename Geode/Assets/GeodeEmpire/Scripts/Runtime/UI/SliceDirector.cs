@@ -61,6 +61,14 @@ namespace GeodeEmpire.UI
             if (CursorController.InMenu) return;
             var bench = FindAnyObjectByType<Cracking.CrackingBench>();
             if (bench != null && bench.Active) return;
+            if (st.PendingLetters.Count > 0)
+            {
+                var letter = st.PendingLetters[0];
+                st.PendingLetters.RemoveAt(0);
+                Show(letter.Title, letter.Body);
+                _s.QueueSave("letter");
+                return;
+            }
 
             if (!st.PremiumInviteShown && st.HasSupplier(SupplierCatalog.Premium))
             {

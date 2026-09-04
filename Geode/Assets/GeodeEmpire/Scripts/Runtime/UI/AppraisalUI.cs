@@ -26,15 +26,19 @@ namespace GeodeEmpire.UI
             _name = UiKit.Label(_card, "", "appraisal-name", "bold");
             _mineral = UiKit.Label(_card, "", "appraisal-line", "muted");
             _size = UiKit.Label(_card, "", "appraisal-line");
+            Caption("LOOK");
             _traits = UiKit.Label(_card, "", "appraisal-line", "accent");
             _traits.style.whiteSpace = WhiteSpace.Normal;
-            _condition = UiKit.Label(_card, "", "appraisal-line");
             _look = UiKit.Label(_card, "", "appraisal-line", "muted");
+            Caption("CONDITION  •  PROCESS");
+            _condition = UiKit.Label(_card, "", "appraisal-line");
             _process = UiKit.Label(_card, "", "appraisal-line", "muted");
+            Caption("VALUE");
             _value = UiKit.Label(_card, "", "appraisal-value", "bold");
             _why = UiKit.Label(_card, "", "appraisal-line", "muted");
             _why.style.whiteSpace = WhiteSpace.Normal;
             _call = UiKit.Label(_card, "", "appraisal-line", "accent");
+            Caption("PROVENANCE");
             _prov = UiKit.Label(_card, "", "muted");
             _prov.style.whiteSpace = WhiteSpace.Normal;
             _record = UiKit.Label(_card, "", "appraisal-record", "medium");
@@ -47,6 +51,12 @@ namespace GeodeEmpire.UI
                 _station.Appraised += Show;
                 _station.Cleared += Hide;
             }
+        }
+
+        private void Caption(string text)
+        {
+            var c = UiKit.Label(_card, text, "caption");
+            c.style.marginTop = 10;
         }
 
         private void OnDestroy()
@@ -99,7 +109,7 @@ namespace GeodeEmpire.UI
             _record.text = rec;
             _record.style.display = string.IsNullOrEmpty(rec) ? DisplayStyle.None : DisplayStyle.Flex;
             int displayed = s.DisplayedCount();
-            _hint.text = $"Keep it: display cabinet {displayed}/{s.DisplayCapacity}.   Sell it: dealer outbox.";
+            _hint.text = $"Keep it: display cabinet {displayed}/{s.DisplayCapacity}.   Sell it: dealer outbox." + (Economy.Auction.IsEligible(r) ? "   Exceptional: the auction house takes consignments from the tablet." : "");
             _wanted = true;
             _card.style.display = DisplayStyle.Flex;
         }
