@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using GeodeEmpire.Core;
+using GeodeEmpire.Checkout;
 using GeodeEmpire.Retail;
 
 namespace GeodeEmpire.UI
@@ -12,7 +13,7 @@ namespace GeodeEmpire.UI
     public sealed class RetailUI : MonoBehaviour
     {
         private RetailShop _shop;
-        private CheckoutRegister _register;
+        private CheckoutStation _station;
         private VisualElement _chip, _card;
         private Label _chipText, _cardSection, _cardWho, _cardWhat, _cardPrice, _cardProfit, _cardPrompt;
         private float _flash;
@@ -21,7 +22,7 @@ namespace GeodeEmpire.UI
         private void Start()
         {
             _shop = RetailShop.Instance;
-            _register = FindAnyObjectByType<CheckoutRegister>();
+            _station = FindAnyObjectByType<CheckoutStation>();
             var hud = HudController.Instance;
             if (_shop == null || hud == null) { enabled = false; return; }
             var root = hud.GetComponent<UIDocument>().rootVisualElement;
@@ -61,22 +62,21 @@ namespace GeodeEmpire.UI
 
         private void Update()
         {
-            if (_shop == null || _card == null || _register == null) return;
-            bool rung = _register != null && _register.RungUp && _register.Transacting != null;
-            bool station = rung && _register.Active;      // the counter view: a slim strip at the top, the counter itself stays clear
+            if (_shop == null || _card == null || _station == null) return;
+            var tx = _station.Tx;
+            bool rung = tx != null && tx.Items.Count > 0;
+            bool station = rung && _station.Active;      // the counter view: a slim strip, the counter itself stays clear
             if (rung)
             {
-                var c = _register.Transacting;
-                var rec = c.Wanted != null ? c.Wanted.Record : null;
-                string what = rec != null ? rec.DisplayName : _soldWhat;
-                float price = _register.Price;
+                var line = tx.Items[0];
+                var rec = _shop.AtCounter != null && _shop.AtCounter.Wanted != null ? _shop.AtCounter.Wanted.Record : null;
                 float dealer = rec != null ? rec.EstimatedValue() : 0f;
-                _cardWho.text = $"{c.Archetype.Name}  •  {c.Archetype.Blurb}";
-                _cardWhat.text = station ? $"{what}   {UiKit.Money(price)}" : what;
-                _cardPrice.text = UiKit.Money(price);
-                _cardProfit.text = dealer > 0f ? $"{UiKit.Money(price - dealer)} over the dealer's price" : "";
-                string status = _register.StatusLine;
-                _cardPrompt.text = _register.Busy || string.IsNullOrEmpty(status) ? status : $"[{GameInput.Glyph("Interact")}] {status}";
+                _cardWho.text = tx.CustomerName;
+                _cardWhat.text = station ? $"{line.Name}   {UiKit.Money(tx.Total)}" : line.Name;
+                _cardPrice.text = UiKit.Money(tx.Total);
+                _cardProfit.text = dealer > 0f ? $"{UiKit.Money(tx.Total - dealer)} over the dealer's price" : "";
+                string status = _station.StatusLine;
+                _cardPrompt.text = _station.Busy || string.IsNullOrEmpty(status) ? status : $"[{GameInput.Glyph("Interact")}] {status}";
                 _card.RemoveFromClassList("checkout-sold");
             }
             else if (_flash > 0f)
