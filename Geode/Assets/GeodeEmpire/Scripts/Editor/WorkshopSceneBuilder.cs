@@ -933,6 +933,24 @@ namespace GeodeEmpire.EditorTools
             Prop("prop_workbench", appraisal, Vector3.zero, 0f, "M_WoodDark,M_MetalDark", scale: new Vector3(0.75f, 1f, 0.85f));
             var scaleProp = Prop("prop_scale_station", appraisal, new Vector3(0.15f, 0.9f, -0.02f), 180f, "M_PlasticDark,M_Screen,M_Stainless,M_Rubber", collider: true);
             var scaleZone = Support(Zone(appraisal, "ScaleZone", new Vector3(0.15f, 0.954f, -0.01f), ZoneKind.Scale, "the scale", 1, true, false, new Vector3(0.44f, 0.2f, 0.4f)), 0.21f, 0.19f);   // on the platform (top 0.054 above the base)
+            // the reference row: one washed example of every mineral family met so far, on labelled bases along
+            // the back of the bench. Scenery, filled in at runtime from the encyclopedia (V6 §11: the rock is the point)
+            var shelfGo = new GameObject("MineralShelf");
+            shelfGo.transform.SetParent(appraisal, false);
+            MakeLight(shelfGo.transform, "RefRowLight", new Vector3(0f, 1.62f, 0.16f), new Vector3(56f, 180f, 0f), LightType.Spot, new Color(1f, 0.96f, 0.9f), 3.2f, 2.4f, 68f, false);
+            var refShelf = shelfGo.AddComponent<MineralShelf>();
+            refShelf.LabelFont = AssetDatabase.LoadAssetAtPath<Font>(WorldFontMedium);
+            refShelf.LabelMaterial = WorldTextMaterial(WorldFontMedium, "Assets/GeodeEmpire/Materials/M_WorldText_Medium.mat");
+            for (int i = 0; i < 4; i++)
+            {
+                float lx = -0.5f + i * 0.235f;
+                var basePlate = Box("RefBase" + i, shelfGo.transform, new Vector3(lx, 0.906f, -0.22f), new Vector3(0.21f, 0.012f, 0.17f), "M_WoodDark");
+                Object.DestroyImmediate(basePlate.GetComponent<Collider>());
+                var refSlot = new GameObject("RefSlot" + i).transform;
+                refSlot.SetParent(shelfGo.transform, false);
+                refSlot.localPosition = new Vector3(lx, 0.912f, -0.22f);
+                refShelf.Slots.Add(refSlot);
+            }
             scaleZone.SetHighlightRenderers(scaleProp.GetComponentsInChildren<Renderer>());
             var scaleAnchor = new GameObject("Anchor").transform;
             scaleAnchor.SetParent(scaleZone.transform, false);
