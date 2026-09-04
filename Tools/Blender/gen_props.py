@@ -1292,95 +1292,144 @@ def wash_tub(rng):
 # Customer (unchanged V4 mannequin: customer art is out of V5 scope)
 # ---------------------------------------------------------------------------
 def customer_parts(rng):
+    """V6 customer figure (about 1.75 m): a lofted torso with shoulders and a collared jacket, a pelvis with a belt,
+    two-segment legs (LegL/R with a ShinL/R child at the knee) and arms (ArmL/R with a ForearmL/R child at the elbow),
+    hands with thumbs, shoes with soles, a skull with a jaw, ears, eyes, brows, nose and mouth. Slots: 0 jacket,
+    1 trousers, 2 skin, 3 hair / shoes / dark details. Parts are (name, bmesh, location, parent) with the child
+    locations relative to their parent; Customer.cs finds them by name."""
     parts = []
-    torso = lib.bm_box((0.36, 0.22, 0.58), (0, 0, 0.29))
-    for v in torso.verts:
-        t = v.co.z / 0.58
-        v.co.x *= 0.82 + 0.18 * t
-        v.co.y *= 0.85 + 0.15 * t
-    lib.bm_bevel(torso, 0.03, segments=2)
-    for f in torso.faces:
-        f.material_index = 0
-    parts.append(("Torso", torso, (0, 0, 0.95)))
-    hips = lib.bm_box((0.34, 0.22, 0.16), (0, 0, -0.06))
-    lib.bm_bevel(hips, 0.03, segments=2)
-    for f in hips.faces:
-        f.material_index = 1
-    parts.append(("Hips", hips, (0, 0, 0.95)))
-    for name, x in (("LegL", -0.09), ("LegR", 0.09)):
-        leg = lib.bm_cylinder(0.075, 0.9, segments=10, radius_top=0.06)
-        lib.bm_transform(leg, Matrix.Translation((0, 0, -0.9)))
-        lib.bm_bevel(leg, 0.01, segments=1)
-        for f in leg.faces:
-            f.material_index = 1
-        shoe = lib.bm_box((0.11, 0.26, 0.07), (0, -0.05, -0.865))
-        lib.bm_bevel(shoe, 0.015, segments=1)
-        for f in shoe.faces:
-            f.material_index = 3
-        lib.bm_append(leg, shoe)
-        parts.append((name, leg, (x, 0, 0.9)))
-    for name, x in (("ArmL", -0.23), ("ArmR", 0.23)):
-        arm = lib.bm_cylinder(0.05, 0.62, segments=8, radius_top=0.04)
-        lib.bm_transform(arm, Matrix.Translation((0, 0, -0.62)))
-        for f in arm.faces:
-            f.material_index = 0
-        hand = lib.bm_icosphere(0.045, subdivisions=1, center=(0, 0, -0.64))
-        for f in hand.faces:
-            f.material_index = 2
-        lib.bm_append(arm, hand)
-        parts.append((name, arm, (x, 0, 1.45)))
-    head = lib.bm_icosphere(0.115, subdivisions=2, center=(0, 0, 0.14))
+    def usph(radius, segments=24, rings=14, center=(0, 0, 0), squash=1.0):
+        # hq.uv_sphere sits on its centre point (base at z); this one is centred like the icosphere
+        return hq.uv_sphere(radius, segments=segments, rings=rings, center=(center[0], center[1], center[2] - radius * squash), squash=squash)
+    def slot(bm, i):
+        for f in bm.faces:
+            f.material_index = i
+        # cutting a cap out of a sphere leaves vertices with no faces behind: drop them
+        loose = [v for v in bm.verts if not v.link_faces]
+        if loose:
+            bmesh.ops.delete(bm, geom=loose, context="VERTS")
+        return bm
+    def rr(w, h, r, z, dx=0.0, dy=0.0):
+        return [(x + dx, y + dy, zz) for (x, y, zz) in hq.ring_rrect(w, h, r, z, 28)]
+
+    # ---- torso (pivot at the waist, z 0.95): waist, chest, shoulders, neck base; a jacket with collar, placket and buttons
+    torso = hq.loft([rr(0.31, 0.2, 0.09, 0.0), rr(0.34, 0.22, 0.1, 0.14), rr(0.38, 0.24, 0.11, 0.3), rr(0.43, 0.25, 0.12, 0.46),
+                     rr(0.42, 0.24, 0.12, 0.53), rr(0.26, 0.19, 0.09, 0.59), rr(0.14, 0.14, 0.06, 0.62)], close_bottom=True, close_top=True)
+    hq.displace(torso, 0.004, 9.0, seed=31, octaves=1)
+    slot(torso, 0)
+    for sx in (-1, 1):
+        cap = usph(0.078, segments=20, rings=12, center=(sx * 0.19, 0.0, 0.5), squash=0.85)
+        lib.bm_append(torso, slot(cap, 0))
+    collar = hq.loft([rr(0.2, 0.17, 0.07, 0.55), rr(0.24, 0.2, 0.08, 0.6), rr(0.2, 0.17, 0.07, 0.65)], close_bottom=False, close_top=False)
+    lib.bm_append(torso, slot(collar, 0))
+    lib.bm_append(torso, slot(hq.rbox((0.018, 0.006, 0.44), (0.0, -0.126, 0.24), bevel=0.001, segments=1), 0))     # placket
+    for z in (0.12, 0.24, 0.36):
+        lib.bm_append(torso, slot(hq.cyl(0.008, 0.004, segments=12, center=(0.018, -0.13, z)), 3))                   # buttons
+    parts.append(("Torso", torso, (0, 0, 0.95), None))
+
+    # ---- hips / pelvis (pivot 0.95) with a belt
+    hips = hq.loft([rr(0.33, 0.22, 0.1, -0.22), rr(0.35, 0.24, 0.11, -0.1), rr(0.32, 0.21, 0.09, 0.0), rr(0.31, 0.2, 0.09, 0.03)], close_bottom=True, close_top=True)
+    slot(hips, 1)
+    belt = hq.loft([rr(0.325, 0.215, 0.095, -0.01), rr(0.33, 0.22, 0.095, 0.02)], close_bottom=False, close_top=False)
+    lib.bm_append(hips, slot(belt, 3))
+    lib.bm_append(hips, slot(hq.rbox((0.03, 0.006, 0.024), (0.0, -0.115, 0.005), bevel=0.002, segments=1), 3))         # buckle
+    parts.append(("Hips", hips, (0, 0, 0.95), None))
+
+    # ---- legs: thigh (pivot at the hip 0.9) and shin (child at the knee) with a cuffed trouser leg and a shoe with a sole
+    for name, x in (("LegL", -0.095), ("LegR", 0.095)):
+        thigh = hq.loft([hq.ring_ellipse(0.085, 0.09, 0.0, 20), hq.ring_ellipse(0.08, 0.085, -0.2, 20), hq.ring_ellipse(0.068, 0.07, -0.44, 20)], close_bottom=True, close_top=True)
+        slot(thigh, 1)
+        lib.bm_append(thigh, slot(usph(0.064, segments=18, rings=10, center=(0, 0, -0.45)), 1))               # knee
+        parts.append((name, thigh, (x, 0, 0.9), None))
+        shin = hq.loft([hq.ring_ellipse(0.06, 0.066, 0.0, 20), hq.ring_ellipse(0.055, 0.06, -0.2, 20), hq.ring_ellipse(0.048, 0.05, -0.36, 20), hq.ring_ellipse(0.05, 0.052, -0.39, 20)], close_bottom=True, close_top=True)
+        slot(shin, 1)
+        shoe = hq.rbox((0.095, 0.25, 0.06), (0.0, -0.045, -0.41), bevel=0.02, segments=3)
+        for v in shoe.verts:
+            if v.co.y < -0.12:
+                v.co.z += 0.012 * (-0.12 - v.co.y) / 0.05    # the toe turns up a little
+            if v.co.z < -0.43 and v.co.y < -0.1:
+                v.co.x *= 0.92
+        lib.bm_append(shin, slot(shoe, 3))
+        lib.bm_append(shin, slot(hq.rbox((0.1, 0.26, 0.014), (0.0, -0.045, -0.437), bevel=0.003, segments=1), 3))    # sole
+        # exported flat with its pivot at the knee (FBX child transforms come through in the root's frame on
+        # import); the scene builder parents it under the thigh
+        parts.append(("Shin" + name[-1], shin, (x, 0, 0.44), None))
+
+    # ---- arms: upper arm (pivot at the shoulder 1.45) and forearm (child at the elbow) with a cuff and a hand
+    for name, x in (("ArmL", -0.245), ("ArmR", 0.245)):
+        upper = hq.loft([hq.ring_ellipse(0.058, 0.06, 0.0, 16), hq.ring_ellipse(0.052, 0.054, -0.16, 16), hq.ring_ellipse(0.046, 0.048, -0.29, 16)], close_bottom=True, close_top=True)
+        slot(upper, 0)
+        lib.bm_append(upper, slot(usph(0.045, segments=16, rings=10, center=(0, 0, -0.3)), 0))              # elbow
+        parts.append((name, upper, (x, 0, 1.45), None))
+        fore = hq.loft([hq.ring_ellipse(0.044, 0.046, 0.0, 16), hq.ring_ellipse(0.04, 0.042, -0.14, 16), hq.ring_ellipse(0.036, 0.038, -0.26, 16), hq.ring_ellipse(0.04, 0.042, -0.28, 16)], close_bottom=True, close_top=True)
+        slot(fore, 0)
+        hand = hq.rbox((0.075, 0.035, 0.09), (0.0, 0.0, -0.335), bevel=0.012, segments=2)
+        lib.bm_append(fore, slot(hand, 2))
+        sgn = -1 if name.endswith("L") else 1
+        thumb = hq.rbox((0.022, 0.03, 0.045), (sgn * -0.04, -0.012, -0.31), bevel=0.006, segments=1)
+        lib.bm_append(fore, slot(thumb, 2))
+        parts.append(("Forearm" + name[-1], fore, (x, 0, 1.14), None))
+
+    # ---- head (pivot at the neck base 1.53): skull with a jaw, neck, ears, eyes, brows, nose, mouth
+    head = usph(0.092, segments=28, rings=18, center=(0, 0, 0.14))
     for v in head.verts:
-        v.co.z = 0.14 + (v.co.z - 0.14) * 1.15
-    for f in head.faces:
-        f.material_index = 2
-    neck = lib.bm_cylinder(0.05, 0.08, segments=8)
-    for f in neck.faces:
-        f.material_index = 2
-    lib.bm_append(head, neck)
-    parts.append(("Head", head, (0, 0, 1.53)))
-    # hair variants and hats: separate parts the customer enables one of (seeded), so the crowd is not one figure
-    hair = lib.bm_icosphere(0.12, subdivisions=2, center=(0, 0.01, 0.17))
-    hair_v = [v for v in hair.verts if v.co.z < 0.15 and v.co.y < 0.06]
+        v.co.y = (v.co.y) * 1.12 + 0.005
+        v.co.z = 0.145 + (v.co.z - 0.145) * 1.18
+        if v.co.z < 0.13:                                   # the jaw narrows and comes forward
+            k = (0.13 - v.co.z) / 0.09
+            v.co.x *= 1.0 - 0.28 * k
+            v.co.y -= 0.02 * k
+    slot(head, 2)
+    lib.bm_append(head, slot(hq.cyl(0.046, 0.09, segments=14, center=(0, 0.005, 0.045)), 2))                       # neck
+    for sx in (-1, 1):
+        ear = usph(0.022, segments=12, rings=8, center=(sx * 0.098, 0.01, 0.145), squash=1.0)
+        for v in ear.verts:
+            v.co.x = sx * 0.098 + (v.co.x - sx * 0.098) * 0.45
+        lib.bm_append(head, slot(ear, 2))
+        lib.bm_append(head, slot(usph(0.012, segments=12, rings=8, center=(sx * 0.036, -0.088, 0.158)), 3))   # eye
+        lib.bm_append(head, slot(hq.rbox((0.034, 0.008, 0.006), (sx * 0.037, -0.094, 0.182), bevel=0.001, segments=1), 3))   # brow
+    nose = hq.rbox((0.022, 0.03, 0.038), (0.0, -0.104, 0.138), bevel=0.006, segments=2)
+    for v in nose.verts:
+        if v.co.z > 0.145:
+            v.co.y += 0.012 * (v.co.z - 0.145) / 0.02       # the bridge slopes back
+    lib.bm_append(head, slot(nose, 2))
+    lib.bm_append(head, slot(hq.rbox((0.034, 0.004, 0.005), (0.0, -0.096, 0.104), bevel=0.001, segments=1), 3))   # mouth
+    parts.append(("Head", head, (0, 0, 1.53), None))
+
+    # ---- hair variants and hats: the customer enables one (seeded), so the crowd is not one figure
+    hair = usph(0.112, segments=26, rings=16, center=(0, 0.008, 0.16))
+    hair_v = [v for v in hair.verts if v.co.z < 0.13 or (v.co.y < -0.05 and v.co.z < 0.19)]
     bmesh.ops.delete(hair, geom=hair_v, context="VERTS")
-    for f in hair.faces:
-        f.material_index = 3
-    parts.append(("HairShort", hair, (0, 0, 1.53)))
-    hair2 = lib.bm_icosphere(0.125, subdivisions=2, center=(0, 0.02, 0.16))
-    hair2_v = [v for v in hair2.verts if v.co.y < 0.05 and v.co.z < 0.2]
+    hq.displace(hair, 0.006, 25.0, seed=41, octaves=1)
+    parts.append(("HairShort", slot(hair, 3), (0, 0, 1.53), None))
+    hair2 = usph(0.118, segments=26, rings=16, center=(0, 0.016, 0.155))
+    hair2_v = [v for v in hair2.verts if (v.co.y < -0.04 and v.co.z < 0.2) or v.co.z < 0.04]
     bmesh.ops.delete(hair2, geom=hair2_v, context="VERTS")
     for v in hair2.verts:
-        if v.co.y > 0.04:
-            v.co.z -= 0.06 * (v.co.y - 0.04) / 0.08   # falls to the collar at the back
-    for f in hair2.faces:
-        f.material_index = 3
-    parts.append(("HairLong", hair2, (0, 0, 1.53)))
-    cap = lib.bm_icosphere(0.128, subdivisions=2, center=(0, 0.0, 0.17))
-    cap_v = [v for v in cap.verts if v.co.z < 0.17]
+        if v.co.y > 0.03:
+            v.co.z -= 0.08 * (v.co.y - 0.03) / 0.1           # falls to the collar at the back
+    hq.displace(hair2, 0.007, 22.0, seed=43, octaves=1)
+    parts.append(("HairLong", slot(hair2, 3), (0, 0, 1.53), None))
+    cap = usph(0.122, segments=26, rings=16, center=(0, 0.0, 0.165))
+    cap_v = [v for v in cap.verts if v.co.z < 0.165]
     bmesh.ops.delete(cap, geom=cap_v, context="VERTS")
-    for f in cap.faces:
-        f.material_index = 1
-    peak = lib.bm_box((0.14, 0.09, 0.012), (0, -0.14, 0.175))
-    for f in peak.faces:
-        f.material_index = 1
+    peak = hq.rbox((0.15, 0.1, 0.012), (0, -0.14, 0.17), bevel=0.004, segments=2)
+    for v in peak.verts:
+        if v.co.y < -0.16:
+            v.co.z -= 0.02 * (-0.16 - v.co.y) / 0.03
     lib.bm_append(cap, peak)
-    parts.append(("Cap", cap, (0, 0, 1.53)))
-    beanie = lib.bm_icosphere(0.13, subdivisions=2, center=(0, 0.0, 0.16))
-    beanie_v = [v for v in beanie.verts if v.co.z < 0.14]
+    lib.bm_append(cap, hq.cyl(0.01, 0.006, segments=10, center=(0, 0, 0.287)))                                     # button on top
+    parts.append(("Cap", slot(cap, 1), (0, 0, 1.53), None))
+    beanie = usph(0.124, segments=26, rings=16, center=(0, 0.0, 0.16))
+    beanie_v = [v for v in beanie.verts if v.co.z < 0.135]
     bmesh.ops.delete(beanie, geom=beanie_v, context="VERTS")
     for v in beanie.verts:
-        v.co.z *= 1.12
-    for f in beanie.faces:
-        f.material_index = 1
-    parts.append(("Beanie", beanie, (0, 0, 1.53)))
-    coat = lib.bm_box((0.38, 0.24, 0.3), (0, 0, -0.2))
-    for v in coat.verts:
-        t = (v.co.z + 0.35) / 0.3
-        v.co.x *= 0.9 + 0.12 * (1 - t)
-    lib.bm_bevel(coat, 0.03, segments=2)
-    for f in coat.faces:
-        f.material_index = 0
-    parts.append(("CoatTail", coat, (0, 0, 0.95)))
+        v.co.z = 0.135 + (v.co.z - 0.135) * 1.15
+    brim = hq.loft([hq.ring_ellipse(0.125, 0.13, 0.135, 26), hq.ring_ellipse(0.128, 0.133, 0.165, 26)], close_bottom=False, close_top=False)
+    lib.bm_append(beanie, brim)
+    parts.append(("Beanie", slot(beanie, 1), (0, 0, 1.53), None))
+    coat = hq.loft([rr(0.36, 0.25, 0.1, -0.42), rr(0.38, 0.26, 0.11, -0.3), rr(0.36, 0.24, 0.1, -0.2), rr(0.33, 0.22, 0.1, -0.02)], close_bottom=True, close_top=False)
+    parts.append(("CoatTail", slot(coat, 0), (0, 0, 0.95), None))
     return parts
 
 
@@ -1390,16 +1439,19 @@ def build_customer():
     root = bpy.data.objects.new(name, None)
     bpy.context.scene.collection.objects.link(root)
     objs = [root]
-    for part_name, bm, loc in customer_parts(rng):
+    by_name = {}
+    for part_name, bm, loc, parent_name in customer_parts(rng):
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        hq.mark_sharp_by_angle(bm, 40.0)
         lib.bm_box_uv(bm, scale=UV_SCALE)
         lib.validate_bmesh(TAG, name + "/" + part_name, bm, require_manifold=False)
-        obj = lib.object_from_bmesh(part_name, bm, smooth=True)
+        obj = lib.object_from_bmesh(part_name, bm, smooth=None)
         mesh = obj.data
         for slot in range(4):
             mesh.materials.append(bpy.data.materials.new(f"customer_slot{slot}"))
-        obj.parent = root
+        obj.parent = by_name[parent_name] if parent_name else root
         obj.location = loc
+        by_name[part_name] = obj
         objs.append(obj)
     lib.export_fbx(objs, os.path.join(OUT_DIR, name + ".fbx"), tag=TAG)
     for o in objs[1:]:

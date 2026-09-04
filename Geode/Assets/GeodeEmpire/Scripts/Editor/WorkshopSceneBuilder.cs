@@ -57,6 +57,12 @@ namespace GeodeEmpire.EditorTools
             Lit("M_Red", null, new Color(0.62f, 0.1f, 0.08f), 0.55f, 0.2f, 1f);
             Lit("M_Bulb", null, new Color(1f, 0.9f, 0.75f), 0.4f, 0f, 1f, emission: new Color(2.2f, 1.7f, 1.1f));
             // the inside of a lit pendant shade glows with the bulb: an enamel white with a warm emissive lift
+            // V6 customers: cloth, skin and hair (the per-person colour comes from the archetype through a property block)
+            // (weave normals and roughness only: the archetype colour must come through untinted, so no albedo tile)
+            Lit("M_Jacket", null, new Color(1f, 1f, 1f), 1f, 0f, 3f, set: "felt", bump: 0.8f).SetTexture("_BaseMap", null);
+            Lit("M_Trousers", null, new Color(1f, 1f, 1f), 1f, 0f, 3f, set: "canvas", bump: 0.7f).SetTexture("_BaseMap", null);
+            Lit("M_Skin", null, new Color(1f, 1f, 1f), 0.32f, 0f, 1f);
+            Lit("M_Hair", null, new Color(1f, 1f, 1f), 0.38f, 0f, 1f);
             Lit("M_ShadeInner", null, new Color(0.95f, 0.93f, 0.88f), 0.45f, 0f, 1f, emission: new Color(0.9f, 0.72f, 0.5f));
             Lit("M_JarGlass", null, new Color(0.8f, 0.85f, 0.8f, 0.35f), 0.9f, 0f, 1f);
             Lit("M_Cream", null, new Color(0.88f, 0.86f, 0.8f), 0.25f, 0f, 1f);
@@ -111,6 +117,40 @@ namespace GeodeEmpire.EditorTools
         /// paper answer light differently (V6 §5-§10); <paramref name="smoothness"/> and <paramref name="metallic"/> then scale
         /// the mask, and <paramref name="color"/> tints the albedo. Without a set it is the V5 flat material.
         /// </summary>
+        /// <summary>
+        /// The customer figure's parts only carry the slots they use (the importer drops the rest), so the per-renderer
+        /// material list is assigned by part name: jacket, trousers, skin, hair / shoes / dark details.
+        /// </summary>
+        public static void AssignCustomerMaterials(GameObject figure)
+        {
+            // the limb segments export flat (world pivots at the knees and elbows); they hang from the thighs and
+            // upper arms here so the animator's knee and elbow rotations carry them
+            foreach (var pair in new[] { ("ShinL", "LegL"), ("ShinR", "LegR"), ("ForearmL", "ArmL"), ("ForearmR", "ArmR") })
+            {
+                var child = figure.transform.Find(pair.Item1); var parent = figure.transform.Find(pair.Item2);
+                if (child != null && parent != null) child.SetParent(parent, true);
+            }
+            Material J = WorkshopMaterials.Get("M_Jacket"), T = WorkshopMaterials.Get("M_Trousers"), S = WorkshopMaterials.Get("M_Skin"), H = WorkshopMaterials.Get("M_Hair");
+            foreach (var r in figure.GetComponentsInChildren<Renderer>(true))
+            {
+                string n = r.gameObject.name;
+                Material[] want;
+                if (n == "Head") want = new[] { S, H };
+                else if (n.StartsWith("Hair")) want = new[] { H };
+                else if (n == "Cap" || n == "Beanie") want = new[] { T };
+                else if (n.StartsWith("Forearm")) want = new[] { J, S };
+                else if (n.StartsWith("Arm") || n == "CoatTail") want = new[] { J };
+                else if (n.StartsWith("Shin")) want = new[] { T, H };
+                else if (n.StartsWith("Leg")) want = new[] { T };
+                else if (n == "Hips") want = new[] { T, H };
+                else want = new[] { J, H };   // torso: jacket, buttons
+                int count = r.sharedMaterials.Length;
+                var mats = new Material[count];
+                for (int i = 0; i < count; i++) mats[i] = want[Mathf.Min(i, want.Length - 1)];
+                r.sharedMaterials = mats;
+            }
+        }
+
         private static Material Lit(string name, string texName, Color color, float smoothness, float metallic, float tiling, Color? emission = null, string set = null, float bump = 1f)
         {
             string path = $"{Folder}/{name}.mat";
@@ -1309,7 +1349,8 @@ namespace GeodeEmpire.EditorTools
             Prop("prop_label_stand", shop, new Vector3(PartitionX + 0.2f, 0.95f, -0.45f), 90f, "M_Paper", collider: false, scale: new Vector3(2f, 2f, 2f));
 
             // customers: a jointed figure template kept inactive, spawned by the shop
-            var template = Prop("prop_customer", shop, Vector3.zero, 0f, "M_Plastic,M_Plastic,M_Cream,M_WoodDark", collider: false);
+            var template = Prop("prop_customer", shop, Vector3.zero, 0f, "M_Jacket,M_Trousers,M_Skin,M_Hair", collider: false);
+            WorkshopMaterials.AssignCustomerMaterials(template);
             template.name = "CustomerTemplate";
             var capsule = template.AddComponent<CapsuleCollider>();
             capsule.radius = 0.28f; capsule.height = 1.7f; capsule.center = new Vector3(0f, 0.85f, 0f);

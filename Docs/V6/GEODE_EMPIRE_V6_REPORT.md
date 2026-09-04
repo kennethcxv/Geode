@@ -44,6 +44,11 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - Ambient lowered and cooled (sky 0.36/0.39/0.46, equator 0.33/0.30/0.27, ground 0.14/0.125/0.105) so the lamps carry the room; pendants at 2.5 with a lit enamel inner shade (`M_ShadeInner`, warm emissive). Before/after overviews in `Docs/V6/v64/`.
 - The locked saw's placeholder (a flat green rounded box: the "fridge") rebuilt as a canvas dust cover: a loft that follows the machine under it (cabinet, guard hump, motor peak), wrinkles, a pleated skirt to the floor, a rope and a paper tag; a new `canvas` weave tile (plain weave, slubs, faded khaki, grime in the folds).
 
+## V6.5 — customers (2026-09-04)
+- `gen_props.customer_parts` rebuilt: a lofted torso with shoulder caps, collar, placket and buttons; a pelvis with belt and buckle; thighs with knees and shins with cuffed trouser legs, shoes and soles; upper arms with elbows and forearms with cuffs, hands and thumbs; a skull with a jaw, neck, ears, eyes, brows, nose and mouth; hair (short / long), cap, beanie and coat variants. Slots: jacket / trousers / skin / hair-and-dark. Limb segments export flat with world pivots (FBX child transforms arrive in the root's frame) and `WorkshopMaterials.AssignCustomerMaterials` parents shins under thighs and forearms under upper arms, then assigns cloth (felt / canvas normals, archetype colour untinted), skin and hair materials by part name.
+- `Customer.Animate`: knees bend as the trailing leg comes through (42 degrees at full gait), elbows carry a resting bend that opens with the swing and closes at the chin or when carrying; the hand point moved to the forearm.
+- Two dead ends caught by the four-sided diagnostic capture: `hq.uv_sphere` sits on its centre point (every joint and the skull rode one radius high until a centred wrapper replaced it), and the figure's front really is -Z (a first reading of the diagnostic argued the opposite and was reverted). Captures: `Docs/V6/v65/`.
+
 ## Defects discovered
 - (V5 baseline, from the owner's screenshots and the captures above) boxy dark saw; dough-like rough geode; muddy, shallow, sparse opened geode; colour-only material differences; mannequin customers; abstract checkout.
 - V6.1b root causes behind the "dough" and "fur":
@@ -67,7 +72,7 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - Softening `T_Rock`'s crack lines and moving SSAO off the rocks were both tried as streak fixes before the anisotropic-noise cause was found; the first is kept (harmless, slightly cleaner coarse rinds), the second was never needed (source was already DepthNormals; the missing pass was the defect).
 
 ## Known-good milestone commits
-- V6.0 `1e923ff`, V6.1a `07186f9`, V6.1b `b720789` (material pipeline + geode hero pass), V6.1c `927efe1` (crystal habits and carpets), V6.1d `47b0053` (family-wide review fixes), V6.2a `9b37bec` (worn machines, saw remodel), V6.3 `94f12d7` (reveal motion), V6.4 (this commit): lighting and the saw cover.
+- V6.0 `1e923ff`, V6.1a `07186f9`, V6.1b `b720789` (material pipeline + geode hero pass), V6.1c `927efe1` (crystal habits and carpets), V6.1d `47b0053` (family-wide review fixes), V6.2a `9b37bec` (worn machines, saw remodel), V6.3 `94f12d7` (reveal motion), V6.4 `27f0db9` (lighting and the saw cover), V6.5 (this commit): customers.
 
 ## Remaining work
 - V6.1 remainder: S8 tilt toward clusters, S6 per-direction wall thinning, S7 terraces, S10 luster classes for the non-quartz habits, S11 SpecimenVisual hygiene + perf gate (LOD for opened rocks on shelves), S12 machine scaffolding, S13 acceptance gate (RunGeodeGate matrix over all 24 families, standalone, report). Known visual nits: the agate face's fracture relief is strong, the staged seam frost is still chalky at full stress, non-quartz carpets (calcite, fluorite) still use the V5 habits at V5 sizes.

@@ -70,6 +70,7 @@ namespace GeodeEmpire.Retail
         private RetailShop _shop;
         private NavMeshAgent _agent;
         private Transform _legL, _legR, _armL, _armR, _head, _torso;
+        private Transform _shinL, _shinR, _foreL, _foreR;   // V6 figure: knees and elbows (absent on the old mannequin)
         private Transform _handPoint;
         private float _stride;
         private float _timer;
@@ -120,6 +121,7 @@ namespace GeodeEmpire.Retail
             _agent.avoidancePriority = 40 + id % 20;
             _fidget = rng.Range(0f, 6.28f);
             _legL = Find("LegL"); _legR = Find("LegR"); _armL = Find("ArmL"); _armR = Find("ArmR"); _head = Find("Head"); _torso = Find("Torso");
+            _shinL = Find("ShinL"); _shinR = Find("ShinR"); _foreL = Find("ForearmL"); _foreR = Find("ForearmR");
             // one hair shape, sometimes a hat, sometimes a longer coat: the crowd is not one figure
             int hairPick = rng.Range(0, 3);        // short, long, none (under a hat)
             bool hat = rng.Chance(0.3f) || hairPick == 2;
@@ -142,10 +144,12 @@ namespace GeodeEmpire.Retail
                     if (part.StartsWith("Head") || part.StartsWith("Hair")) c = i == 0 && part.StartsWith("Head") ? Archetype.Skin : Archetype.Hair;
                     else if (part == "Cap" || part == "Beanie") c = Color.Lerp(Archetype.Trousers, Archetype.Jacket, 0.4f) * 0.9f;
                     else if (part == "CoatTail") c = Archetype.Jacket * 0.95f;
+                    else if (part.StartsWith("Forearm")) c = i == 0 ? Archetype.Jacket : Archetype.Skin;
                     else if (part.StartsWith("Arm")) c = i == 0 ? Archetype.Jacket : Archetype.Skin;
+                    else if (part.StartsWith("Shin")) c = i == 0 ? Archetype.Trousers : Archetype.Hair * 0.6f;
                     else if (part.StartsWith("Leg")) c = i == 0 ? Archetype.Trousers : Archetype.Hair * 0.6f;
-                    else if (part.StartsWith("Hips")) c = Archetype.Trousers;
-                    else c = Archetype.Jacket;
+                    else if (part.StartsWith("Hips")) c = i == 0 ? Archetype.Trousers : Archetype.Hair * 0.5f;
+                    else c = i == 0 ? Archetype.Jacket : Archetype.Jacket * 0.55f;   // torso, buttons
                     c = Color.Lerp(c, c * rng.Range(0.85f, 1.15f), 0.6f); c.a = 1f;
                     var mpb = new MaterialPropertyBlock();
                     r.GetPropertyBlock(mpb, i);
@@ -156,8 +160,8 @@ namespace GeodeEmpire.Retail
             if (_armR != null)
             {
                 _handPoint = new GameObject("HandPoint").transform;
-                _handPoint.SetParent(_armR, false);
-                _handPoint.localPosition = new Vector3(0.04f, -0.62f, 0.12f);
+                if (_foreR != null) { _handPoint.SetParent(_foreR, false); _handPoint.localPosition = new Vector3(0.02f, -0.34f, 0.1f); }
+                else { _handPoint.SetParent(_armR, false); _handPoint.localPosition = new Vector3(0.04f, -0.62f, 0.12f); }
             }
             // plan: look at 2-4 stocked slots, the families they came in for first, then nearest
             var avail = _shop.Available(this);
@@ -340,7 +344,7 @@ namespace GeodeEmpire.Retail
             float before = transform.eulerAngles.y;
             if (v.sqrMagnitude > 0.03f)
             {
-                var want = Quaternion.LookRotation(-v.normalized, Vector3.up);   // the figure's front is -Z (Blender -Y)
+                var want = Quaternion.LookRotation(-v.normalized, Vector3.up);   // the figure's front (face, placket, toes) is -Z (Blender -Y)
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, want, 240f * dt);
             }
             float rate = dt > 0f ? Mathf.DeltaAngle(before, transform.eulerAngles.y) / dt : 0f;
@@ -648,6 +652,11 @@ namespace GeodeEmpire.Retail
             float swing = Mathf.Sin(_stride) * gait * 28f;
             if (_legL != null) _legL.localRotation = Quaternion.Euler(swing, 0f, 0f);
             if (_legR != null) _legR.localRotation = Quaternion.Euler(-swing, 0f, 0f);
+            // knees: the trailing leg bends as it comes through, the planted leg stays straight
+            float kneeL = Mathf.Max(0f, Mathf.Sin(_stride + 1.1f)) * gait * 42f;
+            float kneeR = Mathf.Max(0f, Mathf.Sin(_stride + 1.1f + Mathf.PI)) * gait * 42f;
+            if (_shinL != null) _shinL.localRotation = Quaternion.Euler(kneeL, 0f, 0f);
+            if (_shinR != null) _shinR.localRotation = Quaternion.Euler(kneeR, 0f, 0f);
             float t = Time.time + _fidget;
             bool standing = gait < 0.15f;
             bool browsing = State == Phase.Browsing && standing;
@@ -658,6 +667,12 @@ namespace GeodeEmpire.Retail
             if (browsing && Mathf.Sin(t * 0.6f) > 0.55f) leftIdle = Quaternion.Euler(-88f, 0f, 34f);
             if (_armL != null) _armL.localRotation = Quaternion.Slerp(_armL.localRotation, leftIdle, dt * 5f);
             if (_armR != null) _armR.localRotation = Quaternion.Slerp(_armR.localRotation, Wanted != null ? Quaternion.Euler(-62f, 0f, -6f) : Quaternion.Euler(armSwing, 0f, -4f), dt * 6f);
+            // elbows: a resting bend that opens with the swing, sharper when the hand is at the chin or carrying a piece
+            bool chin = browsing && Mathf.Sin(t * 0.6f) > 0.55f;
+            float elbowL = chin ? -70f : -(14f + Mathf.Max(0f, -armSwing) * 0.8f);
+            float elbowR = Wanted != null ? -55f : -(14f + Mathf.Max(0f, armSwing) * 0.8f);
+            if (_foreL != null) _foreL.localRotation = Quaternion.Slerp(_foreL.localRotation, Quaternion.Euler(elbowL, 0f, 0f), dt * 5f);
+            if (_foreR != null) _foreR.localRotation = Quaternion.Slerp(_foreR.localRotation, Quaternion.Euler(elbowR, 0f, 0f), dt * 5f);
             if (_torso != null)
             {
                 float bob = Mathf.Abs(Mathf.Sin(_stride)) * 0.012f * gait;
@@ -705,7 +720,7 @@ namespace GeodeEmpire.Retail
         {
             Vector3 flat = point - transform.position; flat.y = 0f;
             if (flat.sqrMagnitude < 0.01f) return;
-            // the figure's front is -Z (Blender -Y): look away so the face points at the target
+            // the figure's front (face, placket, toes) is -Z (Blender -Y): look away so the face points at the target
             var target = Quaternion.LookRotation(-flat.normalized, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, target, 200f * dt);
         }
