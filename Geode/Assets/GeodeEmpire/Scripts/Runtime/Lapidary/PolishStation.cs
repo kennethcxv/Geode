@@ -112,7 +112,9 @@ namespace GeodeEmpire.Lapidary
 
         private string Refusal(SpecimenEntity e)
         {
-            if (!Owned) return "Buy the Flat Lap on the tablet";
+            if (!Owned) return UpgradeCatalog.Has(GameSession.Instance?.State, UpgradeCatalog.PolishLap)
+                ? $"The Flat Lap is still crated in the receiving bay: press {GameInput.Glyph("Build")} to site it"
+                : "Buy the Flat Lap on the tablet";
             if (!e.IsPiece) return "Only a sawn face takes a polish: a natural split is left as it is";
             if (e.Record.Polish >= 0.98f) return "Already polished";
             return null;

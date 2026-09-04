@@ -120,7 +120,9 @@ namespace GeodeEmpire.Cracking
 
         private string Refusal(SpecimenEntity e)
         {
-            if (!Owned) return "Buy the Geode Cracker on the tablet";
+            if (!Owned) return UpgradeCatalog.Has(GameSession.Instance?.State, UpgradeCatalog.GeodeCracker)
+                ? $"The Geode Cracker is still crated in the receiving bay: press {GameInput.Glyph("Build")} to site it"
+                : "Buy the Geode Cracker on the tablet";
             if (e.IsOpened) return "Already open";
             if (e.IsPiece) return "The chain wants a whole rock";
             if (e.Radius > MaxRockRadius) return "The chain is too short for a rock that size";

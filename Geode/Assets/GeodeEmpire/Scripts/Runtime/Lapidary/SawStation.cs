@@ -237,7 +237,9 @@ namespace GeodeEmpire.Lapidary
 
         private string Refusal(SpecimenEntity e)
         {
-            if (!Owned) return "Under the tarp: buy the Trim Saw on the tablet";
+            if (!Owned) return UpgradeCatalog.Has(GameSession.Instance?.State, UpgradeCatalog.TrimSaw)
+                ? $"The Trim Saw is still crated in the receiving bay: press {GameInput.Glyph("Build")} to site it"
+                : "Buy the Trim Saw on the tablet";
             if (e.IsOpened && !e.IsPiece) return "Split halves cannot be clamped: the saw takes whole rough or sawn pieces";
             if (e.IsPiece && e.Record.Piece.IsSlab && e.Record.Piece.Thickness < 0.012f) return "Too thin to cut again";
             if (!e.IsPiece && LowestHeightOverPoses(e) > MaxPassHeight) return UsingLarge ? "Too tall even for the slab saw's arbor" : "Too tall to pass under the arbor whichever way it lies: slab-saw work (Stage 3)";

@@ -19,7 +19,8 @@ namespace GeodeEmpire.Workshop
         [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() { Opened = null; }
         public override bool CanInteract(PlayerInteractor player) => player.Held == null;
-        public override string GetPrompt(PlayerInteractor player) => "Use tablet";
+        public string Prompt = "Use tablet";
+        public override string GetPrompt(PlayerInteractor player) => Prompt;
         public override void Interact(PlayerInteractor player)
         {
             WorkshopAudio.Play("ui_click", transform.position, 0.5f);

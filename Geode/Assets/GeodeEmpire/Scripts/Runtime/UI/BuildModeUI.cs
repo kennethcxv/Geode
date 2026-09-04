@@ -30,14 +30,23 @@ namespace GeodeEmpire.UI
         {
             _doc = GetComponent<UIDocument>();
             if (_doc.panelSettings == null) _doc.panelSettings = Resources.Load<PanelSettings>("UI/GeodePanelSettings");
-            Build();
         }
+
+        private void OnEnable() => TryBuild();
 
         private void Start()
         {
+            TryBuild();
             _mode = BuildMode.Instance;
             if (_mode != null) _mode.Changed += Refresh;
             Refresh();
+        }
+
+        /// <summary>A UIDocument has no root until its own OnEnable has run, so the tree is built the first frame it exists.</summary>
+        private void TryBuild()
+        {
+            if (_root != null || _doc == null || _doc.rootVisualElement == null) return;
+            Build();
         }
 
         private void OnDestroy() { if (_mode != null) _mode.Changed -= Refresh; }
@@ -90,6 +99,7 @@ namespace GeodeEmpire.UI
 
         private void Update()
         {
+            if (_root == null) { TryBuild(); if (_root == null) return; }
             if (_mode == null) { _mode = BuildMode.Instance; if (_mode != null) _mode.Changed += Refresh; return; }
             bool on = _mode.Active;
             var want = on ? DisplayStyle.Flex : DisplayStyle.None;
@@ -104,7 +114,7 @@ namespace GeodeEmpire.UI
 
         private void Refresh()
         {
-            if (_mode == null || !_mode.Active) return;
+            if (_root == null || _mode == null || !_mode.Active) return;
             var st = GameSession.Instance != null ? GameSession.Instance.State : null;
 
             int placed = 0, slots = 0, storage = 0;

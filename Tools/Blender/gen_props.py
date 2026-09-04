@@ -1580,7 +1580,133 @@ def build_customer():
     lib.log(TAG, f"{name}: jointed customer exported")
 
 
+# ---------------------------------------------------------------------------------------------
+# Back of house: the office desk, the storage racks and the goods-in gear the reference pack shows
+# ---------------------------------------------------------------------------------------------
+def office_desk(rng):
+    """Office desk 1.5 x 0.72, top at 0.75: a solid worktop on a drawer pedestal and a steel leg frame
+    (slot 1), with a modesty panel and a cable tray. Origin at the base centre."""
+    bm = bmesh.new()
+    box(bm, (1.5, 0.72, 0.038), (0, 0, 0.731), bevel=0.006, segments=3)
+    # drawer pedestal on the left, three fronts with routed pulls
+    box(bm, (0.42, 0.62, 0.63), (-0.5, 0.02, 0.4), bevel=0.005, segments=2)
+    for i, dz in enumerate((0.19, 0.4, 0.61)):
+        add(bm, hq.rbox((0.38, 0.016, 0.185), (-0.5, -0.295, dz), bevel=0.004, segments=2), mat=0)
+        add(bm, hq.rbox((0.16, 0.014, 0.014), (-0.5, -0.307, dz + 0.07), bevel=0.004), mat=1)
+    # steel leg frame on the right
+    for lx in (0.62, 0.3):
+        add(bm, hq.rbox((0.045, 0.045, 0.71), (lx, 0.28, 0.355), bevel=0.004), mat=1)
+        add(bm, hq.rbox((0.045, 0.045, 0.71), (lx, -0.28, 0.355), bevel=0.004), mat=1)
+    add(bm, hq.rbox((0.42, 0.04, 0.04), (0.46, 0.28, 0.68), bevel=0.004), mat=1)
+    add(bm, hq.rbox((0.42, 0.04, 0.04), (0.46, -0.28, 0.68), bevel=0.004), mat=1)
+    add(bm, hq.rbox((0.04, 0.6, 0.04), (0.62, 0, 0.06), bevel=0.004), mat=1)
+    add(bm, hq.rbox((0.04, 0.6, 0.04), (0.3, 0, 0.06), bevel=0.004), mat=1)
+    # modesty panel and cable tray at the back
+    box(bm, (0.9, 0.018, 0.3), (0.26, 0.31, 0.5), bevel=0.003)
+    add(bm, hq.rbox((0.8, 0.09, 0.05), (0.26, 0.26, 0.68), bevel=0.006), mat=1)
+    return bm, [ColBox((1.5, 0.72, 0.76), (0, 0, 0.38))]
+
+
+def laptop(rng):
+    """Open laptop, 15 inch: milled aluminium base with a keyboard deck and trackpad, a hinged lid at 105
+    degrees carrying the screen (slot 1) in a bezel. Origin at the base centre; the screen faces -Y."""
+    bm = bmesh.new()
+    base = hq.rbox((0.345, 0.245, 0.017), (0, 0, 0.0085), bevel=0.004, segments=3)
+    add(bm, base, mat=0)
+    # keyboard well and trackpad
+    add(bm, hq.rbox((0.29, 0.115, 0.004), (0, 0.03, 0.0185), bevel=0.001), mat=2)
+    for r in range(5):
+        for c in range(14):
+            kx = -0.135 + c * 0.0208
+            ky = -0.018 + r * 0.0215
+            add(bm, hq.rbox((0.0175, 0.0175, 0.0035), (kx, ky, 0.0205), bevel=0.0008), mat=2)
+    add(bm, hq.rbox((0.105, 0.07, 0.002), (0, -0.075, 0.018), bevel=0.002), mat=2)
+    # hinge and lid, laid back 15 degrees past upright
+    add(bm, hq.cyl(0.006, 0.30, segments=24, center=(0, 0.121, 0.012)), T(0, 0, 0) @ R(90, "Y"), mat=1)
+    lid = bmesh.new()
+    add(lid, hq.rbox((0.345, 0.225, 0.011), (0, 0, 0.1125), bevel=0.003, segments=3), mat=0)
+    add(lid, hq.rbox((0.313, 0.196, 0.002), (0, -0.007, 0.1125), bevel=0.001), mat=1)
+    lid_m = T(0, 0.121, 0.014) @ R(-105, "X")
+    add(bm, lid, lid_m, mat=0)
+    lid.free()
+    return bm, [ColBox((0.35, 0.25, 0.02), (0, 0, 0.01)), ColBox((0.35, 0.06, 0.24), (0, 0.16, 0.13))]
+
+
+def letter_tray(rng):
+    """Stacked pair of desk letter trays with riser posts and a label plate (slot 1). Origin at the base centre."""
+    bm = bmesh.new()
+    for i, z in enumerate((0.0, 0.085)):
+        box(bm, (0.32, 0.24, 0.008), (0, 0, z + 0.028), bevel=0.002)
+        add(bm, hq.rbox((0.32, 0.012, 0.05), (0, 0.114, z + 0.055), bevel=0.002), mat=0)
+        for sx in (-1, 1):
+            add(bm, hq.rbox((0.012, 0.24, 0.05), (sx * 0.154, 0, z + 0.055), bevel=0.002), mat=0)
+        add(bm, hq.rbox((0.32, 0.012, 0.022), (0, -0.114, z + 0.04), bevel=0.002), mat=0)
+        add(bm, hq.rbox((0.13, 0.004, 0.026), (0, -0.121, z + 0.042), bevel=0.001), mat=1)
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                add(bm, hq.cyl(0.007, 0.028 if i == 0 else 0.057, segments=14,
+                               center=(sx * 0.145, sy * 0.105, (z + 0.014) if i == 0 else (z - 0.0045))), mat=0)
+    return bm, [ColBox((0.33, 0.25, 0.14), (0, 0, 0.07))]
+
+
+def cork_board(rng):
+    """Framed cork board 0.9 x 0.6 (slot 1 cork) with pinned notes and invoices (slot 2 paper). Wall prop in the
+    pegboard convention: it stands in XZ with its face toward -Y and its origin at the bottom centre."""
+    bm = bmesh.new()
+    W, H = 0.9, 0.6
+    for sx in (-1, 1):
+        add(bm, hq.rbox((0.03, 0.028, H), (sx * (W / 2 - 0.015), 0.014, H / 2), bevel=0.003), mat=0)
+    for sz in (0.015, H - 0.015):
+        add(bm, hq.rbox((W, 0.028, 0.03), (0, 0.014, sz), bevel=0.003), mat=0)
+    add(bm, hq.rbox((W - 0.03, 0.014, H - 0.03), (0, 0.021, H / 2), bevel=0.002), mat=1)
+    r = random.Random(4211)
+    for i in range(7):
+        w = r.uniform(0.08, 0.14); h = r.uniform(0.09, 0.15)
+        px = r.uniform(-0.33, 0.33); pz = r.uniform(0.1, H - 0.1)
+        add(bm, hq.rbox((w, 0.0018, h), (0, 0, 0), bevel=0.0006), T(px, 0.0125, pz) @ R(r.uniform(-6, 6), "Y"), mat=2)
+        add(bm, hq.cyl(0.004, 0.008, segments=10, center=(0, 0, 0)),
+            T(px + w * 0.3, 0.008, pz + h * 0.36) @ R(90, "X"), mat=0)
+    return bm, [ColBox((W, 0.032, H), (0, 0.016, H / 2))]
+
+
+def mug(rng):
+    """Enamel mug with a handle. Origin at the base centre."""
+    bm = bmesh.new()
+    add(bm, hq.lathe([(0.0, 0.0), (0.038, 0.0), (0.041, 0.006), (0.043, 0.045), (0.045, 0.094),
+                      (0.0455, 0.098), (0.0425, 0.098), (0.0405, 0.05), (0.038, 0.008), (0.0, 0.008)],
+                     segments=36, loop=True), mat=0)
+    add(bm, hq.torus(0.028, 0.0055, seg_major=28, seg_minor=10, center=(0.058, 0, 0.055), sweep=250.0),
+        T(0, 0, 0) @ R(90, "X"), mat=0)
+    return bm, [ColBox((0.095, 0.09, 0.1), (0.008, 0, 0.05))]
+
+
+def pallet_jack(rng):
+    """Hand pallet truck: two forks on load rollers, a hydraulic pump body and a steering handle raised to
+    about 60 degrees. Origin between the forks at the floor; forks run along +Y."""
+    bm = bmesh.new()
+    for sx in (-1, 1):
+        add(bm, hq.rbox((0.16, 1.15, 0.05), (sx * 0.17, 0.42, 0.06), bevel=0.006), mat=0)
+        add(bm, hq.rbox((0.14, 0.2, 0.03), (sx * 0.17, 0.95, 0.045), bevel=0.004), mat=0)
+        add(bm, hq.cyl(0.038, 0.05, segments=20, center=(sx * 0.17, 0.95, 0.038)), T(0, 0, 0) @ R(90, "Y"), mat=1)
+    add(bm, hq.rbox((0.46, 0.16, 0.12), (0, -0.17, 0.12), bevel=0.008), mat=0)
+    add(bm, hq.cyl(0.075, 0.34, segments=28, center=(0, -0.2, 0.3)), mat=0)
+    for sx in (-1, 1):
+        add(bm, hq.cyl(0.085, 0.06, segments=24, center=(sx * 0.19, -0.24, 0.085)), T(0, 0, 0) @ R(90, "Y"), mat=1)
+    handle = bmesh.new()
+    add(handle, hq.rbox((0.06, 0.055, 0.86), (0, 0, 0.43), bevel=0.006), mat=0)
+    add(handle, hq.cyl(0.022, 0.34, segments=20, center=(0, 0, 0.87)), T(0, 0, 0) @ R(90, "Y"), mat=2)
+    add(bm, handle, T(0, -0.24, 0.4) @ R(-28, "X"), mat=0)
+    handle.free()
+    return bm, [ColBox((0.5, 1.5, 0.16), (0, 0.32, 0.08)), ColBox((0.5, 0.3, 1.1), (0, -0.34, 0.55))]
+
+
 PROPS = [
+    ("prop_office_desk", office_desk, 271),
+    ("prop_laptop", laptop, 272),
+    ("prop_letter_tray", letter_tray, 273),
+    ("prop_cork_board", cork_board, 274),
+    ("prop_mug", mug, 275),
+    ("prop_pallet_jack", pallet_jack, 276),
     ("prop_hammer", hammer, 201),
     ("prop_chisel", lambda r: chisel(r, False), 202),
     ("prop_chisel_fine", lambda r: chisel(r, True), 203),
@@ -1649,7 +1775,7 @@ PROPS = [
 
 # props whose origin is not the base centre (tool tips, ceiling attachment, blade axle)
 KEEP_ORIGIN = {"prop_pendant_lamp", "prop_saw_blade", "prop_saw_blade_large", "prop_chisel", "prop_chisel_fine", "prop_wedge", "prop_wall_clock", "prop_saw_wheel", "prop_saw_needle", "prop_saw_valve", "prop_cracker_lever", "prop_register_drawer"}
-KEEP_XY = {"prop_hammer", "prop_lump_hammer", "prop_loupe", "prop_price_card", "prop_tablet", "prop_label_stand", "prop_scale_station", "prop_pegboard", "prop_window_frame", "prop_task_lamp"}
+KEEP_XY = {"prop_cork_board", "prop_laptop", "prop_letter_tray", "prop_mug", "prop_hammer", "prop_lump_hammer", "prop_loupe", "prop_price_card", "prop_tablet", "prop_label_stand", "prop_scale_station", "prop_pegboard", "prop_window_frame", "prop_task_lamp"}
 MAX_VERTS = 40000
 
 
