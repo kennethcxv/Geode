@@ -49,6 +49,25 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - `Customer.Animate`: knees bend as the trailing leg comes through (42 degrees at full gait), elbows carry a resting bend that opens with the swing and closes at the chin or when carrying; the hand point moved to the forearm.
 - Two dead ends caught by the four-sided diagnostic capture: `hq.uv_sphere` sits on its centre point (every joint and the skull rode one radius high until a centred wrapper replaced it), and the figure's front really is -Z (a first reading of the diagnostic argued the opposite and was reverted). Captures: `Docs/V6/v65/`.
 
+## V6.6 — the checkout, ported from Golf Simulator (2026-09-04)
+- The whole checkout is now a port of the proven Golf Simulator checkout rather than a Geode-grown one. Its kit
+  (counter, POS monitor, card terminal, cash drawer, payment card, shopping bag, customer display, bills and coins)
+  is converted from the authored GLBs by `Tools/Blender/import_golf_checkout.py` and built into prefabs with
+  serialized anchor/socket references by `CheckoutKitBuilder`. The domain — integer-cent money, the bounded
+  drawer-change solve, the 30-state physical contract with its recovery rules, the transaction's card and cash
+  sub-machines, the change window, the deterministic money placement and the bag fit — is transliterated into
+  `Scripts/Runtime/Checkout`. Golf's economy, inventory lifecycle, tax, customer history and write-ahead settlement
+  log were deliberately not ported: Geode's own career already banks a sale atomically and marks the specimen Sold
+  by identity exactly once.
+- Shelf prices now end on the .95. A whole-dollar till never sees a coin, and counting change out of the drawer is
+  half of what a checkout is.
+- The record, with Golf's own reference frames beside the Geode ones, is `Docs/V6/checkout-port/README.md`.
+- Verified: cash and card sales across small, medium and large specimens (cash banked, the till moves by the same
+  amount on cash and not at all on card, the record Sold, the customer and entity gone, the station idle, nothing
+  left on the counter); three customers back to back; a whole sale worked with nothing but the interact button and
+  the target cycle (the controller path); save integrity for stock, reserved and sold pieces; a close-up pass over
+  every prop. 23 new EditMode tests, suite green at 68.
+
 ## Defects discovered
 - (V5 baseline, from the owner's screenshots and the captures above) boxy dark saw; dough-like rough geode; muddy, shallow, sparse opened geode; colour-only material differences; mannequin customers; abstract checkout.
 - V6.1b root causes behind the "dough" and "fur":
@@ -75,6 +94,7 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - V6.0 `1e923ff`, V6.1a `07186f9`, V6.1b `b720789` (material pipeline + geode hero pass), V6.1c `927efe1` (crystal habits and carpets), V6.1d `47b0053` (family-wide review fixes), V6.2a `9b37bec` (worn machines, saw remodel), V6.3 `94f12d7` (reveal motion), V6.4 `27f0db9` (lighting and the saw cover), V6.5 (this commit): customers.
 
 ## Remaining work
+- V6.6 checkout is complete (see above). Next: V6.7 tutorial (spec §56), then the settings/inventory/buying/sourcing/career UI and rebinding.
 - V6.1 remainder: S8 tilt toward clusters, S6 per-direction wall thinning, S7 terraces, S10 luster classes for the non-quartz habits, S11 SpecimenVisual hygiene + perf gate (LOD for opened rocks on shelves), S12 machine scaffolding, S13 acceptance gate (RunGeodeGate matrix over all 24 families, standalone, report). Known visual nits: the agate face's fracture relief is strong, the staged seam frost is still chalky at full stress, non-quartz carpets (calcite, fluorite) still use the V5 habits at V5 sizes.
 - Then V6.2 machines .. V6.9 and the FINAL acceptance per the brief.
 

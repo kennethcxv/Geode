@@ -111,6 +111,9 @@ namespace GeodeEmpire.Player
             LookEnabled = true;
         }
 
+        private float _walked;
+        private bool _toldMoved;
+
         private void Update()
         {
             GameInput.Tick();
@@ -150,6 +153,12 @@ namespace GeodeEmpire.Player
             _verticalVelocity += Gravity * dt;
             var delta = _velocity * dt + Vector3.up * _verticalVelocity * dt;
             if (_cc.enabled) _cc.Move(delta);
+            // the first hint asks the player to walk and look; three metres under their own power is enough to answer it
+            if (!_toldMoved && MovementEnabled)
+            {
+                _walked += new Vector2(delta.x, delta.z).magnitude;
+                if (_walked > 3f) { _toldMoved = true; Workshop.Tutorial.Notify("moved"); }
+            }
 
             // head bob
             float planar = new Vector2(_velocity.x, _velocity.z).magnitude;

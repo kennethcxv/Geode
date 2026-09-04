@@ -87,3 +87,7 @@ __pycache__/
 
 # standalone builds
 /Geode/Build/
+
+# Reference image pack (user-supplied, large binaries kept local)
+Geode/refrences/
+Geode/references/
