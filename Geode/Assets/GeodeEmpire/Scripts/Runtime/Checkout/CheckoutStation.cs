@@ -460,15 +460,34 @@ namespace GeodeEmpire.Checkout
             AllScanned = Tx != null && Tx.AllScanned,
         };
 
+        /// <summary>Inspection only: hold the drawer at a given openness so its contents can be photographed.</summary>
+        public void SetDrawerOpenForInspection(float open)
+        {
+            _drawerTarget = Mathf.Clamp01(open);
+            DrawerOpen = _drawerTarget;
+            PlaceTray();
+        }
+
+        /// <summary>
+        /// The tray slides out toward the CASHIER. The direction is taken from the counter, not from an axis of the
+        /// tray: the kit's own node carries a baked axis conversion, and assuming its local forward slid the drawer
+        /// straight up through the counter top.
+        /// </summary>
+        private void PlaceTray()
+        {
+            CacheTrayHome();
+            if (DrawerRig == null || DrawerRig.Tray == null || Counter == null) return;
+            var parent = DrawerRig.Tray.parent != null ? DrawerRig.Tray.parent : DrawerRig.transform;
+            Vector3 outward = parent.InverseTransformDirection(Counter.forward);
+            float travel = Layout != null ? Layout.DrawerTravel : DrawerRig.TrayTravel;
+            DrawerRig.Tray.localPosition = _trayHome + outward.normalized * (travel * DrawerOpen);
+        }
+
         private void AnimateDrawer(float dt)
         {
             float speed = _drawerTarget > DrawerOpen ? Layout.DrawerOpenSpeed : Layout.DrawerCloseSpeed;
             DrawerOpen = Mathf.MoveTowards(DrawerOpen, _drawerTarget, speed * dt * 0.55f);
-            if (DrawerRig != null && DrawerRig.Tray != null)
-            {
-                CacheTrayHome();
-                DrawerRig.Tray.localPosition = _trayHome + Vector3.forward * (Layout.DrawerTravel * DrawerOpen);
-            }
+            PlaceTray();
         }
 
         // ------------------------------------------------------------------------------------------------------

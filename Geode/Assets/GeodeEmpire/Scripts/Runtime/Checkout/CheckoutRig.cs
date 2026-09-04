@@ -53,9 +53,13 @@ namespace GeodeEmpire.Checkout
             return t;
         }
 
-        public DrawerWellContract Well(string denomination)
+        /// <summary>
+        /// A well by its authored denomination. The note and coin ranks both carry a "20" (the fourth coin well was
+        /// authored for a 20-unit piece and now holds the quarter), so the rank has to be part of the lookup.
+        /// </summary>
+        public DrawerWellContract Well(string denomination, bool coin)
         {
-            for (int i = 0; i < Wells.Count; i++) if (Wells[i].Denomination == denomination) return Wells[i];
+            for (int i = 0; i < Wells.Count; i++) if (Wells[i].Coin == coin && Wells[i].Denomination == denomination) return Wells[i];
             return null;
         }
     }

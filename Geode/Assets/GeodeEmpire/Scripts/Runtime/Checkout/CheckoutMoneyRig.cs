@@ -26,12 +26,12 @@ namespace GeodeEmpire.Checkout
             for (int i = 0; i < Money.Denoms.Length; i++)
             {
                 float denom = Money.Denoms[i];
-                string key = DrawerMoneyLayout.WellKey(denom);
-                var well = DrawerRig.Well(key);
+                bool coin = denom < 1f;
+                string key = (coin ? "c" : "b") + DrawerMoneyLayout.WellKey(denom);
+                var well = DrawerRig.Well(DrawerMoneyLayout.WellKey(denom), coin);
                 if (well == null || well.Socket == null) continue;
                 int want = stack != null ? stack[i] : 0;
                 var list = Pieces(key);
-                bool coin = denom < 1f;
                 int capped = Mathf.Min(want, well.MaxPieces);
                 while (list.Count > capped) { var last = list[list.Count - 1]; list.RemoveAt(list.Count - 1); if (last != null) Destroy(last); }
                 while (list.Count < capped)
@@ -56,29 +56,46 @@ namespace GeodeEmpire.Checkout
             return list;
         }
 
+        /// <summary>
+        /// Lay a well's pieces. The offsets are computed in the COUNTER'S frame — across the counter, up, and along the
+        /// well's depth — and then converted into the socket's own space, because the kit's drawer nodes carry a baked
+        /// axis conversion: taking their local axes at face value stood every note on its edge across the dividers.
+        /// </summary>
         private void Place(DrawerWellContract well, List<GameObject> pieces, float denom, bool coin)
         {
+            if (pieces.Count == 0 || Counter == null) return;
+            var socket = well.Socket;
+            Vector3 across = socket.InverseTransformDirection(Counter.right).normalized;    // along the counter
+            Vector3 up = socket.InverseTransformDirection(Counter.up).normalized;           // the stack climbs
+            Vector3 along = socket.InverseTransformDirection(Counter.forward).normalized;   // the well's depth
+            // measured off the imported prefabs, not assumed: a piece's face normal is its root-local +Y and its long
+            // axis its root-local +Z, so lying one flat down the well is LookRotation(along, up)
+            Quaternion flat = Quaternion.LookRotation(along, up);
+
             if (coin)
             {
                 float r = DrawerMoneyLayout.CoinDiameter(denom) * 0.5f;
-                var layout = DrawerMoneyLayout.CoinLayout(well, pieces.Count, r, well.PileH > 0f ? well.PileH : 0.0032f, denom);
+                float thickness = well.PileH > 0f ? well.PileH : 0.0032f;
+                var layout = DrawerMoneyLayout.CoinLayout(well, pieces.Count, r, thickness, denom);
                 for (int i = 0; i < pieces.Count && i < layout.Length; i++)
                 {
-                    pieces[i].transform.localPosition = layout[i].Offset;
-                    pieces[i].transform.localRotation = Quaternion.Euler(layout[i].Euler);
+                    var o = layout[i].Offset;
+                    pieces[i].transform.localPosition = across * o.x + up * o.y + along * o.z;
+                    pieces[i].transform.localRotation = Quaternion.AngleAxis(layout[i].Euler.y, up) * flat;
+                    pieces[i].transform.localScale = Vector3.one;
                 }
                 return;
             }
-            // a note lies along the well's depth, not across it: the mesh's long axis is its local X, and the well runs
-            // along Z, so the note turns a quarter and is scaled to 94% of the depth and 92% of the width
+
             var foot = DrawerMoneyLayout.BillFootprint(denom);
             var fit = DrawerMoneyLayout.BillFit(well, foot.x, foot.y);
             var bills = DrawerMoneyLayout.BillLayout(well, pieces.Count, denom);
             for (int i = 0; i < pieces.Count && i < bills.Length; i++)
             {
-                pieces[i].transform.localPosition = bills[i].Offset;
-                pieces[i].transform.localRotation = Quaternion.Euler(0f, 90f + bills[i].Euler.y, 0f);
-                pieces[i].transform.localScale = new Vector3(fit.x, 1f, fit.y);
+                var o = bills[i].Offset;
+                pieces[i].transform.localPosition = across * o.x + up * o.y + along * o.z;
+                pieces[i].transform.localRotation = Quaternion.AngleAxis(bills[i].Euler.y, up) * flat;
+                pieces[i].transform.localScale = new Vector3(fit.y, 1f, fit.x);   // x is the note's width, z its length
             }
         }
 
