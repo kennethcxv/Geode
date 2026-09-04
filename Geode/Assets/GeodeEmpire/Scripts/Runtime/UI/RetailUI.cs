@@ -66,6 +66,10 @@ namespace GeodeEmpire.UI
             var tx = _station.Tx;
             bool rung = tx != null && tx.Items.Count > 0;
             bool station = rung && _station.Active;      // the counter view: a slim strip, the counter itself stays clear
+            // the sale card belongs to the counter: it shares the right-hand rail with the workstation panels,
+            // so out at the saw or the lap it must be gone, not stacked on top of them
+            var cam = Camera.main;
+            bool atCounter = station || (cam != null && (cam.transform.position - _station.transform.position).sqrMagnitude < 4.2f * 4.2f);
             if (rung)
             {
                 var line = tx.Items[0];
@@ -92,7 +96,7 @@ namespace GeodeEmpire.UI
             _card.EnableInClassList("checkout-card-station", station);
             var detail = station ? DisplayStyle.None : DisplayStyle.Flex;
             _cardSection.style.display = detail; _cardWho.style.display = detail; _cardPrice.style.display = detail; _cardProfit.style.display = detail;
-            _card.style.display = rung || _flash > 0f ? DisplayStyle.Flex : DisplayStyle.None;
+            _card.style.display = (rung || _flash > 0f) && atCounter ? DisplayStyle.Flex : DisplayStyle.None;
             // the SOLD payoff waits until the piece has gone across and the station has reset
             if (_flash > 0f && !rung) { _flash -= Time.deltaTime; if (_flash <= 0f) Refresh(); }
         }

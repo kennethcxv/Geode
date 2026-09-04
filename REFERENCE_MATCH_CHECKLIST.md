@@ -16,8 +16,8 @@ reference in a named way · **n/a** — the game has no such screen (feature wor
 | R06 | Showroom | ✔ | ✔ | ✔ | ✔ | ✔ | – | ✔ | ✔ | ✔ | partial — cases fill by play |
 | R07 | Collection browser | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | – | ✔ | **done** |
 | R08 | Upgrades | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | – | ✔ | **done** |
-| R09 | Geode cracker | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **done** |
-| R10 | Polishing station | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **done** |
+| R09 | Geode cracker | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | partial — bench press, not the reference's industrial cracker |
+| R10 | Polishing station | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | partial — motor added, still a plainer machine |
 | R11 | Build mode | ✔ | – | – | – | – | – | – | – | – | **n/a** |
 | R12 | Special orders board | ✔ | – | – | – | – | – | – | – | – | partial — asks show on the tablet |
 | R13 | Packing station | ✔ | – | – | – | – | – | – | – | – | **n/a** |
@@ -27,10 +27,10 @@ reference in a named way · **n/a** — the game has no such screen (feature wor
 | R17 | Storage room | ✔ | – | – | – | – | – | – | – | – | **n/a** |
 | R18 | Office desk | ✔ | – | – | – | – | – | – | – | – | **n/a** |
 | R19 | Checkout | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | partial — mannequin customer |
-| R20 | Lap polisher | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **done** |
+| R20 | Lap polisher | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | partial — no grit blocks or water feed on show |
 | R21 | Appraisal bench | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **done** — reference row added |
 | R22 | Trim saw | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **done** |
-| R23 | Cracker close-up | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **done** |
+| R23 | Cracker close-up | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | partial — no gauges, hopper or caution signage |
 | R24 | Wash station | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **done** — rebuilt in Blender |
 | R25 | Inspection bench | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | partial — hand inspect, no bench |
 | R26 | Workshop overview | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **done** |
@@ -51,3 +51,6 @@ reference in a named way · **n/a** — the game has no such screen (feature wor
 - The shop cases and the display cabinet fill through play, so a fresh save's showroom is emptier
   than R06 and R08.
 - The receiving pallets stand in for R16's loading bay; there is no truck, roller door or yard.
+- The geode cracker (R09, R23) and the flat lap (R10, R20) are honest machines that read as
+  machines, but they are plainer than the reference's industrial cracker and branded lap. The lap
+  gained a finned motor and a maker's plate in this pass; the cracker has not been remodelled.

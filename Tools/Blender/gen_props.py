@@ -1289,8 +1289,9 @@ def uv_lamp(rng):
 
 def polish_lap(rng):
     """Flat lap machine: steel cabinet on rubber feet, round splash pan with a rolled lip and a drain spout, drip
-    tank (slot 1 plastic) with a valve and a feed tube, rocker switch. Platen (prop_polish_disc) centre at
-    (0, 0, 0.76). 0.52 x 0.46 x 0.75, origin at base centre; operator at -Y."""
+    tank (slot 1 plastic) with a valve and a feed tube, a rocker switch, a finned motor housing out the right side
+    and a splash guard behind the pan, so the machine reads as driven rather than as a box with a disc on it.
+    Platen (prop_polish_disc) centre at (0, 0, 0.76). Origin at base centre; operator at -Y."""
     bm = bmesh.new()
     box(bm, (0.52, 0.46, 0.7), (0, 0, 0.37), bevel=0.012, segments=3)
     for sx in (-1, 1):
@@ -1310,7 +1311,22 @@ def polish_lap(rng):
     add(bm, hq.tube(feed, 0.004, segments=10), mat=1)
     box(bm, (0.1, 0.05, 0.1), (0.19, -0.2, 0.66), bevel=0.006, segments=3)
     add(bm, hq.rbox((0.03, 0.01, 0.04), (0, 0, 0), bevel=0.003), T(0.19, -0.228, 0.66), mat=2)
-    return bm, [ColBox((0.54, 0.48, 0.77), (0, 0, 0.385)), ColBox((0.45, 0.45, 0.035), (0, 0, 0.7675)), ColBox((0.08, 0.08, 0.18), (-0.19, 0.16, 0.86))]
+
+    # motor: a finned drum out the right-hand side with a belt cover and a cable gland, so the lap looks driven
+    add(bm, hq.lathe([(0, 0), (0.105, 0), (0.11, 0.01), (0.11, 0.26), (0.105, 0.27), (0, 0.27)], segments=32),
+        T(0.24, 0.0, 0.42) @ R(90, "Y"), mat=0)
+    for i in range(6):
+        add(bm, hq.lathe([(0.11, 0), (0.122, 0), (0.122, 0.014), (0.11, 0.014)], segments=32, loop=True),
+            T(0.285 + i * 0.036, 0.0, 0.42) @ R(90, "Y"), mat=0)
+    add(bm, hq.lathe([(0, 0), (0.062, 0), (0.064, 0.008), (0.06, 0.016), (0, 0.016)], segments=24),
+        T(0.51, 0.0, 0.42) @ R(90, "Y"), mat=0)                                         # end bell
+    add(bm, hq.rbox((0.05, 0.05, 0.05), (0.30, 0.09, 0.31), bevel=0.006, segments=1), mat=0)   # terminal box
+    add(bm, hq.tube(hq.bezier((0.30, 0.11, 0.30), (0.30, 0.16, 0.22), (0.16, 0.22, 0.12), (0.05, 0.23, 0.02)), 0.008, segments=10), mat=1)   # supply cable
+
+    # a maker's plate on the front face
+    add(bm, hq.rbox((0.13, 0.004, 0.045), (0.0, -0.232, 0.55), bevel=0.002, segments=1), mat=2)
+    return bm, [ColBox((0.54, 0.48, 0.77), (0, 0, 0.385)), ColBox((0.45, 0.45, 0.035), (0, 0, 0.7675)),
+                ColBox((0.08, 0.08, 0.18), (-0.19, 0.16, 0.86)), ColBox((0.30, 0.24, 0.26), (0.36, 0.0, 0.42))]
 
 
 def polish_disc(rng):
