@@ -393,6 +393,17 @@ namespace GeodeEmpire.Core
             // and in a room that has not been leased
             bool refusedShop = cab != null && bm != null && !bm.TryPlace(cab, new Vector3(5.0f, 0f, 2.0f), 0f, out _);
             Check("placement in the unleased showroom is refused", refusedShop);
+            // and where the operator has to stand to work a machine
+            string clearWhy = "";
+            bool refusedClearance = cab != null && bm != null && !bm.TryPlace(cab, new Vector3(-5.25f, 0f, 2.45f), 0f, out clearWhy);
+            Check("placement in a machine's working space is refused", refusedClearance, clearWhy);
+            // and on top of something that is already there
+            string overWhy = "";
+            bool refusedOverlap = cab != null && bm != null && !bm.TryPlace(cab, new Vector3(-2.0f, 0f, 2.7f), 0f, out overWhy);
+            Check("placement overlapping the cracking bench is refused", refusedOverlap, overWhy);
+            // the pose the sweep found must still be the pose it holds after all those refusals
+            var held = st.Fixture("display_cabinet");
+            Check("a refused placement leaves the fixture where it was", held != null && held.Placed && (held.Position - sitedAt).sqrMagnitude < 0.0025f);
 
             Phase = "starter-reload";
             var pose = st.Fixture("display_cabinet");

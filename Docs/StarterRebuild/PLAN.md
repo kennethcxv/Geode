@@ -262,3 +262,38 @@ in the workshop until the back room is leased.
 Re-ran after: UI render QA **28/28, 0 findings**. EditMode **68/68** — the career-pacing test needed its
 purchase order extended with the premises leases and the retail fit-out, which are now most of what the middle
 of a career is spent on.
+
+### Definition of Done (§22)
+
+| §22 box | evidence |
+|---------|----------|
+| Day-1 shop substantially smaller | 41.3 m² floor / **24.7 m² standing**, from 116.6 / ~82 |
+| Day-1 intentional, not unfinished | hoarding with framing, noggins, brace, hazard tape and notices; the unit is furnished and lit |
+| Mature rooms do not spoil progression | their contents are not in the scene; acceptance checks both roots off |
+| Later machines not preinstalled | 7 fixtures checked unowned with bodies out of the scene |
+| Believable room to grow | the machine island floor is deliberately empty |
+| Unlocks physically change the business | both leases and the fit-out toggle geometry on purchase |
+| Purchased fixtures appear only when earned | `RequiresUpgrade` + crated delivery + player siting |
+| Player placement is used | cabinet, island, both shelving runs, all three machines |
+| Early / mid / late look different | `starter/states/{day1,back,shop,fitted}.png` |
+| Collection starts empty | `DisplayCapacity == 0`, no records, no entities, no encyclopedia |
+| No fake decorative specimens | `ShopStock` deleted (41 pieces) |
+| Empty displays read cleanly | felt risers under lit shelves; silhouette + "?" in the UI |
+| Collection UI respects discovery | undiscovered families are obscured silhouettes |
+| HUD materially smaller (all four) | 27.7→17.0% wide / 41.8→29.3% tall; 27.3→15.5%; 5 hints→3 contextual; banner 52→35% |
+| Tablet: no dead space, real identity | previews on all 23 upgrades, 4 crate builds, metric groups, no empty rectangle |
+| Controller + KBM both work | `RunControllerMenus` walks tabs, purchase buttons, sliders, toggles, confirm dialogs |
+| Materials vary / lighting controlled | timber, painted dado, blue cabinetry, stainless, concrete, rubber; ambient up, pendants down |
+| Invalid overlaps / doors / clearance / unleased rooms rejected | 4 refusal checks in the acceptance test |
+| No obvious clipping; authored layout passes | audit **0/0/0/0/0** in both states |
+| Fresh-save starter loop works | `RunFirstCrate` on a fresh save: crate → kerb pallet → wash → 10 strikes → clean open → scale → outbox → dealer, $45→$51 |
+| First upgrade physically changes the shop | back room opens; cabinet arrives crated and is sited |
+| Save/reload preserves it | pose, capacity and empty collection all survive `ContinueGame` |
+| Customer flow succeeds | 4 served, $1,033.80, 0 overlaps, in the fitted shop |
+| UI render QA passes | 28/28, 0 findings, 4 planted faults still caught |
+| Automated tests green | EditMode 68/68 |
+
+**Not claimed.** The room is closer to R26 but not equal to it: the reference has visible roof trusses, a more
+polished floor and considerably more set dressing (safety poster, bins under every bench, boxes on every shelf).
+The inspection and cracking benches are still brown timber tables rather than the reference's steel-framed
+benches — the wash station is the only station wearing the machine livery so far.
