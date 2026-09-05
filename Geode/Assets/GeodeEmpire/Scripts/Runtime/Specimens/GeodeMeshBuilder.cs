@@ -682,7 +682,36 @@ namespace GeodeEmpire.Specimens
             return Mathf.Max(0f, area);
         }
 
+        /// <summary>
+        /// §10.3: a geode's geometry is a pure function of its seed, and the game asks for the same one more than
+        /// once — the rock in the world, then the plate on the discovery card, and once more just to count crystals
+        /// for a sawn piece. Rebuilding it cost 76-179 ms a time. A handful of entries covers every case the loop
+        /// actually produces (the rock in hand, the one on the bench, the last few photographed) and stays small
+        /// enough for an 8 GB machine; nothing outside this file writes to a GeodeGeometry, so sharing is safe.
+        /// </summary>
+        private const int CacheSize = 8;
+        private static readonly List<(ulong seed, GeodeGeometry geo)> _cache = new List<(ulong, GeodeGeometry)>(CacheSize);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { _cache.Clear(); }
+
         public static GeodeGeometry Build(SpecimenGeology g)
+        {
+            for (int i = 0; i < _cache.Count; i++)
+                if (_cache[i].seed == g.Seed)
+                {
+                    var hit = _cache[i];                       // most recently used goes to the front
+                    _cache.RemoveAt(i);
+                    _cache.Insert(0, hit);
+                    return hit.geo;
+                }
+            var built = BuildUncached(g);
+            _cache.Insert(0, (g.Seed, built));
+            if (_cache.Count > CacheSize) _cache.RemoveAt(_cache.Count - 1);
+            return built;
+        }
+
+        private static GeodeGeometry BuildUncached(SpecimenGeology g)
         {
             var shape = new Shape(g);
             var geo = new GeodeGeometry { Longitudes = Longitudes };

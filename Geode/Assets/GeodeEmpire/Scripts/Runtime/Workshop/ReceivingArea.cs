@@ -1,43 +1,53 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using GeodeEmpire.Audio;
 using GeodeEmpire.Core;
-using GeodeEmpire.Economy;
-using GeodeEmpire.Interaction;
-using GeodeEmpire.Player;
 using GeodeEmpire.Save;
-using GeodeEmpire.Specimens;
 
 namespace GeodeEmpire.Workshop
-{    /// <summary>Where purchased crates land.</summary>
+{
+    /// <summary>
+    /// Where purchased crates land. Goods-in has a fixed number of pallet spaces and a crate goes in one of them
+    /// or the order is refused; nothing is ever put down on top of something already standing there.
+    ///
+    /// §14 exists because the previous version could not say no: it tried three stack heights over a single kerb
+    /// cell, rejected all of them by its own occupancy test, then fell through to an unconditional
+    /// <c>return</c> of the ground cell — so three crates bought on day one landed on one transform, gap 0.000 m.
+    /// </summary>
     public sealed class ReceivingArea : MonoBehaviour
     {
         public Vector2 Footprint = new Vector2(1.1f, 0.7f);
 
         /// <summary>
-        /// Where deliveries land today. Before the back room is leased there is no bay, only a single pallet in
-        /// the corner of the unit; signing the lease moves goods-in to the four-pallet bay under the shutter.
-        /// The area itself moves rather than being duplicated, so a crate already on the floor stays where the
-        /// player left it.
+        /// Where deliveries land today. Before the back room is leased there is no bay, only the corner of the
+        /// unit; signing the lease moves goods-in to the pallets under the shutter. The area moves rather than
+        /// being duplicated, so a crate already on the floor stays where the player left it.
         /// </summary>
         public Transform KerbAnchor, BayAnchor;
 
+        /// <summary>A crate and its lid need this much floor; two crates closer than this are touching.</summary>
+        public const float SlotRadius = 0.62f;
+
         private Transform ActiveAnchor => PremisesExpansion.BackRoomOpen && BayAnchor != null ? BayAnchor : KerbAnchor;
 
-        /// <summary>One pallet at the kerb; the full grid once the bay exists.</summary>
-        private static readonly Vector3[] KerbCells = { new Vector3(0f, 0.12f, 0f) };
+        /// <summary>Two spaces at the kerb: enough to have one open and one waiting, and no more.</summary>
+        private static readonly Vector3[] KerbCells =
+        {
+            new Vector3(0f, 0.12f, 0f), new Vector3(-1.32f, 0.12f, 0f),
+        };
 
-        /// <summary>Four pallet cells, front row first (closest to the room), each 1.2 x 0.8 m so a crate and its lid fit.</summary>
+        /// <summary>Four pallet cells in the bay, front row first, each 1.2 x 0.8 m so a crate and its lid fit.</summary>
         private static readonly Vector3[] Cells =
         {
             new Vector3(-0.6f, 0.12f, 0.4f), new Vector3(0.6f, 0.12f, 0.4f),
             new Vector3(-0.6f, 0.12f, -0.4f), new Vector3(0.6f, 0.12f, -0.4f),
         };
-        /// <summary>Stage 3: a third pallet in the row north of the first four (world (1.0, -0.62)).</summary>
+
+        /// <summary>Stage 3: a third pallet in the row north of the first four.</summary>
         private static readonly Vector3[] Stage3Cells = { new Vector3(0f, 0.12f, 1.23f) };
-        private System.Collections.Generic.IEnumerable<Vector3> ActiveCells()
+
+        private IEnumerable<Vector3> ActiveCells()
         {
             if (!PremisesExpansion.BackRoomOpen)
             {
@@ -55,38 +65,86 @@ namespace GeodeEmpire.Workshop
             return a != null ? a.TransformPoint(cell) : transform.TransformPoint(cell);
         }
 
-        public Vector3 NextSpot()
+        /// <summary>How many crates goods-in can hold at once, here and now.</summary>
+        public int Capacity
         {
-            var session = GameSession.Instance;
-            for (int stack = 0; stack < 3; stack++)
-            {
-                foreach (var cell in ActiveCells())
-                {
-                    var spot = Point(cell + Vector3.up * (stack * 0.44f));
-                    bool occupied = false;
-                    if (session != null)
-                        foreach (var c in session.Crates.Values)
-                        {
-                            if (c == null) continue;
-                            var d = c.transform.position - spot; d.y = 0f;          // a crate still dropping in counts too
-                            if (d.sqrMagnitude < 0.45f * 0.45f && Mathf.Abs(c.transform.position.y - spot.y) < 1.6f) { occupied = true; break; }
-                        }
-                    if (!occupied) return spot;
-                }
-            }
-            return Point(ActiveAnchor == KerbAnchor ? KerbCells[0] : Cells[0]);
+            get { int n = 0; foreach (var _ in ActiveCells()) n++; return n; }
         }
 
-        public void Deliver(CrateRecord crate)
+        /// <summary>Spaces with nothing standing in them.</summary>
+        public int FreeSlots
+        {
+            get
+            {
+                int n = 0;
+                foreach (var cell in ActiveCells()) if (!Occupied(Point(cell))) n++;
+                return n;
+            }
+        }
+
+        public bool HasSpace => FreeSlots > 0;
+
+        /// <summary>Why an order cannot be taken right now, or null when it can.</summary>
+        public string RefusalReason()
+        {
+            if (HasSpace) return null;
+            return PremisesExpansion.BackRoomOpen
+                ? $"Goods-in is full ({Capacity} pallets). Open or break down a crate first."
+                : $"There is only room for {Capacity} crates in the corner. Open one, or lease the back room for a proper goods-in bay.";
+        }
+
+        /// <summary>Is a crate (or a crate on its way down) already standing here?</summary>
+        private bool Occupied(Vector3 spot)
         {
             var session = GameSession.Instance;
-            var spot = NextSpot();
-            crate.Position = spot;
-            crate.Rotation = (ActiveAnchor != null ? ActiveAnchor.rotation : transform.rotation) * Quaternion.Euler(0f, UnityEngine.Random.Range(-8f, 8f), 0f);
+            if (session == null) return false;
+            foreach (var c in session.Crates.Values)
+            {
+                if (c == null) continue;
+                var d = c.transform.position - spot;
+                d.y = 0f;
+                if (d.sqrMagnitude < SlotRadius * SlotRadius) return true;
+            }
+            return false;
+        }
+
+        /// <summary>The first free space, or null when goods-in is full. Never guesses.</summary>
+        public Vector3? FreeSpot()
+        {
+            foreach (var cell in ActiveCells())
+            {
+                var spot = Point(cell);
+                if (!Occupied(spot)) return spot;
+            }
+            return null;
+        }
+
+        /// <summary>Every space, free or not — for the audit and for drawing the bay out.</summary>
+        public IEnumerable<Vector3> Slots()
+        {
+            foreach (var cell in ActiveCells()) yield return Point(cell);
+        }
+
+        /// <summary>
+        /// Land a crate in a free space. Returns false rather than putting it on top of another one; callers are
+        /// expected to have checked <see cref="HasSpace"/> before taking the player's money.
+        /// </summary>
+        public bool Deliver(CrateRecord crate)
+        {
+            var session = GameSession.Instance;
+            var spot = FreeSpot();
+            if (spot == null)
+            {
+                Debug.LogWarning("[ReceivingArea] delivery refused: no free pallet space");
+                return false;
+            }
+            crate.Position = spot.Value;
+            crate.Rotation = (ActiveAnchor != null ? ActiveAnchor.rotation : transform.rotation) * Quaternion.Euler(0f, Random.Range(-8f, 8f), 0f);
             crate.Delivered = true;
             var ce = CrateEntity.Create(crate, session);
-            ce.transform.SetPositionAndRotation(spot + Vector3.up * 1.3f, crate.Rotation);
-            StartCoroutine(Drop(ce.transform, spot, crate.Rotation));
+            ce.transform.SetPositionAndRotation(spot.Value + Vector3.up * 1.3f, crate.Rotation);
+            StartCoroutine(Drop(ce.transform, spot.Value, crate.Rotation));
+            return true;
         }
 
         private IEnumerator Drop(Transform t, Vector3 target, Quaternion rot)

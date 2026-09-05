@@ -25,6 +25,7 @@ namespace GeodeEmpire.Workshop
 
         private readonly List<GameObject> _built = new List<GameObject>();
         private readonly List<MineralId> _shown = new List<MineralId>();
+        private readonly List<MineralId> _want = new List<MineralId>();
         private Coroutine _job;
 
         private void Start()
@@ -52,9 +53,8 @@ namespace GeodeEmpire.Workshop
                 if (want.Count >= Slots.Count) break;
             }
             if (Same(want)) return;
-            _shown.Clear(); _shown.AddRange(want);
-            if (_job != null) StopCoroutine(_job);
-            _job = StartCoroutine(Build(want));
+            _want.Clear(); _want.AddRange(want);
+            if (_job == null) _job = StartCoroutine(Build());
         }
 
         private bool Same(List<MineralId> want)
@@ -64,21 +64,46 @@ namespace GeodeEmpire.Workshop
             return true;
         }
 
-        /// <summary>One piece per frame: a specimen mesh costs a few milliseconds and the row is scenery.</summary>
-        private IEnumerator Build(List<MineralId> want)
+        /// <summary>
+        /// One piece per frame, and only the pieces that are actually missing. This row is scenery, and building it
+        /// used to cost 385-647 ms of the frame a discovery landed on: a new mineral changed the wanted list, so
+        /// every piece already standing there was destroyed and rebuilt, and StartCoroutine runs the body up to the
+        /// first yield synchronously, which put a whole cold geode build inside the caller's frame.
+        /// </summary>
+        private IEnumerator Build()
         {
-            foreach (var go in _built) if (go != null) Destroy(go);
-            _built.Clear();
+            yield return null;                      // never build inside the caller's frame
             var lib = GameSession.Instance != null ? GameSession.Instance.Library : null;
-            if (lib == null) yield break;
-            for (int i = 0; i < want.Count && i < Slots.Count; i++)
+            if (lib == null) { _job = null; yield break; }
+            while (!Same(_want))
+            {
+                var session = GameSession.Instance;
+                if (session != null && session.PresentationHold > 0) { yield return null; continue; }
+                // drop anything that is no longer wanted, or is in the wrong place
+                for (int i = _built.Count - 1; i >= 0; i--)
+                    if (i >= _want.Count || i >= _shown.Count || _shown[i] != _want[i])
+                    {
+                        if (_built[i] != null) Destroy(_built[i]);
+                        _built.RemoveAt(i);
+                        if (i < _shown.Count) _shown.RemoveAt(i);
+                    }
+                int next = _built.Count;
+                if (next >= _want.Count || next >= Slots.Count) break;
+                BuildOne(next, _want[next], lib);
+                yield return null;
+            }
+            _job = null;
+        }
+
+        private void BuildOne(int i, MineralId mineral, SpecimenAssetLibrary lib)
+        {
             {
                 var slot = Slots[i];
-                if (slot == null) continue;
-                ulong seed = SpecimenThumbnailer.Instance.SeedFor(want[i]);
-                if (seed == 0UL) continue;
+                if (slot == null) return;
+                ulong seed = SpecimenThumbnailer.Instance.SeedFor(mineral);
+                if (seed == 0UL) return;
                 var geology = SpecimenGenerator.Generate(seed);
-                var host = new GameObject("Reference_" + want[i]);
+                var host = new GameObject("Reference_" + mineral);
                 host.transform.SetParent(slot, false);
                 var visual = host.AddComponent<SpecimenVisual>();
                 visual.Build(geology, new SpecimenCondition { Cleaned = 1f, Rinsed = true, Opened = true }, lib);
@@ -98,12 +123,12 @@ namespace GeodeEmpire.Workshop
                     var label = WorldLabel.Create(slot, LabelFont, LabelMaterial, 0.028f, new Color(0.95f, 0.9f, 0.78f), "Nameplate");
                     label.transform.localPosition = new Vector3(0f, 0.012f, -0.098f);
                     label.transform.localRotation = Quaternion.Euler(58f, 180f, 0f);
-                    label.Text = MineralCatalog.Get(want[i]).Name.ToUpperInvariant();
+                    label.Text = MineralCatalog.Get(mineral).Name.ToUpperInvariant();
                 }
                 _built.Add(host);
-                yield return null;
+                while (_shown.Count <= i) _shown.Add(mineral);
+                _shown[i] = mineral;
             }
-            _job = null;
         }
     }
 }

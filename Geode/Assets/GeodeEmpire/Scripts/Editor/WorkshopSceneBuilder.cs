@@ -1164,10 +1164,21 @@ namespace GeodeEmpire.EditorTools
             tubAnchor.SetParent(tubZone.transform, false);
             tubZone.Anchor = tubAnchor;
             Prop("prop_tray", wash, new Vector3(-0.28f, 0.835f, 0.02f), 0f, "M_Stainless", collider: false, scale: new Vector3(0.95f, 0.7f, 0.95f));   // washed rock drains on the rim
-            var brush = Prop("prop_brush", wash, new Vector3(0.21f, 0.83f, -0.14f), 25f, "M_WoodDark,M_Bristle", collider: false);
+            // a hand brush, not a yard broom: it is held against a fist-sized rock in the basin view
+            var brush = Prop("prop_brush", wash, new Vector3(0.21f, 0.83f, -0.14f), 25f, "M_WoodDark,M_Bristle", collider: false, scale: Vector3.one * 0.55f);
             var ws = tubProp.AddComponent<WashStation>();
             ws.Tub = tubZone;
             ws.Brush = brush.transform;
+            // the water line, so the brush knows where dipping happens, and the working view over the basin
+            var waterLine = new GameObject("WaterSurface").transform;
+            waterLine.SetParent(wash, false);
+            waterLine.localPosition = new Vector3(0f, 0.70f, 0f);
+            ws.WaterSurface = waterLine;
+            // an empty the station reposes each time it is entered, framed from the rock actually in the basin
+            var washCam = new GameObject("WashCameraAnchor").transform;
+            washCam.SetParent(wash, false);
+            washCam.localPosition = new Vector3(0f, 1.2f, -0.4f);
+            ws.CameraAnchor = washCam;
             ws.SetHighlightRenderers(tubProp.GetComponentsInChildren<Renderer>());
             Prop("prop_bucket", parent, new Vector3(-5.30f, 0f, 1.55f), 12f, "M_PlasticBlue,M_Metal");   // on the floor by the wash run, clear of the cabinet and the rock bin
 
@@ -2259,6 +2270,7 @@ namespace GeodeEmpire.EditorTools
             doc.sortingOrder = 0;
             hud.AddComponent<HudController>();
             hud.AddComponent<BenchHud>();
+            hud.AddComponent<WashHud>();
             hud.AddComponent<SawHud>();
             hud.AddComponent<CrackerHud>();
             var exh = hud.AddComponent<ExhibitionDirector>();

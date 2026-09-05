@@ -525,12 +525,39 @@ namespace GeodeEmpire.Cracking
             GameSession.Instance?.QueueSave("bench-exit");
         }
 
+        private bool _saveOpenedPending;
+        private bool _crystalsDirty;
+
+        /// <summary>
+        /// §10.3: keep the interior built and hidden, so the split only has to switch it on. Rebuilt here after a
+        /// blow has changed which crystals survive — during the recoil, where a millisecond does not show — rather
+        /// than at the reveal, where it did.
+        /// </summary>
+        private void PumpCrystalPrewarm()
+        {
+            if (_rock == null || _rock.Visual == null || Opened || Revealing || _swinging) return;
+            if (_crystalsDirty) { _rock.Visual.InvalidateCrystals(); _crystalsDirty = false; }
+            if (!_rock.Visual.CrystalsBuilt)
+                using (PerfProbe.Measure("prewarm-crystals")) _rock.Visual.PrewarmCrystals();
+        }
+
         private void Update()
         {
             if (!Active || _rock == null) return;
             float dt = Time.deltaTime;
 
-            if (Revealing) return;
+            if (Revealing)
+            {
+                // the split is on screen now: the career can be committed to disk without anyone seeing it
+                if (_saveOpenedPending)
+                {
+                    _saveOpenedPending = false;
+                    using (PerfProbe.Measure("flush-save")) GameSession.Instance.FlushSave("opened");
+                }
+                return;
+            }
+
+            PumpCrystalPrewarm();
 
             if (Opened)
             {
@@ -911,6 +938,7 @@ namespace GeodeEmpire.Cracking
             var rimLocal = new Vector3(Mathf.Cos(rimLon), _rng.Range(-0.08f, 0.08f), Mathf.Sin(rimLon)) * geo.MeanEquatorRadius;
             AddImpactMark(rimLocal, geo, geo.MaxRadius * (0.09f + severity * 0.12f), 0.7f + severity * 0.3f);
             _damageThisRock++;
+            _crystalsDirty = true;   // the prewarmed interior no longer matches what survived
             if (_rock.Record.DamageEvents == 1) GameSession.Instance.State.Stats.SpecimensDamaged++;   // persisted counter: no double count after re-entering
         }
 
@@ -931,8 +959,9 @@ namespace GeodeEmpire.Cracking
             float damage;
             using (PerfProbe.Measure("damage-fraction")) damage = vis.CrystalDamageFraction();
             rec.DamageFraction = damage;
+            // nothing the interface wants to say may run until the rock has visibly broken (§10.2, §12.3)
+            session.HoldPresentation();
             using (PerfProbe.Measure("record-discovery")) session.RecordDiscovery(rec, damage);
-            using (PerfProbe.Measure("flush-save")) session.FlushSave("opened");
 
             bool rare = g.Tier >= QualityTier.Exceptional;
             bool attractive = g.Tier >= QualityTier.Good;
@@ -950,13 +979,14 @@ namespace GeodeEmpire.Cracking
             using (PerfProbe.Measure("vfx-split")) EffectsFactory.Instance?.Split(_rock.transform.position, geo.MeanEquatorRadius, _cam.transform.forward);
             for (int i = 0; i < StressModel.Sectors; i++) _model.Stress[i] = Mathf.Max(_model.Stress[i], 1f);
             rec.SectorStress = _model.ToArray();
-            using (PerfProbe.Measure("rebuild-crystals")) vis.RebuildCrystals();
-            vis.SetCrystalsVisible(true);
+            // prewarmed on the cradle and after each damaging blow, so this is now an enable, not a build
+            using (PerfProbe.Measure("rebuild-crystals")) vis.SetCrystalsVisible(true);
             using (PerfProbe.Measure("crack-state")) vis.SetCrackState(_model.Stress, rec.Impacts, 0f, 1f);
             using (PerfProbe.Measure("rebuild-colliders")) { _rock.RebuildColliders(); _rock.SetStaticCollidable(); }
 
             // reveal light in the cavity
             var lightGo = new GameObject("RevealLight");
+            _saveOpenedPending = true;
             lightGo.transform.position = _rock.transform.position + Vector3.up * geo.MaxRadius * 0.9f;
             var light = lightGo.AddComponent<Light>();
             light.type = LightType.Point;
@@ -1054,18 +1084,21 @@ namespace GeodeEmpire.Cracking
             }
             top.localPosition = restPos;
             top.localRotation = restRot;
-            _rock.RebuildColliders();
-            _rock.SetStaticCollidable();
+            using (PerfProbe.Measure("settle-colliders")) { _rock.RebuildColliders(); _rock.SetStaticCollidable(); }
             StartCoroutine(FadeLight(light, 1.2f));
 
-            ResultNote = BuildResultNote(g, damage, result);
-            string call = session.ScoreCall(rec);
-            if (!string.IsNullOrEmpty(call)) ResultNote += "  •  " + call;
+            using (PerfProbe.Measure("result-note"))
+            {
+                ResultNote = BuildResultNote(g, damage, result);
+                string call = session.ScoreCall(rec);
+                if (!string.IsNullOrEmpty(call)) ResultNote += "  •  " + call;
+            }
             Opened = true;
             Revealing = false;
-            Tutorial.Notify("rock_opened");
-            Revealed?.Invoke(_rock);
-            session.FlushSave("revealed");
+            session.ReleasePresentation();
+            using (PerfProbe.Measure("tutorial-notify")) Tutorial.Notify("rock_opened");
+            using (PerfProbe.Measure("revealed-event")) Revealed?.Invoke(_rock);
+            using (PerfProbe.Measure("flush-save-revealed")) session.FlushSave("revealed");
         }
 
         private static string BuildResultNote(SpecimenGeology g, float damage, StressModel.StrikeResult result)

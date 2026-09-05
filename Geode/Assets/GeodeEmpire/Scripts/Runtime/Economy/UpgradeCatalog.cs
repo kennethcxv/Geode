@@ -52,6 +52,15 @@ namespace GeodeEmpire.Economy
         public const string ShopSignage = "retail_signage";
         public const string Stage2 = "stage2_workshop";
         public const string Stage3 = "stage3_workshop";
+        // cleaning (§7.7): manual, then better manual, then assisted
+        public const string SoftBrush = "wash_soft_brush";
+        public const string WashNozzle = "wash_nozzle";
+        public const string UtilitySink = "wash_sink";
+        // inspection (§5.7): each one reduces uncertainty without doing the looking for you
+        public const string Calipers = "inspect_calipers";
+        public const string UvLamp = "inspect_uv";
+        // starter retail (§15.1)
+        public const string CounterTable = "retail_counter_table";
 
         public static readonly UpgradeDefinition[] All =
         {
@@ -59,6 +68,26 @@ namespace GeodeEmpire.Economy
                 Description = "A folding 10x brass loupe for reading rock up close.",
                 Effect = "Hold a rock and raise the loupe: exposed mineral, banding, hairline cracks and chips come into focus. It never shows what is inside.",
                 WorldChange = "Goes on your belt. Nothing is built." },
+            new UpgradeDefinition { Id = SoftBrush, Category = "CLEANING", Name = "Hog-Bristle Brush Set", Price = 38f, Order = 0,
+                Description = "Three brushes: stiff for crusted clay, soft for anything with crystal showing.",
+                Effect = "Clay comes off about a third faster, and the soft brush will not scour a shell the way a worn one does.",
+                WorldChange = "The brushes hang on a rail beside the basin." },
+            new UpgradeDefinition { Id = WashNozzle, Category = "CLEANING", Name = "Rinse Nozzle", Price = 95f, Order = 1, Requires = SoftBrush,
+                Description = "A trigger nozzle on a hose over the basin.",
+                Effect = "Recharges the brush almost twice as fast, so less of the wash is spent dipping.",
+                WorldChange = "A hose and trigger nozzle are plumbed in over the basin." },
+            new UpgradeDefinition { Id = UtilitySink, Category = "CLEANING", Name = "Deep Utility Sink", Price = 260f, Order = 3, Requires = WashNozzle,
+                Description = "A proper deep stainless basin with a grit trap, replacing the tub.",
+                Effect = "A big rock fits, the water stays clean, and the grit trap keeps clay out of the drain.",
+                WorldChange = "The plastic tub is replaced by a plumbed stainless sink." },
+            new UpgradeDefinition { Id = Calipers, Category = "BENCH", Name = "Vernier Calipers", Price = 65f, Order = 0, Requires = Loupe,
+                Description = "Steel calipers for measuring a rock properly instead of judging it by eye.",
+                Effect = "Gives exact dimensions in the hand, so a heavy-for-its-size reading becomes a number rather than a feeling.",
+                WorldChange = "The calipers live on the appraisal bench." },
+            new UpgradeDefinition { Id = UvLamp, Category = "BENCH", Name = "Longwave UV Lamp", Price = 175f, Order = 2, Requires = InspectionLamp,
+                Description = "A handheld longwave lamp for the shell.",
+                Effect = "Some minerals answer under UV through a thin rind: a faint clue you could not otherwise see becomes readable.",
+                WorldChange = "The lamp is clipped to the inspection bench." },
             new UpgradeDefinition { Id = InspectionLamp, Category = "BENCH", Name = "Inspection Lamp", Price = 110f, Order = 0,
                 Description = "A bright articulated lamp over the cracking bench.",
                 Effect = "Shows the fracture ring and stress build-up clearly while you work, and estimates shell thickness.",

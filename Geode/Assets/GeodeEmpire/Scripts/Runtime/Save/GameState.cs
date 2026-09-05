@@ -250,11 +250,39 @@ namespace GeodeEmpire.Save
     }
 
     /// <summary>Whole career save. Versioned; new fields get sensible defaults on load.</summary>
+    /// <summary>
+    /// The business's standing costs and what is owed. Meters accumulate while the player works; a bill is
+    /// issued at the end of each period with a due date, and the money moves only when they pay it (§17.6).
+    /// </summary>
+    [Serializable]
+    public sealed class BillingState
+    {
+        /// <summary>Day the next bill is issued. Zero on a save written before bills existed: set on migration.</summary>
+        public int NextBillDay;
+        public int DueDay;
+        public float Outstanding;
+        public float LastBillAmount;
+        public int LastBillDay;
+        /// <summary>The last bill's lines, "label|amount|detail", so the tablet can show what was charged.</summary>
+        public List<string> LastLines = new List<string>();
+        /// <summary>Metered since the last bill.</summary>
+        public float ElectricityUnits;
+        public float WaterLitres;
+        public float LateFees;
+        public int MissedPayments;
+        public bool FeeAppliedForThisBill;
+        /// <summary>Lifetime, for the statistics page.</summary>
+        public float TotalPaid;
+        public int BillsPaid;
+        /// <summary>The player has been shown the notice for the bill currently outstanding.</summary>
+        public bool NoticeShown;
+    }
+
     [Serializable]
     public sealed class GameState
     {
         /// <summary>1 = V4 career; 2 = V5 (provenance, calls, history, favourites, certification, market, auctions, letters, exhibition).</summary>
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         public int Version = CurrentVersion;
         public string SaveId;
@@ -297,6 +325,9 @@ namespace GeodeEmpire.Save
         public Checkout.MoneyStack CashDrawer;
         /// <summary>Diamond blade wear 0..1; a worn blade cuts slowly and chips, a new one is bought on the tablet.</summary>
         public float BladeWear;
+
+        /// <summary>Rent, utilities and what is owed (§17). Empty and harmless on a career that predates it.</summary>
+        public BillingState Bills = new BillingState();
 
         public SpecimenRecord FindSpecimen(string id)
         {

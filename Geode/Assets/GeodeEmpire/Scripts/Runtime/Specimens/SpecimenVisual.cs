@@ -59,6 +59,9 @@ namespace GeodeEmpire.Specimens
         private static readonly int CrackFadeId = Shader.PropertyToID("_CrackFade");
         private static readonly int TexFamilyId = Shader.PropertyToID("_TexFamily");
         private static readonly int DirtId = Shader.PropertyToID("_Dirt");
+        private static readonly int RegionCleanId = Shader.PropertyToID("_RegionClean");
+        private static readonly int RegionDirtOnId = Shader.PropertyToID("_RegionDirtOn");
+        private readonly Vector4[] _regionClean = new Vector4[6];
         private static readonly int StainId = Shader.PropertyToID("_Stain");
         private static readonly int ChipId = Shader.PropertyToID("_Chip");
         private static readonly int PolishId = Shader.PropertyToID("_Polish");
@@ -92,6 +95,33 @@ namespace GeodeEmpire.Specimens
 
         /// <summary>Clay still on the shell, 0..1: the geology's coating less whatever has been scrubbed off.</summary>
         public float DirtRemaining => Geology != null && Condition != null ? Mathf.Clamp01(Geology.Dirt * (1f - Condition.Cleaned)) : 0f;
+
+        /// <summary>Clay still on one patch of the shell (§7.3): the far side can be filthy while this one is clean.</summary>
+        public float DirtAt(int region) => Geology != null && Condition != null
+            ? Mathf.Clamp01(Geology.Dirt * (1f - Condition.CleanAt(region))) : 0f;
+
+        /// <summary>
+        /// Hand the shader how clean each patch is. Twenty-four floats packed six-wide; the shader blends between
+        /// neighbours, so a scrubbed patch fades into the clay around it instead of showing its edges.
+        /// </summary>
+        private void PushRegionClean()
+        {
+            bool spatial = Condition != null && Condition.RegionClean != null
+                        && Condition.RegionClean.Length == SpecimenSurface.Regions;
+            _mpb.SetFloat(RegionDirtOnId, spatial ? 1f : 0f);
+            if (!spatial) return;
+            for (int i = 0; i < _regionClean.Length; i++)
+            {
+                var v = Vector4.zero;
+                for (int c = 0; c < 4; c++)
+                {
+                    int r = i * 4 + c;
+                    if (r < SpecimenSurface.Regions) v[c] = Condition.RegionClean[r] / 255f;
+                }
+                _regionClean[i] = v;
+            }
+            _mpb.SetVectorArray(RegionCleanId, _regionClean);
+        }
 
         /// <summary>Re-apply condition-driven shell properties (after scrubbing).</summary>
         public void RefreshCondition() { if (Geology != null) { ApplyShellProperties(); ApplyCrystalProperties(); } }
@@ -209,6 +239,46 @@ namespace GeodeEmpire.Specimens
             SetCrystalsVisible(Condition.Opened);
         }
 
+        /// <summary>
+        /// A throw-away stand-in for a plate camera, made of this specimen's *existing* meshes and material
+        /// property blocks — nothing is generated. Building a second complete specimen to photograph one that
+        /// was already standing on the bench allocated 2.7-5.5 MB a plate, and the gen-0 collection two frames
+        /// later was a 123-192 ms stall right after the reveal. Returns the root to destroy when done.
+        /// </summary>
+        public GameObject BuildPlateProxy(Transform parent, bool showTopHalf)
+        {
+            var root = new GameObject("Plate_" + (Geology != null ? Geology.SeedString : "?"));
+            root.hideFlags = HideFlags.DontSave;
+            root.transform.SetParent(parent, false);
+            var block = new MaterialPropertyBlock();
+            void Copy(Renderer src)
+            {
+                if (src == null || src.sharedMaterial == null) return;
+                var mf = src.GetComponent<MeshFilter>();
+                if (mf == null || mf.sharedMesh == null) return;
+                var go = new GameObject(src.name);
+                go.hideFlags = HideFlags.DontSave;
+                go.transform.SetParent(root.transform, false);
+                // the proxy stands in the specimen's own local frame, so an opened rock keeps its pose
+                var rel = transform.worldToLocalMatrix * src.transform.localToWorldMatrix;
+                go.transform.localPosition = rel.GetPosition();
+                go.transform.localRotation = rel.rotation;
+                go.transform.localScale = rel.lossyScale;
+                go.AddComponent<MeshFilter>().sharedMesh = mf.sharedMesh;
+                var mr = go.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = src.sharedMaterial;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                src.GetPropertyBlock(block);
+                mr.SetPropertyBlock(block);
+            }
+            bool Wanted(Renderer r) => showTopHalf || TopHalf == null || !r.transform.IsChildOf(TopHalf);
+            Copy(BottomShellRenderer);
+            if (showTopHalf) Copy(TopShellRenderer);
+            foreach (var r in _crystalRenderers)
+                if (r != null && r.enabled && Wanted(r)) Copy(r);
+            return root;
+        }
+
         /// <summary>Update the cut-face finish (polishing) without rebuilding.</summary>
         public void SetPolish(float polish)
         {
@@ -238,6 +308,23 @@ namespace GeodeEmpire.Specimens
             if (visible && !_crystalsBuilt) RebuildCrystals();
             foreach (var r in _crystalRenderers) if (r != null) r.enabled = visible;
         }
+
+        /// <summary>
+        /// §10.3: build the interior now, hidden, so the frame the rock splits on does not have to. The seed has
+        /// determined every crystal since the rock existed; generating them at the moment of the reveal cost
+        /// 2-95 ms of the most important frame in the game for no reason.
+        /// </summary>
+        public void PrewarmCrystals()
+        {
+            if (_crystalsBuilt) return;
+            RebuildCrystals();
+            foreach (var r in _crystalRenderers) if (r != null) r.enabled = false;
+        }
+
+        /// <summary>A blow changed which crystals survive: the prewarmed interior is stale.</summary>
+        public void InvalidateCrystals() { _crystalsBuilt = false; }
+
+        public bool CrystalsBuilt => _crystalsBuilt;
 
         public void Clear()
         {
@@ -473,7 +560,8 @@ namespace GeodeEmpire.Specimens
             _mpb.SetFloat(CrackFadeId, _crackFade);
             // exterior character: texture family, clay coating less what has been scrubbed off, staining, natural chip
             _mpb.SetFloat(TexFamilyId, (int)g.Texture);
-            _mpb.SetFloat(DirtId, DirtRemaining);
+            _mpb.SetFloat(DirtId, Geology != null ? Geology.Dirt : 0f);
+            PushRegionClean();
             _mpb.SetFloat(StainId, g.Stain);
             float chipR = (Geometry != null ? Geometry.MeanEquatorRadius : 0.06f) * 0.2f;
             _mpb.SetVector(ChipId, new Vector4(g.ChipLongitude, g.ChipLatitude, chipR, g.HasNaturalChip ? 1f : 0f));

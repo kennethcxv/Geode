@@ -56,8 +56,23 @@ namespace GeodeEmpire.Specimens
             return e;
         }
 
+        /// <summary>
+        /// Fit the two hull colliders. Cheap to call: if the colliders already carry the right meshes it does
+        /// nothing, because a MeshCollider follows its own transform and a rock opening does not change the shape
+        /// of either half. Destroying and re-adding them made PhysX re-cook both convex hulls, which cost 89-298 ms
+        /// of the frame it landed on — the last real stall left after the reveal.
+        /// </summary>
         public void RebuildColliders()
         {
+            if (Visual != null && _colliders.Count > 0)
+            {
+                bool ok = true;
+                foreach (var c in _colliders)
+                    if (!(c is MeshCollider mc) || (mc.sharedMesh != Visual.BottomColliderMesh && mc.sharedMesh != Visual.TopColliderMesh)) { ok = false; break; }
+                int want = (Visual.BottomHalf != null && Visual.BottomColliderMesh != null ? 1 : 0)
+                         + (Visual.TopHalf != null && Visual.TopColliderMesh != null ? 1 : 0);
+                if (ok && _colliders.Count == want) return;
+            }
             foreach (var c in _colliders) if (c != null) Destroy(c);
             _colliders.Clear();
             AddHalfCollider(Visual.BottomHalf, Visual.BottomColliderMesh);
@@ -68,6 +83,9 @@ namespace GeodeEmpire.Specimens
         {
             if (half == null || colliderMesh == null) return;
             var mc = half.gameObject.AddComponent<MeshCollider>();
+            // the generated hulls are already clean and welded; asking PhysX to do it again is the expensive part
+            mc.cookingOptions = MeshColliderCookingOptions.CookForFasterSimulation
+                              | MeshColliderCookingOptions.UseFastMidphase;
             mc.sharedMesh = colliderMesh;
             mc.convex = true;
             mc.material = null;

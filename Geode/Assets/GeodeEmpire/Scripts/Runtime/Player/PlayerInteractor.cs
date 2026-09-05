@@ -83,11 +83,8 @@ namespace GeodeEmpire.Player
                 if (GameInput.StrikePressed && !Held.IsOpened) TapHeld();
                 // call it: what the hands and the ear say it is, written down before the rock is opened
                 if (GameInput.DropPressed && !Held.IsOpened) CycleCall();
-                Vector2 look = GameInput.Look;
-                float k = GameInput.UsingGamepad ? 180f * Time.deltaTime : 0.35f;
-                if (LoupeActive) k *= 0.6f;   // finer control under magnification
-                _inspectRot = Quaternion.AngleAxis(-look.x * k, Vector3.up) * Quaternion.AngleAxis(look.y * k, Vector3.right) * _inspectRot;
-                _inspectZoom = Mathf.Clamp(_inspectZoom + GameInput.Scroll.y * 0.0006f + GameInput.Rotate * Time.deltaTime * 0.2f, -0.12f, 0.16f);
+                TurnHeld();
+                ReadSurface();
             }
             else if (Inspecting)
             {
@@ -237,14 +234,171 @@ namespace GeodeEmpire.Player
             float dirtLeft = e.Visual != null ? e.Visual.DirtRemaining : 0f;
             string dirt = dirtLeft > 0.35f ? "caked in clay" : dirtLeft > 0.08f ? "dusty" : "clean";
             string reading = $"{SpecimenGeology.SizeWord(g.SizeClass)} rock, {weight}, {dirt}";
+            if (Economy.UpgradeCatalog.Has(GameSession.Instance != null ? GameSession.Instance.State : null, Economy.UpgradeCatalog.Calipers))
+                reading += $"  •  {g.Size * 200f:F0} mm across";
             if (e.Record != null && !string.IsNullOrEmpty(e.Record.Locality)) reading += $"  •  from {e.Record.Locality}";
-            // a clean shell shows its seam, chips, staining and any mineral showing through
-            if (dirtLeft <= 0.1f)
+            // §5.5: what the shell says is what the player has actually looked at and read, not everything the
+            // generator knows. Turning the rock over and going round it is the only way to fill this line in.
+            var logged = Logged(e);
+            if (logged.Count > 0)
             {
-                var notes = GeodeEmpire.Workshop.Preparation.ShellNotes(g);
-                if (notes.Count > 0) reading += "  •  " + string.Join(", ", notes);
+                var seen = new System.Collections.Generic.List<string>();
+                foreach (var c in logged)
+                {
+                    string word = Specimens.SpecimenSurface.Describe(c.Kind);
+                    if (!seen.Contains(word)) seen.Add(word);
+                }
+                reading += "  •  " + string.Join(", ", seen);
+                string verdict = Specimens.SpecimenSurface.Reading(logged);
+                if (!string.IsNullOrEmpty(verdict)) reading += "  •  " + verdict;
             }
             return reading;
+        }
+
+        // -------------------------------------------------------------------------------------
+        // Turning it over (§6)
+        // -------------------------------------------------------------------------------------
+        private Vector3 _spin;              // residual angular velocity, screen axes, deg/s
+        private float _rollHeld;
+
+        /// <summary>
+        /// Yaw, pitch and roll, accumulated about screen axes rather than the object's own, so it behaves like a
+        /// rock in two hands: no axis is privileged, there is no pole to get stuck at, and turning it upside down
+        /// does not invert the controls. Roll is the third axis §6.1 asks for; sprint is the fine-control modifier
+        /// and the drop key resets it square.
+        /// </summary>
+        private void TurnHeld()
+        {
+            float dt = Time.deltaTime;
+            Vector2 look = GameInput.Look;
+            float k = GameInput.UsingGamepad ? 180f : 21f;
+            if (LoupeActive) k *= 0.55f;                       // finer under magnification
+            if (GameInput.SprintHeld) k *= 0.35f;              // §6.2 fine-control mode
+            // the rotate axis rolls the piece about the view direction while inspecting; it zooms when it is not needed
+            float roll = GameInput.Rotate;
+            _rollHeld = Mathf.MoveTowards(_rollHeld, Mathf.Abs(roll) > 0.02f ? 1f : 0f, dt * 6f);
+            float yaw = -look.x * k * (GameInput.UsingGamepad ? dt : 1f / 60f);
+            float pitch = look.y * k * (GameInput.UsingGamepad ? dt : 1f / 60f);
+            float rollDeg = -roll * 105f * dt * (GameInput.SprintHeld ? 0.35f : 1f);
+            Apply(yaw, pitch, rollDeg);
+            // gentle inertia: a flick keeps turning for a moment and settles, so the piece feels like it has mass
+            if (Mathf.Abs(yaw) > 0.001f || Mathf.Abs(pitch) > 0.001f)
+                _spin = Vector3.Lerp(_spin, new Vector3(pitch, yaw, 0f) / Mathf.Max(dt, 0.0001f) * 0.06f, 0.5f);
+            else if (_spin.sqrMagnitude > 0.01f)
+            {
+                Apply(_spin.y * dt, _spin.x * dt, 0f);
+                _spin = Vector3.MoveTowards(_spin, Vector3.zero, dt * (Held != null ? 220f : 400f));
+            }
+            // square it up again: an escape from any orientation, on both devices
+            if (GameInput.InteractPressed) { _inspectRot = Quaternion.identity; _spin = Vector3.zero; }
+            if (!LoupeActive && Mathf.Abs(roll) <= 0.02f)
+                _inspectZoom = Mathf.Clamp(_inspectZoom + GameInput.Scroll.y * 0.0006f, -0.12f, 0.16f);
+        }
+
+        private void Apply(float yawDeg, float pitchDeg, float rollDeg)
+        {
+            if (Mathf.Abs(yawDeg) < 1e-5f && Mathf.Abs(pitchDeg) < 1e-5f && Mathf.Abs(rollDeg) < 1e-5f) return;
+            var delta = Quaternion.AngleAxis(yawDeg, Vector3.up)
+                      * Quaternion.AngleAxis(pitchDeg, Vector3.right)
+                      * Quaternion.AngleAxis(rollDeg, Vector3.forward);
+            _inspectRot = delta * _inspectRot;
+        }
+
+        // -------------------------------------------------------------------------------------
+        // Reading the shell (§5.5): clues are found by looking at the place they are
+        // -------------------------------------------------------------------------------------
+        private System.Collections.Generic.List<Specimens.SpecimenSurface.Clue> _clues;
+        private string _cluesFor = "";
+        private int _lookingAt = -1;
+        private float _dwell;
+        /// <summary>What the eye is on right now, for the prompt.</summary>
+        public string SurfaceNote { get; private set; } = "";
+
+        private System.Collections.Generic.List<Specimens.SpecimenSurface.Clue> CluesFor(SpecimenEntity e)
+        {
+            if (e == null) return null;
+            if (_clues == null || _cluesFor != e.Id)
+            {
+                _clues = Specimens.SpecimenSurface.Clues(e.Geology);
+                _cluesFor = e.Id;
+            }
+            return _clues;
+        }
+
+        /// <summary>
+        /// A ray through the middle of the view finds the patch of shell being looked at. Hold your eye on a patch
+        /// carrying something and it registers; the loupe is what turns "there is a mark here" into a reading, and
+        /// clay still on that patch hides it completely.
+        /// </summary>
+        private void ReadSurface()
+        {
+            SurfaceNote = "";
+            var e = Held;
+            if (e == null || e.IsOpened || e.Visual == null) { _lookingAt = -1; _dwell = 0f; return; }
+            var clues = CluesFor(e);
+            if (clues == null || clues.Count == 0) return;
+
+            // the held piece sits right in front of the camera: intersect the view ray with its hull
+            var origin = Cam.transform.position;
+            var dir = Cam.transform.forward;
+            var centre = e.transform.position;
+            var toCentre = centre - origin;
+            float along = Vector3.Dot(toCentre, dir);
+            if (along <= 0f) { _lookingAt = -1; _dwell = 0f; return; }
+            float radius = Mathf.Max(0.01f, e.Radius);
+            var closest = origin + dir * along;
+            float off = (closest - centre).magnitude;
+            if (off > radius) { _lookingAt = -1; _dwell = 0f; return; }
+            // the front surface point under the crosshair
+            float depth = Mathf.Sqrt(Mathf.Max(0f, radius * radius - off * off));
+            var surface = closest - dir * depth;
+            int region = Specimens.SpecimenSurface.RegionOf(e.transform.InverseTransformPoint(surface));
+
+            if (region != _lookingAt) { _lookingAt = region; _dwell = 0f; }
+            _dwell += Time.deltaTime;
+
+            var cond = e.Record.Condition;
+            float clay = e.Visual.DirtAt(region);
+            for (int i = 0; i < clues.Count; i++)
+            {
+                var c = clues[i];
+                if (c.Region != region) continue;
+                if (clay > 0.22f) { SurfaceNote = "clay covers this face"; continue; }
+                var state = cond.ClueAt(i);
+                if (state == Specimens.ClueState.Logged)
+                {
+                    if (string.IsNullOrEmpty(SurfaceNote)) SurfaceNote = Specimens.SpecimenSurface.Describe(c.Kind);
+                    continue;
+                }
+                bool canLog = !c.NeedsLoupe || LoupeActive;
+                if (_dwell > 0.3f && state == Specimens.ClueState.Undiscovered)
+                {
+                    cond.SetClue(i, Specimens.ClueState.Seen);
+                    GeodeEmpire.Audio.WorkshopAudio.Play2D("ui_click", 0.18f, 1.5f);
+                }
+                if (_dwell > (LoupeActive ? 0.55f : 0.9f) && canLog && cond.ClueAt(i) < Specimens.ClueState.Logged)
+                {
+                    cond.SetClue(i, Specimens.ClueState.Logged);
+                    Save.GameState.Log(e.Record, "observed", 0f, Specimens.SpecimenSurface.Describe(c.Kind));
+                    GameSession.Instance?.QueueSave("observed");
+                    GeodeEmpire.Audio.WorkshopAudio.Play2D("ui_click", 0.3f, 1.15f);
+                    GeodeEmpire.Workshop.Tutorial.Notify("observed");
+                }
+                SurfaceNote = cond.ClueAt(i) >= Specimens.ClueState.Logged
+                    ? Specimens.SpecimenSurface.Describe(c.Kind)
+                    : Specimens.SpecimenSurface.Glimpse(c.Kind) + (canLog ? "  (keep looking)" : "  (too fine to read — use the loupe)");
+            }
+        }
+
+        /// <summary>What has actually been read off this rock, in the order it was found.</summary>
+        public static System.Collections.Generic.List<Specimens.SpecimenSurface.Clue> Logged(SpecimenEntity e)
+        {
+            var found = new System.Collections.Generic.List<Specimens.SpecimenSurface.Clue>();
+            if (e == null || e.Record == null) return found;
+            var clues = Specimens.SpecimenSurface.Clues(e.Geology);
+            for (int i = 0; i < clues.Count; i++)
+                if (e.Record.Condition.ClueAt(i) >= Specimens.ClueState.Logged) found.Add(clues[i]);
+            return found;
         }
 
         private void EndInspect()
@@ -271,9 +425,11 @@ namespace GeodeEmpire.Player
             if (Inspecting)
             {
                 p = Held != null && !Held.IsOpened ? HandReading(Held) + (string.IsNullOrEmpty(_tapNote) ? "" : "  •  " + _tapNote) + (Held.Record.Predicted ? "  •  your call: " + CallWord(Held.Record) : "") : "";
-                h = LoupeActive ? $"{GameInput.Glyph("Look")} turn   {GameInput.Glyph("Loupe")} lower loupe"
-                                : $"{GameInput.Glyph("Look")} rotate   {GameInput.Glyph("Inspect")} release" + (LoupeTool.Owned ? $"   {GameInput.Glyph("Loupe")} loupe" : "");
-                if (Held != null && !Held.IsOpened) h += $"   {GameInput.Glyph("Strike")} tap   {GameInput.Glyph("Drop")} call it";
+                if (!string.IsNullOrEmpty(SurfaceNote))
+                    p += "\n<size=17><color=#E8C88A>" + SurfaceNote + "</color></size>";
+                h = LoupeActive ? $"{GameInput.Glyph("Look")} turn   {GameInput.Glyph("Rotate")} roll   {GameInput.Glyph("Loupe")} lower loupe"
+                                : $"{GameInput.Glyph("Look")} turn   {GameInput.Glyph("Rotate")} roll   {GameInput.Glyph("Inspect")} release" + (LoupeTool.Owned ? $"   {GameInput.Glyph("Loupe")} loupe" : "");
+                if (Held != null && !Held.IsOpened) h += $"   {GameInput.Glyph("Strike")} tap   {GameInput.Glyph("Drop")} call it   {GameInput.Glyph("Interact")} square it up";
             }
             else if (Target != null)
             {

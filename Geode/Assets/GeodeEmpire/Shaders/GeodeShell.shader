@@ -85,6 +85,35 @@ Shader "GeodeEmpire/GeodeShell"
             float _Dust;                // rock dust on a freshly broken interior until it is rinsed
             float _DetailScale, _DetailStrength;
         CBUFFER_END
+
+        // Per-region clay (§7.3). Twenty-four patches — eight around, three up — packed six to a float4 so the
+        // whole shell's state is one small array. Outside UnityPerMaterial: it is set through a property block,
+        // and specimens are not SRP-batched anyway. w of each element is unused padding.
+        float4 _RegionClean[6];
+        float _RegionDirtOn;        // 0 = fall back to the single _Dirt value (old saves, scenery, thumbnails)
+
+        // Clay at a point on the shell, blended between the four regions it lies between so the patches read as
+        // a wiped surface rather than as tiles.
+        float ClayAt(float3 nOS)
+        {
+            if (_RegionDirtOn < 0.5) return _Dirt;
+            float3 d = normalize(nOS);
+            float lon = (atan2(d.z, d.x) / 6.2831853 + 0.5) * 8.0 - 0.5;    // -0.5 .. 7.5, centres on region middles
+            float band = saturate((d.y + 0.62) / 1.24) * 2.0;                // 0 lower .. 2 upper
+            float lf = frac(lon + 8.0);
+            int l0 = ((int)floor(lon) + 8) % 8;
+            int l1 = (l0 + 1) % 8;
+            float bf = frac(band);
+            int b0 = clamp((int)floor(band), 0, 2);
+            int b1 = min(b0 + 1, 2);
+            // _RegionClean is 24 floats packed 4-to-a-float4
+            #define REGION_CLEAN(i) (_RegionClean[(i) >> 2][(i) & 3])
+            float c00 = REGION_CLEAN(b0 * 8 + l0), c10 = REGION_CLEAN(b0 * 8 + l1);
+            float c01 = REGION_CLEAN(b1 * 8 + l0), c11 = REGION_CLEAN(b1 * 8 + l1);
+            float clean = lerp(lerp(c00, c10, lf), lerp(c01, c11, lf), bf);
+            #undef REGION_CLEAN
+            return _Dirt * (1.0 - saturate(clean));
+        }
         // fracture overlay arrays: kept outside the per-material block so property-block arrays reach them
         float _SectorCrack[16];         // seam stress per sector, >= 1 is an open crack
         float4 _Impacts[32];            // chisel marks: longitude fraction, signed latitude fraction, radius (m), strength
@@ -297,7 +326,7 @@ Shader "GeodeEmpire/GeodeShell"
                 float detSmooth = 0.5, detOcc = 1.0; float3 detAlbedo = float3(0.5, 0.5, 0.5);
                 if (c.r > 0.5)
                 {
-                    det = SampleDetail(TEXTURE2D_ARGS(_RindAlbedo, sampler_RindAlbedo), _RindNormal, _RindMask, IN.positionOS, nOS, detScale, rindStrength * (1.0 + 0.5 * saturate(_Dirt)));
+                    det = SampleDetail(TEXTURE2D_ARGS(_RindAlbedo, sampler_RindAlbedo), _RindNormal, _RindMask, IN.positionOS, nOS, detScale, rindStrength * (1.0 + 0.5 * saturate(ClayAt(nOS))));
                     N = TransformObjectToWorldNormal(det.normalOS);
                 }
                 else if (c.b > 0.5 && !sawnEarly)
@@ -415,7 +444,8 @@ Shader "GeodeEmpire/GeodeShell"
                 float dirtFine = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, IN.positionOS.xy * 23.0 + IN.positionOS.z * 17.0).b;
                 // V6: quarry clay is a crust, not a spatter: it packs the pits and low ground of the rind first (the tile's
                 // occlusion), thins over the knobs, and breaks into a cracked skin at the boundary
-                float dirtMask = _Dirt > 0.001 ? smoothstep(0.05, 0.4, _Dirt * 1.25 - (grain * 0.25 + detOcc * 0.55 + dirtN * 0.25 + dirtFine * 0.08) + 0.38) : 0.0;
+                float clayHere = ClayAt(nOS);
+                float dirtMask = clayHere > 0.001 ? smoothstep(0.05, 0.4, clayHere * 1.25 - (grain * 0.25 + detOcc * 0.55 + dirtN * 0.25 + dirtFine * 0.08) + 0.38) : 0.0;
                 // dried quarry clay: ochre-brown, caked thick in the hollows and thin and dusty over the high points
                 float3 clay = lerp(float3(0.26, 0.2, 0.13), float3(0.36, 0.29, 0.2), grain) * lerp(0.82, 1.1, dirtN) * lerp(0.88, 1.06, dirtFine);
                 clay = lerp(clay, clay * 0.5, smoothstep(0.55, 0.7, dirtFine));        // cracked, crumbly patches

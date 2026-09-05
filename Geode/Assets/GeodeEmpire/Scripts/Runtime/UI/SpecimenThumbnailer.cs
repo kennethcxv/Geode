@@ -85,6 +85,23 @@ namespace GeodeEmpire.UI
             l.shadows = LightShadows.None;
         }
 
+        private bool _warm;
+
+        /// <summary>
+        /// Render one throw-away plate now. The first time this camera runs, URP compiles the post-processing
+        /// variants it needs, which measured 3.9 seconds — and it used to land on the first rock the player ever
+        /// opened. Paying it during load makes it invisible; every plate after the first cost 3-7 ms.
+        /// </summary>
+        public void Prewarm()
+        {
+            if (_warm) return;
+            _warm = true;
+            var lib = GameSession.Instance != null ? GameSession.Instance.Library : null;
+            if (lib == null) { _warm = false; return; }
+            var rt = Render("warmup", SeedFor(MineralCatalog.All[0].Id), true);
+            if (rt != null) { _cache.Remove("warmup"); rt.Release(); Destroy(rt); }
+        }
+
         /// <summary>A deterministic seed whose rock belongs to <paramref name="mineral"/>, or 0 if none is found.</summary>
         public ulong SeedFor(MineralId mineral)
         {
@@ -125,6 +142,9 @@ namespace GeodeEmpire.UI
         private void Update()
         {
             if (_queue.Count == 0) return;
+            // never photograph anything while the player is watching a rock break (§10.2)
+            var session = GameSession.Instance;
+            if (session != null && session.PresentationHold > 0) return;
             var job = _queue[0];
             _queue.RemoveAt(0);
             if (job.el == null || job.el.panel == null) return;    // the page closed before we got to it
@@ -139,23 +159,51 @@ namespace GeodeEmpire.UI
             element.style.backgroundColor = Ground;
         }
 
+        /// <summary>How much interior detail a plate this size can actually resolve.</summary>
+        public const int ThumbnailCrystals = 90;
+
+        /// <summary>The rock already standing in the world for this key, if there is one.</summary>
+        private SpecimenVisual LiveVisual(string key)
+        {
+            if (!key.StartsWith("rec:")) return null;
+            var session = GameSession.Instance;
+            if (session == null) return null;
+            var e = session.GetEntity(key.Substring(4));
+            return e != null && e.Visual != null && e.Visual.Geometry != null ? e.Visual : null;
+        }
+
         private RenderTexture Render(string key, ulong seed, bool opened)
         {
             if (_cache.TryGetValue(key, out var have) && have != null && have.IsCreated()) return have;
             var lib = GameSession.Instance != null ? GameSession.Instance.Library : null;
             if (lib == null) return null;
 
-            SpecimenGeology geology;
-            using (Core.PerfProbe.Measure("  thumb:geology")) geology = SpecimenGenerator.Generate(seed);
-            var condition = new SpecimenCondition { Cleaned = 1f, Rinsed = true, Opened = opened };
-            var go = new GameObject("Thumb");
-            go.hideFlags = HideFlags.DontSave;
-            go.transform.SetParent(_stage, false);
-            var visual = go.AddComponent<SpecimenVisual>();
-            using (Core.PerfProbe.Measure("  thumb:build")) visual.Build(geology, condition, lib);
-            using (Core.PerfProbe.Measure("  thumb:crackstate")) visual.SetCrackState(null, null, 0f, opened ? 0.3f : 1f);
-            // an opened rock is worth showing for its inside: drop the lid and tip the bowl toward the lens
-            if (opened && visual.TopHalf != null) visual.TopHalf.gameObject.SetActive(false);
+            GameObject go;
+            // §10.3: if the specimen is standing in the world, borrow its meshes instead of generating a second
+            // copy of it. That build allocated megabytes a plate and the collection it provoked was the stall.
+            var live = LiveVisual(key);
+            if (live != null)
+            {
+                using (Core.PerfProbe.Measure("  thumb:proxy")) go = live.BuildPlateProxy(_stage, !opened);
+            }
+            else
+            {
+                SpecimenGeology geology;
+                using (Core.PerfProbe.Measure("  thumb:geology")) geology = SpecimenGenerator.Generate(seed);
+                var condition = new SpecimenCondition { Cleaned = 1f, Rinsed = true, Opened = opened };
+                go = new GameObject("Thumb");
+                go.hideFlags = HideFlags.DontSave;
+                go.transform.SetParent(_stage, false);
+                var visual = go.AddComponent<SpecimenVisual>();
+                // a plate is a couple of hundred pixels: combining every crystal in a cathedral geode for it is
+                // work nobody can see, and it was the largest part of the build
+                visual.CrystalBudget = ThumbnailCrystals;
+                using (Core.PerfProbe.Measure("  thumb:build")) visual.Build(geology, condition, lib);
+                using (Core.PerfProbe.Measure("  thumb:crackstate")) visual.SetCrackState(null, null, 0f, opened ? 0.3f : 1f);
+                // an opened rock is worth showing for its inside: drop the lid and tip the bowl toward the lens
+                if (opened && visual.TopHalf != null) visual.TopHalf.gameObject.SetActive(false);
+            }
+            go.transform.localPosition = Vector3.zero;
             go.transform.localRotation = Quaternion.Euler(0f, 205f, 0f);
 
             // frame from what actually got built, so a 3 cm nodule and a 20 cm cathedral both fill the plate
@@ -166,9 +214,7 @@ namespace GeodeEmpire.UI
                 if (rend == null || !rend.enabled || !rend.gameObject.activeInHierarchy) return;
                 if (!any) { bounds = rend.bounds; any = true; } else bounds.Encapsulate(rend.bounds);
             }
-            Take(visual.BottomShellRenderer);
-            Take(visual.TopShellRenderer);
-            if (!any) foreach (var rend in go.GetComponentsInChildren<Renderer>()) Take(rend);
+            foreach (var rend in go.GetComponentsInChildren<Renderer>()) Take(rend);
             float radius = Mathf.Max(0.02f, Mathf.Max(bounds.extents.x, Mathf.Max(bounds.extents.y, bounds.extents.z)));
             float dist = radius / Mathf.Tan(_cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 0.55f;
             _cam.farClipPlane = dist * 4f;

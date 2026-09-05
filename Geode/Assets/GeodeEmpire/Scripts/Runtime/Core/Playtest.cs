@@ -296,10 +296,37 @@ namespace GeodeEmpire.Core
         /// </summary>
         public void RunCrackPerf(int rocks = 3) { if (!Running) StartCoroutine(CrackPerf(rocks)); }
 
+        /// <summary>
+        /// The control. Same window, same length, nothing happening: whatever spikes show up here are the
+        /// Editor's, not the game's, and must not be counted against the reveal.
+        /// </summary>
+        public void RunIdlePerf(float seconds = 3.5f) { if (!Running) StartCoroutine(IdlePerf(seconds)); }
+
+        private IEnumerator IdlePerf(float seconds)
+        {
+            Running = true;
+            Phase = "idle-perf";
+            float t0 = Time.time;
+            while ((S == null || S.State == null) && Time.time - t0 < 20f) yield return null;
+            for (int i = 0; i < 3; i++)
+            {
+                PerfProbe.Begin($"idle {i + 1} (control: nothing happening)");
+                float t = Time.time;
+                while (Time.time - t < seconds) yield return null;
+                L(PerfProbe.End());
+            }
+            Phase = "done";
+            Running = false;
+        }
+
         private IEnumerator CrackPerf(int rocks)
         {
             Running = true;
             Phase = "crack-perf";
+            // a new game reloads the scene: wait for the session rather than dying on the first frame
+            float t0 = Time.time;
+            while ((S == null || S.State == null) && Time.time - t0 < 20f) yield return null;
+            if (S == null || S.State == null) { L("no session"); Running = false; yield break; }
             L("== CrackPerf");
             for (int n = 0; n < rocks; n++)
             {
@@ -315,7 +342,7 @@ namespace GeodeEmpire.Core
                 if (!crate.IsOpened)
                 {
                     Vector3 cratePos = crate.transform.position;
-                    yield return Walk(StandNear(cratePos, 1.0f), 0.3f);
+                    yield return Walk(StandNear(cratePos, 0.88f), 0.3f);
                     yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                     yield return new WaitForSeconds(0.9f);
                 }
@@ -358,14 +385,26 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
-        /// <summary>The rock a player would actually reach for: the one lying on top, not one buried under it.</summary>
+        /// <summary>
+        /// The rock a player would actually reach for: high in the crate and in plain sight from where they are
+        /// standing. Picking the first one in the dictionary reached for rocks behind the crate's far wall.
+        /// </summary>
         private SpecimenEntity TopRockInCrate()
         {
-            SpecimenEntity best = null;
+            var eye = P.Cam != null ? P.Cam.transform.position : P.transform.position + Vector3.up * 1.6f;
+            SpecimenEntity best = null; float bestScore = float.MinValue;
             foreach (var e in S.Entities.Values)
             {
                 if (e == null || e.IsOpened || e.Record.Location != SpecimenLocation.InCrate) continue;
-                if (best == null || e.transform.position.y > best.transform.position.y) best = e;
+                var to = e.transform.position - eye;
+                float dist = to.magnitude;
+                if (dist > P.Range) continue;
+                // is anything solid in the way? (the crate's own near wall, or another rock)
+                bool clear = true;
+                if (Physics.Raycast(eye, to.normalized, out var hit, dist - e.Radius * 0.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                    clear = hit.collider.GetComponentInParent<SpecimenEntity>() == e;
+                float score = e.transform.position.y * 2f - dist * 0.3f + (clear ? 1f : -1f);
+                if (score > bestScore) { bestScore = score; best = e; }
             }
             return best;
         }
@@ -536,7 +575,7 @@ namespace GeodeEmpire.Core
             foreach (var c in S.Crates.Values) if (!c.IsOpened || c.RemainingRocks > 0) { crate = c; break; }
             if (crate == null) { L("no crate"); Running = false; yield break; }
             Vector3 cratePos = crate.transform.position;
-            yield return Walk(StandNear(cratePos, 1.0f), 0.3f);
+            yield return Walk(StandNear(cratePos, 0.88f), 0.3f);
             D.LookAt(cratePos + Vector3.up * 0.2f);
             yield return null; yield return null;
             Snap("crate_delivered");
@@ -634,14 +673,12 @@ namespace GeodeEmpire.Core
             if (!crate.IsOpened)
             {
                 Vector3 cratePos = crate.transform.position;
-                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
-                yield return Walk(stand, 0.3f);
+                yield return Walk(StandNear(cratePos, 0.88f), 0.3f);
                 yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                 yield return new WaitForSeconds(0.9f);
             }
             // the dirtiest rock in the crate
-            SpecimenEntity rock = null; float dirtiest = -1f;
-            foreach (var e in S.Entities.Values) if (!e.IsOpened && e.Record.Location == SpecimenLocation.InCrate && e.Visual.DirtRemaining > dirtiest) { dirtiest = e.Visual.DirtRemaining; rock = e; }
+            var rock = TopRockInCrate();
             if (rock == null) { L("no rock"); Running = false; yield break; }
             L($"rock {rock.Id} {rock.Geology.Mineral} size={rock.Geology.SizeClass} tex={rock.Geology.Texture} dirt={rock.Visual.DirtRemaining:F2} stain={rock.Geology.Stain:F2} chip={rock.Geology.HasNaturalChip} seamQ={rock.Geology.SeamQuality:F2} mass={rock.Geology.MassKg:F1}");
             yield return FetchRock(rock);
@@ -666,15 +703,41 @@ namespace GeodeEmpire.Core
             D.LookAt(tub + Vector3.up * 0.05f);
             yield return new WaitForSeconds(0.3f);
             L($"tub prompt='{P.Prompt}'");
-            D.KeyDown(Key.E);
+            yield return Interact();                                    // take up the brush: the basin view
+            yield return new WaitForSeconds(0.6f);
+            L($"basin active={ws.Active} dirty patches={ws.DirtyRegions}");
+            yield return new WaitForSeconds(0.4f);
+            L($"brush aim: {ws.AimDebug}");
+            if (!ws.Active) { L("the basin view did not open"); Running = false; yield break; }
+            Snap("basin_start");
+
+            // §7.3 proof: work one face only, and check the far side is untouched
+            int front = ws.ContactRegion;
             float t0 = Time.time;
-            while (rock.Visual.DirtRemaining > 0.02f && Time.time - t0 < 8f)
+            yield return ScrubHere(ws, 2.2f);
+            var cond = rock.Record.Condition;
+            int back = front >= 0 ? Specimens.SpecimenSurface.Index(Specimens.SpecimenSurface.LongitudeOf(front) + 4,
+                                                                    Specimens.SpecimenSurface.BandOf(front)) : -1;
+            if (front >= 0)
+                L($"ONE FACE: front region {front} clean={cond.CleanAt(front):F2}  opposite region {back} clean={cond.CleanAt(back):F2}"
+                  + $"  (spatial={(cond.CleanAt(front) - cond.CleanAt(back) > 0.3f ? "YES" : "NO")})");
+            Snap("basin_one_side");
+
+            // now turn it and finish the job, dipping when the brush dries
+            int guard = 0;
+            while (ws.DirtyRegions > 0 && Time.time - t0 < 90f && guard++ < 60)
             {
-                if (Time.time - t0 > 1.5f && Time.time - t0 < 1.6f) Snap("tub_scrubbing");
-                yield return null;
+                if (ws.BrushWet < 0.25f) yield return DipBrush(ws);
+                ws.TurnRock(38f);
+                yield return new WaitForSeconds(0.12f);
+                yield return ScrubHere(ws, 0.9f);
+                if (guard % 6 == 0) ws.SetCursor(new Vector2(0.5f, guard % 12 == 0 ? 0.42f : 0.66f));
             }
-            D.KeyUp();
-            L($"scrubbed in {Time.time - t0:F1}s: dirt={rock.Visual.DirtRemaining:F2} cleaned={rock.Record.Condition.Cleaned:F2} scrubbing={ws.Scrubbing}");
+            L($"washed in {Time.time - t0:F1}s: dirt={rock.Visual.DirtRemaining:F2} cleaned={cond.Cleaned:F2} dirtyPatches={ws.DirtyRegions}");
+            Snap("basin_clean");
+            yield return D.Tap(Key.Escape, 0.1f);
+            yield return new WaitForSeconds(0.5f);
+            L($"basin closed active={ws.Active} inputLocked={P.InputLocked}");
             yield return new WaitForSeconds(0.4f);
             Snap("tub_after");
             yield return LookAndInteract(tub, "Take");
@@ -688,6 +751,26 @@ namespace GeodeEmpire.Core
             L(Core.CollisionAudit.Report("wash end"));
             Phase = "done";
             Running = false;
+        }
+
+        /// <summary>Hold the scrub button on whatever the brush is touching, using the real input path.</summary>
+        private IEnumerator ScrubHere(WashStation ws, float seconds)
+        {
+            D.KeyDown(Key.E);
+            float t = Time.time;
+            while (Time.time - t < seconds && ws.Active) yield return null;
+            D.KeyUp();
+            yield return null;
+        }
+
+        /// <summary>Move the brush off the rock and down into the water until it fills.</summary>
+        private IEnumerator DipBrush(WashStation ws)
+        {
+            ws.SetCursor(new Vector2(0.18f, 0.14f));
+            float t = Time.time;
+            while (ws.BrushWet < 0.95f && Time.time - t < 4f && ws.Active) yield return null;
+            ws.SetCursor(new Vector2(0.5f, 0.56f));
+            yield return new WaitForSeconds(0.15f);
         }
 
         /// <summary>Test fixture: every rock still in a crate is opened and appraised on paper, put in the outbox and shipped.</summary>
@@ -974,8 +1057,7 @@ namespace GeodeEmpire.Core
             if (!crate.IsOpened)
             {
                 Vector3 cratePos = crate.transform.position;
-                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
-                yield return Walk(stand, 0.3f);
+                yield return Walk(StandNear(cratePos, 0.88f), 0.3f);
                 yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                 yield return new WaitForSeconds(0.9f);
             }
@@ -1067,8 +1149,7 @@ namespace GeodeEmpire.Core
             if (crate != null && !crate.IsOpened)
             {
                 Vector3 cratePos = crate.transform.position;
-                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
-                yield return Walk(stand, 0.3f);
+                yield return Walk(StandNear(cratePos, 0.88f), 0.3f);
                 yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                 yield return new WaitForSeconds(0.9f);
             }
@@ -1161,13 +1242,11 @@ namespace GeodeEmpire.Core
             if (!crate.IsOpened)
             {
                 Vector3 cratePos = crate.transform.position;
-                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
-                yield return Walk(stand, 0.3f);
+                yield return Walk(StandNear(cratePos, 0.88f), 0.3f);
                 yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                 yield return new WaitForSeconds(0.9f);
             }
-            SpecimenEntity rock = null; float dirtiest = -1f;
-            foreach (var e in S.Entities.Values) if (!e.IsOpened && e.Record.Location == SpecimenLocation.InCrate && e.Visual.DirtRemaining > dirtiest) { dirtiest = e.Visual.DirtRemaining; rock = e; }
+            var rock = TopRockInCrate();
             if (rock == null) { L("no rock"); Running = false; yield break; }
             yield return FetchRock(rock);
             if (P.Held == null) { L("could not pick up the rock"); Running = false; yield break; }
@@ -1309,8 +1388,7 @@ namespace GeodeEmpire.Core
             if (crate != null && !crate.IsOpened)
             {
                 Vector3 cratePos = crate.transform.position;
-                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
-                yield return Walk(stand, 0.3f);
+                yield return Walk(StandNear(cratePos, 0.88f), 0.3f);
                 yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                 yield return new WaitForSeconds(0.9f);
             }
@@ -1487,8 +1565,7 @@ namespace GeodeEmpire.Core
             if (crate != null && !crate.IsOpened)
             {
                 Vector3 cratePos = crate.transform.position;
-                Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f; stand.y = 0f;
-                yield return Walk(stand, 0.3f);
+                yield return Walk(StandNear(cratePos, 0.88f), 0.3f);
                 yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
                 yield return new WaitForSeconds(0.9f);
             }

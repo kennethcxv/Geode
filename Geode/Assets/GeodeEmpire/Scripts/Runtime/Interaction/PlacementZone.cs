@@ -251,10 +251,13 @@ namespace GeodeEmpire.Interaction
             if (e.Zone != null && e.Zone != this) e.Zone.Take(e, true);
             if (!Occupants.Contains(e)) Occupants.Add(e);
             int idx = Occupants.IndexOf(e);
-            e.SetPhysics(false);
+            // the zone is set first: SetPhysics keeps colliders on for anything standing in a zone ("|| Zone != null"),
+            // and running it before this line left every placed rock with its colliders switched off — invisible until
+            // something tried to raycast one, which is exactly what the brush at the basin does
             e.transform.SetParent(null, true);
             e.Zone = this;
             e.Locked = false;
+            e.SetPhysics(false);
             var pose = PoseFor(e);
             e.ApplyPose(pose);
             if (Packed) Repack();

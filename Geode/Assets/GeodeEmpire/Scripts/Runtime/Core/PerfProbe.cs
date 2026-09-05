@@ -23,17 +23,25 @@ namespace GeodeEmpire.Core
 
         private static readonly List<Mark> _marks = new List<Mark>(64);
         private static readonly List<float> _frames = new List<float>(600);
+        private static readonly List<int> _gc = new List<int>(600);          // gen-0 collections that frame
+        private static readonly List<long> _alloc = new List<long>(600);     // bytes the frame allocated
+        private static int _gcLast;
+        private static long _allocLast;
         private static readonly Stopwatch _clock = new Stopwatch();
         private static string _label = "";
         private static int _startFrame;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() { Capturing = false; _marks.Clear(); _frames.Clear(); _clock.Reset(); _label = ""; }
+        private static void ResetStatics() { Capturing = false; _marks.Clear(); _frames.Clear(); _gc.Clear(); _alloc.Clear(); _clock.Reset(); _label = ""; }
 
         public static void Begin(string label)
         {
             _marks.Clear();
             _frames.Clear();
+            _gc.Clear();
+            _alloc.Clear();
+            _gcLast = System.GC.CollectionCount(0);
+            _allocLast = System.GC.GetTotalMemory(false);
             _label = label;
             _startFrame = Time.frameCount;
             Capturing = true;
@@ -44,7 +52,14 @@ namespace GeodeEmpire.Core
         public static void Frame(float unscaledDeltaMs)
         {
             if (!Capturing) return;
-            if (_frames.Count < 600) _frames.Add(unscaledDeltaMs);
+            if (_frames.Count >= 600) return;
+            _frames.Add(unscaledDeltaMs);
+            int gc = System.GC.CollectionCount(0);
+            long mem = System.GC.GetTotalMemory(false);
+            _gc.Add(gc - _gcLast);
+            _alloc.Add(mem > _allocLast ? mem - _allocLast : 0L);
+            _gcLast = gc;
+            _allocLast = mem;
         }
 
         /// <summary>Wrap a phase: <c>using (PerfProbe.Span("mesh")) { ... }</c>. Free when not capturing.</summary>
@@ -108,6 +123,14 @@ namespace GeodeEmpire.Core
                 for (int i = Mathf.Max(0, worstIdx - 3); i < Mathf.Min(_frames.Count, worstIdx + 4); i++)
                     sb.Append(' ').Append(_frames[i].ToString("F1"));
                 sb.Append('\n');
+                // is the unexplained time a collection? say so rather than leaving it to be guessed at
+                sb.Append("  around the worst frame  ms / gc0 / kB:");
+                for (int i = Mathf.Max(0, worstIdx - 3); i < Mathf.Min(_frames.Count, worstIdx + 4); i++)
+                    sb.Append("  ").Append(_frames[i].ToString("F0")).Append('/').Append(i < _gc.Count ? _gc[i] : 0)
+                      .Append('/').Append(i < _alloc.Count ? _alloc[i] / 1024 : 0);
+                sb.Append('\n');
+                int gcTotal = 0; foreach (var n in _gc) gcTotal += n;
+                sb.Append("  gen-0 collections in window: ").Append(gcTotal).Append('\n');
             }
             return sb.ToString();
         }

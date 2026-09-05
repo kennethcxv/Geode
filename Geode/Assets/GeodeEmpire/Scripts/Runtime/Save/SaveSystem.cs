@@ -134,6 +134,31 @@ namespace GeodeEmpire.Save
                 }
             }
             foreach (var c in s.Crates) if (c != null && string.IsNullOrEmpty(c.Locality) && !string.IsNullOrEmpty(c.SupplierId)) c.Locality = GeodeEmpire.Economy.CrateGenerator.DefaultLocalities(c.SupplierId)[0];
+            // version 3: operating costs, spatial cleaning and surface observations. §23: an existing career must
+            // load owing nothing, with a sensible next due date, and with its rocks exactly as clean as they were.
+            s.Bills ??= new BillingState();
+            s.Bills.LastLines ??= new System.Collections.Generic.List<string>();
+            if (s.Version < 3)
+            {
+                s.Bills.Outstanding = 0f;
+                s.Bills.LateFees = 0f;
+                s.Bills.MissedPayments = 0;
+                s.Bills.ElectricityUnits = 0f;
+                s.Bills.WaterLitres = 0f;
+                // the first bill lands a full period from wherever the career has got to, never immediately
+                int today = 1 + (int)(s.Stats.PlayTimeSeconds / 1200f);
+                s.Bills.NextBillDay = Mathf.Max(today + GeodeEmpire.Economy.Ledger.PeriodDays,
+                                                GeodeEmpire.Economy.Ledger.FirstBillDay);
+                s.Bills.DueDay = s.Bills.NextBillDay + 1;
+            }
+            foreach (var r in s.Specimens)
+            {
+                if (r.Condition == null) continue;
+                r.Condition.RegionClean ??= Array.Empty<byte>();
+                r.Condition.ClueState ??= Array.Empty<byte>();
+                // a migrated rock keeps its old whole-rock cleanliness: SpecimenCondition.CleanAt falls back to
+                // Cleaned while RegionClean is empty, so nothing suddenly becomes filthy or spotless
+            }
             s.Version = GameState.CurrentVersion;
         }
 

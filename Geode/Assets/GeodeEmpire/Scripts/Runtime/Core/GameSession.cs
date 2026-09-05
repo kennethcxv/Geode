@@ -70,14 +70,122 @@ namespace GeodeEmpire.Core
                 NewGame();
             else
                 ContinueGame();
+            // pay the plate camera's shader compile here, where the scene is still loading, rather than on the
+            // first rock the player opens
+            UI.SpecimenThumbnailer.Instance.Prewarm();
+        }
+
+        // ------------------------------------------------------------------------------------
+        // Deferred presentation (§10.2)
+        // ------------------------------------------------------------------------------------
+        private readonly System.Collections.Generic.List<(string reason, System.Action work)> _deferred =
+            new System.Collections.Generic.List<(string, System.Action)>();
+
+        /// <summary>
+        /// Raised while something physical is happening that the player is watching — the reveal, above all.
+        /// Deferred presentation work waits until it drops back to zero, so the rock breaks first and the
+        /// interface celebrates it afterwards.
+        /// </summary>
+        public int PresentationHold { get; private set; }
+
+        public void HoldPresentation() => PresentationHold++;
+        public void ReleasePresentation() => PresentationHold = Mathf.Max(0, PresentationHold - 1);
+
+        /// <summary>
+        /// Queue work that the player does not need this frame: a card, a page rebuild, a record comparison.
+        /// One item runs per frame once nothing physical is in progress, so a burst never stacks into one hitch.
+        /// </summary>
+        public void Defer(string reason, System.Action work)
+        {
+            if (work == null) return;
+            _deferred.Add((reason, work));
+        }
+
+        private void PumpDeferred()
+        {
+            if (_deferred.Count == 0 || PresentationHold > 0) return;
+            var item = _deferred[0];
+            _deferred.RemoveAt(0);
+            using (PerfProbe.Measure("deferred:" + item.reason)) item.work();
         }
 
         private void Update()
         {
             PerfProbe.Frame(Time.unscaledDeltaTime * 1000f);
+            PumpDeferred();
             if (State == null) return;
             State.Stats.PlayTimeSeconds += Time.deltaTime;
+            TickBilling();
             if (_saveQueued && Time.unscaledTime - _lastSaveTime > 0.75f) FlushSave();
+        }
+
+        // ------------------------------------------------------------------------------------
+        // Operating costs (§17)
+        // ------------------------------------------------------------------------------------
+        public event System.Action<float> BillIssued;
+
+        /// <summary>Meter a running machine: units are charged for what was actually used.</summary>
+        public void MeterElectricity(string upgradeId, float seconds)
+        {
+            if (State == null) return;
+            State.Bills.ElectricityUnits += Economy.Ledger.DrawPerMinute(upgradeId) * seconds / 60f;
+        }
+
+        /// <summary>Meter the tap.</summary>
+        public void MeterWater(float litresPerMinute, float seconds)
+        {
+            if (State == null) return;
+            State.Bills.WaterLitres += litresPerMinute * seconds / 60f;
+        }
+
+        /// <summary>
+        /// Bills land on day boundaries, never per frame. The notice comes first with a breakdown and a due date;
+        /// the money moves only when the player pays it on the tablet (§17.6).
+        /// </summary>
+        private void TickBilling()
+        {
+            var b = State.Bills;
+            int today = Progression.Day(State);
+            if (b.NextBillDay <= 0) b.NextBillDay = Mathf.Max(Economy.Ledger.FirstBillDay, today + Economy.Ledger.PeriodDays);
+            if (!Economy.Ledger.Due(State) && today >= b.NextBillDay)
+            {
+                Economy.Ledger.IssueBill(State, today);
+                b.NoticeShown = true;
+                b.FeeAppliedForThisBill = false;
+                Notify($"Bill: {UI.UiKit.Money(b.LastBillAmount)} — rent and utilities, due day {b.DueDay}. Pay it on the tablet.", NotificationKind.Warning);
+                Audio.WorkshopAudio.Play2D("ui_click", 0.4f, 0.85f);
+                BillIssued?.Invoke(b.LastBillAmount);
+                Defer("bill-issued", RaiseStateChanged);
+                QueueSave("bill");
+            }
+            else if (Economy.Ledger.PastGrace(State, today) && !b.FeeAppliedForThisBill)
+            {
+                float fee = Economy.Ledger.ApplyLateFee(State);
+                Notify($"Late fee of {UI.UiKit.Money(fee)} added. New floor is on hold until the bill is cleared.", NotificationKind.Warning);
+                Defer("late-fee", RaiseStateChanged);
+                QueueSave("late-fee");
+            }
+        }
+
+        /// <summary>Pay what is owed. Refuses rather than overdrawing; the player is never charged silently.</summary>
+        public bool PayBill(out string error)
+        {
+            error = null;
+            if (State == null || !Economy.Ledger.Due(State)) { error = "Nothing outstanding"; return false; }
+            float amount = State.Bills.Outstanding;
+            if (!CanAfford(amount)) { error = $"You are {UI.UiKit.Money(amount - State.Cash)} short"; return false; }
+            TrySpend(amount, "bill");
+            State.Bills.Outstanding = 0f;
+            State.Bills.LateFees = 0f;
+            State.Bills.TotalPaid += amount;
+            State.Bills.BillsPaid++;
+            State.Bills.MissedPayments = 0;             // paid up: the consequences lift (§17.7)
+            State.Bills.NoticeShown = false;
+            Notify($"Paid {UI.UiKit.Money(amount)}. Next bill on day {State.Bills.NextBillDay}.", NotificationKind.Success);
+            Audio.WorkshopAudio.Play2D("ui_sell", 0.5f);
+            RaiseStateChanged();
+            FlushSave("bill-paid");
+            return true;
         }
 
         private void OnApplicationQuit()
@@ -396,7 +504,20 @@ namespace GeodeEmpire.Core
             Notified?.Invoke(text, kind);
         }
 
-        public void RaiseStateChanged() => StateChanged?.Invoke();
+        public void RaiseStateChanged()
+        {
+            if (!PerfProbe.Capturing) { StateChanged?.Invoke(); return; }
+            // while a window is open, charge each subscriber for its own time: "StateChanged is slow" is not a
+            // finding, "which handler" is
+            var list = StateChanged?.GetInvocationList();
+            if (list == null) return;
+            foreach (var d in list)
+            {
+                var target = d.Target as UnityEngine.Object;
+                string name = (target != null ? target.GetType().Name : d.Method.DeclaringType?.Name ?? "?") + "." + d.Method.Name;
+                using (PerfProbe.Measure("    sc:" + name)) ((System.Action)d)();
+            }
+        }
 
         /// <summary>Encyclopedia + statistics + callouts when a specimen is opened.</summary>
         /// <summary>The call made in the hand meets the rock: mastery counters, a line in the history, a note for the reveal.</summary>
@@ -440,13 +561,17 @@ namespace GeodeEmpire.Core
             if (g.MassKg > st.LargestSpecimenKg) { st.LargestSpecimenKg = g.MassKg; st.LargestSpecimenName = r.DisplayName; }
             if (value > st.HighestValueHammerResult) { st.HighestValueHammerResult = value; st.HighestValueHammerResultName = r.DisplayName; }
 
-            using (PerfProbe.Measure("  disc:card"))
+            // §12.3: the physical result comes first, then the UI celebrates it. Both of these rebuild
+            // panels, and doing that inside the frame the rock splits on cost 48-62 ms of it.
+            string headline = firstOfFamily ? "First " + fam.Name
+                            : g.Tier >= QualityTier.Exceptional ? Valuation.TierLabel(g.Tier) + " find" : null;
+            bool best = headline == null && record && entry.Found > 1;
+            Defer("discovery-card", () =>
             {
-                if (firstOfFamily) Discovered?.Invoke(r, "First " + fam.Name);
-                else if (g.Tier >= QualityTier.Exceptional) Discovered?.Invoke(r, Valuation.TierLabel(g.Tier) + " find");
-                else if (record && entry.Found > 1) Notify($"Best {fam.Name} so far", NotificationKind.Info);
-            }
-            using (PerfProbe.Measure("  disc:statechanged")) StateChanged?.Invoke();
+                if (headline != null) Discovered?.Invoke(r, headline);
+                else if (best) Notify($"Best {fam.Name} so far", NotificationKind.Info);
+            });
+            Defer("state-changed", RaiseStateChanged);
         }
 
         // ------------------------------------------------------------------------------------
@@ -463,12 +588,19 @@ namespace GeodeEmpire.Core
             if (!CanAfford(sup.Price)) { error = "Not enough cash"; return false; }
             var receiving = FindAnyObjectByType<ReceivingArea>();
             if (receiving == null) { error = "No receiving area"; return false; }
-            int crateCap = State.WorkshopStage >= 3 ? 6 : 4;
-            if (_crates.Count >= crateCap) { error = "The receiving pallet is full. Open or break down a crate first."; return false; }
-            TrySpend(sup.Price, "crate");
+            // §14.2: the order is refused before the money moves, and the refusal says what to do about it
+            string full = receiving.RefusalReason();
+            if (full != null) { error = full; return false; }
             var crate = Economy.CrateGenerator.Generate(State, sup, CreateSpecimenRecord);
+            if (!receiving.Deliver(crate))
+            {
+                State.Crates.Remove(crate);
+                foreach (var id in crate.SpecimenIds) State.Specimens.RemoveAll(sp => sp.Id == id);
+                error = "Goods-in has no room for that crate";
+                return false;
+            }
+            TrySpend(sup.Price, "crate");
             State.Stats.CratesPurchased++;
-            receiving.Deliver(crate);
             Economy.Auction.OnDelivery(this);   // the courier collects consigned pieces and brings back the hammer
             Audio.WorkshopAudio.Play2D("ui_buy", 0.7f);
             Notify($"{sup.Name} ordered. Delivery at the pallet.", NotificationKind.Success);
