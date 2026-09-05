@@ -16,6 +16,19 @@ namespace GeodeEmpire.Workshop
     {
         public Vector2 Footprint = new Vector2(1.1f, 0.7f);
 
+        /// <summary>
+        /// Where deliveries land today. Before the back room is leased there is no bay, only a single pallet in
+        /// the corner of the unit; signing the lease moves goods-in to the four-pallet bay under the shutter.
+        /// The area itself moves rather than being duplicated, so a crate already on the floor stays where the
+        /// player left it.
+        /// </summary>
+        public Transform KerbAnchor, BayAnchor;
+
+        private Transform ActiveAnchor => PremisesExpansion.BackRoomOpen && BayAnchor != null ? BayAnchor : KerbAnchor;
+
+        /// <summary>One pallet at the kerb; the full grid once the bay exists.</summary>
+        private static readonly Vector3[] KerbCells = { new Vector3(0f, 0.12f, 0f) };
+
         /// <summary>Four pallet cells, front row first (closest to the room), each 1.2 x 0.8 m so a crate and its lid fit.</summary>
         private static readonly Vector3[] Cells =
         {
@@ -26,8 +39,20 @@ namespace GeodeEmpire.Workshop
         private static readonly Vector3[] Stage3Cells = { new Vector3(0f, 0.12f, 1.23f) };
         private System.Collections.Generic.IEnumerable<Vector3> ActiveCells()
         {
+            if (!PremisesExpansion.BackRoomOpen)
+            {
+                foreach (var c in KerbCells) yield return c;
+                yield break;
+            }
             foreach (var c in Cells) yield return c;
             if (WorkshopExpansion.Stage3Active) foreach (var c in Stage3Cells) yield return c;
+        }
+
+        /// <summary>Delivery points are read off whichever anchor is live, not off this transform.</summary>
+        private Vector3 Point(Vector3 cell)
+        {
+            var a = ActiveAnchor;
+            return a != null ? a.TransformPoint(cell) : transform.TransformPoint(cell);
         }
 
         public Vector3 NextSpot()
@@ -37,7 +62,7 @@ namespace GeodeEmpire.Workshop
             {
                 foreach (var cell in ActiveCells())
                 {
-                    var spot = transform.TransformPoint(cell + Vector3.up * (stack * 0.44f));
+                    var spot = Point(cell + Vector3.up * (stack * 0.44f));
                     bool occupied = false;
                     if (session != null)
                         foreach (var c in session.Crates.Values)
@@ -49,7 +74,7 @@ namespace GeodeEmpire.Workshop
                     if (!occupied) return spot;
                 }
             }
-            return transform.TransformPoint(Cells[0]);
+            return Point(ActiveAnchor == KerbAnchor ? KerbCells[0] : Cells[0]);
         }
 
         public void Deliver(CrateRecord crate)
@@ -57,7 +82,7 @@ namespace GeodeEmpire.Workshop
             var session = GameSession.Instance;
             var spot = NextSpot();
             crate.Position = spot;
-            crate.Rotation = transform.rotation * Quaternion.Euler(0f, UnityEngine.Random.Range(-8f, 8f), 0f);
+            crate.Rotation = (ActiveAnchor != null ? ActiveAnchor.rotation : transform.rotation) * Quaternion.Euler(0f, UnityEngine.Random.Range(-8f, 8f), 0f);
             crate.Delivered = true;
             var ce = CrateEntity.Create(crate, session);
             ce.transform.SetPositionAndRotation(spot + Vector3.up * 1.3f, crate.Rotation);

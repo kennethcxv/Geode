@@ -59,6 +59,7 @@ namespace GeodeEmpire.Workshop
                     hint = tier == 1 ? "Locked shelf: buy the Cabinet Shelf Expansion" : tier == 2 ? "The trophy wall comes with the Stage 2 workshop" : tier == 3 ? "The gallery opens with the Stage 3 workshop" : null;
                 }
                 else { locked = i >= cap; hint = null; }
+                if (!Slots[i].gameObject.activeInHierarchy) { Slots[i].Locked = true; continue; }
                 Slots[i].Locked = locked && Slots[i].IsEmpty;
                 Slots[i].LockedHint = hint;
                 string label = SlotLabels.Count == Slots.Count && !string.IsNullOrEmpty(SlotLabels[i]) ? SlotLabels[i] : $"display slot {i + 1}";

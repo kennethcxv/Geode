@@ -110,12 +110,20 @@ namespace GeodeEmpire.Retail
         {
             var s = GameSession.Instance != null ? GameSession.Instance.State : null;
             int cap = s != null ? s.SaleCapacity : 6;
+            // Only slots whose fixture is actually standing in the shop count against capacity. Locking by raw
+            // index made the order the scene happened to build things in decide which purchase unlocked what,
+            // and with the island and the shelving now bought separately that order is the player's, not ours.
+            int seen = 0;
             for (int i = 0; i < SaleSlots.Count; i++)
             {
-                bool locked = i >= cap;
-                SaleSlots[i].Locked = locked && SaleSlots[i].IsEmpty;
-                SaleSlots[i].DisplayLabel = locked ? "locked sales table" : $"sales slot {i + 1}";
-                UpdateLabel(SaleSlots[i]);
+                var z = SaleSlots[i];
+                if (z == null) continue;
+                if (!z.gameObject.activeInHierarchy) { z.Locked = true; continue; }
+                bool locked = seen >= cap;
+                z.Locked = locked && z.IsEmpty;
+                z.DisplayLabel = locked ? "locked sales slot" : $"sales slot {seen + 1}";
+                UpdateLabel(z);
+                seen++;
             }
         }
 
@@ -235,7 +243,7 @@ namespace GeodeEmpire.Retail
 
         private static string ShortName(string name) => name.Length > 22 ? name.Substring(0, 21) + "…" : name;
 
-        public void RefreshLabels() { foreach (var s in SaleSlots) UpdateLabel(s); }
+        public void RefreshLabels() { foreach (var s in SaleSlots) if (s != null) UpdateLabel(s); }
 
         // ---- customers -----------------------------------------------------------------------
         private void Update()

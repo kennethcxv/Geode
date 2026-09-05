@@ -547,8 +547,10 @@ namespace GeodeEmpire.Core
                 return true;
             }
             State.Upgrades.Add(upgradeId);
-            if (upgradeId == Economy.UpgradeCatalog.DisplayExpansion) State.DisplayCapacity = 12;
-            if (upgradeId == Economy.UpgradeCatalog.SalesTable) State.SaleCapacity = 10;
+            if (upgradeId == Economy.UpgradeCatalog.CollectionCabinet) State.DisplayCapacity += 8;
+            if (upgradeId == Economy.UpgradeCatalog.DisplayExpansion) State.DisplayCapacity += 4;
+            if (upgradeId == Economy.UpgradeCatalog.SalesTable) State.SaleCapacity += 12;     // the island: four on the glass, two risers, six behind it
+            if (upgradeId == Economy.UpgradeCatalog.ShopShelving) State.SaleCapacity += 18;    // two nine-slot runs
             if (upgradeId == Economy.UpgradeCatalog.Stage2)
             {
                 State.WorkshopStage = 2;

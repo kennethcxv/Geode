@@ -12,7 +12,7 @@ namespace GeodeEmpire.Workshop
     public sealed class WorkshopExpansion : MonoBehaviour
     {
         public const int Stage2DisplaySlots = 8;
-        public const int Stage2SaleSlots = 4;
+        public const int Stage2SaleSlots = 13;   // the new-arrivals shelf (4) and the third display run (9)
         public const int Stage2RackSlots = 9;
         public const int Stage3DisplaySlots = 3;
         public const int Stage3SaleSlots = 6;

@@ -279,7 +279,8 @@ namespace GeodeEmpire.Save
         public int CommissionCounter;
         public int LastCommissionMilestone;
         public Statistics Stats = new Statistics();
-        public int DisplayCapacity = 8;
+        /// <summary>Nothing until the collection cabinet is bought: a new business owns no display.</summary>
+        public int DisplayCapacity;
         public int SaleCapacity = 6;
         public bool PremiumInviteShown;
         public bool ExhibitionInviteShown;

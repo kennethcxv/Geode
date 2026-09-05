@@ -105,9 +105,27 @@ namespace GeodeEmpire.Core
         public static string GoalHeader(GameState s) => "Reach Empire Level " + (Level(s) + 1);
 
         /// <summary>
-        /// V6 §65: the player has to be able to see what they are working towards and why. The goals are the
-        /// measure; this is the thing on the other side of them — the next piece of kit the business cannot afford
-        /// or has not earned yet, named with what stands between here and there. One line, not a second checklist.
+        /// The same answer as <see cref="NextUnlock"/> in one short line, for the HUD. §8.1: the objective card is
+        /// a summary, and three lines of prose about what a loupe does is what made it half the screen tall.
+        /// </summary>
+        public static string NextUnlockShort(GameState s)
+        {
+            if (s == null) return "";
+            Economy.UpgradeDefinition best = null;
+            foreach (var u in Economy.UpgradeCatalog.All)
+            {
+                if (u.Consumable || s.HasUpgrade(u.Id)) continue;
+                if (!string.IsNullOrEmpty(u.Requires) && !s.HasUpgrade(u.Requires)) continue;
+                if (best == null || u.Price < best.Price) best = u;
+            }
+            if (best == null) return "";
+            if (s.Cash >= best.Price) return best.Name + " \u2014 affordable";
+            return best.Name + " \u2014 $" + Mathf.CeilToInt(best.Price - s.Cash).ToString("N0") + " to go";
+        }
+
+        /// <summary>
+        /// V6 §65 in full, for the tablet: the next piece of kit the business cannot afford or has not earned yet,
+        /// named with what stands between here and there.
         /// </summary>
         public static string NextUnlock(GameState s)
         {

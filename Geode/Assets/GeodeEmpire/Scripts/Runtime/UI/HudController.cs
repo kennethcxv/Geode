@@ -16,6 +16,7 @@ namespace GeodeEmpire.UI
         private UIDocument _doc;
         private VisualElement _root, _crosshair, _ring, _notifyStack, _tutorialCard;
         private VisualElement _promptChip, _goalsCard, _statusCard, _keybar, _xpFill;
+        private VisualElement _hintTablet, _hintInspect, _hintBuild, _hintInventory;
         private Label _goalWhy;
         private Label _prompt, _hint, _cash, _cashDelta, _tutorial, _tutorialTick, _promptKey, _day, _level, _xpText, _goalHead;
         private readonly List<(VisualElement box, Label text, Label num)> _goalRows = new List<(VisualElement, Label, Label)>();
@@ -129,10 +130,10 @@ namespace GeodeEmpire.UI
         private void BuildKeybar(VisualElement hud)
         {
             _keybar = UiKit.Box(hud, "keybar");
-            UiKit.KeyHint(_keybar, GameInput.Glyph("Tablet"), "Tablet");
-            UiKit.KeyHint(_keybar, GameInput.Glyph("Inspect"), "Inspect");
-            UiKit.KeyHint(_keybar, GameInput.Glyph("Build"), "Build Mode");
-            UiKit.KeyHint(_keybar, GameInput.Glyph("Inventory"), "Inventory");
+            _hintTablet = UiKit.KeyHint(_keybar, GameInput.Glyph("Tablet"), "Tablet");
+            _hintInspect = UiKit.KeyHint(_keybar, GameInput.Glyph("Inspect"), "Inspect");
+            _hintBuild = UiKit.KeyHint(_keybar, GameInput.Glyph("Build"), "Build Mode");
+            _hintInventory = UiKit.KeyHint(_keybar, GameInput.Glyph("Inventory"), "Inventory");
             UiKit.KeyHint(_keybar, GameInput.Glyph("Pause"), "Menu");
         }
 
@@ -171,16 +172,40 @@ namespace GeodeEmpire.UI
             Audio.WorkshopAudio.Play2D("ui_sell", 0.55f, 1.05f);
         }
 
+        /// <summary>
+        /// §8.3: the rail carries what the player can actually do right now. Inspect needs something in hand,
+        /// build mode needs something of theirs to move, the inventory needs stock to list. A permanent row of
+        /// five is a row of four reminders and one useful key.
+        /// </summary>
         private void RefreshKeybar()
         {
             var caps = _keybar.Query<Label>(className: "keycap").ToList();
             string[] wanted = { GameInput.Glyph("Tablet"), GameInput.Glyph("Inspect"), GameInput.Glyph("Build"), GameInput.Glyph("Inventory"), GameInput.Glyph("Pause") };
             for (int i = 0; i < caps.Count && i < wanted.Length; i++) caps[i].text = wanted[i];
+
+            var st = GameSession.Instance != null ? GameSession.Instance.State : null;
+            bool holding = _player != null && _player.Held != null;
+            bool canBuild = false, hasStock = false;
+            if (st != null)
+            {
+                foreach (var f in Build.PlaceableFixture.All)
+                    if (f != null && f.Movable && f.Owned) { canBuild = true; break; }
+                hasStock = st.Specimens != null && st.Specimens.Count > 0;
+            }
+            Show(_hintInspect, holding);
+            Show(_hintBuild, canBuild);
+            Show(_hintInventory, hasStock);
+        }
+
+        private static void Show(VisualElement e, bool on)
+        {
+            if (e != null) e.style.display = on ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         /// <summary>Day, clock, level, experience and the standing goals, all read off the career.</summary>
         private void RefreshStatus()
         {
+            RefreshKeybar();
             var st = GameSession.Instance != null ? GameSession.Instance.State : null;
             if (st == null) return;
             _day.text = "Day " + Progression.Day(st) + "  -  " + Progression.Clock(st);
@@ -196,7 +221,7 @@ namespace GeodeEmpire.UI
 
             _goalHead.text = "Expand the Business";
             // §65: the goals are the measure; this says what is on the other side of them
-            string next = Progression.NextUnlock(st);
+            string next = Progression.NextUnlockShort(st);
             _goalWhy.text = string.IsNullOrEmpty(next) ? "" : "Next: " + next;
             _goalWhy.style.display = string.IsNullOrEmpty(next) ? DisplayStyle.None : DisplayStyle.Flex;
             var goals = Progression.Goals(st);

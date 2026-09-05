@@ -1698,6 +1698,51 @@ namespace GeodeEmpire.Core
             return $"dupEntities={dup} dupRecords={dupRec} orphans={orphan} {Chk(dup == 0 && dupRec == 0 && orphan == 0)}";
         }
 
+        /// <summary>
+        /// The premises the test needs. The business now opens in one sealed unit, so any run that wants customers
+        /// has to sign the leases and put the retail fixtures up first — exactly as a player would, through the
+        /// same purchase and placement path, so a test can never assemble a shop the game would refuse.
+        /// </summary>
+        public void RunOpenShop() { if (!Running) StartCoroutine(OpenShopRoutine()); }
+
+        private IEnumerator OpenShopRoutine() { Running = true; yield return EnsureShop(); Running = false; }
+
+        private IEnumerator EnsureShop()
+        {
+            if (S?.State == null) yield break;
+            float need = 0f;
+            foreach (var id in new[] { Economy.UpgradeCatalog.BackRoom, Economy.UpgradeCatalog.ShopFront,
+                                       Economy.UpgradeCatalog.SalesTable, Economy.UpgradeCatalog.ShopShelving,
+                                       Economy.UpgradeCatalog.ShopSignage })
+                if (!S.State.HasUpgrade(id)) need += Economy.UpgradeCatalog.Get(id).Price;
+            if (need > 0f && S.State.Cash < need) S.State.Cash = need + 200f;
+            foreach (var id in new[] { Economy.UpgradeCatalog.BackRoom, Economy.UpgradeCatalog.ShopFront,
+                                       Economy.UpgradeCatalog.SalesTable, Economy.UpgradeCatalog.ShopShelving,
+                                       Economy.UpgradeCatalog.ShopSignage })
+            {
+                if (S.State.HasUpgrade(id)) continue;
+                S.BuyUpgrade(id, out string why);
+                if (!string.IsNullOrEmpty(why)) L($"lease {id}: {why}");
+                yield return null;
+            }
+            yield return new WaitForSeconds(0.35f);
+            var bm = Find<Build.BuildMode>();
+            if (bm == null) yield break;
+            foreach (var (id, pos, yaw) in new[] {
+                ("shop_island", new Vector3(4.47f, 0f, 0.65f), 0f),
+                ("display_wall_a", new Vector3(6.72f, 0f, 2.3f), 90f),
+                ("display_wall_b", new Vector3(6.72f, 0f, 3.95f), 90f) })
+            {
+                foreach (var f in Build.PlaceableFixture.All)
+                {
+                    if (f == null || f.Id != id || f.Pose.Placed) continue;
+                    if (!bm.TryPlace(f, pos, yaw, out string why)) L($"site {id}: {why}");
+                }
+                yield return null;
+            }
+            yield return new WaitForSeconds(0.25f);
+        }
+
         public void RunRetailStress(float minutes = 16f) { if (!Running) StartCoroutine(RetailStress(minutes)); }
 
         /// <summary>
@@ -1708,6 +1753,7 @@ namespace GeodeEmpire.Core
         {
             Running = true;
             Phase = "stress";
+            yield return EnsureShop();
             var shop = Retail.RetailShop.Instance;
             var station = Find<GeodeEmpire.Checkout.CheckoutStation>();
             if (shop == null || station == null) { L("no shop/station"); Running = false; yield break; }
@@ -1814,6 +1860,7 @@ namespace GeodeEmpire.Core
         /// <summary>Put appraised test specimens straight onto free sale slots (no walking): stock for the stress run.</summary>
         private IEnumerator StockDirect(int n)
         {
+            yield return EnsureShop();
             var shop = Retail.RetailShop.Instance;
             int room = 0;
             foreach (var z in shop.SaleSlots) if (z.gameObject.activeInHierarchy && !z.Locked && z.IsEmpty) room++;
@@ -2450,6 +2497,7 @@ namespace GeodeEmpire.Core
             Running = true;
             Phase = "retail-save";
             var s = S;
+            yield return EnsureShop();
             var shop = Retail.RetailShop.Instance;
             if (shop == null) { L("no shop"); Running = false; yield break; }
             // 1. stock three slots directly (the walking path is covered by RetailCycle)
@@ -2826,6 +2874,7 @@ namespace GeodeEmpire.Core
         {
             Running = true;
             Phase = "retail-stock";
+            yield return EnsureShop();
             var shop = Retail.RetailShop.Instance;
             if (shop == null) { L("no shop"); Running = false; yield break; }
             L($"== RetailCycle cash={S.State.Cash} forSale={S.State.ForSaleCount()}");
@@ -2899,6 +2948,7 @@ namespace GeodeEmpire.Core
             Running = true;
             Phase = "station-" + method;
             foreach (var st in Workshop.Tutorial.Steps) Workshop.Tutorial.Notify(st.DoneBy);
+            yield return EnsureShop();
             var shop = Retail.RetailShop.Instance;
             var station = Find<GeodeEmpire.Checkout.CheckoutStation>();
             if (shop == null || station == null) { L("no shop/station"); Running = false; yield break; }
@@ -2989,6 +3039,7 @@ namespace GeodeEmpire.Core
             Running = true;
             Phase = "station-repeat";
             foreach (var st in Workshop.Tutorial.Steps) Workshop.Tutorial.Notify(st.DoneBy);
+            yield return EnsureShop();
             var shop = Retail.RetailShop.Instance;
             var station = Find<GeodeEmpire.Checkout.CheckoutStation>();
             if (shop == null || station == null) { L("no shop/station"); Running = false; yield break; }
@@ -3050,6 +3101,7 @@ namespace GeodeEmpire.Core
             Running = true;
             Phase = "station-buttons";
             foreach (var st in Workshop.Tutorial.Steps) Workshop.Tutorial.Notify(st.DoneBy);
+            yield return EnsureShop();
             var shop = Retail.RetailShop.Instance;
             var station = Find<GeodeEmpire.Checkout.CheckoutStation>();
             if (shop == null || station == null) { L("no shop/station"); Running = false; yield break; }
@@ -3120,6 +3172,7 @@ namespace GeodeEmpire.Core
         /// <summary>Harness: n appraised pieces of one size class on the sale fixtures (seeds searched for the class), so a checkout round can exercise the bag, the box and the two-handed lift.</summary>
         private IEnumerator StockSized(string size, int n)
         {
+            yield return EnsureShop();
             var shop = Retail.RetailShop.Instance;
             var want = (SizeClass)System.Enum.Parse(typeof(SizeClass), size, true);
             int placed = 0;
@@ -3165,6 +3218,7 @@ namespace GeodeEmpire.Core
         /// <summary>Carry the held piece to the showroom and put it on the first free sale fixture, through the real prompt.</summary>
         private IEnumerator StockHeld()
         {
+            yield return EnsureShop();
             var shop = Retail.RetailShop.Instance;
             var e = P.Held;
             var free = FreeSaleSlot();
