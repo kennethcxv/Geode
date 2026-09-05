@@ -196,6 +196,16 @@ namespace GeodeEmpire.Lapidary
             float dt = Time.deltaTime;
             // the platen spins up while polishing and winds down after
             _rpm = Mathf.MoveTowards(_rpm, Polishing ? 1f : 0f, dt * (Polishing ? 1.2f : 0.8f));
+            // §17.2: the lap draws while it spins, and the water over the wheel goes down the drain with it
+            if (_rpm > 0.01f)
+            {
+                var s = Core.GameSession.Instance;
+                if (s != null)
+                {
+                    s.MeterElectricity(Economy.UpgradeCatalog.PolishLap, dt * _rpm);
+                    if (Polishing) s.MeterWater(Economy.Ledger.BasinLitresPerMinute * 0.35f, dt);
+                }
+            }
             if (Platen != null && _rpm > 0.01f)
             {
                 _platenAngle += dt * 360f * 3.5f * _rpm;

@@ -53,7 +53,7 @@ namespace GeodeEmpire.UI
             var close = UiKit.Button(header, "Close", Close, "btn-ghost");
             close.style.marginLeft = 22;
             var tabRow = UiKit.Box(_panel, "tab-row");
-            string[] names = { "Suppliers", "Upgrades", "Collection", "Stats" };
+            string[] names = { "Suppliers", "Upgrades", "Collection", "Business", "Stats" };
             for (int i = 0; i < names.Length; i++)
             {
                 int idx = i;
@@ -207,6 +207,7 @@ namespace GeodeEmpire.UI
                 case 0: BuildSuppliers(); break;
                 case 1: BuildUpgrades(); break;
                 case 2: BuildCollection(); break;
+                case 3: BuildBusiness(); BusinessDetail(); break;
                 default: BuildStats(); StatsDetail(); break;
             }
             if (keep >= 0)
@@ -905,6 +906,150 @@ namespace GeodeEmpire.UI
                 UiKit.Label(_detail, "BEST SALE", "caption");
                 UiKit.Label(_detail, st.Stats.BiggestSaleName, "detail-note").style.marginTop = 1;
                 UiKit.Label(_detail, UiKit.Money(st.Stats.BiggestSale), "row-price").style.marginTop = 2;
+            }
+        }
+
+        /// <summary>
+        /// §18: what the business costs to run. Three sections, in the same metric-group language as the career
+        /// page rather than a grey slab — the premises the rent is buying, the bill itself broken down, and what
+        /// a day of it costs. Everything comes from the Ledger, so the page cannot drift from what is charged.
+        /// </summary>
+        private void BuildBusiness()
+        {
+            var s = _s.State;
+            int today = Progression.Day(s);
+            var b = s.Bills;
+            bool due = Economy.Ledger.Due(s);
+            _subtitle.text = due
+                ? $"{UiKit.Money(b.Outstanding)} outstanding, due day {b.DueDay}."
+                : $"Rent, power and water. Next bill on day {b.NextBillDay}.";
+
+            void Group(string title, params (string k, string v, string cls)[] cells)
+            {
+                UiKit.Label(_content, title, "section");
+                var strip = UiKit.Box(_content, "coll-summary");
+                foreach (var (k, v, cls) in cells) Metric(strip, k, v, cls);
+            }
+
+            // ---- PREMISES ------------------------------------------------------------------------
+            string unit = Workshop.PremisesExpansion.ShopFrontOpen ? "Unit 1 + back room + shop front"
+                        : Workshop.PremisesExpansion.BackRoomOpen ? "Unit 1 + back room"
+                        : "Unit 1 only";
+            var next = NextPremises(s);
+            Group("PREMISES",
+                ("LEASED", unit, "accent"),
+                ("USABLE FLOOR", $"{Economy.Ledger.LeasedAreaM2(s):F0} m\u00b2", null),
+                ("RENT A PERIOD", UiKit.Money(Economy.Ledger.RentPerPeriod(s)), null),
+                ("NEXT UNIT", next != null ? next.Name : "All of it is yours", next != null ? null : "muted"),
+                ("TO TAKE IT ON", next != null ? UiKit.Money(next.Price) : "\u2014", next != null && s.Cash >= next.Price ? "success" : "muted"));
+            if (next != null)
+            {
+                string block = Economy.Ledger.ExpansionBlocked(s)
+                    ? "The landlord will not approve new floor while a bill is outstanding."
+                    : !string.IsNullOrEmpty(next.Requires) && !s.HasUpgrade(next.Requires)
+                        ? "First: " + Economy.UpgradeCatalog.Get(next.Requires).Name
+                        : null;
+                if (block != null) UiKit.Label(_content, block, "muted").style.whiteSpace = WhiteSpace.Normal;
+                UiKit.Label(_content, $"Rent would be {UiKit.Money(Economy.Ledger.RentPerPeriod(s) + RentDeltaFor(next.Id))} a period once signed — {UiKit.Money(RentDeltaFor(next.Id))} more than now.", "muted")
+                    .style.whiteSpace = WhiteSpace.Normal;
+            }
+
+            // ---- BILLS ---------------------------------------------------------------------------
+            UiKit.Label(_content, due ? "THIS BILL" : "ON THE METERS", "section");
+            if (due && b.LastLines.Count > 0)
+            {
+                // the bill that was issued, not an estimate: IssueBill zeroes the meters, so re-running Breakdown
+                // here would show the player next period's charges under the heading of the one they owe
+                foreach (var raw in b.LastLines)
+                {
+                    var parts = raw.Split('|');
+                    string label = parts.Length > 0 ? parts[0] : raw;
+                    string amount = parts.Length > 1 && float.TryParse(parts[1], out float a) ? UiKit.Money(a) : "";
+                    string detail = parts.Length > 2 ? parts[2] : null;
+                    UiKit.Kv(_content, label + (!string.IsNullOrEmpty(detail) ? "  \u2014  " + detail : ""), amount);
+                }
+                if (b.LateFees > 0.005f) UiKit.Kv(_content, "Late fee", UiKit.Money(b.LateFees));
+                UiKit.Kv(_content, "Outstanding", UiKit.Money(b.Outstanding));
+            }
+            else
+            {
+                foreach (var l in Economy.Ledger.Breakdown(s))
+                    UiKit.Kv(_content, l.Label + (l.Detail != null ? "  \u2014  " + l.Detail : ""), UiKit.Money(l.Amount));
+                UiKit.Kv(_content, "Estimated next bill", UiKit.Money(Economy.Ledger.Total(s)));
+            }
+            if (due)
+            {
+                var pay = UiKit.Button(_content, $"Pay {UiKit.Money(b.Outstanding)}", () =>
+                {
+                    if (!_s.PayBill(out string err) && err != null) _s.Notify(err, NotificationKind.Warning);
+                    Refresh();
+                }, s.Cash >= b.Outstanding ? "btn-primary" : "btn-ghost");
+                pay.style.marginTop = 10;
+                int daysLeft = b.DueDay + Economy.Ledger.GraceDays - today;
+                UiKit.Label(_content, Economy.Ledger.Overdue(s, today)
+                    ? (daysLeft > 0 ? $"Overdue. {daysLeft} day{(daysLeft == 1 ? "" : "s")} before a late fee." : "Overdue. A late fee has been added.")
+                    : $"Due on day {b.DueDay}. Nothing is taken from the till until you pay it.", "muted")
+                    .style.whiteSpace = WhiteSpace.Normal;
+            }
+
+            // ---- OPERATING COSTS -----------------------------------------------------------------
+            float perDay = Economy.Ledger.PerDay(s);
+            Group("OPERATING COSTS",
+                ("A DAY", UiKit.Money(perDay), null),
+                ("A WEEK", UiKit.Money(perDay * 7f), null),
+                ("LAST BILL", b.LastBillAmount > 0f ? UiKit.Money(b.LastBillAmount) : "\u2014", b.LastBillAmount > 0f ? null : "muted"),
+                ("PAID SO FAR", UiKit.Money(b.TotalPaid), b.TotalPaid > 0f ? "success" : "muted"),
+                ("MISSED", b.MissedPayments.ToString(), b.MissedPayments > 0 ? "warn" : "muted"));
+
+            // biggest drivers, so the player knows what to switch off rather than just that it is expensive
+            var drivers = new List<(string what, float cost)>
+            {
+                ("Rent", Economy.Ledger.RentPerPeriod(s)),
+                ("Electricity", Economy.Ledger.ElectricityCost(s)),
+                ("Water", Economy.Ledger.WaterCost(s)),
+                ("Equipment service", Economy.Ledger.MaintenancePerPeriod(s)),
+            };
+            drivers.Sort((x, y) => y.cost.CompareTo(x.cost));
+            float total = Mathf.Max(0.01f, Economy.Ledger.Total(s));
+            UiKit.Label(_content, "WHERE IT GOES", "section");
+            foreach (var d in drivers)
+            {
+                if (d.cost <= 0.005f) continue;
+                UiKit.Kv(_content, d.what, $"{UiKit.Money(d.cost)}   ({100f * d.cost / total:F0}%)");
+            }
+        }
+
+        /// <summary>The premises lease the player could take on next, or null when they hold them all.</summary>
+        private static Economy.UpgradeDefinition NextPremises(Save.GameState s)
+        {
+            foreach (var id in new[] { Economy.UpgradeCatalog.BackRoom, Economy.UpgradeCatalog.ShopFront, Economy.UpgradeCatalog.Stage3 })
+                if (!s.HasUpgrade(id)) return Economy.UpgradeCatalog.Get(id);
+            return null;
+        }
+
+        private static float RentDeltaFor(string id)
+            => id == Economy.UpgradeCatalog.BackRoom ? Economy.Ledger.BackRoomRent
+             : id == Economy.UpgradeCatalog.ShopFront ? Economy.Ledger.ShopFrontRent
+             : 90f;
+
+        private void BusinessDetail()
+        {
+            var s = _s.State;
+            UiKit.Label(_detail, "HOW BILLING WORKS", "section");
+            UiKit.Label(_detail,
+                $"A bill lands every {Economy.Ledger.PeriodDays} days with a breakdown, and nothing leaves the till "
+                + "until you pay it here. Rent goes up with the floor you lease. Electricity is a standing charge "
+                + "plus what the machines and the lights actually used; water is the basin and the nozzle. "
+                + $"Miss a bill by more than {Economy.Ledger.GraceDays} days and a "
+                + $"{Economy.Ledger.LateFeeRate * 100f:F0}% fee is added — two missed bills and the landlord stops "
+                + "approving new floor, three and the good suppliers want cash up front. Paying up clears all of it.",
+                "muted").style.whiteSpace = WhiteSpace.Normal;
+            var warn = Economy.Ledger.StandingWarning(s, Progression.Day(s));
+            if (warn != null)
+            {
+                var w = UiKit.Label(_detail, warn, "warn");
+                w.style.whiteSpace = WhiteSpace.Normal;
+                w.style.marginTop = 10;
             }
         }
 

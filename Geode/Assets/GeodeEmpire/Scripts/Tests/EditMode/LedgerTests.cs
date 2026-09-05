@@ -158,5 +158,42 @@ namespace GeodeEmpire.Tests.EditMode
             Assert.Greater(Ledger.DrawPerMinute(UpgradeCatalog.PolishLap), Ledger.DrawPerMinute(UpgradeCatalog.InspectionLamp));
             Assert.AreEqual(0f, Ledger.DrawPerMinute("hand_tool_that_is_not_powered"));
         }
-    }
+    
+        /// <summary>
+        /// The tablet renders an outstanding bill from the lines IssueBill stored, because IssueBill zeroes the
+        /// meters — re-deriving the breakdown afterwards showed the player next period's charges under the
+        /// heading of the one they owed. This pins the stored lines to what was actually charged.
+        /// </summary>
+        [Test]
+        public void An_issued_bill_keeps_the_lines_it_was_charged_on()
+        {
+            var s = Fresh();
+            s.Bills.ElectricityUnits = 18.4f;
+            s.Bills.WaterLitres = 260f;
+            float charged = Ledger.Total(s);
+            Ledger.IssueBill(s, 4);
+
+            Assert.AreEqual(0f, s.Bills.ElectricityUnits, 1e-4f, "the meters restart for the next period");
+            Assert.AreEqual(0f, s.Bills.WaterLitres, 1e-4f);
+            Assert.AreEqual(charged, s.Bills.Outstanding, 0.01f);
+            Assert.Greater(s.Bills.LastLines.Count, 0, "the bill has to remember its own breakdown");
+
+            float summed = 0f;
+            bool sawElectricity = false;
+            foreach (var raw in s.Bills.LastLines)
+            {
+                var parts = raw.Split('|');
+                Assert.GreaterOrEqual(parts.Length, 2, "a stored line is label|amount|detail");
+                Assert.IsTrue(float.TryParse(parts[1], out float a), "amount must round-trip: " + raw);
+                summed += a;
+                if (parts[0] == "Electricity")
+                {
+                    sawElectricity = true;
+                    StringAssert.Contains("22.6", parts[2], "the stored detail is what was metered, not what is on the meters now");
+                }
+            }
+            Assert.IsTrue(sawElectricity);
+            Assert.AreEqual(charged, summed, 0.02f, "the stored lines add up to what was charged");
+        }
+}
 }

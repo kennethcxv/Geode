@@ -532,6 +532,20 @@ namespace GeodeEmpire.Lapidary
         private void Update()
         {
             float dt = Time.deltaTime;
+            // §17.2: the meter counts what the machine actually used, not what is installed
+            if (_rpm > 0.01f)
+            {
+                var s = GameSession.Instance;
+                if (s != null)
+                {
+                    s.MeterElectricity(Economy.UpgradeCatalog.TrimSaw, dt * _rpm);
+                    if (CoolantOpen)
+                    {
+                        s.MeterElectricity(Economy.UpgradeCatalog.CoolantPump, dt);
+                        s.MeterWater(Economy.Ledger.BasinLitresPerMinute * 0.55f, dt);   // a saw runs a thin, steady drip
+                    }
+                }
+            }
             if (Blade != null && _rpm > 0.01f)
             {
                 _bladeAngle += dt * 360f * 18f * _rpm;

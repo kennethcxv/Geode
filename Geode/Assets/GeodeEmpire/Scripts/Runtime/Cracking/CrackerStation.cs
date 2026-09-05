@@ -339,6 +339,9 @@ namespace GeodeEmpire.Cracking
         private void Update()
         {
             float dt = Time.deltaTime;
+            // §17.2: the press draws while it is being worked, not while it stands there
+            if (State == Phase.Tighten || State == Phase.Pressure)
+                Core.GameSession.Instance?.MeterElectricity(Economy.UpgradeCatalog.GeodeCracker, dt);
             // the lever and the needle
             float wantLever = State == Phase.Tighten ? Mathf.Lerp(0f, -25f, Mathf.PingPong(_pumpPhase, 1f)) : State == Phase.Pressure ? Mathf.Lerp(0f, -30f, Mathf.PingPong(_pumpPhase, 1f)) : 0f;
             _leverAngle = Mathf.Lerp(_leverAngle, wantLever, 1f - Mathf.Exp(-dt * 12f));
