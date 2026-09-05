@@ -2149,6 +2149,125 @@ namespace GeodeEmpire.Core
 
         private IEnumerator OpenShopRoutine() { Running = true; yield return EnsureShop(); Running = false; }
 
+        public void RunStarterRetail() { if (!Running) StartCoroutine(StarterRetail()); }
+
+        /// <summary>
+        /// §15.1 and §15.3: on a fresh save there is no shop front, and there must still be a way to sell to a
+        /// person. Proves the day-one route end to end — nothing to trade from, buy the trade counter, stock it,
+        /// then enter, browse, select, queue, checkout, receive, exit — without ever leasing the showroom.
+        /// </summary>
+        private IEnumerator StarterRetail()
+        {
+            Running = true;
+            Phase = "starter-retail";
+            float t0 = Time.time;
+            while ((S == null || S.State == null) && Time.time - t0 < 20f) yield return null;
+            if (S == null || S.State == null) { L("no session"); Running = false; yield break; }
+            L("== StarterRetail");
+
+            var shop = Retail.RetailShop.Instance;
+            L(shop == null ? "  FAIL: no RetailShop on a fresh save" : "  RetailShop exists on a fresh save");
+            if (shop == null) { Running = false; yield break; }
+            L($"  before buying the counter: trading={shop.Trading} (expected False)");
+            L($"  leases owned: backroom={S.State.HasUpgrade(Economy.UpgradeCatalog.BackRoom)} shopfront={S.State.HasUpgrade(Economy.UpgradeCatalog.ShopFront)}");
+
+            var def = Economy.UpgradeCatalog.Get(Economy.UpgradeCatalog.CounterTable);
+            // the shop keeps a float back for the next crate, so the counter is affordable after the first sale
+            // rather than instead of the first crate: give the harness that much and no more
+            if (S.State.Cash < def.Price + 90f) S.AddCash(def.Price + 90f - S.State.Cash, "starter-retail");
+            S.BuyUpgrade(def.Id, out string why);
+            if (!string.IsNullOrEmpty(why)) { L("  buy counter failed: " + why); Running = false; yield break; }
+            yield return new WaitForSeconds(0.6f);
+            L($"  bought {def.Name} for {def.Price:0}: trading={shop.Trading} (expected True)");
+            L($"  sale slots standing: {ActiveSaleSlots()}");
+            Snap("starter_counter");
+
+            // stock it: an appraised piece on the counter glass
+            L($"  LEASES before stock: shopfront={S.State.HasUpgrade(Economy.UpgradeCatalog.ShopFront)} activeSlots={ActiveSaleSlots()}");
+            SpawnTestStock(2, 260f);
+            yield return new WaitForSeconds(0.4f);
+            L($"  LEASES after stock spawn: shopfront={S.State.HasUpgrade(Economy.UpgradeCatalog.ShopFront)} activeSlots={ActiveSaleSlots()}");
+            int placed = 0;
+            foreach (var e in new List<SpecimenEntity>(S.Entities.Values))
+            {
+                if (!e.IsOpened || !e.Record.Appraised) continue;
+                if (e.Record.Location == SpecimenLocation.SaleSlot || e.Record.Location == SpecimenLocation.DisplaySlot) continue;
+                if (FreeSaleSlot() == null) break;
+                yield return FetchRock(e);
+                if (P.Held != e) continue;
+                yield return StockHeld(ensureShop: false);
+                placed++;
+                if (placed >= 2) break;
+            }
+            L($"  stocked {placed} on the trade counter, forSale={S.State.ForSaleCount()}");
+            L($"  LEASES after stocking: shopfront={S.State.HasUpgrade(Economy.UpgradeCatalog.ShopFront)} backroom={S.State.HasUpgrade(Economy.UpgradeCatalog.BackRoom)} activeSlots={ActiveSaleSlots()}");
+            L(Core.CollisionAudit.Report("starter counter stocked"));
+            Snap("starter_stocked");
+
+            // out of the way, then bring somebody in
+            if (shop.CounterCustomerPoint != null)
+            {
+                var behind = shop.CounterCustomerPoint.position + new Vector3(0f, 0f, 1.9f);
+                behind.y = 0f;
+                yield return RouteTo(behind, 0.35f);
+            }
+            // taste is real: a customer who does not want either piece leaves, so try a few (§15.3)
+            var seen = new HashSet<string>();
+            Retail.Customer c = null;
+            float t = 0f;
+            int walked = 0;
+            for (int attempt = 1; attempt <= 4; attempt++)
+            {
+                c = shop.SpawnNow();
+                if (c == null) { L("  FAIL: spawn failed"); Running = false; yield break; }
+                L($"  customer {c.Id}: {c.Archetype.Name} budget={c.Budget}");
+                t = 0f;
+                while (c != null && c.State != Retail.Customer.Phase.AtCounter && c.State != Retail.Customer.Phase.Leaving
+                       && c.State != Retail.Customer.Phase.Done && t < 120f)
+                {
+                    t += Time.deltaTime;
+                    if (seen.Add(c.State.ToString())) L($"    {t:F0}s {c.State}");
+                    yield return null;
+                }
+                if (c != null && c.State == Retail.Customer.Phase.AtCounter) break;
+                walked++;
+                L($"    left without buying (state={(c != null ? c.State.ToString() : "gone")}) after {t:F0}s");
+                while (c != null && c.State != Retail.Customer.Phase.Done) yield return null;
+                yield return new WaitForSeconds(0.6f);
+                c = null;
+            }
+            if (c == null || c.State != Retail.Customer.Phase.AtCounter)
+            {
+                L($"  FAIL: {walked} customers came in and none reached the counter");
+                L("  states seen: " + string.Join(" -> ", seen));
+                Phase = "done"; Running = false; yield break;
+            }
+            if (walked > 0) L($"  ({walked} browsed and left first — taste, not a fault)");
+            L($"  at the counter after {t:F0}s wanting {c.Wanted.Record.DisplayName} for {c.Wanted.Record.AskingPrice}");
+            Snap("starter_at_counter");
+            float cashBefore = S.State.Cash;
+            yield return ServeCounter(c);
+            yield return new WaitForSeconds(1.0f);
+            L($"  cash {cashBefore:0.00} -> {S.State.Cash:0.00}");
+            float leave = 0f;
+            while (c != null && c.State != Retail.Customer.Phase.Done && leave < 40f) { leave += Time.deltaTime; yield return null; }
+            L($"  customer gone after a further {leave:F0}s");
+            L("  states seen: " + string.Join(" -> ", seen));
+            L(Core.CollisionAudit.Report("starter retail end"));
+            Snap("starter_after_sale");
+            Phase = "done";
+            Running = false;
+        }
+
+        private int ActiveSaleSlots()
+        {
+            var shop = Retail.RetailShop.Instance;
+            if (shop == null) return 0;
+            int n = 0;
+            foreach (var z in shop.SaleSlots) if (z != null && z.gameObject.activeInHierarchy && !z.Locked) n++;
+            return n;
+        }
+
         private IEnumerator EnsureShop()
         {
             if (S?.State == null) yield break;
@@ -2907,8 +3026,9 @@ namespace GeodeEmpire.Core
                 r.Condition.Opened = true;
                 r.Appraised = true;
                 r.AppraisedValue = Valuation.DamagedValue(r.Geology, 0f, 0f);
-                // open floor in the middle of the workshop, clear of the pallets, the outbox and the benches
-                var pos = new Vector3(-1.5f + (i % 3) * 0.5f, 0.12f, -0.55f + (i / 3) * 0.55f);
+                // open floor in the middle of the workshop, clear of the pallets, the outbox, the benches and
+                // the day-one trade counter (which now stands where this used to drop them)
+                var pos = new Vector3(-2.6f + (i % 3) * 0.5f, 0.12f, -0.55f + (i / 3) * 0.55f);
                 var e = S.Spawn(r, pos, Quaternion.identity, false);
                 pos.y = e.RestHeightOffset(false) + 0.004f;   // resting on the floor, whatever its size
                 e.SetPose(pos, Quaternion.identity);
@@ -3646,7 +3766,10 @@ namespace GeodeEmpire.Core
             yield return station.CompleteFromHere(0.2f);
             yield return new WaitForSeconds(0.3f);
             if (S.State.Cash > cashBefore) L($"  served {c.Archetype.Name}: {what} for {price}: cash {cashBefore} -> {S.State.Cash}");
-            else L($"  SALE FAILED for {c.Archetype.Name}: {what} for {price} (cash unchanged at {S.State.Cash}, prompt='{P.Prompt}')");
+            else L($"  SALE FAILED for {c.Archetype.Name}: {what} for {price} (cash unchanged at {S.State.Cash}, prompt='{P.Prompt}')"
+                     + $"\n    station at {station.transform.position:0.00} staffStand {station.StaffStandPoint.position:0.00}"
+                     + $" player {P.transform.position:0.00} dist {Vector3.Distance(P.transform.position, station.StaffStandPoint.position):0.00}"
+                     + $" active={station.Active} customerAtCounter={(Retail.RetailShop.Instance != null && Retail.RetailShop.Instance.AtCounter != null)}");
         }
 
         private PlacementZone FreeSaleSlot()
@@ -3658,9 +3781,14 @@ namespace GeodeEmpire.Core
         }
 
         /// <summary>Carry the held piece to the showroom and put it on the first free sale fixture, through the real prompt.</summary>
-        private IEnumerator StockHeld()
+        /// <summary>
+        /// Put whatever is in hand on a free sales slot. <paramref name="ensureShop"/> leases and fits out the whole
+        /// showroom first, which is what most retail tests want — but not the day-one one (§15.1), where buying the
+        /// shop front is precisely the thing being avoided.
+        /// </summary>
+        private IEnumerator StockHeld(bool ensureShop = true)
         {
-            yield return EnsureShop();
+            if (ensureShop) yield return EnsureShop();
             var shop = Retail.RetailShop.Instance;
             var e = P.Held;
             var free = FreeSaleSlot();

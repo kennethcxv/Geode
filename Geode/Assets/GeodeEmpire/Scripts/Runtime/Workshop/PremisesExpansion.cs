@@ -40,6 +40,9 @@ namespace GeodeEmpire.Workshop
         {
             public string Upgrade;
             public GameObject Root;
+            /// <summary>An upgrade that replaces this one: owning it takes the fixture away again (the day-one
+            /// trade counter goes when the showroom opens). Empty for a gate that only ever appears.</summary>
+            public string SupersededBy;
         }
         public List<Gate> Gates = new List<Gate>();
 
@@ -83,7 +86,9 @@ namespace GeodeEmpire.Workshop
             Set(ShopFrontHoarding, !shop);
             foreach (var go in HideWithBackRoom) Set(go, !back);
             foreach (var go in HideWithShopFront) Set(go, !shop);
-            foreach (var g in Gates) if (g != null) Set(g.Root, Owns(g.Upgrade));
+            foreach (var g in Gates)
+                if (g != null)
+                    Set(g.Root, Owns(g.Upgrade) && (string.IsNullOrEmpty(g.SupersededBy) || !Owns(g.SupersededBy)));
             // a fixture that has just appeared or vanished changes which sale slots are real, and the shop's own
             // StateChanged handler may already have run this frame
             var retail = Retail.RetailShop.Instance;

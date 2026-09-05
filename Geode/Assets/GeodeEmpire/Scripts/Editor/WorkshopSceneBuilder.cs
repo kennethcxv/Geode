@@ -540,7 +540,7 @@ namespace GeodeEmpire.EditorTools
             RenderSettings.skybox = null;
 
             var env = new GameObject("Environment");
-            _kerbGoodsIn = null; _shopFitOut = null; _premises = null;
+            _kerbGoodsIn = null; _shopFitOut = null; _premises = null; _starterCounter = null;
             BuildRoom(env.transform);
             // whatever BuildRoom made is the building itself and never belongs to a lease
             var shell = new HashSet<Transform>();
@@ -710,6 +710,7 @@ namespace GeodeEmpire.EditorTools
         }
 
         private static GameObject _kerbGoodsIn;
+        private static GameObject _starterCounter;
         private static GameObject _shopFitOut;
         private static GeodeEmpire.Workshop.PremisesExpansion _premises;
 
@@ -1770,9 +1771,21 @@ namespace GeodeEmpire.EditorTools
                 // A fixture the player owns and moves belongs to no room: they can carry it into any room they
                 // have leased, and a fixture parked inside a sealed root would be switched off underneath them.
                 if (c.GetComponent<GeodeEmpire.Build.PlaceableFixture>() != null) continue;
-                Transform to = c.name == "BackOfHouse" ? backRoot
-                             : c.name == "RetailShop" ? shopRoot
-                             : Lease(c.position, backRoot, shopRoot);
+                if (c.name == "RetailShop")
+                {
+                    // The shop object itself stays in the day-one unit: §15.1 wants customers before the showroom
+                    // lease exists, and a RetailShop parked inside a sealed root would be switched off. Its
+                    // showroom fixtures still move, one at a time, by where they physically stand.
+                    var kids = new List<Transform>();
+                    foreach (Transform k in c) kids.Add(k);
+                    foreach (var k in kids)
+                    {
+                        var kt = Lease(k.position, backRoot, shopRoot);
+                        if (kt != null) move.Add((k, kt));
+                    }
+                    continue;
+                }
+                Transform to = c.name == "BackOfHouse" ? backRoot : Lease(c.position, backRoot, shopRoot);
                 if (to != null) move.Add((c, to));
             }
             foreach (var (t, to) in move) t.SetParent(to, true);
@@ -1802,6 +1815,14 @@ namespace GeodeEmpire.EditorTools
             pe.BackRoomHoarding = backHoard.gameObject;
             pe.ShopFrontHoarding = shopHoard.gameObject;
             if (_kerbGoodsIn != null) pe.HideWithBackRoom.Add(_kerbGoodsIn);
+            // the trade counter is what the showroom replaces: it goes the day the shop front opens
+            if (_starterCounter != null)
+                pe.Gates.Add(new GeodeEmpire.Workshop.PremisesExpansion.Gate
+                {
+                    Upgrade = Economy.UpgradeCatalog.CounterTable,
+                    Root = _starterCounter,
+                    SupersededBy = Economy.UpgradeCatalog.ShopFront,
+                });
             if (_shopFitOut != null) pe.Gates.Add(new GeodeEmpire.Workshop.PremisesExpansion.Gate { Upgrade = Economy.UpgradeCatalog.ShopSignage, Root = _shopFitOut });
             _premises = pe;
         }
@@ -1964,19 +1985,71 @@ namespace GeodeEmpire.EditorTools
             const float CounterZ = -1.1f;
             var counterT = CheckoutStationBuilder.Build(shop, new Vector3(PartitionX, 0f, CounterZ), -90f, out var station);   // local +Z (staff, open shelves) faces the workshop
             station.Shop = rs;
-            rs.CounterItemPoint = station.StagingPoint;
+            rs.ShowroomCounterItem = station.StagingPoint;
             var custPoint = new GameObject("CounterCustomerPoint").transform;
             custPoint.SetParent(shop, false);
             custPoint.position = station.CustomerStandPoint.position;
             custPoint.rotation = Quaternion.LookRotation((counterT.position - custPoint.position).normalized, Vector3.up);
-            rs.CounterCustomerPoint = custPoint;
+            rs.ShowroomCounterCustomer = custPoint;
             foreach (var qx in new[] { 4.0f, 4.65f, 5.3f })
             {
-                var q = new GameObject("QueuePoint").transform; q.SetParent(shop, false); q.localPosition = new Vector3(qx, 0f, CounterZ); rs.QueuePoints.Add(q);
+                var q = new GameObject("QueuePoint").transform; q.SetParent(shop, false); q.localPosition = new Vector3(qx, 0f, CounterZ); rs.ShowroomQueue.Add(q);
             }
-            var doorPoint = new GameObject("DoorPoint").transform; doorPoint.SetParent(shop, false); doorPoint.localPosition = new Vector3(ShopDoorX, 0f, RoomZMin + 0.35f); rs.DoorPoint = doorPoint;
-            var outside = new GameObject("OutsidePoint").transform; outside.SetParent(shop, false); outside.localPosition = new Vector3(ShopDoorX, 0f, RoomZMin - 1.45f); outside.localRotation = Quaternion.Euler(0f, 180f, 0f); rs.OutsidePoint = outside;
-            rs.DoorLeaf = GameObject.Find("ShopDoorHinge")?.transform;
+            var doorPoint = new GameObject("DoorPoint").transform; doorPoint.SetParent(shop, false); doorPoint.localPosition = new Vector3(ShopDoorX, 0f, RoomZMin + 0.35f); rs.ShowroomDoor = doorPoint;
+            var outside = new GameObject("OutsidePoint").transform; outside.SetParent(shop, false); outside.localPosition = new Vector3(ShopDoorX, 0f, RoomZMin - 1.45f); outside.localRotation = Quaternion.Euler(0f, 180f, 0f); rs.ShowroomOutside = outside;
+            rs.ShowroomDoorLeaf = GameObject.Find("ShopDoorHinge")?.transform;
+
+            // ---- the day-one trade counter (§15.1) --------------------------------------------------
+            // Before the shop front exists there is still a business: a second-hand till on a counter across the
+            // south of the workshop, two pieces on the glass, and people coming in through the workshop's own
+            // door. It is the same checkout kit as the showroom's — §2.4 keeps that work — just standing in a
+            // workshop rather than a shop, and it disappears the day the showroom opens.
+            var starter = new GameObject("StarterCounter").transform;
+            starter.SetParent(shop, false);
+            // It runs north-south, free-standing, rather than along the south wall: the counter is 2.3 m and the
+            // wall run between the workshop door's east jamb and the hoarding is 2.35 m, so laying it flat there
+            // walls the door off — which is exactly how the first playtest wedged, 1.56 m short of the counter.
+            // Far enough west that the customer side has real standing room: at x -0.45 the customer stood 0.25 m
+            // off the hoarding and the walk wedged against its sole plate. This leaves the whole east strip clear.
+            starter.localPosition = new Vector3(-1.50f, 0f, -0.62f);
+            var starterCounter = CheckoutStationBuilder.Build(starter, Vector3.zero, -90f, out var starterStation);
+            starterStation.Shop = rs;
+            rs.StarterCounterItem = starterStation.StagingPoint;
+            var starterCust = new GameObject("StarterCounterCustomerPoint").transform;
+            starterCust.SetParent(starter, false);
+            starterCust.position = starterStation.CustomerStandPoint.position;
+            starterCust.rotation = Quaternion.LookRotation((starterCounter.position - starterCust.position).normalized, Vector3.up);
+            rs.StarterCounterCustomer = starterCust;
+            // two slots on the customer edge of the glass, clear of the staging, tender and change rectangles
+            int starterSlot = 0;
+            foreach (float sx in new[] { -0.50f, -1.05f })
+            {
+                // sized for a whole geode, not a thumbnail: the first thing a player puts up for sale is the piece
+                // they just cracked, and a slot that refuses it says "try the island table" — which does not exist yet
+                var z = Support(Zone(starterCounter, $"StarterSale{starterSlot}", new Vector3(sx, 0.95f, -0.30f), ZoneKind.SaleSlot,
+                    $"sales slot {starterSlot + 1}", 1, true, false, new Vector3(0.46f, 0.44f, 0.44f)), 0.21f, 0.20f, poseYaw: 180f);
+                z.SlotIndex = starterSlot;
+                var a = new GameObject("Anchor").transform; a.SetParent(z.transform, false); z.Anchor = a;
+                rs.SaleSlots.Add(z);
+                var card = Prop("prop_price_card", starterCounter, new Vector3(sx, 0.95f, -0.30f), 180f, "M_Paper,M_Paper", collider: false, scale: Vector3.one * PriceCardScale);
+                rs.PriceCards.Add(card.transform);
+                var bp = new GameObject("Browse").transform; bp.SetParent(starterCounter, false); bp.localPosition = new Vector3(sx, 0f, -0.95f);
+                rs.BrowsePoints.Add(bp);
+                starterSlot++;
+            }
+            // the workshop's own door is the day-one shop door
+            var sDoor = new GameObject("StarterDoorPoint").transform; sDoor.SetParent(starter, false);
+            sDoor.position = new Vector3(-2.30f, 0f, RoomZMin + 0.55f); rs.StarterDoor = sDoor;
+            var sOut = new GameObject("StarterOutsidePoint").transform; sOut.SetParent(starter, false);
+            sOut.position = new Vector3(-2.30f, 0f, RoomZMin - 1.35f); sOut.rotation = Quaternion.Euler(0f, 0f, 0f); rs.StarterOutside = sOut;
+            // the queue forms behind the customer side, back towards the door
+            foreach (float qz in new[] { -1.30f, -1.85f })
+            {
+                var q = new GameObject("StarterQueuePoint").transform; q.SetParent(starter, false);
+                q.position = new Vector3(-0.70f, 0f, qz); rs.StarterQueue.Add(q);
+            }
+            SignHung(starter, "SHOP", new Vector3(-2.30f, 2.30f, RoomZMin + 0.10f), 0f, 0.5f);
+            _starterCounter = starter.gameObject;
 
             // wall case: two shelves of three
             var caseProp = Prop("prop_shop_case", shop, new Vector3(RoomXMax - 0.295f, 0f, 0.4f), 90f, "M_WoodDark,M_CaseLight");   // back 5 mm off the skirting

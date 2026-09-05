@@ -26,11 +26,43 @@ namespace GeodeEmpire.Retail
 
         public List<PlacementZone> SaleSlots = new List<PlacementZone>();
         public List<Transform> PriceCards = new List<Transform>();
-        public Transform OutsidePoint, DoorPoint, CounterCustomerPoint, CounterItemPoint;
-        public List<Transform> QueuePoints = new List<Transform>();
         public List<Transform> BrowsePoints = new List<Transform>();   // one per sale slot, where a customer stands to look
         public GameObject CustomerTemplate;
-        public Transform DoorLeaf;
+
+        // The showroom's route: in off the street, browse the cases, queue at the island counter (§16).
+        public Transform ShowroomOutside, ShowroomDoor, ShowroomCounterCustomer, ShowroomCounterItem, ShowroomDoorLeaf;
+        public List<Transform> ShowroomQueue = new List<Transform>();
+
+        /// <summary>
+        /// The day-one route (§15.1). Before the shop-front lease exists there is still a business: a trade counter
+        /// in the workshop and people coming in through the workshop's own door. Keeping both sets and choosing
+        /// between them means a customer is never sent to a door behind a hoarding.
+        /// </summary>
+        public Transform StarterOutside, StarterDoor, StarterCounterCustomer, StarterCounterItem;
+        public List<Transform> StarterQueue = new List<Transform>();
+
+        private static bool Showroom => Workshop.PremisesExpansion.ShopFrontOpen;
+        public Transform OutsidePoint => Showroom ? ShowroomOutside : StarterOutside;
+        public Transform DoorPoint => Showroom ? ShowroomDoor : StarterDoor;
+        public Transform CounterCustomerPoint => Showroom ? ShowroomCounterCustomer : StarterCounterCustomer;
+        public Transform CounterItemPoint => Showroom ? ShowroomCounterItem : StarterCounterItem;
+        public List<Transform> QueuePoints => Showroom ? ShowroomQueue : StarterQueue;
+        /// <summary>Only the showroom has a door that swings; the workshop's is a plain door in a frame.</summary>
+        public Transform DoorLeaf => Showroom ? ShowroomDoorLeaf : null;
+
+        /// <summary>
+        /// Is there somewhere to actually sell from? The day-one counter is bought, not given, so on a fresh save
+        /// the route points exist but their fixture is switched off — and a customer sent to a counter that is not
+        /// standing there would queue at thin air.
+        /// </summary>
+        public bool Trading
+        {
+            get
+            {
+                var c = CounterItemPoint;
+                return c != null && c.gameObject.activeInHierarchy;
+            }
+        }
         public Font LabelFont;
         public Material LabelMaterial;
         public NavMeshSurface Navigation;
@@ -86,7 +118,7 @@ namespace GeodeEmpire.Retail
                 s.Placed += OnPlaced;
                 s.Taken += OnTaken;
             }
-            if (DoorLeaf != null) _doorClosedRot = DoorLeaf.localRotation;
+            if (ShowroomDoorLeaf != null) _doorClosedRot = ShowroomDoorLeaf.localRotation;
         }
 
         private void Start()
@@ -266,6 +298,7 @@ namespace GeodeEmpire.Retail
             var session = GameSession.Instance;
             if (session == null || session.State == null) return;
             if (CursorController.InMenu) return;   // paused menus already freeze time; letters/tablet do not: hold the clock
+            if (!Trading) return;                  // no counter, no trade: nobody is called in to buy from a wall
             _nextSpawnIn -= Time.deltaTime;
             if (_nextSpawnIn <= 0f)
             {

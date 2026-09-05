@@ -108,6 +108,12 @@ namespace GeodeEmpire.Economy
                 Description = "Unlock the top shelf of the display cabinet.",
                 Effect = "Four more display slots (8 → 12).",
                 WorldChange = "The cabinet\u2019s top shelf is glazed and lit." },
+            // §15.1: the fantasy of "process rock -> put it up for sale -> a customer may buy it" has to exist
+            // before the $1,750 of leases the showroom needs. This is the whole of it for $60: a second-hand
+            // till on a counter across the workshop, two pieces on the glass, and the workshop door propped open.
+            new UpgradeDefinition { Id = CounterTable, Category = "RETAIL", Name = "Trade Counter & Till", Price = 60f, Order = 1,
+                Description = "A second-hand shop counter and a till, set across the workshop by the door.",
+                Effect = "Opens the workshop to the public: two pieces on the counter, customers in through your own door, and a real checkout. The showroom replaces it when you lease the front." },
             new UpgradeDefinition { Id = SalesTable, Category = "RETAIL", Name = "Showroom Island Counter", Price = 520f, Order = 8, Requires = ShopFront,
                 Description = "A glazed island counter for the middle of the shop, with felt risers at each end.",
                 Effect = "Twelve more sale slots: four on the glass, two hero risers and six behind the glazing, all where a browsing customer meets them first.",
