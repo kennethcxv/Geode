@@ -928,10 +928,11 @@ namespace GeodeEmpire.Cracking
             rec.Location = SpecimenLocation.Bench;
             session.State.Stats.RocksProcessed++;
             // the discovery is part of the same commit as the open: quitting during the animation cannot lose it
-            float damage = vis.CrystalDamageFraction();
+            float damage;
+            using (PerfProbe.Measure("damage-fraction")) damage = vis.CrystalDamageFraction();
             rec.DamageFraction = damage;
-            session.RecordDiscovery(rec, damage);
-            session.FlushSave("opened");
+            using (PerfProbe.Measure("record-discovery")) session.RecordDiscovery(rec, damage);
+            using (PerfProbe.Measure("flush-save")) session.FlushSave("opened");
 
             bool rare = g.Tier >= QualityTier.Exceptional;
             bool attractive = g.Tier >= QualityTier.Good;
@@ -939,18 +940,20 @@ namespace GeodeEmpire.Cracking
             _rock.transform.position = _rockBasePos;
 
             // the split
-            WorkshopAudio.Play("crack_final", _rock.transform.position, 1f, rare ? 0.92f : 1f);
-            MusicPlayer.Instance?.Duck(rare ? 4f : 2f);
-            WorkshopAudio.Play("fragments", _rock.transform.position, 0.8f);
+            using (PerfProbe.Measure("audio-crack"))
+            {
+                WorkshopAudio.Play("crack_final", _rock.transform.position, 1f, rare ? 0.92f : 1f);
+                MusicPlayer.Instance?.Duck(rare ? 4f : 2f);
+                WorkshopAudio.Play("fragments", _rock.transform.position, 0.8f);
+            }
             _controller?.Impulse(0.9f);
-            EffectsFactory.Instance?.Split(_rock.transform.position, geo.MeanEquatorRadius, _cam.transform.forward);
+            using (PerfProbe.Measure("vfx-split")) EffectsFactory.Instance?.Split(_rock.transform.position, geo.MeanEquatorRadius, _cam.transform.forward);
             for (int i = 0; i < StressModel.Sectors; i++) _model.Stress[i] = Mathf.Max(_model.Stress[i], 1f);
             rec.SectorStress = _model.ToArray();
-            vis.RebuildCrystals();
+            using (PerfProbe.Measure("rebuild-crystals")) vis.RebuildCrystals();
             vis.SetCrystalsVisible(true);
-            vis.SetCrackState(_model.Stress, rec.Impacts, 0f, 1f);
-            _rock.RebuildColliders();
-            _rock.SetStaticCollidable();
+            using (PerfProbe.Measure("crack-state")) vis.SetCrackState(_model.Stress, rec.Impacts, 0f, 1f);
+            using (PerfProbe.Measure("rebuild-colliders")) { _rock.RebuildColliders(); _rock.SetStaticCollidable(); }
 
             // reveal light in the cavity
             var lightGo = new GameObject("RevealLight");

@@ -74,6 +74,7 @@ namespace GeodeEmpire.Core
 
         private void Update()
         {
+            PerfProbe.Frame(Time.unscaledDeltaTime * 1000f);
             if (State == null) return;
             State.Stats.PlayTimeSeconds += Time.deltaTime;
             if (_saveQueued && Time.unscaledTime - _lastSaveTime > 0.75f) FlushSave();
@@ -439,10 +440,13 @@ namespace GeodeEmpire.Core
             if (g.MassKg > st.LargestSpecimenKg) { st.LargestSpecimenKg = g.MassKg; st.LargestSpecimenName = r.DisplayName; }
             if (value > st.HighestValueHammerResult) { st.HighestValueHammerResult = value; st.HighestValueHammerResultName = r.DisplayName; }
 
-            if (firstOfFamily) Discovered?.Invoke(r, "First " + fam.Name);
-            else if (g.Tier >= QualityTier.Exceptional) Discovered?.Invoke(r, Valuation.TierLabel(g.Tier) + " find");
-            else if (record && entry.Found > 1) Notify($"Best {fam.Name} so far", NotificationKind.Info);
-            StateChanged?.Invoke();
+            using (PerfProbe.Measure("  disc:card"))
+            {
+                if (firstOfFamily) Discovered?.Invoke(r, "First " + fam.Name);
+                else if (g.Tier >= QualityTier.Exceptional) Discovered?.Invoke(r, Valuation.TierLabel(g.Tier) + " find");
+                else if (record && entry.Found > 1) Notify($"Best {fam.Name} so far", NotificationKind.Info);
+            }
+            using (PerfProbe.Measure("  disc:statechanged")) StateChanged?.Invoke();
         }
 
         // ------------------------------------------------------------------------------------

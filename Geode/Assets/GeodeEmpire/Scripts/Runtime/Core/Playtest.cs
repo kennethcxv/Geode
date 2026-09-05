@@ -291,6 +291,92 @@ namespace GeodeEmpire.Core
         public void RunStarterAcceptance() { if (!Running) StartCoroutine(StarterAcceptance()); }
 
         /// <summary>
+        /// §10.1: measure the crack, do not guess at it. Opens a rock with real input and holds a PerfProbe window
+        /// open across the final strike and the whole reveal, so the report names which phase ate the frame.
+        /// </summary>
+        public void RunCrackPerf(int rocks = 3) { if (!Running) StartCoroutine(CrackPerf(rocks)); }
+
+        private IEnumerator CrackPerf(int rocks)
+        {
+            Running = true;
+            Phase = "crack-perf";
+            L("== CrackPerf");
+            for (int n = 0; n < rocks; n++)
+            {
+                if (S.Crates.Count == 0 || CrateWithRocks() == null)
+                {
+                    if (S.State.Cash < 40f) S.AddCash(200f, "perf");
+                    S.BuyCrate("local", out string err);
+                    if (err != null) { L("buy failed: " + err); break; }
+                    yield return new WaitForSeconds(1.5f);
+                }
+                var crate = CrateWithRocks();
+                if (crate == null) { L("no crate"); break; }
+                if (!crate.IsOpened)
+                {
+                    Vector3 cratePos = crate.transform.position;
+                    yield return Walk(StandNear(cratePos, 1.0f), 0.3f);
+                    yield return LookAndInteract(cratePos + Vector3.up * 0.2f, "Open crate");
+                    yield return new WaitForSeconds(0.9f);
+                }
+                var rock = TopRockInCrate();
+                if (rock == null) { L("no rock left"); break; }
+                yield return LookAndInteract(rock.transform.position, "Pick up rock");
+                if (P.Held == null) { L("could not pick up"); break; }
+                Vector3 cradle = ZonePos(ZoneKind.Cradle);
+                yield return Walk(new Vector3(cradle.x, 0f, cradle.z - 0.95f), 0.25f);
+                yield return LookAndInteract(cradle, "Set on the cradle");
+                yield return new WaitForSeconds(1.0f);
+                var bench = Find<CrackingBench>();
+                if (bench == null || !bench.Active) { L("bench not active"); break; }
+                int strikes = 0;
+                while (bench.Active && !bench.Opened && !bench.Revealing && strikes < 60)
+                {
+                    var hint = bench.SeamCursorHint() + new Vector2(Random.Range(-0.02f, 0.02f), Random.Range(-0.02f, 0.02f));
+                    yield return AimCursor(bench, hint);
+                    PerfProbe.Begin($"rock {n + 1} strike {strikes + 1}");
+                    yield return Strike(0.55f);
+                    strikes++;
+                    if (bench.Revealing || bench.Opened)
+                    {
+                        while (bench.Revealing) yield return null;
+                        yield return new WaitForSeconds(0.6f);        // the frames after the animation too
+                        L(PerfProbe.End());
+                        break;
+                    }
+                    PerfProbe.End();
+                    yield return Rotate(0.42f, 1);
+                }
+                if (!bench.Opened) { L($"rock {n + 1} did not open in {strikes} strikes"); break; }
+                L($"rock {n + 1}: opened in {strikes} strikes");
+                yield return Interact();                                // take it off the cradle
+                yield return new WaitForSeconds(0.3f);
+                if (P.Held != null) P.Drop();
+                yield return new WaitForSeconds(0.4f);
+            }
+            Phase = "done";
+            Running = false;
+        }
+
+        /// <summary>The rock a player would actually reach for: the one lying on top, not one buried under it.</summary>
+        private SpecimenEntity TopRockInCrate()
+        {
+            SpecimenEntity best = null;
+            foreach (var e in S.Entities.Values)
+            {
+                if (e == null || e.IsOpened || e.Record.Location != SpecimenLocation.InCrate) continue;
+                if (best == null || e.transform.position.y > best.transform.position.y) best = e;
+            }
+            return best;
+        }
+
+        private CrateEntity CrateWithRocks()
+        {
+            foreach (var c in S.Crates.Values) if (c != null && (!c.IsOpened || c.RemainingRocks > 0)) return c;
+            return null;
+        }
+
+        /// <summary>
         /// §14 of the starter-rebuild spec, run against a real fresh save: the day-one business is small and does
         /// not show the mature one; nothing later is installed; the collection is empty; then buy, receive, site
         /// and reload a piece of equipment and check the room actually changed and stayed changed.
@@ -450,9 +536,7 @@ namespace GeodeEmpire.Core
             foreach (var c in S.Crates.Values) if (!c.IsOpened || c.RemainingRocks > 0) { crate = c; break; }
             if (crate == null) { L("no crate"); Running = false; yield break; }
             Vector3 cratePos = crate.transform.position;
-            Vector3 stand = cratePos + (new Vector3(-0.3f, 0f, 0.6f)).normalized * 1.1f;
-            stand.y = 0f;
-            yield return Walk(stand, 0.3f);
+            yield return Walk(StandNear(cratePos, 1.0f), 0.3f);
             D.LookAt(cratePos + Vector3.up * 0.2f);
             yield return null; yield return null;
             Snap("crate_delivered");
@@ -462,8 +546,7 @@ namespace GeodeEmpire.Core
             Snap("crate_opened");
 
             Phase = "pick-rock";
-            SpecimenEntity rock = null;
-            foreach (var e in S.Entities.Values) if (!e.IsOpened && e.Record.Location == SpecimenLocation.InCrate) { rock = e; break; }
+            var rock = TopRockInCrate();
             if (rock == null) { L("no rock"); Running = false; yield break; }
             yield return LookAndInteract(rock.transform.position, "Pick up rock");
             L("held=" + (P.Held != null ? P.Held.Id : "none"));

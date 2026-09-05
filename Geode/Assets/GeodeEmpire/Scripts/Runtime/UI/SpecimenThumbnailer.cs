@@ -128,7 +128,8 @@ namespace GeodeEmpire.UI
             var job = _queue[0];
             _queue.RemoveAt(0);
             if (job.el == null || job.el.panel == null) return;    // the page closed before we got to it
-            var tex = Render(job.key, job.seed, job.opened);
+            RenderTexture tex;
+            using (Core.PerfProbe.Measure("thumbnail-render")) tex = Render(job.key, job.seed, job.opened);
             if (tex != null) Apply(job.el, tex);
         }
 
@@ -144,14 +145,15 @@ namespace GeodeEmpire.UI
             var lib = GameSession.Instance != null ? GameSession.Instance.Library : null;
             if (lib == null) return null;
 
-            var geology = SpecimenGenerator.Generate(seed);
+            SpecimenGeology geology;
+            using (Core.PerfProbe.Measure("  thumb:geology")) geology = SpecimenGenerator.Generate(seed);
             var condition = new SpecimenCondition { Cleaned = 1f, Rinsed = true, Opened = opened };
             var go = new GameObject("Thumb");
             go.hideFlags = HideFlags.DontSave;
             go.transform.SetParent(_stage, false);
             var visual = go.AddComponent<SpecimenVisual>();
-            visual.Build(geology, condition, lib);
-            visual.SetCrackState(null, null, 0f, opened ? 0.3f : 1f);
+            using (Core.PerfProbe.Measure("  thumb:build")) visual.Build(geology, condition, lib);
+            using (Core.PerfProbe.Measure("  thumb:crackstate")) visual.SetCrackState(null, null, 0f, opened ? 0.3f : 1f);
             // an opened rock is worth showing for its inside: drop the lid and tip the bowl toward the lens
             if (opened && visual.TopHalf != null) visual.TopHalf.gameObject.SetActive(false);
             go.transform.localRotation = Quaternion.Euler(0f, 205f, 0f);
@@ -179,7 +181,7 @@ namespace GeodeEmpire.UI
             var rt = new RenderTexture(PlateW, PlateH, 24, RenderTextureFormat.ARGB32) { name = "Thumb_" + key, antiAliasing = 1 };
             rt.Create();
             _cam.targetTexture = rt;
-            _cam.Render();
+            using (Core.PerfProbe.Measure("  thumb:camera")) _cam.Render();
             _cam.targetTexture = null;
             Destroy(go);
             _cache[key] = rt;
