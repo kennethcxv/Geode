@@ -439,3 +439,44 @@
 .binding-unbound { color: rgb(232,140,120); border-color: rgba(232,116,96,0.5); }
 .binding-fixed { width: 150px; flex-shrink: 0; -unity-text-align: middle-center; color: rgba(238,233,226,0.6); }
 .goal-why { font-size: 10.5px; color: rgba(238,233,226,0.58); margin: 0 0 5px 0; max-width: 204px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+
+/* ---- upgrade cards (starter-rebuild §9.3: show the thing, not a coloured dot) ------------- */
+.upg-card { padding: 12px 14px; }
+/* the text column must give way to the price column, and wrap rather than run under it */
+.upg-text { flex-grow: 1; flex-shrink: 1; overflow: hidden; margin-left: 14px; }
+.upg-text > .row-sub { white-space: normal; }
+.upg-side { flex-shrink: 0; width: 178px; align-items: flex-end; }
+.upg-tile {
+    background-color: rgba(255, 255, 255, 0.045);
+    border-width: 1px; border-color: rgba(255, 244, 220, 0.12);
+    border-radius: 8px;
+    align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.upg-tile-letter { font-size: 30px; color: rgba(238, 233, 226, 0.45); -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Bold.ttf"); }
+.upg-lock { position: absolute; right: 6px; top: 4px; font-size: 13px; color: rgba(238, 233, 226, 0.5); }
+.upg-owned-tick { position: absolute; right: 7px; top: 3px; font-size: 15px; color: rgb(92, 200, 128); }
+.chip-row { flex-direction: row; flex-wrap: wrap; margin-top: 7px; }
+.chip {
+    font-size: 12px; padding: 2px 8px; margin: 2px 6px 0 0; border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.07);
+    border-width: 1px; border-color: rgba(255, 244, 220, 0.10);
+    color: rgba(238, 233, 226, 0.78);
+}
+.chip-effect { color: rgb(126, 216, 156); border-color: rgba(126, 216, 156, 0.30); background-color: rgba(60, 150, 95, 0.12); }
+.chip-world { color: rgb(226, 186, 118); border-color: rgba(226, 186, 118, 0.32); background-color: rgba(180, 140, 70, 0.13); }
+.chip-place { color: rgb(178, 156, 240); border-color: rgba(178, 156, 240, 0.32); background-color: rgba(110, 84, 200, 0.14); }
+
+/* ---- collection summary and undiscovered state (§9.4, §6.4) ------------------------------- */
+.coll-summary {
+    flex-direction: row; flex-wrap: wrap;
+    margin: 2px 0 12px 0; padding: 10px 4px;
+    border-bottom-width: 1px; border-bottom-color: rgba(255, 244, 220, 0.09);
+}
+.metric { margin-right: 34px; min-width: 96px; }
+.metric-value { font-size: 22px; color: rgb(238, 233, 226); -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); margin-top: 2px; }
+.tile-unknown {
+    position: absolute; left: 50%; top: 50%; translate: -50% -50%;
+    font-size: 40px; color: rgba(238, 233, 226, 0.22);
+    -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Bold.ttf");
+}

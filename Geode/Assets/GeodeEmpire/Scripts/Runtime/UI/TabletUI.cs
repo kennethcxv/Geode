@@ -395,69 +395,204 @@ namespace GeodeEmpire.UI
         }
 
         // ---- Upgrades ------------------------------------------------------------------------
+        /// <summary>
+        /// The baked preview for an upgrade (see UpgradeIconBaker). §9.3: an upgrade card has to show the thing
+        /// being bought, not a coloured dot repeated twenty-three times.
+        /// </summary>
+        private static readonly Dictionary<string, Texture2D> _upgradeIcons = new Dictionary<string, Texture2D>();
+
+        private static Texture2D UpgradeIcon(string id)
+        {
+            if (_upgradeIcons.TryGetValue(id, out var t)) return t;
+            t = Resources.Load<Texture2D>("UI/Upgrades/" + id);
+            _upgradeIcons[id] = t;
+            return t;
+        }
+
+        /// <summary>A framed preview tile; falls back to the category initial when no image was baked.</summary>
+        private static VisualElement IconTile(VisualElement parent, UpgradeDefinition up, bool owned, bool locked, float size)
+        {
+            var tile = UiKit.Box(parent, "upg-tile");
+            tile.style.width = size;
+            tile.style.height = size * 0.78f;
+            var tex = UpgradeIcon(up.Id);
+            if (tex != null)
+            {
+                tile.style.backgroundImage = new StyleBackground(tex);
+                tile.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
+            }
+            else UiKit.Label(tile, string.IsNullOrEmpty(up.Category) ? "?" : up.Category.Substring(0, 1), "upg-tile-letter");
+            if (locked) UiKit.Label(tile, "\u25A0", "upg-lock");
+            else if (owned) UiKit.Label(tile, "\u2713", "upg-owned-tick");
+            return tile;
+        }
+
         private void BuildUpgrades()
         {
-            _subtitle.text = "Bench and workshop upgrades. Each one changes how you work, not just a number.";
+            _subtitle.text = "What the business owns. A purchase changes the room or the way you work \u2014 never only a number.";
             var st = _s.State;
             var list = new List<UpgradeDefinition>(UpgradeCatalog.All);
-            list.Sort((a, b) => a.Order.CompareTo(b.Order));
-            foreach (var up in list)
+            list.Sort((a, b) => a.Order != b.Order ? a.Order.CompareTo(b.Order) : a.Price.CompareTo(b.Price));
+
+            // grouped by what part of the business they are, in the order the career meets them
+            string[] order = { "PREMISES", "MACHINES", "BENCH", "RETAIL", "DISPLAYS", "STORAGE" };
+            foreach (var cat in order)
             {
-                bool owned = st.HasUpgrade(up.Id);
-                var card = UiKit.Box(_content, "row-card");
-                card.style.borderLeftColor = owned ? new Color(0.31f, 0.84f, 0.5f) : new Color(0.55f, 0.36f, 0.96f);
-                var row = UiKit.Box(card, "row");
-                row.style.alignItems = Align.Center;
-                var sw = UiKit.Box(row, "swatch");
-                sw.style.backgroundColor = owned ? new Color(0.1f, 0.22f, 0.15f) : new Color(0.15f, 0.12f, 0.23f);
-                UiKit.Box(sw, "swatch-core").style.backgroundColor = owned ? new Color(0.31f, 0.84f, 0.5f) : new Color(0.55f, 0.36f, 0.96f);
-                var text = UiKit.Box(row, "grow");
-                UiKit.Label(text, up.Name, "row-title");
-                UiKit.Label(text, up.Description, "row-sub");
-                var side = UiKit.Box(row);
-                side.style.alignItems = Align.FlexEnd;
-                side.style.minWidth = 168;
-                var upgrade = up;
-                void Detail() => UpgradeDetail(upgrade, owned);
-                card.RegisterCallback<PointerEnterEvent>(_ => Detail());
-                if (owned) UiKit.Label(side, "INSTALLED", "tag", "tag-owned");
+                var inCat = new List<UpgradeDefinition>();
+                foreach (var u in list) if ((u.Category ?? "BENCH") == cat) inCat.Add(u);
+                if (inCat.Count == 0) continue;
+                int owns = 0;
+                foreach (var u in inCat) if (!u.Consumable && st.HasUpgrade(u.Id)) owns++;
+                int buyable = 0;
+                foreach (var u in inCat) if (!u.Consumable) buyable++;
+                var head = UiKit.Box(_content, "row");
+                head.style.alignItems = Align.Center;
+                head.style.marginTop = 14;
+                UiKit.Label(head, cat, "section").style.marginTop = 0;
+                UiKit.Box(head, "grow");
+                UiKit.Label(head, owns + " / " + buyable + " owned", "row-sub");
+                foreach (var up in inCat) UpgradeCard(up, st);
+            }
+        }
+
+        private void UpgradeCard(UpgradeDefinition up, Save.GameState st)
+        {
+            bool owned = !up.Consumable && st.HasUpgrade(up.Id);
+            bool locked = !string.IsNullOrEmpty(up.Requires) && !st.HasUpgrade(up.Requires);
+            var card = UiKit.Box(_content, "row-card", "upg-card");
+            card.style.borderLeftColor = owned ? new Color(0.31f, 0.84f, 0.5f)
+                                       : locked ? new Color(0.34f, 0.32f, 0.38f)
+                                       : new Color(0.55f, 0.36f, 0.96f);
+            var row = UiKit.Box(card, "row");
+            row.style.alignItems = Align.Center;
+            IconTile(row, up, owned, locked, 86f);
+            var text = UiKit.Box(row, "upg-text");
+            UiKit.Label(text, up.Name, "row-title");
+            UiKit.Label(text, up.Description, "row-sub");
+            // the two facts that decide a purchase at a glance: what it does, and whether it changes the room
+            var chips = UiKit.Box(text, "chip-row");
+            if (!string.IsNullOrEmpty(up.Effect)) UiKit.Label(chips, Chip(up.Effect), "chip", "chip-effect");
+            if (ChangesTheRoom(up)) UiKit.Label(chips, "CHANGES THE ROOM", "chip", "chip-world");
+            if (NeedsSiting(up)) UiKit.Label(chips, "YOU PLACE IT", "chip", "chip-place");
+
+            var side = UiKit.Box(row, "upg-side");
+            var upgrade = up;
+            void Detail() => UpgradeDetail(upgrade, owned);
+            card.RegisterCallback<PointerEnterEvent>(_ => Detail());
+            if (owned) UiKit.Label(side, "INSTALLED", "tag", "tag-owned");
+            else
+            {
+                if (up.Id == UpgradeCatalog.SawBlade && st.HasUpgrade(UpgradeCatalog.TrimSaw))
+                    UiKit.Label(side, $"Blade wear {st.BladeWear * 100f:F0}%", "row-sub", st.BladeWear >= 0.75f ? "warn" : "muted");
+                UiKit.Label(side, UiKit.Money(up.Price), "row-price");
+                if (locked)
+                {
+                    var req = UpgradeCatalog.Get(up.Requires);
+                    UiKit.Label(side, "Needs " + (req != null ? req.Name : up.Requires), "row-sub", "muted");
+                }
                 else
                 {
-                    if (up.Id == UpgradeCatalog.SawBlade && st.HasUpgrade(UpgradeCatalog.TrimSaw))
-                        UiKit.Label(side, $"Blade wear {st.BladeWear * 100f:F0}%", "row-sub", st.BladeWear >= 0.75f ? "warn" : "muted");
-                    else if (up.Id == UpgradeCatalog.Stage2 && st.WorkshopStage < 2)
-                        UiKit.Label(side, "WORKSHOP EXPANSION", "tag");
-                    UiKit.Label(side, UiKit.Money(up.Price), "row-price");
                     bool can = _s.CanBuyUpgrade(up.Id, out string why);
                     var buy = UiKit.Button(side, can ? (up.Consumable ? "Replace" : "Purchase") : why, () => BuyUpgrade(upgrade), can ? "btn-primary" : "");
                     buy.style.marginTop = 8;
                     buy.SetEnabled(can);
                     buy.RegisterCallback<FocusInEvent>(_ => Detail());
                 }
-                if (_detailKey == null) { _detailKey = up.Id; Detail(); }
             }
+            if (_detailKey == null) { _detailKey = up.Id; Detail(); }
+        }
+
+        /// <summary>Whether buying this puts something new in the world, rather than changing a rule.</summary>
+        private static bool ChangesTheRoom(UpgradeDefinition up)
+            => !string.IsNullOrEmpty(up.WorldChange) && !up.WorldChange.StartsWith("Goes on your belt");
+
+        /// <summary>Whether the player has to choose where it goes.</summary>
+        private static bool NeedsSiting(UpgradeDefinition up)
+        {
+            foreach (var f in Build.PlaceableFixture.All)
+                if (f != null && f.RequiresUpgrade == up.Id && f.Movable && !f.SitedByDefault) return true;
+            return false;
+        }
+
+        /// <summary>The headline of an effect: the first clause, so a chip stays a chip.</summary>
+        private static string Chip(string text)
+        {
+            int stop = text.IndexOfAny(new[] { '.', ':', ';' });
+            string s = stop > 6 ? text.Substring(0, stop) : text;
+            if (s.Length > 46) { int cut = s.LastIndexOf(' ', 45); s = s.Substring(0, cut > 20 ? cut : 45) + "\u2026"; }
+            return s;
         }
 
         private void UpgradeDetail(UpgradeDefinition up, bool owned)
         {
             _detailKey = up.Id;
             _detail.Clear();
+            var st = _s.State;
+            bool locked = !string.IsNullOrEmpty(up.Requires) && !st.HasUpgrade(up.Requires);
+            var plate = UiKit.Box(_detail, "detail-plate");
+            var tex = UpgradeIcon(up.Id);
+            if (tex != null)
+            {
+                plate.style.backgroundImage = new StyleBackground(tex);
+                plate.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
+            }
             var head = UiKit.Box(_detail, "row");
             head.style.alignItems = Align.Center;
-            var sw = UiKit.Box(head, "swatch");
-            sw.style.backgroundColor = owned ? new Color(0.1f, 0.22f, 0.15f) : new Color(0.15f, 0.12f, 0.23f);
-            UiKit.Box(sw, "swatch-core").style.backgroundColor = owned ? new Color(0.31f, 0.84f, 0.5f) : new Color(0.55f, 0.36f, 0.96f);
+            head.style.marginTop = 10;
             var ht = UiKit.Box(head, "grow");
             UiKit.Label(ht, up.Name, "detail-title");
-            UiKit.Label(ht, owned ? "Installed" : "Available", "detail-sub");
+            UiKit.Label(ht, up.Category ?? "BENCH", "detail-sub");
+            UiKit.Label(head, owned ? "INSTALLED" : locked ? "LOCKED" : "AVAILABLE", "tag", owned ? "tag-owned" : null);
             UiKit.Rule(_detail);
             UiKit.Label(_detail, up.Description, "detail-note").style.marginTop = 0;
             UiKit.Label(_detail, "WHAT IT CHANGES", "caption").style.marginTop = 12;
             UiKit.Label(_detail, up.Effect, "detail-note").style.marginTop = 1;
+            if (!string.IsNullOrEmpty(up.WorldChange))
+            {
+                UiKit.Label(_detail, "IN THE WORKSHOP", "caption").style.marginTop = 12;
+                UiKit.Label(_detail, up.WorldChange, "detail-note").style.marginTop = 1;
+            }
             UiKit.Rule(_detail);
             UiKit.Kv(_detail, "Price", UiKit.Money(up.Price), "accent");
-            UiKit.Kv(_detail, "Status", owned ? "Installed" : (_s.CanBuyUpgrade(up.Id, out string why) ? "Ready to buy" : why),
+            UiKit.Kv(_detail, "Till after", UiKit.Money(Mathf.Max(0f, st.Cash - up.Price)), st.Cash >= up.Price ? null : "warn");
+            if (locked)
+            {
+                var req = UpgradeCatalog.Get(up.Requires);
+                UiKit.Kv(_detail, "Requires", req != null ? req.Name : up.Requires, "warn");
+            }
+            UiKit.Kv(_detail, "Status", owned ? "Installed" : locked ? "Not yet available" : (_s.CanBuyUpgrade(up.Id, out string why) ? "Ready to buy" : why),
                      owned ? "success" : null);
+        }
+
+        /// <summary>One figure in the collection's summary strip.</summary>
+        private static void Metric(VisualElement parent, string label, string value, string valueClass)
+        {
+            var cell = UiKit.Box(parent, "metric");
+            UiKit.Label(cell, label, "caption").style.marginTop = 0;
+            UiKit.Label(cell, value, valueClass == null ? "metric-value" : "metric-value", valueClass);
+        }
+
+        /// <summary>
+        /// What the right-hand card says before anything has been found. §9.1 forbids the giant empty rectangle
+        /// this used to be, and a first-time player deserves to be told how discovery works.
+        /// </summary>
+        private void CollectionEmptyDetail()
+        {
+            _detailKey = "empty";
+            _detail.Clear();
+            UiKit.Label(_detail, "Nothing found yet", "detail-title");
+            UiKit.Label(_detail, "Every mineral family", "detail-sub");
+            UiKit.Rule(_detail);
+            UiKit.Label(_detail, "A family joins the collection the first time you open a rock and find it inside. "
+                              + "Until then it stands here as a silhouette \u2014 you can see there is something to find, "
+                              + "not what it is.", "detail-note").style.marginTop = 0;
+            UiKit.Label(_detail, "HOW TO FIND ONE", "caption").style.marginTop = 12;
+            UiKit.Label(_detail, "Order a crate on the Suppliers tab, wash the rock, and open it at the cracking bench. "
+                              + "Different quarries hold different families, so the ones you meet depend on where you buy.",
+                        "detail-note").style.marginTop = 1;
+            UiKit.Rule(_detail);
+            UiKit.Kv(_detail, "Families", "0 / " + MineralCatalog.All.Count);
+            UiKit.Kv(_detail, "Collection value", UiKit.Money(0f));
         }
 
         /// <summary>Right-hand card for the highlighted mineral family.</summary>
@@ -495,7 +630,30 @@ namespace GeodeEmpire.UI
         {
             var st = _s.State;
             int displayed = st.DisplayedCount();
-            _subtitle.text = $"Display cabinet {displayed}/{st.DisplayCapacity}  •  Collection value {UiKit.Money(st.CollectionValue())}  •  Prestige tier {st.Prestige}";
+            _subtitle.text = st.DisplayCapacity > 0
+                ? $"Display cabinet {displayed}/{st.DisplayCapacity}  •  Collection value {UiKit.Money(st.CollectionValue())}  •  Prestige tier {st.Prestige}"
+                : "No display cabinet yet. Buy one on the Upgrades tab and the pieces you keep go behind glass.";
+
+            // §9.4: the collection is a record of what has been found, so it leads with the record, not with a
+            // grid of empty plates. Every figure here is read off the encyclopedia the save already keeps.
+            int foundFamilies = 0; float best = 0f; string bestName = null; float heaviest = 0f; string heaviestName = null; int finds = 0;
+            foreach (var fam in MineralCatalog.All)
+            {
+                EncyclopediaEntry e = null;
+                foreach (var x in st.Encyclopedia) if (x.Mineral == fam.Id) e = x;
+                if (e == null || e.Found <= 0) continue;
+                foundFamilies++; finds += e.Found;
+                if (e.BestValue > best) { best = e.BestValue; bestName = fam.Name; }
+                if (e.LargestMassKg > heaviest) { heaviest = e.LargestMassKg; heaviestName = fam.Name; }
+            }
+            var summary = UiKit.Box(_content, "coll-summary");
+            Metric(summary, "FAMILIES", foundFamilies + " / " + MineralCatalog.All.Count, foundFamilies > 0 ? "accent" : "muted");
+            Metric(summary, "PIECES FOUND", finds.ToString("N0"), finds > 0 ? null : "muted");
+            Metric(summary, "BEST PIECE", best > 0f ? UiKit.Money(best) : "\u2014", best > 0f ? "success" : "muted");
+            Metric(summary, "LARGEST", heaviest > 0f ? heaviest.ToString("F1") + " kg" : "\u2014", heaviest > 0f ? null : "muted");
+            Metric(summary, "ON DISPLAY", displayed + " / " + st.DisplayCapacity, displayed > 0 ? null : "muted");
+            if (bestName != null) UiKit.Label(_content, $"Best so far: {bestName}. Heaviest: {heaviestName}.", "muted");
+
             var grid = UiKit.Box(_content, "row");
             grid.style.flexWrap = Wrap.Wrap;
             int known = 0;
@@ -509,8 +667,14 @@ namespace GeodeEmpire.UI
                 // the pack's collection grid: a specimen plate on top, the name and family under it, the value on the line below
                 var tile = UiKit.Box(grid, "tile");
                 var plate = UiKit.Box(tile, "tile-plate");
-                if (found) SpecimenThumbnailer.Instance.Family(plate, fam.Id, SpecimenThumbnailer.Ground);
-                else plate.style.backgroundColor = new Color(0.115f, 0.11f, 0.125f);
+                SpecimenThumbnailer.Instance.Family(plate, fam.Id, SpecimenThumbnailer.Ground);
+                if (!found)
+                {
+                    // §6.4: an obscured silhouette says "not found yet"; an empty rectangle says "broken"
+                    plate.style.unityBackgroundImageTintColor = new Color(0.115f, 0.105f, 0.145f);
+                    plate.style.backgroundColor = new Color(0.10f, 0.096f, 0.115f);
+                    var q = UiKit.Label(plate, "?", "tile-unknown");
+                }
                 var body = UiKit.Box(tile, "tile-body");
                 UiKit.Label(body, found ? fam.Name : "Undiscovered", "row-title");
                 UiKit.Label(body, found ? fam.Description : "Crack more rocks to learn what this is.", "row-sub");
@@ -535,6 +699,7 @@ namespace GeodeEmpire.UI
                 tile.RegisterCallback<PointerEnterEvent>(_ => FamilyDetail(famRef, entryRef, foundRef));
                 if (_detailKey == null && found) { _detailKey = fam.Name; FamilyDetail(famRef, entryRef, true); }
             }
+            if (_detailKey == null) CollectionEmptyDetail();
             UiKit.Label(_content, $"{known} of {MineralCatalog.All.Count} mineral families discovered", "muted");
 
             // the career's conclusion: where the exhibition stands, and the button to open it
@@ -713,46 +878,84 @@ namespace GeodeEmpire.UI
 
         private void BuildStats()
         {
-            _subtitle.text = "Career statistics";
+            _subtitle.text = "The career so far \u2014 what has been opened, sold, kept and learned.";
             var st = _s.State.Stats;
-            void Row(string k, string v)
+            var save = _s.State;
+
+            // §9.5: compact metric groups and notable records, not one long flat column of label/value
+            void Group(string title, params (string k, string v, string cls)[] cells)
+            {
+                UiKit.Label(_content, title, "section");
+                var strip = UiKit.Box(_content, "coll-summary");
+                foreach (var (k, v, cls) in cells) Metric(strip, k, v, cls);
+            }
+
+            Group("THE BUSINESS",
+                ("DAY", Progression.Day(save).ToString(), null),
+                ("AT THE BENCH", System.TimeSpan.FromSeconds(st.PlayTimeSeconds).ToString(@"h\:mm\:ss"), null),
+                ("TURNED OVER", UiKit.Money(st.MoneyEarned), st.MoneyEarned > 0f ? "success" : "muted"),
+                ("SPENT", UiKit.Money(st.MoneySpent), null),
+                ("IN THE TILL", UiKit.Money(save.Cash), "accent"));
+
+            Group("AT THE BENCH",
+                ("CRATES", st.CratesPurchased.ToString(), null),
+                ("ROCKS OPENED", st.SpecimensOpened.ToString(), null),
+                ("CLEAN OPENS", st.SpecimensOpened > 0 ? $"{st.CleanOpens}  ({Mathf.RoundToInt(100f * st.CleanOpens / Mathf.Max(1, st.SpecimensOpened))}%)" : "\u2014", st.CleanOpens > 0 ? "success" : "muted"),
+                ("DAMAGED", st.SpecimensDamaged.ToString(), st.SpecimensDamaged > 0 ? "warn" : "muted"),
+                ("STRIKES", st.TotalStrikes.ToString("N0"), null),
+                ("WASHED", st.RocksWashed.ToString(), null));
+
+            if (st.SawCuts > 0 || st.PiecesPolished > 0 || st.RocksCracked > 0)
+                Group("PROCESSING",
+                    ("SAW CUTS", st.SawCuts.ToString(), null),
+                    ("SLABS", st.SlabsCut.ToString(), null),
+                    ("POLISHED", st.PiecesPolished.ToString(), null),
+                    ("CRACKER", st.RocksCracked.ToString(), null),
+                    ("LARGEST FACE", st.LargestSlabFaceCm2 > 0 ? $"{st.LargestSlabFaceCm2:F0} cm\u00b2" : "\u2014", st.LargestSlabFaceCm2 > 0 ? null : "muted"));
+
+            Group("THE SHOP",
+                ("SOLD", st.SpecimensSold.ToString(), null),
+                ("OVER THE COUNTER", st.RetailSales.ToString(), null),
+                ("COUNTER TAKINGS", UiKit.Money(st.RetailRevenue), st.RetailRevenue > 0f ? "success" : "muted"),
+                ("SERVED", st.CustomersServed.ToString(), null),
+                ("LEFT EMPTY", st.CustomersLeftEmptyHanded.ToString(), st.CustomersLeftEmptyHanded > 0 ? "warn" : "muted"),
+                ("ON SALE NOW", save.ForSaleCount().ToString(), null));
+
+            if (st.PredictionsMade > 0)
+                Group("THE HAND",
+                    ("CALLS MADE", st.PredictionsMade.ToString(), null),
+                    ("HOLLOW OR SOLID", $"{Mathf.RoundToInt(100f * st.HollowCallsRight / st.PredictionsMade)}%", st.HollowCallsRight * 2 >= st.PredictionsMade ? "success" : "warn"),
+                    ("GRADE WITHIN ONE", $"{st.TierCallsRight} of {st.PredictionsMade}", null));
+
+            // notable records: the pieces worth remembering, named
+            UiKit.Label(_content, "RECORDS", "section");
+            void Record(string k, float value, string name, bool money = true, string unit = null)
             {
                 var r = UiKit.Box(_content, "stat-row");
-                UiKit.Label(r, k, "stat-key");
-                UiKit.Label(r, v, "stat-val", "medium");
+                var kl = UiKit.Label(r, k, "stat-key"); kl.style.flexGrow = 1;
+                if (value <= 0f) { UiKit.Label(r, "not yet", "muted"); return; }
+                UiKit.Label(r, string.IsNullOrEmpty(name) ? "\u2014" : name, "row-sub");
+                UiKit.Label(r, money ? UiKit.Money(value) : value.ToString("F2") + (unit ?? ""), "stat-val", "medium");
             }
-            Row("Play time", System.TimeSpan.FromSeconds(st.PlayTimeSeconds).ToString(@"h\:mm\:ss"));
-            Row("Crates purchased", st.CratesPurchased.ToString());
-            Row("Rocks processed", st.RocksProcessed.ToString());
-            Row("Specimens opened", st.SpecimensOpened.ToString());
-            Row("Clean opens", st.CleanOpens.ToString());
-            Row("Specimens damaged", st.SpecimensDamaged.ToString());
-            Row("Total strikes", st.TotalStrikes.ToString());
-            Row("Money spent", UiKit.Money(st.MoneySpent));
-            Row("Money earned", UiKit.Money(st.MoneyEarned));
-            Row("Biggest sale", st.BiggestSale > 0 ? $"{UiKit.Money(st.BiggestSale)}  ({st.BiggestSaleName})" : "—");
-            Row("Highest value kept", st.HighestValueKept > 0 ? $"{UiKit.Money(st.HighestValueKept)}  ({st.HighestValueKeptName})" : "—");
-            Row("Largest specimen", st.LargestSpecimenKg > 0 ? $"{st.LargestSpecimenKg:F2} kg  ({st.LargestSpecimenName})" : "—");
-            Row("Most damaged", st.MostDamagedFraction > 0 ? $"{st.MostDamagedFraction * 100f:F0}%  ({st.MostDamagedName})" : "—");
-            Row("Rocks washed", st.RocksWashed.ToString());
-            Row("Rocks split on the cracker", st.RocksCracked.ToString());
-            Row("Calls made in the hand", st.PredictionsMade.ToString());
-            if (st.PredictionsMade > 0) Row("Hollow or solid called right", $"{st.HollowCallsRight} of {st.PredictionsMade} ({Mathf.RoundToInt(100f * st.HollowCallsRight / st.PredictionsMade)}%)");
-            if (st.PredictionsMade > 0) Row("Grade called within one tier", $"{st.TierCallsRight} of {st.PredictionsMade}");
-            Row("Saw cuts / slabs", $"{st.SawCuts} / {st.SlabsCut}");
-            Row("Best saw result", st.HighestValueSawResult > 0 ? $"{UiKit.Money(st.HighestValueSawResult)}  ({st.HighestValueSawResultName})" : "—");
-            Row("Best hammer result", st.HighestValueHammerResult > 0 ? $"{UiKit.Money(st.HighestValueHammerResult)}  ({st.HighestValueHammerResultName})" : "—");
-            Row("Largest slab face", st.LargestSlabFaceCm2 > 0 ? $"{st.LargestSlabFaceCm2:F0} cm²  ({st.LargestSlabName})" : "—");
-            Row("Pieces polished", st.PiecesPolished.ToString());
-            Row("Best polished piece", st.BestPolishedValue > 0 ? $"{UiKit.Money(st.BestPolishedValue)}  ({st.BestPolishedName})" : "—");
-            Row("Specimens kept", _s.State.DisplayedCount().ToString());
-            Row("Specimens sold", st.SpecimensSold.ToString());
-            Row("Retail sales", st.RetailSales > 0 ? $"{st.RetailSales}  ({UiKit.Money(st.RetailRevenue)})" : "0");
-            Row("Best retail sale", st.BiggestRetailSale > 0 ? $"{UiKit.Money(st.BiggestRetailSale)}  ({st.BiggestRetailSaleName})" : "—");
-            Row("Customers served / left empty-handed", $"{st.CustomersServed} / {st.CustomersLeftEmptyHanded}");
-            Row("On sale now", _s.State.ForSaleCount().ToString());
-            Row("Collection value", UiKit.Money(_s.State.CollectionValue()));
-            Row("Mineral families discovered", _s.State.Encyclopedia.Count + " / " + MineralCatalog.All.Count);
+            Record("Biggest sale", st.BiggestSale, st.BiggestSaleName);
+            Record("Best retail sale", st.BiggestRetailSale, st.BiggestRetailSaleName);
+            Record("Finest piece kept", st.HighestValueKept, st.HighestValueKeptName);
+            Record("Largest specimen", st.LargestSpecimenKg, st.LargestSpecimenName, false, " kg");
+            Record("Best from the saw", st.HighestValueSawResult, st.HighestValueSawResultName);
+            Record("Best from the hammer", st.HighestValueHammerResult, st.HighestValueHammerResultName);
+            Record("Best polished", st.BestPolishedValue, st.BestPolishedName);
+
+            // and what the career is working towards next
+            UiKit.Label(_content, "NEXT", "section");
+            var goals = Progression.Goals(save);
+            foreach (var g in goals)
+            {
+                var r = UiKit.Box(_content, "stat-row");
+                var kl = UiKit.Label(r, (g.Done ? "\u2713  " : "\u25cb  ") + g.Label, g.Done ? "item-sub" : "item-title"); kl.style.flexGrow = 1;
+                UiKit.Label(r, g.Progress, g.Done ? "success" : "muted");
+            }
+            string next = Progression.NextUnlock(save);
+            if (!string.IsNullOrEmpty(next)) UiKit.Label(_content, next, "muted");
         }
     }
 }
