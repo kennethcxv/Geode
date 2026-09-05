@@ -1344,7 +1344,10 @@ namespace GeodeEmpire.EditorTools
             var lapRoot = new GameObject("PolishStation").transform;
             lapRoot.SetParent(parent, false);
             lapRoot.localPosition = new Vector3(-3.4f, 0f, -1.65f);
-            lapRoot.localRotation = Quaternion.Euler(0f, 0f, 0f);   // the lap is worked from its local +X: that faces east, onto the aisle
+            // The lap is worked from its local +X. Facing east put the operator's standing position at (-2.55, -1.65),
+            // which is inside the workshop doorway: build mode refuses the machine at the spot the room was drawn
+            // for it. Turned round, the operator stands in the wide aisle west of the machine row instead.
+            lapRoot.localRotation = Quaternion.Euler(0f, 180f, 0f);
             var before = new GameObject("Before").transform;
             before.SetParent(lapRoot, false);   // empty: an unbought machine leaves clear floor, not a covered lump
             var lapMachine = new GameObject("Machine").transform;
@@ -1360,7 +1363,7 @@ namespace GeodeEmpire.EditorTools
             Fixture(lapRoot, "flat_lap", "Flat Lap", "MACHINES", UpgradeCatalog.PolishLap, new Vector2(0.78f, 0.68f), Vector2.zero, 0.95f, 0.9f, lapMachine.gameObject, 420f,
                 "A 12-inch flat lap with a drip feed. Stand at it to bring a sawn face up to a polish.")
                 .ClearanceDir = new Vector2(1f, 0f);
-            Mat("MatLap", parent, new Vector2(-2.6f, -1.65f), new Vector2(0.9f, 1.2f)).transform.SetParent(lapMachine, true);
+            Mat("MatLap", parent, new Vector2(-4.25f, -1.65f), new Vector2(0.9f, 1.2f)).transform.SetParent(lapMachine, true);
             lapMachine.gameObject.SetActive(false);
             // (this stood at (-5.38, 2.28), a bucket parked in the one square metre a player has to occupy to use
             //  the sink: the clearance audit could not find a standing position for the wash zone at all. It lives
@@ -1483,9 +1486,9 @@ namespace GeodeEmpire.EditorTools
             // geode cracker: the chain splitter on its stand between the tub and the rack, operator facing the north wall
             var crackerRoot = new GameObject("CrackerStation").transform;
             crackerRoot.SetParent(s2, false);
-            crackerRoot.localPosition = new Vector3(-3.4f, 0f, 2.15f);
+            crackerRoot.localPosition = new Vector3(-3.4f, 0f, 1.85f);   // 1.85, not 2.15: at 2.15 the body clipped the back-of-house doorway and build mode refuses it
             crackerRoot.localRotation = Quaternion.Euler(0f, -90f, 0f);   // worked from its local -Z: that faces east, onto the aisle
-            var crackerSign = SignHung(parent, "GEODE CRACKER", new Vector3(-3.4f, 2.42f, 2.15f), 90f, 0.9f);
+            var crackerSign = SignHung(parent, "GEODE CRACKER", new Vector3(-3.4f, 2.42f, 1.85f), 90f, 0.9f);
             var crackerMachine = new GameObject("Machine").transform;
             crackerMachine.SetParent(crackerRoot, false);
             var crackerProp = Prop("prop_cracker", crackerMachine, Vector3.zero, 0f, "M_MachinePaint,M_Steel,M_Rubber,M_Dial", collider: true);
@@ -1505,8 +1508,8 @@ namespace GeodeEmpire.EditorTools
                 "A chain splitter on a stand. The lever swings on the operator side, so it needs room to work.")
                 .ClearanceDir = new Vector2(0f, -1f);
             crackerSign.transform.SetParent(crackerMachine, true);
-            Mat("MatCracker", parent, new Vector2(-2.6f, 2.15f), new Vector2(0.9f, 1.2f)).transform.SetParent(crackerMachine, true);
-            MakeLight(s2, "CrackerLight", new Vector3(-2.75f, 2.7f, 2.15f), new Vector3(56f, 90f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 1.4f, 3.0f, 55f, false);
+            Mat("MatCracker", parent, new Vector2(-2.6f, 1.85f), new Vector2(0.9f, 1.2f)).transform.SetParent(crackerMachine, true);
+            MakeLight(s2, "CrackerLight", new Vector3(-2.75f, 2.7f, 1.85f), new Vector3(56f, 90f, 0f), LightType.Spot, new Color(0.97f, 0.97f, 0.95f), 1.4f, 3.0f, 55f, false);
 
             // trophy wall: two lit boards over the appraisal bench, eight more display slots run by the cabinet
             var trophy = new GameObject("TrophyWall").transform;
@@ -1562,7 +1565,10 @@ namespace GeodeEmpire.EditorTools
             pegHammer.transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
             var pegChisel = Prop("prop_chisel_fine", parent, new Vector3(-1.75f, 1.45f, BackZ - 0.145f), 0f, "M_Steel", collider: false);
             pegChisel.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
-            Prop("prop_stool", parent, new Vector3(-3.25f, 0f, -1.95f), 30f, "M_WoodDark");   // tucked by the door, out of every walking lane
+            // (-3.25, -1.95) was the polishing lap's own square metre: buying the lap and trying to put it where
+            // the room is designed for it was refused because this stool was standing there. Further west, still
+            // by the wall and out of every walking lane.
+            Prop("prop_stool", parent, new Vector3(-5.15f, 0f, -2.4f), 30f, "M_WoodDark");
 
             var start = new GameObject("PlayerStart");
             start.transform.SetParent(parent, false);

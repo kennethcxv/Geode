@@ -186,3 +186,21 @@ takes its bounds from `ShopPlan`. With the real room covered, two genuine faults
   a sealed room. The controller's `stepOffset` is 0.3; anything shorter is walked over.
 - **A bucket was parked in the one square metre a player has to stand in to use the sink.** With
   that fixed the wash zone is reachable and every free cell in the building is connected.
+
+### Three authored positions that build mode itself refused
+
+The last check of the phase was the obvious one nobody had run: **does the authored world satisfy
+the rules build mode enforces on the player?** Every fixture's default pose was fed to
+`PlacementValidator` in the order a player actually buys them. Three failed, and all three were
+real:
+
+- **The geode cracker stood 13 cm inside the back-of-house doorway.** M6 took down the hoarding
+  that used to hide that opening, which turned it into a route. Moved from z 2.15 to 1.85.
+- **A stool was parked in the polishing lap's square metre.** Buy the lap, try to put it where the
+  room is drawn for it, and the game says no.
+- **The lap was worked from the workshop doorway.** Its clearance faced east onto the aisle, and
+  0.85 m east of the lap is the door. Turned round: the operator now stands in the wide aisle west
+  of the machine row, and the mat moved with them.
+
+With Stage 2 bought and all three machines sited, the whole audit is clean: 0 static overlaps,
+0 floating, 0 unsupported slots, 0 unreachable cells, 0 pinch points.
