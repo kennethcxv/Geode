@@ -36,7 +36,7 @@ namespace GeodeEmpire.EditorTools
             // physical albedos: concrete/plaster/wood sit at 0.3-0.55, not white, so the lamps stop blowing the room out
             Lit("M_Concrete", "T_Concrete", new Color(0.60f, 0.61f, 0.62f), 1f, 0f, 2.5f, set: "concrete", bump: 0.9f);
             Lit("M_Plaster", "T_Plaster", new Color(0.9f, 0.88f, 0.84f), 1f, 0f, 1.5f, set: "plaster", bump: 0.6f);
-            Lit("M_Ceiling", "T_WoodDark", new Color(0.215f, 0.175f, 0.135f), 1f, 0f, 1.2f, set: "hardwood", bump: 0.7f);   // dark plank ceiling: the lamps have to read against something
+            Lit("M_Ceiling", "T_WoodDark", new Color(0.415f, 0.352f, 0.282f), 1f, 0f, 1.2f, set: "hardwood", bump: 0.7f);   // plank ceiling: light enough to bounce, dark enough for the lamps to read against
             Lit("M_Wood", "T_Wood", new Color(0.60f, 0.50f, 0.38f), 1f, 0f, 1f, set: "hardwood", bump: 0.7f);
             Lit("M_WoodDark", "T_WoodDark", new Color(0.40f, 0.30f, 0.22f), 1f, 0f, 1f, set: "hardwood", bump: 0.7f);
             Lit("M_WoodPainted", null, new Color(0.62f, 0.66f, 0.6f), 0.45f, 0f, 1f);
@@ -82,7 +82,7 @@ namespace GeodeEmpire.EditorTools
             Lit("M_Cream", null, new Color(0.88f, 0.86f, 0.8f), 0.25f, 0f, 1f);
             // --- visual rebuild (Docs/VisualRebuild/PLAN.md) -----------------------------------
             // polished workshop concrete: the reference floor carries the lamps back as soft reflections
-            var floorMat = Lit("M_Floor", "T_Concrete", new Color(0.455f, 0.45f, 0.445f), 1f, 0f, 0.85f, set: "concrete", bump: 0.7f);
+            var floorMat = Lit("M_Floor", "T_Concrete", new Color(0.545f, 0.542f, 0.534f), 1f, 0f, 0.85f, set: "concrete", bump: 0.7f);
             Polish(floorMat, 0.58f);
             Polish(Lit("M_ShopFloor", "T_Wood", new Color(0.42f, 0.315f, 0.225f), 1f, 0f, 0.7f, set: "hardwood", bump: 0.7f), 0.30f);
             // anti-fatigue matting: near-black rubber, not the pale rubber the props use
@@ -92,6 +92,10 @@ namespace GeodeEmpire.EditorTools
             // the machine livery: every powered station stands on a painted steel base with a grey steel top,
             // so the workshop reads as equipment rather than as a row of brown tables
             Worn("M_MachineBlue", new Color(0.16f, 0.30f, 0.40f), "painted_steel", "brushed_stainless", new Color(0.62f, 0.63f, 0.62f), 0.5f, 0.12f, 0.5f, 0.35f, 0.3f);
+            // flat painted cabinetry: the worn machine paints carry a light wear layer that reads grey on a plain
+            // box, and the point of the livery is that it is not grey
+            Lit("M_CabinetBlue", null, new Color(0.128f, 0.238f, 0.325f), 0.34f, 0f, 1.2f, set: "painted_steel", bump: 0.5f);
+            Lit("M_CabinetBlueDark", null, new Color(0.098f, 0.185f, 0.258f), 0.30f, 0f, 1.2f, set: "painted_steel", bump: 0.5f);
             Worn("M_MachineTop", new Color(0.42f, 0.435f, 0.45f), "brushed_stainless", "brushed_stainless", new Color(0.7f, 0.71f, 0.72f), 0.3f, 0.05f, 0.45f, 0.25f, 0.3f, 1.6f, 0.9f);
             // hanging station plaques: a dark enamelled board with a routed edge, and the yellow maker's plate
             Lit("M_SignBoard", null, new Color(0.10f, 0.105f, 0.115f), 0.42f, 0f, 1f, set: "painted_steel", bump: 0.5f);
@@ -114,9 +118,11 @@ namespace GeodeEmpire.EditorTools
             Lit("M_PosterRocks", "T_PosterRocks", Color.white, 0.25f, 0f, 1f);
             Lit("M_PlasterWarm", "T_Plaster", new Color(0.7f, 0.66f, 0.58f), 0.12f, 0f, 2f);
             // shiplap cladding: the workshop and showroom are boarded rooms, so the walls carry timber, not paint
-            Lit("M_WallBoard", null, new Color(0.335f, 0.262f, 0.202f), 0.20f, 0f, 0.55f, set: "wall_board", bump: 1f);
-            Lit("M_WallBoardShop", null, new Color(0.275f, 0.208f, 0.158f), 0.26f, 0f, 0.55f, set: "wall_board", bump: 1f);
-            Lit("M_Wainscot", "T_WoodDark", new Color(0.20f, 0.152f, 0.112f), 1f, 0f, 1f, set: "hardwood", bump: 0.6f);
+            Lit("M_WallBoard", null, new Color(0.492f, 0.388f, 0.288f), 0.17f, 0f, 0.55f, set: "wall_board", bump: 1f);
+            Lit("M_WallBoardShop", null, new Color(0.425f, 0.325f, 0.245f), 0.22f, 0f, 0.55f, set: "wall_board", bump: 1f);
+            // the dado is painted board, not more timber: §10.2 asks for believable separation between surfaces, and a
+            // room whose walls, floor, counters and storage are all one brown is the defect it names
+            Lit("M_Wainscot", null, new Color(0.196f, 0.229f, 0.258f), 0.34f, 0f, 1f, set: "painted_steel", bump: 0.55f);
             var glass = Lit("M_Glass", null, new Color(0.7f, 0.85f, 0.95f, 0.18f), 0.95f, 0f, 1f);
             SetTransparent(Lit("M_Water", null, new Color(0.24f, 0.36f, 0.4f, 0.72f), 0.96f, 0f, 1f));
             // V6 machine finishes: worn paint, cast iron and aluminium over bare steel (vertex-mask wear from the Blender bake)
@@ -524,9 +530,12 @@ namespace GeodeEmpire.EditorTools
             RenderSettings.ambientMode = AmbientMode.Trilight;
             // V6 presentation: a lower, cooler ambient so the lamps carry the room (contrast between lit work areas and
             // the corners), warm pendants a touch stronger
-            RenderSettings.ambientSkyColor = new Color(0.24f, 0.28f, 0.38f);
-            RenderSettings.ambientEquatorColor = new Color(0.185f, 0.19f, 0.215f);
-            RenderSettings.ambientGroundColor = new Color(0.10f, 0.095f, 0.085f);
+            // §10.3: warm task light on a cooler ambient, with the corners readable rather than black. The old
+            // values put the room three stops under the lamps, so every pendant blew out and everything else
+            // fell to one brown.
+            RenderSettings.ambientSkyColor = new Color(0.35f, 0.40f, 0.51f);
+            RenderSettings.ambientEquatorColor = new Color(0.285f, 0.29f, 0.315f);
+            RenderSettings.ambientGroundColor = new Color(0.165f, 0.157f, 0.142f);
             RenderSettings.fog = false;
             RenderSettings.skybox = null;
 
@@ -868,7 +877,7 @@ namespace GeodeEmpire.EditorTools
                 new Vector3(-4.0f, 0f, 4.4f), new Vector3(-1.3f, 0f, 4.4f), new Vector3(1.4f, 0f, 4.6f) })
             {
                 Pendant(parent, new Vector3(p.x, RoomH, p.z));
-                MakeLight(lights, "Pendant", new Vector3(p.x, 2.14f, p.z), Vector3.zero, LightType.Point, new Color(1f, 0.93f, 0.82f), 4.0f, 5.6f, 0f, false);
+                MakeLight(lights, "Pendant", new Vector3(p.x, 2.14f, p.z), Vector3.zero, LightType.Point, new Color(1f, 0.945f, 0.865f), 2.7f, 6.3f, 0f, false);
             }
             // a leased-but-unfitted shop has the landlord's bare battens: enough to see by, nothing more
             foreach (var p in new[] { new Vector3(4.6f, 0f, -0.4f), new Vector3(4.6f, 0f, 2.0f), new Vector3(4.6f, 0f, 4.4f) })
@@ -1131,6 +1140,18 @@ namespace GeodeEmpire.EditorTools
             wash.SetParent(parent, false);
             wash.localPosition = new Vector3(-6.0f, 0f, 2.45f);
             wash.localRotation = Quaternion.Euler(0f, 90f, 0f);   // splashback to the west wall, basin facing the room
+            // R24 sets the sink into a run of painted base cabinets. It is the one powered-looking station the
+            // business owns on day one, and the reference workshop is defined by that livery — painted base,
+            // steel top — rather than by another brown table (§10.2).
+            // the carcase stops below the basin floor (0.66) so nothing is put down on a lid that is not there
+            Box("WashBase", wash, new Vector3(-0.03f, 0.325f, 0.02f), new Vector3(1.02f, 0.59f, 0.52f), "M_CabinetBlue");
+            Box("WashPlinth", wash.transform, new Vector3(-0.03f, 0.04f, 0.0f), new Vector3(0.95f, 0.08f, 0.45f), "M_MetalDark");
+            Box("WashApron", wash.transform, new Vector3(-0.03f, 0.655f, 0.253f), new Vector3(1.05f, 0.08f, 0.03f), "M_MachineTop");
+            foreach (float dx in new[] { -0.29f, 0.24f })
+            {
+                Box("WashDoor" + dx.ToString("F2"), wash.transform, new Vector3(dx, 0.345f, 0.291f), new Vector3(0.45f, 0.48f, 0.022f), "M_CabinetBlueDark");
+                Box("WashHandle" + dx.ToString("F2"), wash.transform, new Vector3(dx + 0.165f, 0.53f, 0.309f), new Vector3(0.085f, 0.02f, 0.02f), "M_MachineAlu");
+            }
             var tubProp = Prop("prop_wash_tub", wash, Vector3.zero, 0f, "M_Steel,M_Water,M_Stainless,M_Brass,M_PlasticDark", collider: true);
             var tubZone = Support(Zone(wash, "WashZone", new Vector3(0f, 0.66f, 0f), ZoneKind.Wash, "the wash tub", 1, true, true, new Vector3(0.46f, 0.35f, 0.34f)), 0.24f, 0.17f);   // the rock rests on the sink floor
             tubZone.SetHighlightRenderers(tubProp.GetComponentsInChildren<Renderer>());
@@ -1143,7 +1164,7 @@ namespace GeodeEmpire.EditorTools
             ws.Tub = tubZone;
             ws.Brush = brush.transform;
             ws.SetHighlightRenderers(tubProp.GetComponentsInChildren<Renderer>());
-            Prop("prop_bucket", parent, new Vector3(-5.68f, 0f, 1.72f), 0f, "M_PlasticBlue,M_Metal");
+            Prop("prop_bucket", parent, new Vector3(-5.30f, 0f, 1.55f), 12f, "M_PlasticBlue,M_Metal");   // on the floor by the wash run, clear of the cabinet and the rock bin
 
             // ---- Appraisal bench (west wall) --------------------------------------------------
             var appraisal = new GameObject("AppraisalStation").transform;
@@ -1422,7 +1443,7 @@ namespace GeodeEmpire.EditorTools
             // (this stood at (-5.38, 2.28), a bucket parked in the one square metre a player has to occupy to use
             //  the sink: the clearance audit could not find a standing position for the wash zone at all. It lives
             //  in the corner between the tub run and the cross wall now.)
-            Prop("prop_bucket", parent, new Vector3(-6.15f, 0f, 1.9f), 14f, "M_Plastic,M_Metal");
+            Prop("prop_bucket", parent, new Vector3(-5.70f, 0f, -2.38f), 14f, "M_Plastic,M_Metal");
 
             // ---- dressing: shelves, signs, posters, clutter ----------------------------------------
             var wallShelf = Prop("prop_wall_shelf", parent, new Vector3(-6.27f, 1.55f, 1.5f), -90f, "M_WoodDark,M_MetalDark", collider: false);
