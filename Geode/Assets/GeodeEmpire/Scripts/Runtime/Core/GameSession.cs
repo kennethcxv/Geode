@@ -38,7 +38,6 @@ namespace GeodeEmpire.Core
         public event Action<SpecimenEntity> SpecimenDespawned;
         public event Action Loaded;
         /// <summary>A piece worth stopping for came out of a rock: a first of its family, or an exceptional grade.</summary>
-        public event Action<SpecimenRecord, string> Discovered;
 
         private readonly Dictionary<string, SpecimenEntity> _entities = new Dictionary<string, SpecimenEntity>();
         private readonly Dictionary<string, CrateEntity> _crates = new Dictionary<string, CrateEntity>();
@@ -113,6 +112,7 @@ namespace GeodeEmpire.Core
         {
             PerfProbe.Frame(Time.unscaledDeltaTime * 1000f);
             PumpDeferred();
+            Notifications.Tick();
             if (State == null) return;
             State.Stats.PlayTimeSeconds += Time.deltaTime;
             TickBilling();
@@ -545,6 +545,7 @@ namespace GeodeEmpire.Core
             entry.Found++;
             if (firstOfFamily) entry.FirstFoundTicks = DateTime.UtcNow.Ticks;
             float value = Valuation.DamagedValue(g, damageFraction, r.ShellDamage);
+            float previousBest = entry.BestValue;
             bool record = value > entry.BestValue;
             if (record) { entry.BestValue = value; entry.BestSpecimenId = r.Id; }
             bool largest = g.MassKg > entry.LargestMassKg;
@@ -561,16 +562,12 @@ namespace GeodeEmpire.Core
             if (g.MassKg > st.LargestSpecimenKg) { st.LargestSpecimenKg = g.MassKg; st.LargestSpecimenName = r.DisplayName; }
             if (value > st.HighestValueHammerResult) { st.HighestValueHammerResult = value; st.HighestValueHammerResultName = r.DisplayName; }
 
-            // §12.3: the physical result comes first, then the UI celebrates it. Both of these rebuild
-            // panels, and doing that inside the frame the rock splits on cost 48-62 ms of it.
-            string headline = firstOfFamily ? "First " + fam.Name
-                            : g.Tier >= QualityTier.Exceptional ? Valuation.TierLabel(g.Tier) + " find" : null;
-            bool best = headline == null && record && entry.Found > 1;
-            Defer("discovery-card", () =>
-            {
-                if (headline != null) Discovered?.Invoke(r, headline);
-                else if (best) Notify($"Best {fam.Name} so far", NotificationKind.Info);
-            });
+            // §12.1 one note per rock, at the tier it actually deserves — Notifications owns the thresholds,
+            // the queue and the cooldowns, so a starter crate can no longer produce six full cards in a row.
+            // §12.3 the physical result comes first, then the UI celebrates it: both of these rebuild panels,
+            // and doing that inside the frame the rock splits on cost 48-62 ms of it.
+            var note = Notifications.Classify(r, g, fam.Name, firstOfFamily, value, previousBest);
+            Defer("discovery-card", () => Notifications.Post(note));
             Defer("state-changed", RaiseStateChanged);
         }
 

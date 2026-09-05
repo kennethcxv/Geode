@@ -337,6 +337,14 @@
 .discovery-kind { font-size: 17px; letter-spacing: 5px; color: rgb(232, 190, 112); -unity-text-align: middle-center; -unity-font-definition: url("project:/Assets/GeodeEmpire/UI/Fonts/Roboto-Medium.ttf"); margin-bottom: 12px; }
 .discovery-plate { height: 172px; border-radius: 8px; overflow: hidden; -unity-background-scale-mode: scale-and-crop; }
 .discovery .appraisal-value { -unity-text-align: middle-right; margin-top: 8px; }
+/* §12.1 the two card tiers are different sizes, not the same card at two durations: a genuinely new family is
+   a short, modest card, and only extraordinary rarity gets the big one. */
+.discovery-meaningful { width: 320px; padding: 12px 14px 14px 14px; top: 13%; border-color: rgba(232, 190, 112, 0.34); }
+.discovery-meaningful .discovery-plate { height: 112px; }
+.discovery-meaningful .discovery-kind { font-size: 14px; letter-spacing: 3px; margin-bottom: 8px; }
+.discovery-exceptional { width: 470px; border-color: rgba(240, 206, 128, 0.85); border-width: 2px; }
+.discovery-exceptional .discovery-plate { height: 196px; }
+.discovery-detail { font-size: 14px; color: rgba(240, 236, 228, 0.62); -unity-text-align: middle-center; margin-top: 6px; white-space: normal; }
 
 /* ---- pause ----------------------------------------------------------------------------- */
 .pause-buttons { margin-top: 22px; }

@@ -22,6 +22,7 @@ namespace GeodeEmpire.UI
         private readonly List<(VisualElement box, Label text, Label num)> _goalRows = new List<(VisualElement, Label, Label)>();
         private int _lastLevel = -1;
         private VisualElement _discovery, _discPlate;
+        private Label _discDetail;
         private Label _discKind, _discName, _discSub, _discValue, _discRarity;
         private float _discTimer;
         private PlayerInteractor _player;
@@ -150,14 +151,33 @@ namespace GeodeEmpire.UI
             _discName = UiKit.Label(text, "", "detail-title");
             _discSub = UiKit.Label(text, "", "detail-sub");
             _discRarity = UiKit.Rarity(row, 0);
+            _discDetail = UiKit.Label(_discovery, "", "discovery-detail");
             _discValue = UiKit.Label(_discovery, "", "appraisal-value");
             _discovery.style.display = DisplayStyle.None;
         }
 
-        private void OnDiscovered(Save.SpecimenRecord r, string kind)
+        /// <summary>
+        /// §12.1: three tiers, three shapes. A routine find is a line in the corner and costs nothing — in
+        /// particular it does not render a thumbnail, which is what made the old path expensive. Only the two
+        /// card tiers photograph the rock, and only one card is ever on screen (Notifications owns that queue).
+        /// </summary>
+        private void OnNote(Core.Note n)
         {
-            if (r == null || _discovery == null) return;
-            _discKind.text = kind.ToUpper();
+            if (!n.Valid) return;
+            if (n.Tier == Core.NoteTier.Routine || n.Specimen == null || _discovery == null)
+            {
+                Notify(n.Detail != null ? n.Headline + " — " + n.Detail : n.Headline,
+                    n.Tier == Core.NoteTier.Routine ? NotificationKind.Info : NotificationKind.Discovery);
+                return;
+            }
+            var r = n.Specimen;
+            bool big = n.Tier == Core.NoteTier.Exceptional;
+            _discovery.RemoveFromClassList("discovery-meaningful");
+            _discovery.RemoveFromClassList("discovery-exceptional");
+            _discovery.AddToClassList(big ? "discovery-exceptional" : "discovery-meaningful");
+            _discKind.text = n.Headline.ToUpper();
+            _discDetail.text = n.Detail ?? "";
+            _discDetail.style.display = string.IsNullOrEmpty(n.Detail) ? DisplayStyle.None : DisplayStyle.Flex;
             _discName.text = r.DisplayName;
             _discSub.text = r.Geology.Family.Name;
             int tier = Mathf.Clamp((int)r.Geology.Tier - 1, 0, 4);
@@ -168,8 +188,9 @@ namespace GeodeEmpire.UI
             SpecimenThumbnailer.Instance.Specimen(_discPlate, r, SpecimenThumbnailer.Ground);
             _discovery.style.display = DisplayStyle.Flex;
             _discovery.style.opacity = 1f;
-            _discTimer = 5.5f;
-            Audio.WorkshopAudio.Play2D("ui_sell", 0.55f, 1.05f);
+            _discTimer = big ? Core.Notifications.ExceptionalSeconds : Core.Notifications.MeaningfulSeconds;
+            // a card, not a fanfare: the exceptional one is the only place a sting is earned
+            Audio.WorkshopAudio.Play2D(big ? "discovery" : "ui_sell", big ? 0.6f : 0.4f, big ? 1f : 1.08f);
         }
 
         /// <summary>
@@ -247,7 +268,7 @@ namespace GeodeEmpire.UI
                 s.Notified += Notify;
                 s.Loaded += OnLoaded;
                 s.StateChanged += RefreshTutorial;
-                s.Discovered += OnDiscovered;
+                Core.Notifications.Present += OnNote;
                 if (s.State != null) OnLoaded();
             }
             Tutorial.Changed += RefreshTutorial;
@@ -270,7 +291,7 @@ namespace GeodeEmpire.UI
                 s.Notified -= Notify;
                 s.Loaded -= OnLoaded;
                 s.StateChanged -= RefreshTutorial;
-                s.Discovered -= OnDiscovered;
+                Core.Notifications.Present -= OnNote;
             }
             Tutorial.Changed -= RefreshTutorial;
             Tutorial.Completed -= OnTutorialStepDone;
