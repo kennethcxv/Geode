@@ -60,6 +60,32 @@ namespace GeodeEmpire.EditorTools
             [UpgradeCatalog.Stage3] = new Shot { Prop = "prop_saw_station_large", Materials = "M_MachinePaint,M_Coolant,M_Glass,M_Rubber,M_Red,M_Steel,M_Dial,M_MachineIron,M_MachineAlu,M_PlasticDark,M_Nameplate", Yaw = 214f, Pitch = 12f },
         };
 
+        /// <summary>
+        /// Crate art for the suppliers screen (§9.2). Four builds rather than twelve near-identical ones: a
+        /// supplier's identity on that screen is its accent, its chips and its price, and what the picture has to
+        /// say is what turns up on the pallet.
+        /// </summary>
+        private static readonly (string name, (string prop, string mats, Vector3 pos, float yaw)[] parts)[] Crates =
+        {
+            ("plain", new[] {
+                ("prop_crate_body", "M_Wood,M_Straw", Vector3.zero, 0f),
+                ("prop_crate_lid", "M_Wood", new Vector3(0f, 0.37f, 0f), 0f) }),
+            ("curated", new[] {
+                ("prop_crate_body", "M_Wood,M_Straw", Vector3.zero, 0f),
+                ("prop_crate_lid", "M_Wood", new Vector3(0.06f, 0.40f, -0.16f), 13f),
+                ("prop_label_stand", "M_Paper", new Vector3(0.0f, 0.42f, -0.30f), 4f) }),
+            ("premium", new[] {
+                ("prop_crate_body", "M_Wood,M_Straw", Vector3.zero, 0f),
+                ("prop_crate_lid", "M_Wood", new Vector3(-0.30f, 0.06f, -0.34f), 62f),
+                ("prop_gift_box", "M_BoxWhite,M_NoteBand", new Vector3(0.30f, 0.0f, -0.30f), 22f) }),
+            ("bulk", new[] {
+                ("prop_pallet", "M_Wood,M_MetalDark", Vector3.zero, 0f),
+                ("prop_crate_body", "M_Wood,M_Straw", new Vector3(-0.22f, 0.13f, 0f), 4f),
+                ("prop_crate_lid", "M_Wood", new Vector3(-0.22f, 0.50f, 0f), 4f),
+                ("prop_crate_body", "M_Wood,M_Straw", new Vector3(0.34f, 0.13f, 0.06f), -8f),
+                ("prop_crate_lid", "M_Wood", new Vector3(0.34f, 0.50f, 0.06f), -8f) }),
+        };
+
         [MenuItem("Geode/Bake upgrade icons")]
         public static void Bake()
         {
@@ -103,8 +129,33 @@ namespace GeodeEmpire.EditorTools
             flashLight.shadows = LightShadows.None;
 
             int done = 0, missing = 0;
+            Directory.CreateDirectory("Assets/GeodeEmpire/Resources/UI/Crates");
             try
             {
+                foreach (var (crateName, parts) in Crates)
+                {
+                    var stage = new GameObject("Crate");
+                    stage.transform.SetParent(rig.transform, false);
+                    foreach (var (prop, mats, pos, yaw) in parts) Place(stage.transform, prop, mats, pos, yaw);
+                    var b = Encapsulate(stage.transform);
+                    float rad = Mathf.Max(b.extents.magnitude, 0.05f);
+                    float d = rad / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 1.28f;
+                    var dr = Quaternion.Euler(17f, 32f, 0f) * Vector3.back;
+                    camGo.transform.position = b.center - dr * d;
+                    camGo.transform.rotation = Quaternion.LookRotation(dr, Vector3.up);
+                    flash.transform.position = camGo.transform.position + camGo.transform.right * rad * 0.4f + Vector3.up * rad * 0.3f;
+                    flashLight.range = d * 2.4f;
+                    flashLight.intensity = 2.6f + rad * 1.6f;
+                    cam.Render();
+                    var ctex = new Texture2D(Width, Height, TextureFormat.RGBA32, false, false);
+                    RenderTexture.active = rt;
+                    ctex.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
+                    ctex.Apply();
+                    RenderTexture.active = null;
+                    File.WriteAllBytes($"Assets/GeodeEmpire/Resources/UI/Crates/{crateName}.png", ctex.EncodeToPNG());
+                    Object.DestroyImmediate(ctex);
+                    Object.DestroyImmediate(stage);
+                }
                 foreach (var u in UpgradeCatalog.All)
                 {
                     if (!Shots.TryGetValue(u.Id, out var shot)) { missing++; continue; }
@@ -150,9 +201,11 @@ namespace GeodeEmpire.EditorTools
             }
 
             AssetDatabase.Refresh();
-            foreach (var u in UpgradeCatalog.All)
+            var paths = new List<string>();
+            foreach (var u in UpgradeCatalog.All) paths.Add($"{OutFolder}/{u.Id}.png");
+            foreach (var (crateName, _) in Crates) paths.Add($"Assets/GeodeEmpire/Resources/UI/Crates/{crateName}.png");
+            foreach (var path in paths)
             {
-                string path = $"{OutFolder}/{u.Id}.png";
                 var imp = AssetImporter.GetAtPath(path) as TextureImporter;
                 if (imp == null) continue;
                 imp.textureType = TextureImporterType.Default;

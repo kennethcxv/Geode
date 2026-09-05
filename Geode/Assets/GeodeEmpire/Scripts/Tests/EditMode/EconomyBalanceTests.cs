@@ -231,8 +231,13 @@ namespace GeodeEmpire.Tests
             int worlds = 24, crates = 130, softlocks = 0; string strandNote = "";
             var stage3At = new List<int>(); var catalogueAt = new List<int>(); var repAt = new List<int>();
             float lateSinkShare = 0f; int lateWorlds = 0;
+            // the order a career actually buys in: bench tools, then the room to work in, then the shop front and
+            // its fit-out, then the lapidary stages. The premises leases and the retail fixtures joined the
+            // catalogue with the starter rebuild, and they are the bulk of what the middle of a career is for.
             var order = new[] { UpgradeCatalog.Loupe, UpgradeCatalog.InspectionLamp, UpgradeCatalog.BenchClamp, UpgradeCatalog.TrimSaw, UpgradeCatalog.FineChisel,
-                UpgradeCatalog.CalibratedScale, UpgradeCatalog.SalesTable, UpgradeCatalog.DisplayExpansion, UpgradeCatalog.Stage2, UpgradeCatalog.HeavyCradle,
+                UpgradeCatalog.CalibratedScale, UpgradeCatalog.BackRoom, UpgradeCatalog.CollectionCabinet, UpgradeCatalog.DisplayExpansion,
+                UpgradeCatalog.ShopFront, UpgradeCatalog.SalesTable, UpgradeCatalog.ShopShelving, UpgradeCatalog.ShopSignage,
+                UpgradeCatalog.Stage2, UpgradeCatalog.HeavyCradle,
                 UpgradeCatalog.Wedge, UpgradeCatalog.PolishLap, UpgradeCatalog.ThinBlade, UpgradeCatalog.CoolantPump, UpgradeCatalog.SawClamp, UpgradeCatalog.GeodeCracker, UpgradeCatalog.Stage3 };
             var sb = new StringBuilder("Career pacing (mixed strategy, occasional lots bought when offered):\n");
             for (ulong w = 1; w <= (ulong)worlds; w++)

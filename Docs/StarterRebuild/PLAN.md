@@ -250,3 +250,15 @@ stale font sizes before this was spotted.
 - World-integrity audit **0/0/0/0/0** on both the sealed unit and the leased shop.
 - Starter acceptance **32/32**.
 - UI render QA **28/28, 0 findings**.
+
+### M5 remainder — Suppliers (§9.2)
+
+The last placeholder dot in the tablet was the supplier swatch. `UpgradeIconBaker` now also bakes four crate
+builds — plain, curated, premium (lid off, a boxed piece beside it) and bulk (a pallet of two) — and a supplier
+row carries the one matching what turns up on its pallet, with its accent as a pip. The detail card leads with
+the same picture. The screen's subtitle now says where the delivery actually lands, which is the goods-in pallet
+in the workshop until the back room is leased.
+
+Re-ran after: UI render QA **28/28, 0 findings**. EditMode **68/68** — the career-pacing test needed its
+purchase order extended with the premises leases and the retail fit-out, which are now most of what the middle
+of a career is spent on.

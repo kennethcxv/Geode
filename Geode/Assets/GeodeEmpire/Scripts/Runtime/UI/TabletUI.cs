@@ -226,7 +226,9 @@ namespace GeodeEmpire.UI
         // ---- Suppliers -----------------------------------------------------------------------
         private void BuildSuppliers()
         {
-            _subtitle.text = "Order mystery crates. Delivery is immediate, onto the pallets in the receiving bay.";
+            _subtitle.text = Workshop.PremisesExpansion.BackRoomOpen
+                ? "Order mystery crates. Delivery is immediate, onto the pallets in the receiving bay."
+                : "Order mystery crates. Delivery is immediate, onto the goods-in pallet in the corner of the workshop.";
             var st = _s.State;
             int pallet = _s.Crates.Count;
             if (pallet >= 3) UiKit.Label(_content, $"The receiving pallet is getting full ({pallet} crates). Open or break down a crate before ordering more.", "muted");
@@ -253,10 +255,8 @@ namespace GeodeEmpire.UI
                 card.style.borderLeftColor = unlocked ? sup.Accent : new Color(0.3f, 0.3f, 0.3f);
                 var row = UiKit.Box(card, "row");
                 row.style.alignItems = Align.Center;
-                var sw = UiKit.Box(row, "swatch");
-                sw.style.backgroundColor = unlocked ? sup.Accent * 0.32f : new Color(0.16f, 0.16f, 0.17f);
-                UiKit.Box(sw, "swatch-core").style.backgroundColor = unlocked ? sup.Accent : new Color(0.24f, 0.24f, 0.26f);
-                var text = UiKit.Box(row, "grow");
+                CrateTile(row, sup, unlocked, 82f);
+                var text = UiKit.Box(row, "upg-text");
                 UiKit.Label(text, sup.Name, "row-title");
                 UiKit.Label(text, sup.Tagline, "row-sub");
                 var tags = UiKit.Box(text, "row");
@@ -265,9 +265,7 @@ namespace GeodeEmpire.UI
                 UiKit.Label(tags, VarianceTag(sup), "tag");
                 if (sup.Occasional) UiKit.Label(tags, "ON OFFER", "tag");
                 if (!unlocked) UiKit.Label(tags, "LOCKED", "tag", "tag-locked");
-                var side = UiKit.Box(row);
-                side.style.alignItems = Align.FlexEnd;
-                side.style.minWidth = 168;
+                var side = UiKit.Box(row, "upg-side");
                 UiKit.Label(side, UiKit.Money(sup.Price), "row-price");
                 var supplier = sup;
                 void Detail() => SupplierDetail(supplier, unlocked, premiumTease);
@@ -295,11 +293,12 @@ namespace GeodeEmpire.UI
         {
             _detailKey = sup.Id;
             _detail.Clear();
+            var plate = CrateTile(_detail, sup, unlocked, 999f);
+            plate.style.width = Length.Percent(100);
+            plate.style.height = 150;
             var head = UiKit.Box(_detail, "row");
             head.style.alignItems = Align.Center;
-            var sw = UiKit.Box(head, "swatch");
-            sw.style.backgroundColor = unlocked ? sup.Accent * 0.32f : new Color(0.16f, 0.16f, 0.17f);
-            UiKit.Box(sw, "swatch-core").style.backgroundColor = unlocked ? sup.Accent : new Color(0.24f, 0.24f, 0.26f);
+            head.style.marginTop = 10;
             var ht = UiKit.Box(head, "grow");
             UiKit.Label(ht, sup.Name, "detail-title");
             UiKit.Label(ht, sup.Tagline, "detail-sub");
@@ -400,6 +399,39 @@ namespace GeodeEmpire.UI
         /// being bought, not a coloured dot repeated twenty-three times.
         /// </summary>
         private static readonly Dictionary<string, Texture2D> _upgradeIcons = new Dictionary<string, Texture2D>();
+        private static readonly Dictionary<string, Texture2D> _crateIcons = new Dictionary<string, Texture2D>();
+
+        /// <summary>
+        /// §9.2: what turns up on the pallet. Four builds rather than twelve near-identical crates \u2014 what
+        /// separates one supplier from another on this screen is its accent, its chips and its price, and what the
+        /// picture has to carry is the shape of the delivery.
+        /// </summary>
+        private static string CrateArt(SupplierDefinition sup)
+        {
+            if (sup.Occasional || sup.Price >= 700f) return "premium";
+            if (sup.RockCountLabel != null && sup.RockCountLabel.Contains("12")) return "bulk";
+            if (sup.Price >= 260f) return "bulk";
+            return sup.Price >= 150f ? "curated" : "plain";
+        }
+
+        private static VisualElement CrateTile(VisualElement parent, SupplierDefinition sup, bool unlocked, float size)
+        {
+            var tile = UiKit.Box(parent, "upg-tile");
+            tile.style.width = size;
+            tile.style.height = size * 0.78f;
+            string art = CrateArt(sup);
+            if (!_crateIcons.TryGetValue(art, out var tex)) { tex = Resources.Load<Texture2D>("UI/Crates/" + art); _crateIcons[art] = tex; }
+            if (tex != null)
+            {
+                tile.style.backgroundImage = new StyleBackground(tex);
+                tile.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
+                if (!unlocked) tile.style.unityBackgroundImageTintColor = new Color(0.42f, 0.41f, 0.45f);
+            }
+            var pip = UiKit.Box(tile, "crate-pip");
+            pip.style.backgroundColor = unlocked ? sup.Accent : new Color(0.30f, 0.30f, 0.33f);
+            if (!unlocked) UiKit.Label(tile, "\u25A0", "upg-lock");
+            return tile;
+        }
 
         private static Texture2D UpgradeIcon(string id)
         {
