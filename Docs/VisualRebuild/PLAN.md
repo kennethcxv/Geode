@@ -2,7 +2,7 @@
 
 Controlling spec: `GEODE_VISUAL_REBUILD_REFERENCE_MATCH.md`.
 Safe checkpoint: `fbd9283` — compiles, 68/68 EditMode tests pass.
-Baseline captures: `Geode/Assets/Output/rebuild/before/`.
+Baseline captures: `Geode/Output/captures/rebuild/before/`.
 Reference map: `Docs/VisualRebuild/REFERENCE_MANIFEST.md`.
 
 This is a working document. It is revised whenever Unity proves an assumption wrong.

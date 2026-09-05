@@ -4,7 +4,7 @@ Working document for `GEODE_HANDS_ON_CORE_LOOP_EXPANSION_ECONOMY_OVERHAUL.md`.
 Written after auditing the running fresh-save game, not from reading the code alone.
 
 **Safe checkpoint (§3): `cf825de`** — compiles clean, EditMode 68/68 green, baseline captures in
-`Geode/Assets/Output/coreloop/baseline/`, baseline crack profile below. No force pushes, no history rewrites.
+`Geode/Output/captures/coreloop/baseline/`, baseline crack profile below. No force pushes, no history rewrites.
 
 ---
 

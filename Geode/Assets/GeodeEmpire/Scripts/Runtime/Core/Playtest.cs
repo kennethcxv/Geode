@@ -46,7 +46,7 @@ namespace GeodeEmpire.Core
 
         private int _snap;
         private bool _stockedSnap;
-        public string SnapDir = "Assets/Output/fresh";
+        public string SnapDir = "Output/captures/fresh";
 
         /// <summary>Contact-sheet frame of the Game view at a milestone (Editor: relative to the project root).</summary>
         private void Snap(string name)

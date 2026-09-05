@@ -7,7 +7,7 @@ the ids used by the earlier fidelity pass so the two passes can be read together
 Two ids were **mislabelled by the earlier pass and are corrected here**: R17 is the office desk
 (not a storage room) and R18 is the storage/inventory room (not an office desk).
 
-Evidence for this phase: `Geode/Assets/Output/rebuild/` (`before/`, `after/`, `mX_*/`).
+Evidence for this phase: `Geode/Output/captures/rebuild/` (`before/`, `after/`, `mX_*/`).
 
 | id | file (`ChatGPT Image Sep 4, 2026, …`) | counterpart | strongest traits | current defect | required change | Blender | layout | state |
 |----|------|-------------|------------------|----------------|-----------------|:--:|:--:|-------|
@@ -51,7 +51,7 @@ in the V6 backlog rather than counted as matched.
 
 Every row above is either **done** in this phase, done in the earlier fidelity pass, or one of the
 two deliberate gaps named below. Verification for the whole phase is recorded in
-`Docs/VisualRebuild/PLAN.md` section E and the evidence is in `Geode/Assets/Output/rebuild/`.
+`Docs/VisualRebuild/PLAN.md` section E and the evidence is in `Geode/Output/captures/rebuild/`.
 
 Two references are still short of their image, and are recorded as such rather than ticked:
 

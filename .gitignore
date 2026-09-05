@@ -81,9 +81,9 @@ __pycache__/
 # Geode Empire generated diagnostics (contact sheets, captures, sim reports)
 /Geode/Output/
 
-# editor capture scratch (MCP capture_game_view writes under Assets/Output)
-/Geode/Assets/Output/
-/Geode/Assets/Output.meta
+# Unity crash-recovery scene dumps
+/Geode/Assets/_Recovery/
+/Geode/Assets/_Recovery.meta
 
 # standalone builds
 /Geode/Build/

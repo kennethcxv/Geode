@@ -1,8 +1,8 @@
 # Starter shop, progression, UI & visual cohesion — plan
 
 Controlling spec: `GEODE_STARTER_SHOP_PROGRESSION_UI_REBUILD.md` (repo root).
-Baseline captures: `Geode/Assets/Output/starter/before/`. Evidence for each milestone lands in
-`Geode/Assets/Output/starter/mN_*/`.
+Baseline captures: `Geode/Output/captures/starter/before/`. Evidence for each milestone lands in
+`Geode/Output/captures/starter/mN_*/`.
 
 This plan supersedes `Docs/VisualRebuild/PLAN.md` wherever the two disagree. The visual-rebuild pass
 matched reference R06/R26 **literally**, and that is the root of most of what is wrong below: those
@@ -224,7 +224,7 @@ running shop; it is released in `OnDisable` now.
 
 **Tablet.** Upgrades, Collection and Stats rebuilt — see the commit. `UpgradeIconBaker` renders the actual prop
 behind each of the 23 upgrades into `Resources/UI/Upgrades`; the contact sheet is
-`Assets/Output/starter/upgrade_icons.png`.
+`Output/captures/starter/upgrade_icons.png`.
 
 **World art.** Ambient raised and cooled, pendants down from 4.0 to 2.7 with a wider falloff, board/ceiling/floor
 lightened, the dado repainted as painted board, and the wash station set into a blue base cabinet with a
@@ -234,7 +234,7 @@ stainless apron. Before/after: `starter/before/a_start.png` vs `starter/m6/a_roo
 four planted faults still caught. Two real findings were fixed on the way: the XP readout at 9 px and the
 objective card's "Next" line at 10.5 px, both under the 11 px floor, caused by the HUD reduction.
 
-**Four-state captures (§14).** `Assets/Output/starter/states/`: `day1`, `back`, `shop` (leased, bare),
+**Four-state captures (§14).** `Output/captures/starter/states/`: `day1`, `back`, `shop` (leased, bare),
 `fitted` (island, shelving, sign, still unstocked).
 
 ### Workflow note

@@ -37,7 +37,7 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - Plan: (1) `Tools/Blender/hq.bake_wear` bakes per-vertex wear masks into every prop (R convex edge-ness after subdividing long edges so panels have interior vertices, G recesses from concave edges + a 14-ray BVH occlusion cast, B up-facing; exported as linear vertex colour); (2) `GeodeEmpire/WornSurface` shader: paint or cast tile over a bare-metal tile, edge wear and chips, grime in recesses, streak staining down the sides, dust on tops, tangent-space normals, DepthNormals pass; (3) scene builder `Worn(...)` materials `M_MachinePaint` (olive paint over steel), `M_MachineIron` (cast iron), `M_MachineAlu` (aluminium), plus `M_Nameplate` and `M_BladeLabel`; (4) the trim / slab saw remodelled in `gen_props`: cast-iron motor with fins, end-bell bolts, a slotted fan cowl, terminal box, cable gland and cable run, a nameplate, cast pillow block with a grease nipple and webbed pedestal, belt on the pulleys, an aluminium sheet guard (3 mm walls, cheeks, a viewing window, bracket bolts), a plastic switch box, panel trim lines and a cabinet nameplate; blade with 24 diamond segments and gullets plus a printed label ring; aluminium sled on the vise. (5) Then the cracker, polish lap, wash tub and register on the same materials.
 
 ## V6.3 — fracture and reveal motion (2026-09-04)
-- Frames through a staged split (`reveal_frames.sh`, Assets/Output/reveal) showed the V5 defects exactly as the brief describes them: the top half swung about its rim with a fixed 0.28 R lift, so the dome swept through the cradle cushion at a quarter second; it snapped from closed to moving; it stopped dead on landing; the reveal light and the task lamp blew the cut face to white.
+- Frames through a staged split (`reveal_frames.sh`, Output/captures/reveal) showed the V5 defects exactly as the brief describes them: the top half swung about its rim with a fixed 0.28 R lift, so the dome swept through the cradle cushion at a quarter second; it snapped from closed to moving; it stopped dead on landing; the reveal light and the task lamp blew the cut face to white.
 - `CrackingBench.RevealRoutine` now: a 15% "give" beat (millimetres and three degrees along the seam) before the flip; a per-frame hold that keeps the half's true lowest point (`LowestOfTop`) above the seam plane while it is still over the cradle, fading as the slide carries it clear so it can drop to the bench; a small toss; a damped settle about the contact edge on landing (five degrees, 0.42 s); the reveal light at 0.5 / 0.9 (rare). Captures: `Docs/V6/v63/`.
 
 ## V6.4 — lighting and presentation (2026-09-04)
@@ -93,7 +93,7 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
   to `ShopPlan` instead. The same fresh run now opens 9 rocks instead of 2, keeps 2, and makes a retail sale.
 - Verified: fresh save -> tutorial from step one, beacon on and off screen, acknowledgement, `RunFreshPlayer`
   end to end (9 opened, 6 families, 1 retail sale, controller menu sweep green, 0 collision overlaps), 68/68
-  EditMode. Captures: `Geode/Assets/Output/rebuild/v67/`.
+  EditMode. Captures: `Geode/Output/captures/rebuild/v67/`.
 
 ## V6.8 — settings audit and key rebinding (§61-62, 2026-09-05)
 - §61's audit found the settings model already complete — graphics, resolution, window mode, FOV, both
@@ -118,7 +118,7 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
   device event, check the binding, the prompt and the tutorial text all moved, take the same control with another
   action and check the first is unbound and named, rebind on the pad and check the keyboard side is untouched, save,
   reload from disk, reset. **37/37 settings rows pass, 0 fail**, covering §61's "interaction -> runtime effect ->
-  save -> reload" for every setting in its audit. 68/68 EditMode. Captures: `Geode/Assets/Output/rebuild/v62/`.
+  save -> reload" for every setting in its audit. 68/68 EditMode. Captures: `Geode/Output/captures/rebuild/v62/`.
 
 ## V6.9 — buying, sourcing and the objective card (§64-65, 2026-09-05)
 - **§64 audit.** The suppliers screen already carried the dealer, the price, the rock count, the character chip, the
@@ -137,7 +137,7 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
   that condition spelled out, otherwise the cheapest upgrade and the shortfall. One clipped line under the header,
   because §65 also says not to let the card dominate the screen.
 - Verified in Play Mode on a fresh save and on a progressed one; 68/68 EditMode. Captures:
-  `Geode/Assets/Output/rebuild/v64/` and `v65/`.
+  `Geode/Output/captures/rebuild/v64/` and `v65/`.
 
 ## V6.10 — UI render QA (§66, 2026-09-05)
 - `UiRenderAudit` measures the interface instead of looking at it: every visible element on the game's own panel is
@@ -159,7 +159,7 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
   Close button landed squarely on the HUD's status card. The tablet carries its own cash readout in its header, so
   the status card stands down for it (a side panel like the inventory leaves it up, the way R03 shows it).
 - Result: **28/28 pass, 0 findings** over three resolutions, two interface scales and four screens, with all four
-  negative controls caught. 68/68 EditMode. Captures: `Geode/Assets/Output/rebuild/v66/`.
+  negative controls caught. 68/68 EditMode. Captures: `Geode/Output/captures/rebuild/v66/`.
 
 ## Defects discovered
 - (V5 baseline, from the owner's screenshots and the captures above) boxy dark saw; dough-like rough geode; muddy, shallow, sparse opened geode; colour-only material differences; mannequin customers; abstract checkout.

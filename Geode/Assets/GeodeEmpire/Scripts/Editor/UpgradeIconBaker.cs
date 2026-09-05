@@ -247,8 +247,8 @@ namespace GeodeEmpire.EditorTools
                 Object.DestroyImmediate(tex);
             }
             sheet.Apply();
-            Directory.CreateDirectory("Assets/Output/starter");
-            File.WriteAllBytes("Assets/Output/starter/upgrade_icons.png", sheet.EncodeToPNG());
+            Directory.CreateDirectory("Output/captures/starter");
+            File.WriteAllBytes("Output/captures/starter/upgrade_icons.png", sheet.EncodeToPNG());
             Object.DestroyImmediate(sheet);
         }
 

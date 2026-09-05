@@ -1,6 +1,6 @@
 # Reference-match pass — what changed, screen by screen
 
-Checkpoint before the pass: `1f19c89`. Captures live in `Geode/Assets/Output/refmatch/`
+Checkpoint before the pass: `1f19c89`. Captures live in `Geode/Output/captures/refmatch/`
 (`before_*` = the state at the start, `after_*` = the current build).
 
 ## The shared frame (every reference)
