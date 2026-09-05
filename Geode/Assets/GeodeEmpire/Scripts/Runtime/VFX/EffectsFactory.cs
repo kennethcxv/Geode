@@ -186,6 +186,21 @@ namespace GeodeEmpire.VFX
             Burst(_chips, position, normal + Vector3.up * 0.5f, Mathf.RoundToInt(1 + force * 6f), 0.6f + force * 1.4f, 0.7f);
         }
 
+        /// <summary>
+        /// A chisel blow, told apart by how well it landed (§8.1/§8.2). A square blow on the seam splits material
+        /// off it: chips fly and there is comparatively little dust. A flat or off-seam blow crushes the shell
+        /// instead, so it raises a cloud and throws almost nothing — which is what the player should see as well
+        /// as hear when a strike is going nowhere.
+        /// </summary>
+        public void Strike(Vector3 position, Vector3 normal, float force, float quality)
+        {
+            float q = Mathf.Clamp01(quality);
+            int dust = Mathf.RoundToInt((3 + force * 9f) * Mathf.Lerp(1.55f, 0.75f, q));
+            int chips = Mathf.RoundToInt((1 + force * 6f) * Mathf.Lerp(0.25f, 1.3f, q));
+            Burst(_dust, position, normal + Vector3.up * 0.3f, dust, (0.35f + force * 0.5f) * Mathf.Lerp(0.8f, 1f, q), 0.8f);
+            if (chips > 0) Burst(_chips, position, normal + Vector3.up * 0.5f, chips, (0.6f + force * 1.4f) * Mathf.Lerp(0.7f, 1.15f, q), 0.7f);
+        }
+
         /// <summary>Coolant leaving the nozzle: a thin falling stream (amount 0.5 drip .. 1 flood).</summary>
         public void CoolantStream(Vector3 nozzle, float amount)
         {

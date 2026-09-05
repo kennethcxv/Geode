@@ -876,6 +876,9 @@ namespace GeodeEmpire.Lapidary
             var parent = _rock.Record;
             var parentEntity = _rock;
             WorkshopAudio.Play("cut_through", _rock.transform.position, 0.9f);
+            // the last web of stone parting under the blade: the same layers as a break, but at the saw's balance,
+            // so a big dense agate still separates with more weight than a small one (§9.2, §9.3)
+            FractureAudio.Break(_rock.transform.position, _rock.Visual, _rock.Geology, FractureAudio.Tool.Saw, false);
             MusicPlayer.Instance?.Duck(2f);
             _controller?.Impulse(0.25f);
             Haptics.Pulse(0.5f, 0.3f, 0.12f);

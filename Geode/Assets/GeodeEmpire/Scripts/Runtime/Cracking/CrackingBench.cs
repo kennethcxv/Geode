@@ -803,7 +803,9 @@ namespace GeodeEmpire.Cracking
             session.State.Stats.TotalStrikes++;
 
             _jolt = Mathf.Clamp01(0.4f + force);
-            _rockKick = Mathf.Clamp01(0.3f + force * 0.8f * (result.Wobbled ? 2.2f : 1f));
+            // §8.1 rock micro-movement: a blow that did not bite pushed the rock instead of splitting it, so a
+            // poorly placed strike visibly shifts it more than a clean one of the same force does
+            _rockKick = Mathf.Clamp01((0.3f + force * 0.8f * (result.Wobbled ? 2.2f : 1f)) * Mathf.Lerp(1.35f, 0.85f, result.Quality));
             if (result.Wobbled)
             {
                 _wobble = Mathf.Clamp01(0.5f + force) * Mathf.Lerp(1f, 0.35f, Stability);
@@ -830,10 +832,27 @@ namespace GeodeEmpire.Cracking
             }
             else
             {
+                // §8.2 the player has to be able to hear a good blow from a bad one, and hear it as a different
+                // sound rather than a quieter one. A square blow on the seam puts its energy through the chisel:
+                // a clean metal-on-stone transient with the cap ringing over it. A flat, off-seam or overstruck
+                // blow dies in the rock, so it gets `tap_dead` — no tone, no ring — instead of the tap family.
+                float q = result.Quality;
+                bool wentIn = q >= 0.42f && !result.WeakBite;
                 float pitch = Mathf.Lerp(1.1f, 0.85f, force) * (result.Placement > 0.6f ? 1f : 1.1f) * (result.Overstrike ? 0.82f : 1f);
-                WorkshopAudio.Play(clip, _toolPoint, Mathf.Lerp(0.6f, 1f, force), pitch);
-                // hammer face on the chisel cap rings; the stone thud below it is what changes with placement
-                WorkshopAudio.Play("chisel_ring", _toolPoint, 0.16f + 0.4f * force, Mathf.Lerp(1.08f, 0.94f, force));
+                if (wentIn)
+                {
+                    WorkshopAudio.Play(clip, _toolPoint, Mathf.Lerp(0.6f, 1f, force), pitch);
+                    // hammer face on the chisel cap rings, and it rings in proportion to how square the blow was
+                    WorkshopAudio.Play("chisel_ring", _toolPoint, (0.10f + 0.34f * force) * Mathf.Lerp(0.55f, 1.35f, q),
+                        Mathf.Lerp(1.08f, 0.94f, force) * Mathf.Lerp(0.97f, 1.03f, q));
+                }
+                else
+                {
+                    // the dull one: the blow landed, the stone absorbed it, nothing came back up the tool
+                    WorkshopAudio.Play("tap_dead", _toolPoint, Mathf.Lerp(0.45f, 0.85f, force), Mathf.Lerp(1.12f, 0.88f, force));
+                    // barely any ring at all, and lower: the cap is being loaded, not struck
+                    WorkshopAudio.Play("chisel_ring", _toolPoint, (0.03f + 0.08f * force), Mathf.Lerp(0.94f, 0.86f, force));
+                }
                 if (result.NewCrack) { WorkshopAudio.Play("tick", _toolPoint, 0.9f, 0.9f); WorkshopAudio.Play("creak", _toolPoint, 0.35f + 0.4f * ringFrac, 1.1f - 0.25f * ringFrac); }
                 else if (result.StressAdded > 0.4f && _rng.Chance(0.35f)) WorkshopAudio.Play("tick", _toolPoint, 0.4f, 1.2f);
                 // the crack ran along a weak line: a longer, sharper tick and a second seam burst further round
@@ -842,8 +861,8 @@ namespace GeodeEmpire.Cracking
                 if (ringFrac >= 0.5f && !result.NewCrack) WorkshopAudio.Play("creak", _rock.transform.position, 0.25f + 0.35f * ringFrac, 0.8f);
                 // near the break the whole shell grinds: a low layer the player learns to listen for
                 if (ringFrac >= 0.7f) WorkshopAudio.Play("tension", _rock.transform.position, 0.3f + 0.45f * ringFrac, 0.9f + 0.2f * ringFrac);
-                _controller?.Impulse((0.2f + 0.55f * force) * (result.NewCrack ? 1.3f : 1f));
-                EffectsFactory.Instance?.Impact(_toolPoint, _toolNormal, force * (result.Placement * 0.6f + 0.4f));
+                _controller?.Impulse((0.2f + 0.55f * force) * (result.NewCrack ? 1.3f : 1f) * Mathf.Lerp(0.6f, 1.15f, q));
+                EffectsFactory.Instance?.Strike(_toolPoint, _toolNormal, force * (result.Placement * 0.6f + 0.4f), q);
                 if (result.NewCrack) SeamBurst(result.Sector, geo);
             }
 
@@ -971,9 +990,8 @@ namespace GeodeEmpire.Cracking
             // the split
             using (PerfProbe.Measure("audio-crack"))
             {
-                WorkshopAudio.Play("crack_final", _rock.transform.position, 1f, rare ? 0.92f : 1f);
+                FractureAudio.Break(_rock.transform.position, vis, g, FractureAudio.Tool.Hammer, rare, result.Shattered);
                 MusicPlayer.Instance?.Duck(rare ? 4f : 2f);
-                WorkshopAudio.Play("fragments", _rock.transform.position, 0.8f);
             }
             _controller?.Impulse(0.9f);
             using (PerfProbe.Measure("vfx-split")) EffectsFactory.Instance?.Split(_rock.transform.position, geo.MeanEquatorRadius, _cam.transform.forward);

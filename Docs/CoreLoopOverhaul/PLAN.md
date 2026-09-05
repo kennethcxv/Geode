@@ -220,3 +220,12 @@ Bump to version 3 with an explicit migration and a test per field.
 | M1 | Crate overlap reproduced | three crates, gap 0.000 m — see A2 |
 | M1 | No Day-1 retail reproduced | `RetailShop.Instance == NONE` |
 | M1 | EditMode suite | 68/68 |
+| M2 | 360° handling: roll, fine mode, inertia, reset | `PlayerInteractor.TurnHeld` — verified in Play Mode, KBM + pad |
+| M3 | Look-to-discover clues, loupe gating, clay blocks reading | `SpecimenSurface` + `ReadSurface`; 11 EditMode tests |
+| M4 | Spatial washing proven one-sided | `ONE FACE: front region 23 clean=1.00  opposite region 19 clean=0.00 (spatial=YES)` |
+| M4 | Full wash from the basin view | `washed in 73.1s: dirt=0.12 cleaned=0.69 dirtyPatches=8`, overlaps>4mm: 0 |
+| M6 | Reveal hitch removed | worst frames 189/325/232 ms -> 31.6/55.5/<33 ms; idle control 39–57 ms |
+| M9 | Receiving refuses instead of overlapping | `RefusalReason()` before spend; crate gap >= 0.62 m |
+| M12 | Ledger model + version-3 migration | 12 EditMode tests; old saves load with 0 owed |
+| — | Editor responsiveness restored | ping 30 s timeout -> 1.2 s after moving 1,620 scratch PNGs out of `Assets/` |
+| — | EditMode suite | **91/91** (68 + 11 SurfaceTests + 12 LedgerTests) |

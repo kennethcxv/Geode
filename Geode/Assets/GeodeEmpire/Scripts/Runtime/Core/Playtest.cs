@@ -319,6 +319,80 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        public void RunStrikeFeel() { if (!Running) StartCoroutine(StrikeFeel()); }
+
+        /// <summary>
+        /// §8.2: prove in a running game that a good blow and a bad one are different events, not the same event
+        /// at two volumes. CrackPerf only ever aims at the seam (placement 0.90-1.00 every strike), so until this
+        /// existed the dull-hit path had never once run outside a unit test.
+        ///
+        /// Throws matched pairs — the same force, on the seam and then well off it — and reports the split.
+        /// </summary>
+        private IEnumerator StrikeFeel()
+        {
+            Running = true;
+            Phase = "strike-feel";
+            float t0 = Time.time;
+            while ((S == null || S.State == null) && Time.time - t0 < 20f) yield return null;
+            if (S == null || S.State == null) { L("no session"); Running = false; yield break; }
+            L("== StrikeFeel");
+
+            if (S.Crates.Count == 0 || CrateWithRocks() == null)
+            {
+                if (S.State.Cash < 40f) S.AddCash(200f, "feel");
+                S.BuyCrate("local", out string err);
+                if (err != null) { L("buy failed: " + err); Running = false; yield break; }
+                yield return new WaitForSeconds(1.5f);
+            }
+            var crate = CrateWithRocks();
+            if (crate == null) { L("no crate"); Running = false; yield break; }
+            if (!crate.IsOpened)
+            {
+                yield return Walk(StandNear(crate.transform.position, 0.88f), 0.3f);
+                yield return LookAndInteract(crate.transform.position + Vector3.up * 0.2f, "Open crate");
+                yield return new WaitForSeconds(0.9f);
+            }
+            var rock = TopRockInCrate();
+            if (rock == null) { L("no rock"); Running = false; yield break; }
+            yield return LookAndInteract(rock.transform.position, "Pick up rock");
+            Vector3 cradle = ZonePos(ZoneKind.Cradle);
+            yield return Walk(new Vector3(cradle.x, 0f, cradle.z - 0.95f), 0.25f);
+            yield return LookAndInteract(cradle, "Set on the cradle");
+            yield return new WaitForSeconds(1.0f);
+            var bench = Find<CrackingBench>();
+            if (bench == null || !bench.Active) { L("bench not active"); Running = false; yield break; }
+
+            int live = 0, dead = 0;
+            float liveQ = 0f, deadQ = 0f;
+            System.Action<Cracking.StressModel.StrikeResult> watch = r =>
+            {
+                bool wentIn = r.Quality >= 0.42f && !r.WeakBite;
+                if (wentIn) { live++; liveQ += r.Quality; } else { dead++; deadQ += r.Quality; }
+                L($"  strike q={r.Quality:0.00} placement={r.Placement:0.00} weak={r.WeakBite} -> {(wentIn ? "LIVE (tap+ring)" : "DEAD (tap_dead)")}");
+            };
+            bench.Struck += watch;
+
+            // alternate: on the seam, then a hand's width off it, at the same force
+            for (int i = 0; i < 10 && bench.Active && !bench.Opened && !bench.Revealing; i++)
+            {
+                Vector2 seam = bench.SeamCursorHint();
+                Vector2 aim = (i % 2 == 0)
+                    ? seam + new Vector2(Random.Range(-0.02f, 0.02f), Random.Range(-0.02f, 0.02f))
+                    : seam + new Vector2(Random.Range(-0.03f, 0.03f), Random.Range(0.16f, 0.24f) * (Random.value < 0.5f ? -1f : 1f));
+                yield return AimCursor(bench, aim);
+                yield return Strike(0.55f);
+                if (bench.Revealing || bench.Opened) break;
+                yield return Rotate(0.42f, 1);
+            }
+            bench.Struck -= watch;
+            L($"STRIKE FEEL: live={live} (mean q {(live > 0 ? liveQ / live : 0f):0.00})  dead={dead} (mean q {(dead > 0 ? deadQ / dead : 0f):0.00})");
+            L(live > 0 && dead > 0
+                ? "  both branches fired: a good blow and a bad one are different sounds"
+                : "  FAIL: only one branch fired — the bad-strike path is unreachable in play");
+            Phase = "done";
+            Running = false;
+        }
+
         private IEnumerator CrackPerf(int rocks)
         {
             Running = true;

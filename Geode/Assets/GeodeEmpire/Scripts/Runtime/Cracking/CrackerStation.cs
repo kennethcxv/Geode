@@ -502,9 +502,9 @@ namespace GeodeEmpire.Cracking
             session.RecordDiscovery(rec, damage);
             session.FlushSave("cracker-opened");
             bool rare = g.Tier >= QualityTier.Exceptional;
-            WorkshopAudio.Play("crack_final", _rock.transform.position, 1f, rare ? 0.92f : 1.05f);
+            // the press has no metal transient and no ring: it loads the shell until it goes (§9.2 tool balance)
+            FractureAudio.Break(_rock.transform.position, vis, g, FractureAudio.Tool.Cracker, rare);
             MusicPlayer.Instance?.Duck(rare ? 4f : 2f);
-            WorkshopAudio.Play("fragments", _rock.transform.position, 0.6f);
             _controller?.Impulse(0.7f);
             Haptics.Pulse(0.9f, 0.6f, 0.2f);
             EffectsFactory.Instance?.Split(_rock.transform.position, geo.MeanEquatorRadius, _cam.transform.forward);

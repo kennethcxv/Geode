@@ -15,6 +15,8 @@ namespace GeodeEmpire.Audio
         private static GameObject _root;
         private static bool _built;
         private static int _poolIndex;
+        /// <summary>One clip out of the bank, watched so a destroyed bank is rebuilt instead of handed back.</summary>
+        private static AudioClip _canary;
         private const int SampleRate = 44100;
 
         public static float SfxVolume => GameSettings.Current.SfxVolume;
@@ -24,16 +26,32 @@ namespace GeodeEmpire.Audio
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
-            _built = false; _root = null; _pool.Clear(); _bank.Clear(); _poolIndex = 0;
+            _built = false; _root = null; _canary = null; _pool.Clear(); _bank.Clear(); _poolIndex = 0;
+        }
+
+        /// <summary>
+        /// Generate the clip bank. Pure data — no scene objects — so an editor tool or a test can inspect the
+        /// synthesised clips without a running game. The voice pool is a separate concern (<see cref="EnsureBuilt"/>)
+        /// because <c>DontDestroyOnLoad</c> is play-mode only.
+        /// </summary>
+        public static void EnsureBank()
+        {
+            // The clips are runtime objects: leaving Play Mode destroys them while this static dictionary keeps
+            // holding the references, so a count check alone hands out dead clips to the next editor-side caller.
+            if (_bank.Count > 0 && _canary != null) return;
+            _bank.Clear();
+            Build();
+            _bank.TryGetValue("tick", out var c);
+            _canary = c != null && c.Length > 0 ? c[0] : null;
         }
 
         public static void EnsureBuilt()
         {
+            EnsureBank();
             if (_built && _root != null) return;
             // (re)build: statics survive scene loads but the pool objects may have been destroyed
             _built = true;
             _pool.Clear();
-            _bank.Clear();
             _root = new GameObject("_WorkshopAudio");
             Object.DontDestroyOnLoad(_root);
             for (int i = 0; i < 16; i++)
@@ -49,7 +67,6 @@ namespace GeodeEmpire.Audio
                 src.dopplerLevel = 0f;
                 _pool.Add(src);
             }
-            Build();
         }
 
         public static void Play(string name, Vector3 position, float volume = 1f, float pitch = 1f)
@@ -65,6 +82,27 @@ namespace GeodeEmpire.Audio
             src.spatialBlend = 1f;
             src.clip = clip;
             src.Play();
+        }
+
+        /// <summary>
+        /// The same one-shot, scheduled a moment later. Layered fracture audio (§9.1) is a sequence in time —
+        /// onset, split, debris, settling — and a coroutine per layer would be both heavier and less accurate than
+        /// letting the audio thread schedule them.
+        /// </summary>
+        public static void PlayDelayed(string name, Vector3 position, float delay, float volume = 1f, float pitch = 1f)
+        {
+            EnsureBuilt();
+            if (delay <= 0f) { Play(name, position, volume, pitch); return; }
+            if (!_bank.TryGetValue(name, out var clips) || clips.Length == 0) return;
+            var clip = clips[Random.Range(0, clips.Length)];
+            var src = _pool[_poolIndex++ % _pool.Count];
+            if (src == null) { _root = null; EnsureBuilt(); src = _pool[_poolIndex++ % _pool.Count]; }
+            src.transform.position = position;
+            src.pitch = pitch * Random.Range(0.96f, 1.04f);
+            src.volume = volume * SfxVolume;
+            src.spatialBlend = 1f;
+            src.clip = clip;
+            src.PlayDelayed(delay);
         }
 
         /// <summary>Start a looping clip on its own source (machines): the caller owns pitch/volume and stops it.</summary>
@@ -132,6 +170,12 @@ namespace GeodeEmpire.Audio
             _bank["creak"] = Variants(2, i => Creak(0.35f, seed: 40 + (ulong)i));
             _bank["tick"] = Variants(3, i => Impact(0.06f, 3200f + i * 400f, 0.35f, 0f, 0.5f, 9f, seed: 50 + (ulong)i));
             _bank["crack_final"] = Variants(2, i => FinalCrack(seed: 60 + (ulong)i));
+            // §8.2 a blow that goes in flat and dies: no tone, no ring, just a damped thump into the stone
+            _bank["tap_dead"] = Variants(3, i => Dead(0.19f, 240f + i * 30f, seed: 62 + (ulong)i));
+            // §9.1 the split, in layers: the first fibre giving, the body of the break, then the debris settling
+            _bank["crack_onset"] = Variants(3, i => CrackOnset(seed: 64 + (ulong)i));
+            _bank["stone_split"] = Variants(3, i => StoneSplit(seed: 66 + (ulong)i));
+            _bank["debris_settle"] = Variants(2, i => DebrisSettle(seed: 68 + (ulong)i));
             _bank["fragments"] = Variants(2, i => Fragments(seed: 70 + (ulong)i));
             _bank["rock_place"] = Variants(3, i => Impact(0.14f, 420f + i * 60f, 0.55f, 0.1f, 0.5f, 2.2f, seed: 80 + (ulong)i));
             _bank["rock_pickup"] = Variants(2, i => Impact(0.09f, 900f, 0.25f, 0.02f, 0.5f, 6f, seed: 90 + (ulong)i));
@@ -400,6 +444,102 @@ namespace GeodeEmpire.Audio
         }
 
         /// <summary>Hammer through air: a short band-limited noise swell that peaks just before contact.</summary>
+        /// <summary>
+        /// A blow that dies in the stone. Deliberately the opposite of <see cref="Impact"/>: the tone is gone, the
+        /// noise is low-passed twice so nothing sparkles, and the whole thing is over in a fifth of a second. §8.2
+        /// asks for a physically different bad hit rather than a quieter good one.
+        /// </summary>
+        private static float[] Dead(float duration, float freq, ulong seed)
+        {
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f, lp2 = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.16f;         // dull
+                lp2 += (lp - lp2) * 0.16f;          // duller
+                float thump = Mathf.Sin(2f * Mathf.PI * freq * t) * Mathf.Exp(-t * 46f) * 0.5f;
+                float env = Mathf.Exp(-t * 26f);
+                d[i] = Mathf.Clamp((lp2 * 2.2f + thump) * env, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>The first fibre letting go: a very short, very bright snap that precedes the body of the break.</summary>
+        private static float[] CrackOnset(ulong seed)
+        {
+            float duration = 0.11f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float hp = 0f, prev = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float noise = rng.NextFloat() * 2f - 1f;
+                hp = 0.86f * (hp + noise - prev); prev = noise;      // one-pole high pass: all edge, no body
+                float crack = Mathf.Sin(2f * Mathf.PI * 2100f * t * (1f + 1.4f * Mathf.Exp(-t * 220f)));
+                d[i] = Mathf.Clamp((hp * 1.5f + crack * 0.45f) * Mathf.Exp(-t * 90f), -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>
+        /// The body of the split: the shell parting over a few tens of milliseconds rather than in one sample. The
+        /// envelope swells and then collapses, so it reads as mass giving way instead of a click.
+        /// </summary>
+        private static float[] StoneSplit(ulong seed)
+        {
+            float duration = 0.75f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f, lp2 = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.30f;
+                lp2 += (noise - lp2) * 0.045f;
+                // swell over the first 18 ms, then decay: the two faces separating, not a hammer tap
+                float swell = t < 0.018f ? t / 0.018f : Mathf.Exp(-(t - 0.018f) * 7.5f);
+                float grind = lp * 0.55f + lp2 * 1.9f;
+                float mass = Mathf.Sin(2f * Mathf.PI * 96f * t) * Mathf.Exp(-t * 11f) * 0.85f
+                           + Mathf.Sin(2f * Mathf.PI * 61f * t) * Mathf.Exp(-t * 7f) * 0.55f;
+                d[i] = Mathf.Clamp((grind * swell + mass) * 0.95f, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>Grit and flakes coming to rest: sparser, lower and longer than <see cref="Fragments"/>.</summary>
+        private static float[] DebrisSettle(ulong seed)
+        {
+            float duration = 1.6f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            int next = 0;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                if (i < next) continue;
+                next = i + rng.Range(1200, 9000);
+                float f = rng.Range(700f, 2600f);
+                float a = rng.Range(0.05f, 0.22f) * Mathf.Exp(-t * 1.9f);
+                int len = rng.Range(150, 600);
+                for (int k = 0; k < len && i + k < n; k++)
+                {
+                    float tt = k / (float)SampleRate;
+                    d[i + k] += Mathf.Sin(2f * Mathf.PI * f * tt) * Mathf.Exp(-tt * 340f) * a;
+                }
+            }
+            for (int i = 0; i < n; i++) d[i] = Mathf.Clamp(d[i], -1f, 1f);
+            return d;
+        }
+
         private static float[] Whoosh(float duration, ulong seed)
         {
             int n = (int)(duration * SampleRate);
@@ -648,7 +788,7 @@ namespace GeodeEmpire.Audio
 
         public static AudioClip GetClip(string name)
         {
-            EnsureBuilt();
+            EnsureBank();
             return _bank.TryGetValue(name, out var c) && c.Length > 0 ? c[0] : null;
         }
     }
