@@ -58,6 +58,9 @@ namespace GeodeEmpire.Core
         public float UiVolume = 0.8f;
         public float MusicVolume = 0.45f;
 
+        // ---- controls: the Input System's own binding-override JSON (V6 §62)
+        public string Bindings = "";
+
         // ---- v1 fields, kept only so old files migrate
         public bool HeadBob = true;
         public bool Fullscreen = false;
@@ -150,6 +153,9 @@ namespace GeodeEmpire.Core
             UiVolume = Mathf.Clamp01(UiVolume);
             if (Array.IndexOf(FrameRateOptions, FrameRateLimit) < 0) FrameRateLimit = 0;
         }
+
+        /// <summary>Static shorthand so anything holding a reference to a setting can persist it.</summary>
+        public static void SaveCurrent() => Current.Save();
 
         public void Save()
         {
@@ -319,7 +325,8 @@ namespace GeodeEmpire.Core
             switch (tab)
             {
                 case 0: ShowTutorial = d.ShowTutorial; CameraShake = d.CameraShake; Vibration = d.Vibration; break;
-                case 1: MouseSensitivity = d.MouseSensitivity; GamepadSensitivity = d.GamepadSensitivity; InvertY = d.InvertY; StickDeadzone = d.StickDeadzone; break;
+                // Controls includes the bindings: "reset section" on this page has to mean the whole page
+                case 1: MouseSensitivity = d.MouseSensitivity; GamepadSensitivity = d.GamepadSensitivity; InvertY = d.InvertY; StickDeadzone = d.StickDeadzone; InputBindings.ResetAll(); break;
                 case 2: FieldOfView = d.FieldOfView; HeadBobAmount = d.HeadBobAmount; ReducedMotion = d.ReducedMotion; UiScale = d.UiScale; CrosshairVisible = d.CrosshairVisible; break;
                 case 3:
                     DisplayMode = d.DisplayMode; ResolutionWidth = d.ResolutionWidth; ResolutionHeight = d.ResolutionHeight; VSync = d.VSync; FrameRateLimit = d.FrameRateLimit;

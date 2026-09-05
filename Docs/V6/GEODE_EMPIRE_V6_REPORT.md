@@ -95,6 +95,31 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
   end to end (9 opened, 6 families, 1 retail sale, controller menu sweep green, 0 collision overlaps), 68/68
   EditMode. Captures: `Geode/Assets/Output/rebuild/v67/`.
 
+## V6.8 — settings audit and key rebinding (§61-62, 2026-09-05)
+- §61's audit found the settings model already complete — graphics, resolution, window mode, FOV, both
+  sensitivities, inversion, every volume, UI scale, vibration and the accessibility set are all bound to a control
+  and applied live. What was missing was the last line of §61's own list: **controls/rebinding**.
+- The Controls page's BINDINGS card was a hardcoded string table. It could not be edited, and it was already wrong
+  — it never listed Build mode or the inventory. `GameInput.Glyph` was a hardcoded switch too, so §62's
+  "never hardcode `Press E` if the player remapped interact" was violated by construction.
+- **`InputBindings`**: the project asset is the source of truth; `Display()` asks it what an action is bound to on a
+  given control scheme, overrides included, and shortens the Input System's correct-but-long names to something a
+  key cap can hold ("Left Stick Press" -> "L3", and a composite's longest run of single-character parts collapses,
+  so Move reads "WASD" rather than "W/A/S/D/Up/Left/Down/Right"). `Glyph` now calls it, so a remap moves every
+  prompt, key rail, tutorial line and station hint with it; the old table survives only as the pre-load fallback.
+- **Rebinding**: `PerformInteractiveRebinding` per action per scheme, with the gameplay map disabled while listening
+  (or the very press being captured also fires the action it is replacing), mouse position and delta excluded, and
+  Escape / Start to cancel. **Conflicts**: one control, one action — the action that had it gives it up and the page
+  says which, because silently sharing a key is the worst of the three options. **Reset** per action and for all,
+  and "Reset section" on the Controls page now means the whole page, bindings included.
+- **Persistence**: the Input System's own override JSON rides in `settings.json` (`GameSettings.Bindings`) and is
+  applied in `GameInput.Ensure` before anything asks for a glyph.
+- Verified by extending `SettingsMatrix` with eight rows that drive the real path — start a rebind, queue a real
+  device event, check the binding, the prompt and the tutorial text all moved, take the same control with another
+  action and check the first is unbound and named, rebind on the pad and check the keyboard side is untouched, save,
+  reload from disk, reset. **37/37 settings rows pass, 0 fail**, covering §61's "interaction -> runtime effect ->
+  save -> reload" for every setting in its audit. 68/68 EditMode. Captures: `Geode/Assets/Output/rebuild/v62/`.
+
 ## Defects discovered
 - (V5 baseline, from the owner's screenshots and the captures above) boxy dark saw; dough-like rough geode; muddy, shallow, sparse opened geode; colour-only material differences; mannequin customers; abstract checkout.
 - V6.1b root causes behind the "dough" and "fur":
@@ -122,8 +147,8 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 
 ## Remaining work
 - V6.6 checkout and V6.7 tutorial are complete (see above). The inventory UI (§63) was built during the visual
-  rebuild phase (`InventoryUI`, R03). Next: §61 settings rebuild, §62 key rebinding, §64 buying/sourcing UI,
-  §65 career/objective UI, §66 UI render QA.
+  rebuild phase (`InventoryUI`, R03), and §61/§62 are done (V6.8). Next: §64 buying/sourcing UI, §65
+  career/objective UI, §66 UI render QA, then §67 onward.
 - V6.1 remainder: S8 tilt toward clusters, S6 per-direction wall thinning, S7 terraces, S10 luster classes for the non-quartz habits, S11 SpecimenVisual hygiene + perf gate (**partly done**: `SpecimenVisual.CrystalBudget` gives scenery a crystal budget, which took the stocked showroom from 5.19 M to 2.80 M triangles — see `Docs/VisualRebuild/PLAN.md` E), S12 machine scaffolding, S13 acceptance gate (RunGeodeGate matrix over all 24 families, standalone, report). Known visual nits: the agate face's fracture relief is strong, the staged seam frost is still chalky at full stress, non-quartz carpets (calcite, fluorite) still use the V5 habits at V5 sizes.
 - Then V6.2 machines .. V6.9 and the FINAL acceptance per the brief.
 

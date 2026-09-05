@@ -425,3 +425,16 @@
 .beacon-off .beacon-label { top: 26px; }
 .tutorial-done { border-left-color: rgb(92, 200, 128); }
 .tutorial-tick { font-size: 17px; color: rgb(126, 216, 156); -unity-text-align: middle-center; }
+
+/* ---- key rebinding (V6 §62) ------------------------------------------------------------ */
+.binding-head { padding-bottom: 4px; border-bottom-width: 1px; border-bottom-color: rgba(255,244,220,0.12); margin-bottom: 4px; }
+.binding-head .binding-action, .binding-col { font-size: 12px; letter-spacing: 2px; color: rgba(238,233,226,0.45); }
+.binding-col { width: 150px; flex-shrink: 0; -unity-text-align: middle-center; }
+.binding-btn { width: 150px; flex-shrink: 0; margin: 2px 0 2px 0; padding: 4px 6px; font-size: 15px;
+               -unity-text-align: middle-center; background-color: rgba(255,248,236,0.05);
+               border-width: 1px; border-color: rgba(255,244,220,0.14); border-radius: 5px; color: rgb(238,233,226); }
+.binding-btn:hover { background-color: rgba(255,248,236,0.12); }
+.binding-btn:focus { border-color: rgb(232,190,112); background-color: rgba(232,190,112,0.16); }
+.binding-listening { border-color: rgb(232,190,112); background-color: rgba(232,190,112,0.24); color: rgb(248,232,200); }
+.binding-unbound { color: rgb(232,140,120); border-color: rgba(232,116,96,0.5); }
+.binding-fixed { width: 150px; flex-shrink: 0; -unity-text-align: middle-center; color: rgba(238,233,226,0.6); }

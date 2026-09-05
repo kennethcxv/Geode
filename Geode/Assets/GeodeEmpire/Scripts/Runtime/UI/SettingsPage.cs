@@ -76,6 +76,7 @@ namespace GeodeEmpire.UI
             var footer = _footer = UiKit.Box(Root, "settings-footer");
             var left = UiKit.Box(footer, "row");
             var resetSection = UiKit.Button(left, "Reset section", () => { S.ResetSection(Tab); if (Tab == 3) ApplyDisplayWithConfirm(); AfterChange(true); }, "btn-ghost");
+            // AfterChange rebuilds the page, so the binding caps come back from the asset on their own
             resetSection.style.marginRight = 10;
             UiKit.Button(left, "Reset all", () => { S.ResetAll(); ApplyDisplayWithConfirm(); AfterChange(true); }, "btn-ghost");
             UiKit.Button(footer, "Back", () => _back?.Invoke(), "btn-ghost");
@@ -313,26 +314,84 @@ namespace GeodeEmpire.UI
             Slider("Controller look sensitivity", null, 0.2f, 3f, S.GamepadSensitivity, Mult, v => S.GamepadSensitivity = v);
             Toggle("Invert look Y", "Push up to look down, mouse and controller", S.InvertY, v => S.InvertY = v);
             Slider("Stick deadzone", "Ignore small stick movement and drift", 0.05f, 0.4f, S.StickDeadzone, Pct, v => S.StickDeadzone = v);
-            var card = UiKit.Box(_body, "card", "bindings-card");
-            UiKit.Label(card, "BINDINGS", "section");
-            string[][] rows =
+            BuildBindings();
+        }
+
+        // ---- rebinding (V6 §62) ------------------------------------------------------------------
+        private VisualElement _bindingCard;
+        private Label _bindingNote;
+        private readonly List<(string action, Button kb, Button pad)> _bindingRows = new List<(string, Button, Button)>();
+
+        private void BuildBindings()
+        {
+            _bindingRows.Clear();
+            _bindingCard = UiKit.Box(_body, "card", "bindings-card");
+            var head = UiKit.Box(_bindingCard, "row");
+            UiKit.Label(head, "BINDINGS", "section", "grow");
+            var reset = UiKit.Button(head, "Reset bindings", () => { InputBindings.ResetAll(); RefreshBindings(); Note("Every control is back to its default."); }, "btn-ghost");
+            _controls.Add(reset);
+            var cols = UiKit.Box(_bindingCard, "binding-row", "binding-head");
+            UiKit.Label(cols, "ACTION", "binding-action");
+            UiKit.Label(cols, "KEYBOARD / MOUSE", "binding-col");
+            UiKit.Label(cols, "CONTROLLER", "binding-col");
+            foreach (var e in InputBindings.Rebindable)
             {
-                new[] { "Move / look", "WASD, mouse", "Left stick, right stick" },
-                new[] { "Interact, pick up, place", "E", "A" },
-                new[] { "Strike (hold to wind up)", "Left mouse", "RT" },
-                new[] { "Inspect", "Right mouse", "LT" },
-                new[] { "Rotate", "Q / R", "LB / RB" },
-                new[] { "Drop", "G", "X" },
-                new[] { "Loupe", "F", "Y" },
-                new[] { "Tablet", "Tab", "Select" },
-                new[] { "Pause", "Esc", "Start" },
-            };
-            foreach (var r in rows)
+                var line = UiKit.Box(_bindingCard, "binding-row");
+                UiKit.Label(line, e.Label, "binding-action");
+                if (e.Fixed)
+                {
+                    // a composite is shown, not rebound one direction at a time: too many ways to leave it unwalkable
+                    UiKit.Label(line, InputBindings.Display(e.Action, InputBindings.KeyboardScheme), "binding-key", "binding-fixed");
+                    UiKit.Label(line, InputBindings.Display(e.Action, InputBindings.GamepadScheme), "binding-key", "binding-fixed");
+                    continue;
+                }
+                var entry = e;
+                Button kb = null, pad = null;
+                kb = UiKit.Button(line, InputBindings.Display(e.Action, InputBindings.KeyboardScheme), () => Rebind(entry.Action, InputBindings.KeyboardScheme, kb), "binding-key", "binding-btn");
+                pad = UiKit.Button(line, InputBindings.Display(e.Action, InputBindings.GamepadScheme), () => Rebind(entry.Action, InputBindings.GamepadScheme, pad), "binding-key", "binding-btn");
+                _controls.Add(kb); _controls.Add(pad);
+                _bindingRows.Add((e.Action, kb, pad));
+            }
+            _bindingNote = UiKit.Label(_bindingCard, "Choose a control, then press the key or button you want. Escape (or Start) keeps the one you had.", "setting-desc");
+        }
+
+        private void Rebind(string action, string scheme, Button btn)
+        {
+            if (InputBindings.Listening) return;
+            string had = btn.text;
+            btn.text = scheme == InputBindings.GamepadScheme ? "press a button…" : "press a key…";
+            btn.AddToClassList("binding-listening");
+            Note(scheme == InputBindings.GamepadScheme ? "Listening for a controller button. Start cancels." : "Listening for a key or mouse button. Escape cancels.");
+            InputBindings.StartRebind(action, scheme, ok =>
             {
-                var line = UiKit.Box(card, "binding-row");
-                UiKit.Label(line, r[0], "binding-action");
-                UiKit.Label(line, r[1], "binding-key");
-                UiKit.Label(line, r[2], "binding-key");
+                btn.RemoveFromClassList("binding-listening");
+                if (!ok) { btn.text = had; Note("Left as it was."); RefreshBindings(); return; }
+                RefreshBindings();
+                Note(string.IsNullOrEmpty(InputBindings.LastConflict)
+                    ? "Bound."
+                    : $"Bound. {Pretty(InputBindings.LastConflict)} had that control and is now unbound — give it another one.");
+            });
+        }
+
+        private static string Pretty(string action)
+        {
+            foreach (var e in InputBindings.Rebindable) if (e.Action == action) return e.Label;
+            return action;
+        }
+
+        private void Note(string text) { if (_bindingNote != null) _bindingNote.text = text; }
+
+        /// <summary>Re-read every cap off the asset: a rebind, a conflict or a reset all land here.</summary>
+        private void RefreshBindings()
+        {
+            foreach (var (action, kb, pad) in _bindingRows)
+            {
+                string k = InputBindings.Display(action, InputBindings.KeyboardScheme);
+                string g = InputBindings.Display(action, InputBindings.GamepadScheme);
+                kb.text = string.IsNullOrEmpty(k) ? "—" : k;
+                pad.text = string.IsNullOrEmpty(g) ? "—" : g;
+                kb.EnableInClassList("binding-unbound", string.IsNullOrEmpty(k));
+                pad.EnableInClassList("binding-unbound", string.IsNullOrEmpty(g));
             }
         }
 

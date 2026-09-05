@@ -54,6 +54,7 @@ namespace GeodeEmpire.Core
             var ui = asset.FindActionMap("UI");
             ui?.Enable();
             _ready = true;
+            InputBindings.Apply();   // a remap from the settings file, before anything asks for a glyph
         }
 
         /// <summary>Call once per frame from the player to keep the control scheme current.</summary>
@@ -106,9 +107,16 @@ namespace GeodeEmpire.Core
         public static bool InventoryPressed => _ready && _inventory != null && _inventory.WasPressedThisFrame();
 
         /// <summary>Human-readable glyph for an action in the current scheme.</summary>
+        /// <summary>
+        /// What the player would actually press for this action, on the device they last used. Read off the action
+        /// asset (V6 §62), so a remapped control changes every prompt, key rail and tutorial line with it; the table
+        /// below is only the fallback for when the asset has not loaded yet.
+        /// </summary>
         public static string Glyph(string action)
         {
             bool gp = UsingGamepad;
+            string live = InputBindings.Display(action, gp ? InputBindings.GamepadScheme : InputBindings.KeyboardScheme);
+            if (!string.IsNullOrEmpty(live)) return live;
             switch (action)
             {
                 case "Interact": return gp ? "A" : "E";

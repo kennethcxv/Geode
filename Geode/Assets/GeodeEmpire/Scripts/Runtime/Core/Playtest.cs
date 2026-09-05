@@ -2670,6 +2670,57 @@ namespace GeodeEmpire.Core
             var amb = FindAnyObjectByType<Audio.AmbiencePlayer>();
             g.AmbienceVolume = 0.3f; g.Apply(); Row("Ambience volume", "80%", "30%", amb == null || Mathf.Approximately(amb.SourceVolume, 0.15f));
 
+            // controls: rebinding, the whole way round (V6 §62) — interaction, runtime effect, conflict, save, reload
+            InputBindings.ResetAll();
+            string wasE = InputBindings.Display("Interact", InputBindings.KeyboardScheme);
+            var interact = InputBindings.Find("Interact");
+            int ib = InputBindings.BindingIndex(interact, InputBindings.KeyboardScheme);
+            bool listening = false;
+            InputBindings.StartRebind("Interact", InputBindings.KeyboardScheme, _ => { });
+            listening = InputBindings.Listening;
+            D.KeyDown(UnityEngine.InputSystem.Key.J);
+            for (int i = 0; i < 30 && InputBindings.Listening; i++) yield return null;
+            D.KeyUp();
+            yield return null;
+            Row("Rebind Interact", wasE, InputBindings.Display("Interact", InputBindings.KeyboardScheme),
+                listening && InputBindings.Display("Interact", InputBindings.KeyboardScheme) == "J");
+            Row("Prompt follows binding", "E", GameInput.Glyph("Interact"), GameInput.Glyph("Interact") == "J");
+            Row("Tutorial follows binding", "{Interact}", Tutorial.Format("{Interact}"), Tutorial.Format("{Interact}") == "J");
+            // the conflict: give J to the loupe and Interact must lose it, and say so
+            InputBindings.StartRebind("Loupe", InputBindings.KeyboardScheme, _ => { });
+            D.KeyDown(UnityEngine.InputSystem.Key.J);
+            for (int i = 0; i < 30 && InputBindings.Listening; i++) yield return null;
+            D.KeyUp();
+            yield return null;
+            Row("Binding conflict", "Interact=J", "Loupe=J, Interact unbound",
+                InputBindings.Display("Loupe", InputBindings.KeyboardScheme) == "J"
+                && string.IsNullOrEmpty(InputBindings.Display("Interact", InputBindings.KeyboardScheme))
+                && InputBindings.LastConflict == "Interact");
+            // a gamepad binding is separate from the keyboard one
+            string padWas = InputBindings.Display("Drop", InputBindings.GamepadScheme);
+            InputBindings.StartRebind("Drop", InputBindings.GamepadScheme, _ => { });
+            D.PadState(Vector2.zero, Vector2.zero, 0f, 0f, GamepadButton.North);
+            for (int i = 0; i < 30 && InputBindings.Listening; i++) yield return null;
+            D.PadState(Vector2.zero, Vector2.zero, 0f, 0f);
+            yield return null;
+            Row("Rebind on the pad", padWas, InputBindings.Display("Drop", InputBindings.GamepadScheme),
+                InputBindings.Display("Drop", InputBindings.GamepadScheme) == "Y"
+                && InputBindings.Display("Drop", InputBindings.KeyboardScheme) == "G");
+            string bindingsJson = GameSettings.Current.Bindings;
+            Row("Bindings saved", "-", bindingsJson.Length + " bytes", bindingsJson.Length > 0);
+            // reload from disk and re-apply: the remap has to come back
+            var reloaded = GameSettings.Load();
+            InputBindings.Asset.RemoveAllBindingOverrides();
+            InputBindings.Asset.LoadBindingOverridesFromJson(reloaded.Bindings);
+            Row("Bindings reloaded", "-", InputBindings.Display("Loupe", InputBindings.KeyboardScheme),
+                InputBindings.Display("Loupe", InputBindings.KeyboardScheme) == "J" && InputBindings.Display("Drop", InputBindings.GamepadScheme) == "Y");
+            InputBindings.ResetAll();
+            Row("Reset bindings", "remapped", InputBindings.Display("Interact", InputBindings.KeyboardScheme),
+                InputBindings.Display("Interact", InputBindings.KeyboardScheme) == "E"
+                && InputBindings.Display("Loupe", InputBindings.KeyboardScheme) == "F"
+                && InputBindings.Display("Drop", InputBindings.GamepadScheme) == "X"
+                && GameSettings.Current.Bindings.Length == 0);
+
             // persistence: every changed value must come back from disk
             g.Save();
             var back = GameSettings.Load();
