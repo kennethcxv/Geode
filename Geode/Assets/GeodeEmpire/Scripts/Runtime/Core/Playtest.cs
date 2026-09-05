@@ -288,6 +288,140 @@ namespace GeodeEmpire.Core
         /// <summary>Run A: buy, open the crate, crack one rock with careful medium strikes, sort it.</summary>
         public void RunFirstCrate(string style = "careful") { if (!Running) StartCoroutine(FirstCrate(style)); }
 
+        public void RunStarterAcceptance() { if (!Running) StartCoroutine(StarterAcceptance()); }
+
+        /// <summary>
+        /// §14 of the starter-rebuild spec, run against a real fresh save: the day-one business is small and does
+        /// not show the mature one; nothing later is installed; the collection is empty; then buy, receive, site
+        /// and reload a piece of equipment and check the room actually changed and stayed changed.
+        /// </summary>
+        private IEnumerator StarterAcceptance()
+        {
+            Running = true;
+            Phase = "starter-acceptance";
+            S.NewGame();
+            yield return new WaitForSeconds(0.6f);
+            var st = S.State;
+            int pass = 0, fail = 0;
+            void Check(string what, bool ok, string detail = null)
+            {
+                if (ok) pass++; else fail++;
+                L($"  {(ok ? "ok  " : "FAIL")}  {what}{(detail == null ? "" : "  (" + detail + ")")}");
+            }
+
+            L("== StarterAcceptance: a real fresh save");
+
+            // --- the day-one business -----------------------------------------------------------
+            var premises = Find<Workshop.PremisesExpansion>();
+            Check("back room is not leased", premises != null && !premises.BackRoomRoot.activeSelf);
+            Check("shop front is not leased", premises != null && !premises.ShopFrontRoot.activeSelf);
+            Check("the hoarding is up", premises != null && premises.ShopFrontHoarding.activeSelf);
+            Check("the north openings are boarded", premises != null && premises.BackRoomHoarding.activeSelf);
+            Check("no retail shop is running", Retail.RetailShop.Instance == null);
+
+            // how much floor the player can actually reach, measured the way build mode measures it
+            Build.PlacementValidator.InvalidateMask();
+            int free = 0, reach = 0;
+            Core.WorldIntegrityAudit.Clearance(out free, out reach);
+            const float CellM2 = 0.15f * 0.15f;   // WorldIntegrityAudit.Clearance samples on a 15 cm grid
+            float reachedM2 = reach * CellM2;
+            L($"  reachable floor {reachedM2:F1} m^2 ({reach} cells of {free} free)");
+            Check("day one is a small unit", reachedM2 < 35f, $"{reachedM2:F1} m^2");
+
+            // --- nothing later is installed ------------------------------------------------------
+            foreach (var id in new[] { "trim_saw", "geode_cracker", "flat_lap", "shop_island", "display_wall_a", "display_wall_b", "display_cabinet" })
+            {
+                Build.PlaceableFixture f = null;
+                foreach (var x in Build.PlaceableFixture.All) if (x.Id == id) f = x;
+                Check($"{id} is not installed", f != null && !f.Owned && (f.Body == null || !f.Body.activeInHierarchy));
+            }
+
+            // --- the collection is empty ----------------------------------------------------------
+            Check("no display capacity yet", st.DisplayCapacity == 0, "cap=" + st.DisplayCapacity);
+            Check("nothing on display", st.DisplayedCount() == 0);
+            Check("no specimens owned", st.Specimens.Count == 0, st.Specimens.Count + " records");
+            Check("encyclopedia empty", st.Encyclopedia.Count == 0);
+            int loose = 0;
+            foreach (var e in S.Entities.Values) if (e != null) loose++;
+            Check("no specimen entities in the world", loose == 0, loose + " entities");
+
+            // --- buy, receive, site, reload -------------------------------------------------------
+            Phase = "starter-buy";
+            st.Cash = 2000f;
+            S.RaiseStateChanged();
+            S.BuyUpgrade(Economy.UpgradeCatalog.BackRoom, out _);
+            yield return new WaitForSeconds(0.5f);
+            Check("the back room opens on purchase", premises.BackRoomRoot.activeSelf && !premises.BackRoomHoarding.activeSelf);
+            bool bought = S.BuyUpgrade(Economy.UpgradeCatalog.CollectionCabinet, out string why);
+            Check("the collection cabinet can be bought", bought, why);
+            yield return new WaitForSeconds(0.5f);
+            Check("buying it grants display slots", st.DisplayCapacity == 8, "cap=" + st.DisplayCapacity);
+
+            var delivery = Find<Build.FixtureDelivery>();
+            int crated = 0;
+            if (delivery != null) foreach (var slot in delivery.Slots) if (slot?.Root != null && slot.Root.activeSelf) crated++;
+            Check("it arrives crated in the workshop", crated == 1, crated + " crates on the floor");
+
+            Build.PlaceableFixture cab = null;
+            foreach (var x in Build.PlaceableFixture.All) if (x.Id == "display_cabinet") cab = x;
+            var bm = Find<Build.BuildMode>();
+            bool sited = false;
+            Vector3 sitedAt = Vector3.zero;
+            if (cab != null && bm != null)
+            {
+                // sweep the rooms the player has, the way a player sweeps a wall looking for a gap: the test is
+                // that somewhere legal exists, not that one hard-coded metre does
+                string last = "no candidate tried";
+                for (float x = Build.ShopPlan.XMin + 0.4f; x <= Build.ShopPlan.XMax - 0.4f && !sited; x += 0.25f)
+                    for (float z = Build.ShopPlan.ZMin + 0.4f; z <= Build.ShopPlan.ZMax - 0.4f && !sited; z += 0.25f)
+                        foreach (float yaw in new[] { 0f, 90f, 180f, 270f })
+                        {
+                            var p = new Vector3(x, 0f, z);
+                            if (!Build.ShopPlan.Open(p)) continue;
+                            if (bm.TryPlace(cab, p, yaw, out last)) { sited = true; sitedAt = p; L($"    sited at ({x:F2}, {z:F2}) yaw {yaw:F0}"); break; }
+                        }
+                if (!sited) L("    place: " + last);
+            }
+            Check("the player can site it on a back-room wall", sited);
+            yield return new WaitForSeconds(0.4f);
+            Check("its body is in the room once sited", cab != null && cab.Body != null && cab.Body.activeInHierarchy,
+                  cab == null ? "no fixture" : cab.Body == null ? "no body" : $"self={cab.Body.activeSelf} owned={cab.Owned} placed={cab.Pose.Placed} rootActive={cab.gameObject.activeInHierarchy}");
+
+            // it must be refused where it would block the way out
+            bool refused = cab != null && bm != null && !bm.TryPlace(cab, new Vector3(GeodeEmpire.Build.ShopPlan.WorkDoorX, 0f, GeodeEmpire.Build.ShopPlan.ZMin + 0.6f), 0f, out _);
+            Check("placement in the doorway is refused", refused);
+            // and in a room that has not been leased
+            bool refusedShop = cab != null && bm != null && !bm.TryPlace(cab, new Vector3(5.0f, 0f, 2.0f), 0f, out _);
+            Check("placement in the unleased showroom is refused", refusedShop);
+
+            Phase = "starter-reload";
+            var pose = st.Fixture("display_cabinet");
+            Vector3 where = pose != null ? pose.Position : Vector3.zero;
+            S.FlushSave("acceptance");
+            S.ContinueGame();
+            yield return new WaitForSeconds(0.8f);
+            var pose2 = S.State.Fixture("display_cabinet");
+            Check("the placement survives a reload", pose2 != null && pose2.Placed && (pose2.Position - where).sqrMagnitude < 0.0025f);
+            Check("display capacity survives a reload", S.State.DisplayCapacity == 8);
+            Check("the collection is still empty after a reload", S.State.DisplayedCount() == 0);
+
+            // --- and the leases actually change the building --------------------------------------
+            Phase = "starter-lease";
+            S.State.Cash = 4000f;
+            S.BuyUpgrade(Economy.UpgradeCatalog.ShopFront, out _);
+            yield return new WaitForSeconds(0.4f);
+            Check("the shop front opens on purchase", premises.ShopFrontRoot.activeSelf && !premises.ShopFrontHoarding.activeSelf);
+            Check("the shop starts serving", Retail.RetailShop.Instance != null);
+            Build.PlacementValidator.InvalidateMask();
+            Core.WorldIntegrityAudit.Clearance(out int free2, out int reach2);
+            float grownM2 = reach2 * CellM2;
+            L($"  reachable floor after both leases {grownM2:F1} m^2");
+            Check("the business is visibly bigger", grownM2 > reachedM2 * 1.8f, $"{reachedM2:F1} -> {grownM2:F1} m^2");
+
+            L($"starter acceptance: pass={pass} fail={fail}");
+            Running = false;
+        }
+
         private IEnumerator FirstCrate(string style)
         {
             Running = true;

@@ -889,8 +889,8 @@ namespace GeodeEmpire.EditorTools
             // the back of house reads as a different room
             MakeLight(lights, "BayDaylight", new Vector3((BayX0 + BayX1) * 0.5f, 2.2f, RoomZMax - 0.7f), new Vector3(22f, 180f, 0f), LightType.Spot, new Color(0.74f, 0.83f, 1f), 1.6f, 6.5f, 92f, false);
             // personal cabinet spots (cool white) from the room side of the partition
-            MakeLight(lights, "CabinetSpotA", new Vector3(1.5f, 2.55f, 2.05f), new Vector3(62f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 2.4f, 3.2f, 55f, false);
-            MakeLight(lights, "CabinetSpotB", new Vector3(1.5f, 2.55f, 2.65f), new Vector3(62f, 90f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 2.4f, 3.2f, 55f, false);
+            MakeLight(lights, "CabinetSpotA", new Vector3(0.02f, 2.55f, RoomZMax - 0.95f), new Vector3(62f, 0f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 2.4f, 3.2f, 55f, false);
+            MakeLight(lights, "CabinetSpotB", new Vector3(0.78f, 2.55f, RoomZMax - 0.95f), new Vector3(62f, 0f, 0f), LightType.Spot, new Color(0.92f, 0.95f, 1f), 2.4f, 3.2f, 55f, false);
             // showroom: case spots and a counter light
             MakeLight(lights, "CaseSpotA", new Vector3(6.05f, 2.65f, -0.1f), new Vector3(58f, 90f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 2.6f, 3.4f, 60f, false);
             MakeLight(lights, "CaseSpotB", new Vector3(6.05f, 2.65f, 0.9f), new Vector3(58f, 90f, 0f), LightType.Spot, new Color(0.96f, 0.97f, 1f), 2.6f, 3.4f, 60f, false);
@@ -1319,11 +1319,10 @@ namespace GeodeEmpire.EditorTools
             // ---- Display cabinet (east wall, visible from the bench) -------------------------
             var cabinet = new GameObject("DisplayCabinet").transform;
             cabinet.SetParent(parent, false);
-            // The day-one unit has no wall long enough for a 1.24 m cabinet, and that is the honest answer: a new
-            // business does not own a private gallery. It is bought, delivered and sited (§5.1). Its default pose is
-            // the partition north of the staff doorway, which only exists once the shop front is leased.
-            cabinet.localPosition = new Vector3(PartitionX - 0.35f, 0f, 2.35f);
-            cabinet.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            // Bought, delivered and sited (§5.1), and gated behind the back-room lease, which is the first room
+            // with a wall to spare. Its default pose is that wall; the player may move it anywhere they have leased.
+            cabinet.localPosition = new Vector3(0.4f, 0f, RoomZMax - 0.32f);
+            cabinet.localRotation = Quaternion.Euler(0f, 180f, 0f);
             var cabBody = new GameObject("Body").transform;
             cabBody.SetParent(cabinet, false);
             var cabProp = Prop("prop_display_cabinet", cabBody, Vector3.zero, 0f, "M_WoodDark,M_CaseLight");
@@ -1476,7 +1475,7 @@ namespace GeodeEmpire.EditorTools
             Object.DestroyImmediate(strap.GetComponent<Collider>());
             Sign(parent, "DEALER OUTBOX", new Vector3(-0.9f, 1.72f, RoomZMin + 0.03f), 180f, 0.75f);   // clear of the door architrave (x > -1.76) and the intercom (top 1.46)
             Sign(parent, "GEODE WORKS", new Vector3(-2.3f, 2.5f, RoomZMin + 0.03f), 180f, 1.3f);   // above the door frame (top 2.15)
-            SignHung(parent, "PRIVATE COLLECTION", new Vector3(1.85f, 2.42f, 2.35f), 90f, 0.85f);
+            SignHung(parent, "PRIVATE COLLECTION", new Vector3(0.4f, 2.42f, RoomZMax - 0.95f), 0f, 0.85f);
             // ---- stock and clutter: the reference rooms are worked-in, with material stacked where it is used ----
             // north-west corner: the standing stock shelf, crates and boxes on every deck
             var stockShelf = Prop("prop_shelf_unit", parent, new Vector3(-5.1f, 0f, 2.88f), 180f, "M_WoodDark");   // workshop, against the cross wall west of the opening
@@ -1747,6 +1746,9 @@ namespace GeodeEmpire.EditorTools
             }
             foreach (Transform c in stations)
             {
+                // A fixture the player owns and moves belongs to no room: they can carry it into any room they
+                // have leased, and a fixture parked inside a sealed root would be switched off underneath them.
+                if (c.GetComponent<GeodeEmpire.Build.PlaceableFixture>() != null) continue;
                 Transform to = c.name == "BackOfHouse" ? backRoot
                              : c.name == "RetailShop" ? shopRoot
                              : Lease(c.position, backRoot, shopRoot);

@@ -63,6 +63,21 @@ namespace GeodeEmpire.Retail
         public int QueueLength => _queue.Count;
         public Customer AtCounter { get; private set; }
 
+        /// <summary>
+        /// A sealed showroom is not a shop. The root is switched off, not destroyed, when the lease is not signed,
+        /// so the static has to be released here or anything reading RetailShop.Instance would keep serving
+        /// customers through a hoarding.
+        /// </summary>
+        private void OnDisable()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        private void OnEnable()
+        {
+            Instance = this;
+        }
+
         private void Awake()
         {
             Instance = this;

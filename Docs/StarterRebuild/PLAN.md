@@ -196,3 +196,57 @@ The objective card's height was content, not type: a three-line `Next:` prose bl
 replaces it with one line. The rail now shows Inspect only with something in hand, Build only with a movable
 fixture owned, and Inventory only with stock.
 
+
+### M3–M6 — progression, tablet, world art
+
+**Physical progression.** `Playtest.RunStarterAcceptance()` walks §14 against a real `NewGame()` and reports
+**pass=32 fail=0**. It checks, in order: neither lease signed and both hoardings up; no retail shop running;
+the reachable floor; that `trim_saw`, `geode_cracker`, `flat_lap`, `shop_island`, `display_wall_a`,
+`display_wall_b` and `display_cabinet` are all unowned with their bodies out of the scene; that the collection,
+the encyclopedia and the world are empty of specimens; then buys the back room, buys the cabinet, finds it
+crated on the workshop floor, sweeps the leased rooms for a legal pose and sites it, checks the body appears,
+checks placement is refused in a doorway and in the unleased showroom, reloads and checks the pose, the
+capacity and the empty collection all survive, and finally signs the shop-front lease and checks the shop
+starts serving.
+
+**Reachable floor**, measured on the audit's own 15 cm grid, is the number that says "small start":
+
+| state | standing room |
+|-------|--------------|
+| day 1 | **24.7 m²** |
+| both leases | **75.6 m²** |
+
+**Two real defects surfaced by writing that test.** `DisplayCabinet` sat east of the hoarding, so the
+reparenting pass had filed a *player-owned* fixture inside the sealed shop root — buying it on day one put it
+in a room that was switched off. Fixtures carrying a `PlaceableFixture` are now never filed under a lease.
+And `RetailShop.Instance` stayed set after its root was disabled, so a sealed showroom still answered as a
+running shop; it is released in `OnDisable` now.
+
+**Tablet.** Upgrades, Collection and Stats rebuilt — see the commit. `UpgradeIconBaker` renders the actual prop
+behind each of the 23 upgrades into `Resources/UI/Upgrades`; the contact sheet is
+`Assets/Output/starter/upgrade_icons.png`.
+
+**World art.** Ambient raised and cooled, pendants down from 4.0 to 2.7 with a wider falloff, board/ceiling/floor
+lightened, the dado repainted as painted board, and the wash station set into a blue base cabinet with a
+stainless apron. Before/after: `starter/before/a_start.png` vs `starter/m6/a_room.png`.
+
+**UI render QA (§15).** 1920/2560/3840 × UI scale 1.0/1.4 × four screens: **pass=28 fail=0 findings=0**, with all
+four planted faults still caught. Two real findings were fixed on the way: the XP readout at 9 px and the
+objective card's "Next" line at 10.5 px, both under the 11 px floor, caused by the HUD reduction.
+
+**Four-state captures (§14).** `Assets/Output/starter/states/`: `day1`, `back`, `shop` (leased, bare),
+`fitted` (island, shelving, sign, still unstocked).
+
+### Workflow note
+
+A `.uss` edit does not reach the running game until something forces an asset refresh; `unity command recompile`
+and `AssetDatabase.ImportAsset` both failed to do it, and only a C# recompile did. Two UI QA runs reported
+stale font sizes before this was spotted.
+
+### Regression (§18)
+
+- Retail cycle in the fully fitted shop (island and both shelving runs sited through build mode): **4 customers
+  served, $1,033.80, 0 collision overlaps**.
+- World-integrity audit **0/0/0/0/0** on both the sealed unit and the leased shop.
+- Starter acceptance **32/32**.
+- UI render QA **28/28, 0 findings**.
