@@ -28,21 +28,21 @@ namespace GeodeEmpire.Workshop
             new Step { Id = "move", Text = "Have a look around the workshop. Move with {Move}, look with {Look}.", DoneBy = "moved", Done = "That is the workshop" },
             new Step { Id = "order", Text = "Money is tight. Order a crate of mystery rocks on the tablet ({Tablet} opens it from anywhere).", DoneBy = "crate_bought", Target = "tablet", Done = "Crate ordered" },
             new Step { Id = "open", Text = "Your crate arrived on the pallet. Open it.", DoneBy = "crate_opened", Target = "crate", Done = "Crate open" },
-            new Step { Id = "pickup", Text = "Pick up a rock. Hold {Inspect} to turn it over and {Strike} to tap it: light rocks ring hollow, heavy ones thud solid.", DoneBy = "rock_picked", Target = "crate", Done = "Rock in hand" },
-            new Step { Id = "wash", Text = "Quarry rock comes caked in clay. Put it in the wash basin, then work the brush over it with {Look} and hold {Interact} to scrub. Turn the rock with {Rotate}: the clay you cannot reach stays on.", DoneBy = "washed", Target = "washtub", Done = "Washed" },
-            new Step { Id = "bench", Text = "Set the rock on the cradle at the cracking bench.", DoneBy = "rock_on_bench", Target = "bench", Done = "On the cradle" },
-            new Step { Id = "strike", Text = "Set the chisel on the seam that runs around the middle of the rock (it snaps on when you are close). Hold {Strike} to wind up, release to strike.", DoneBy = "first_strike", Target = "bench", Done = "Struck" },
-            new Step { Id = "open_rock", Text = "Each strike chips the shell where the chisel stood. Turn the rock with {Rotate} and work around the whole ring: a careful tap is safe, a heavy blow is fast but can break the crystals inside.", DoneBy = "rock_opened", Target = "bench", Done = "Opened" },
-            new Step { Id = "take_specimen", Text = "Take a look, then pick the specimen up.", DoneBy = "specimen_picked", Target = "bench", Done = "Specimen in hand" },
-            new Step { Id = "rinse", Text = "Fresh from the break the inside is dusty. Dunk it in the wash tub: the dust goes and the colour comes up.", DoneBy = "rinsed", Target = "washtub", Done = "Rinsed" },
-            new Step { Id = "sort", Text = "Ordinary pieces go in the dealer outbox. Anything promising: weigh it on the appraisal scale.", DoneBy = "specimen_sorted", Target = "scale", Done = "Sorted" },
-            new Step { Id = "appraise", Text = "The scale explains what makes a piece valuable. Keep favourites in the display cabinet, or sell them.", DoneBy = "appraised", Target = "scale", Done = "Appraised" },
+            new Step { Id = "pickup", Text = "Pick up a rock. Hold {Inspect} to turn it over and {Strike} to tap it: light rocks ring hollow, heavy ones thud solid.", DoneBy = "rock_picked", Target = "rock", Done = "Rock in hand" },
+            new Step { Id = "wash", Text = "Quarry rock comes caked in clay. Put it in the wash basin, then work the brush over it with {Look} and hold {Interact} to scrub. Turn the rock with {Rotate}: the clay you cannot reach stays on.", DoneBy = "washed", Target = "basin", Done = "Washed" },
+            new Step { Id = "bench", Text = "Set the rock on the cradle at the cracking bench.", DoneBy = "rock_on_bench", Target = "cradle", Done = "On the cradle" },
+            new Step { Id = "strike", Text = "Set the chisel on the seam that runs around the middle of the rock (it snaps on when you are close). Hold {Strike} to wind up, release to strike.", DoneBy = "first_strike", Target = "chisel", Done = "Struck" },
+            new Step { Id = "open_rock", Text = "Each strike chips the shell where the chisel stood. Turn the rock with {Rotate} and work around the whole ring: a careful tap is safe, a heavy blow is fast but can break the crystals inside.", DoneBy = "rock_opened", Target = "cradle", Done = "Opened" },
+            new Step { Id = "take_specimen", Text = "Take a look, then pick the specimen up.", DoneBy = "specimen_picked", Target = "cradle", Done = "Specimen in hand" },
+            new Step { Id = "rinse", Text = "Fresh from the break the inside is dusty. Dunk it in the wash tub: the dust goes and the colour comes up.", DoneBy = "rinsed", Target = "basin", Done = "Rinsed" },
+            new Step { Id = "sort", Text = "Ordinary pieces go in the dealer outbox. Anything promising: weigh it on the appraisal scale.", DoneBy = "specimen_sorted", Target = "outbox_tray", Done = "Sorted" },
+            new Step { Id = "appraise", Text = "The scale explains what makes a piece valuable. Keep favourites in the display cabinet, or sell them.", DoneBy = "appraised", Target = "pan", Done = "Appraised" },
             new Step { Id = "display", Text = "A piece you want to keep goes in the display cabinet. It is out of the career for good, and the room is better for it.", DoneBy = "displayed", Target = "cabinet", Done = "On display",
                 Available = st => st != null && st.HasUpgrade(Economy.UpgradeCatalog.CollectionCabinet) },
             new Step { Id = "ship", Text = "When the outbox has a few pieces, press the dealer intercom to sell them.", DoneBy = "shipped", Target = "intercom", Done = "Shipped" },
             new Step { Id = "upgrade", Text = "Profit. Check the tablet: a new supplier and bench upgrades change how you play.", DoneBy = "upgrade_or_crate", Target = "tablet", Done = "Bought" },
             new Step { Id = "retail", Text = "The showroom next door pays more than the dealer, if a customer wants the piece: put an appraised specimen on a sales shelf and keep working.", DoneBy = "for_sale", Target = "shelf", Done = "For sale" },
-            new Step { Id = "checkout", Text = "When a customer waits at the counter, take the register. Ring the piece up, take their card or their cash, count the change out of the drawer and hand the bag across.", DoneBy = "checkout", Target = "counter", Done = "Served" },
+            new Step { Id = "checkout", Text = "When a customer waits at the counter, take the register. Ring the piece up, take their card or their cash, count the change out of the drawer and hand the bag across.", DoneBy = "checkout", Target = "register", Done = "Served" },
             new Step
             {
                 Id = "build",
@@ -60,13 +60,13 @@ namespace GeodeEmpire.Workshop
             new Step
             {
                 Id = "saw", Text = "A rock too big or too solid to crack can be cut instead: clamp it in the trim saw and take a face off it.",
-                DoneBy = "saw_cut", Target = "saw", Done = "Cut",
+                DoneBy = "saw_cut", Target = "vise", Done = "Cut",
                 Available = st => st.HasUpgrade(Economy.UpgradeCatalog.TrimSaw),
             },
             new Step
             {
                 Id = "polish", Text = "A cut face is dull until it is lapped. Hold the piece against the polish lap and work the whole face.",
-                DoneBy = "polished", Target = "lap", Done = "Polished",
+                DoneBy = "polished", Target = "platen", Done = "Polished",
                 Available = st => st.HasUpgrade(Economy.UpgradeCatalog.PolishLap),
             },
         };

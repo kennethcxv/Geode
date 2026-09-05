@@ -21,7 +21,7 @@ namespace GeodeEmpire.UI
         private Label _label;
         private Transform _target;
         private string _targetKey = "";
-        private float _rescan;
+        private float _rescan, _lift = 0.12f;
 
         private void Start()
         {
@@ -36,11 +36,84 @@ namespace GeodeEmpire.UI
             _ring.style.display = DisplayStyle.None;
         }
 
-        /// <summary>Which object each step id points at. One place, so a renamed prop breaks loudly rather than silently.</summary>
-        private static Transform Resolve(string key)
+        /// <summary>The live placement zone of a kind, or null. Zones move with the fixture that owns them.</summary>
+        private static Transform Zone(Interaction.ZoneKind kind)
+        {
+            foreach (var z in Object.FindObjectsByType<Interaction.PlacementZone>(FindObjectsSortMode.None))
+                if (z.Kind == kind && z.gameObject.activeInHierarchy)
+                    return z.Anchor != null ? z.Anchor : z.transform;
+            return null;
+        }
+
+        /// <summary>The rock the player is being told to pick up: the topmost one in an open crate.</summary>
+        private static Transform TopRockInCrate()
+        {
+            Transform best = null; float bestY = float.MinValue;
+            foreach (var e in Object.FindObjectsByType<Specimens.SpecimenEntity>(FindObjectsSortMode.None))
+            {
+                if (e.Record == null || e.Record.Condition.Opened || e.Zone != null) continue;
+                if (e.Record.Location != Save.SpecimenLocation.InCrate) continue;
+                if (e.transform.position.y > bestY) { bestY = e.transform.position.y; best = e.transform; }
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// Which object each step id points at (§13.2). Semantic, and resolved live every few frames, so a step
+        /// points at the thing the player has to touch rather than at the station's root transform — the cradle
+        /// rather than the bench, the chisel rather than the bench, the rock rather than the crate it is in.
+        /// Because everything here comes from the running scene, it survives the player moving a machine, a
+        /// save/load, and the room growing (§13.3).
+        /// </summary>
+        public static Transform Resolve(string key)
         {
             switch (key)
             {
+                // ---- exact affordances, not station roots ----------------------------------------
+                case "rock":   return TopRockInCrate() ?? Resolve("crate");
+                case "cradle": return Zone(Interaction.ZoneKind.Cradle) ?? Find<Cracking.CrackingBench>();
+                case "chisel":
+                {
+                    var b = Object.FindAnyObjectByType<Cracking.CrackingBench>();
+                    if (b == null) return null;
+                    // once a rock is on the cradle the seam is what the step is about, not the tool on the rack
+                    var onCradle = Zone(Interaction.ZoneKind.Cradle);
+                    if (b.Active && onCradle != null) return onCradle;
+                    return b.ChiselVisual != null ? b.ChiselVisual : b.transform;
+                }
+                case "basin":
+                {
+                    var w = Object.FindAnyObjectByType<WashStation>();
+                    if (w == null) return null;
+                    return w.WaterSurface != null ? w.WaterSurface : w.transform;
+                }
+                case "brush":
+                {
+                    var w = Object.FindAnyObjectByType<WashStation>();
+                    if (w == null) return null;
+                    return w.Brush != null ? w.Brush : w.WaterSurface != null ? w.WaterSurface : w.transform;
+                }
+                case "pan":    return Zone(Interaction.ZoneKind.Scale) ?? Find<AppraisalStation>();
+                case "outbox_tray": return Zone(Interaction.ZoneKind.SellTray) ?? Find<SellOutbox>();
+                case "register":
+                {
+                    var c = Object.FindAnyObjectByType<Checkout.CheckoutStation>();
+                    if (c == null) return null;
+                    return c.ScannedPoint != null ? c.ScannedPoint : c.Counter != null ? c.Counter : c.transform;
+                }
+                case "vise":
+                {
+                    var s = Object.FindAnyObjectByType<Lapidary.SawStation>();
+                    if (s == null) return null;
+                    return s.Vise != null ? s.Vise : s.transform;
+                }
+                case "platen":
+                {
+                    var l = Object.FindAnyObjectByType<Lapidary.PolishStation>();
+                    if (l == null) return null;
+                    return l.Platen != null ? l.Platen : l.transform;
+                }
+
                 case "tablet":
                 {
                     // the workshop's own tablet, not the office laptop: the laptop opens the same screen but it is a
@@ -79,7 +152,9 @@ namespace GeodeEmpire.UI
                     var d = Object.FindAnyObjectByType<Build.FixtureDelivery>();
                     if (d == null) return null;
                     foreach (var slot in d.Slots) if (slot.Root != null && slot.Root.activeSelf) return slot.Root.transform;
-                    return d.transform;
+                    // no crate waiting: point at nothing rather than at the delivery component's own transform,
+                    // which sits at the world origin and would put the beacon on the floor in the middle of the room
+                    return null;
                 }
                 case "outbox": return Find<SellOutbox>();
                 default: return null;
@@ -90,6 +165,17 @@ namespace GeodeEmpire.UI
         {
             var c = Object.FindAnyObjectByType<T>();
             return c != null ? c.transform : null;
+        }
+
+        /// <summary>How far above a target's own origin the ring should sit, from what the target actually is.</summary>
+        private static float LiftFor(Transform target)
+        {
+            var rends = target.GetComponentsInChildren<Renderer>();
+            if (rends.Length == 0) return 0.12f;                       // an empty anchor: a hand's width above it
+            var b = rends[0].bounds;
+            for (int i = 1; i < rends.Length; i++) b.Encapsulate(rends[i].bounds);
+            float above = (b.max.y - target.position.y) + 0.05f;
+            return Mathf.Clamp(above, 0.06f, 0.35f);
         }
 
         private void LateUpdate()
@@ -109,11 +195,15 @@ namespace GeodeEmpire.UI
             {
                 _targetKey = step.Target;
                 _target = Resolve(step.Target);
+                // GetComponentsInChildren allocates, so measure the target when it changes, not every frame
+                _lift = _target != null ? LiftFor(_target) : 0.12f;
                 _rescan = 0.4f;
             }
             if (_target == null) { _ring.style.display = DisplayStyle.None; return; }
 
-            var world = _target.position + Vector3.up * 0.35f;
+            // sit just above the thing, not a fixed third of a metre above it: 0.35 m is right for a station on
+            // the floor and wrong for a rock in a crate, where it floats clear of what it is pointing at (§13.1)
+            var world = _target.position + Vector3.up * _lift;
             var panel = _ring.panel;
             float dist = Vector3.Distance(cam.transform.position, world);
             var vp = cam.WorldToViewportPoint(world);

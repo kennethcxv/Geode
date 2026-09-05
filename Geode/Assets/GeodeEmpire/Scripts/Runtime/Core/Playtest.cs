@@ -319,6 +319,69 @@ namespace GeodeEmpire.Core
             Running = false;
         }
 
+        public void RunBeaconAudit() { if (!Running) StartCoroutine(BeaconAudit()); }
+
+        /// <summary>
+        /// §13: "test every tutorial step from a fresh save". Walks the whole step list and asks the beacon to
+        /// resolve each target the way it does in play, reporting what it found and how far away it is. A step
+        /// whose station the player does not own yet is expected to resolve to nothing — that is the Available
+        /// gate doing its job — but a step that is live and points at nothing is a silent dead end.
+        /// </summary>
+        private IEnumerator BeaconAudit()
+        {
+            Running = true;
+            Phase = "beacon-audit";
+            float t0 = Time.time;
+            while ((S == null || S.State == null) && Time.time - t0 < 20f) yield return null;
+            if (S == null || S.State == null) { L("no session"); Running = false; yield break; }
+            L("== BeaconAudit");
+            yield return AuditSteps("fresh save", "order,wash,bench,strike,open_rock,take_specimen,rinse,sort,appraise,ship,upgrade,saw,polish");
+
+            // the two steps that need stock in the room: buy a crate, open it, and ask again
+            if (S.State.Cash < 40f) S.AddCash(200f, "audit");
+            S.BuyCrate("local", out string err);
+            if (err != null) L("  buy failed: " + err);
+            yield return new WaitForSeconds(2f);
+            var crate = CrateWithRocks();
+            if (crate != null && !crate.IsOpened)
+            {
+                yield return Walk(StandNear(crate.transform.position, 0.88f), 0.3f);
+                yield return LookAndInteract(crate.transform.position + Vector3.up * 0.2f, "Open crate");
+                yield return new WaitForSeconds(1.0f);
+            }
+            yield return AuditSteps("crate delivered and open", "open,pickup");
+            Phase = "done";
+            Running = false;
+        }
+
+        /// <summary>Resolve every tutorial target and say what happened; <paramref name="expected"/> lists the ids
+        /// that must resolve in this state, so a step that is legitimately not reachable yet is not a failure.</summary>
+        private IEnumerator AuditSteps(string state, string expected)
+        {
+            var must = new System.Collections.Generic.HashSet<string>(expected.Split(','));
+            var cam = Camera.main;
+            int ok = 0, gated = 0, dead = 0;
+            L($"-- targets, {state}");
+            foreach (var st in Workshop.Tutorial.Steps)
+            {
+                if (string.IsNullOrEmpty(st.Target)) continue;
+                bool owned = st.Available == null || st.Available(S.State);
+                var target = UI.TutorialBeacon.Resolve(st.Target);
+                if (target == null)
+                {
+                    if (must.Contains(st.Id)) { dead++; L($"  {st.Id,-14} -> {st.Target,-12} DEAD: nothing to point at"); }
+                    else { gated++; L($"  {st.Id,-14} -> {st.Target,-12} nothing yet ({(owned ? "not in the room" : "not owned")})"); }
+                    continue;
+                }
+                ok++;
+                float d = cam != null ? Vector3.Distance(cam.transform.position, target.position) : -1f;
+                L($"  {st.Id,-14} -> {st.Target,-12} {target.name} ({d:0.0} m)");
+                yield return null;
+            }
+            L($"  {state}: {ok} resolved, {gated} not present yet, {dead} DEAD");
+            if (dead > 0) L("  FAIL: a step that should be reachable points at nothing");
+        }
+
         public void RunStrikeFeel() { if (!Running) StartCoroutine(StrikeFeel()); }
 
         /// <summary>
