@@ -2538,6 +2538,91 @@ namespace GeodeEmpire.Core
         }
 
         public void RunSettingsMatrix() { if (!Running) StartCoroutine(SettingsMatrix()); }
+        public void RunUiRenderQa() { if (!Running) StartCoroutine(UiRenderQa()); }
+
+        /// <summary>
+        /// V6 §66: lay every screen out at 1920, 2560 and 3840, at two interface scales, and measure it. The panel
+        /// is rendered into a texture of the target size so each pass is a real layout rather than a proxy for one.
+        /// The instrument is proved first: four faults are planted and each must be caught.
+        /// </summary>
+        private IEnumerator UiRenderQa()
+        {
+            Running = true;
+            Phase = "ui-qa";
+            var panel = Resources.Load<UnityEngine.UIElements.PanelSettings>("UI/GeodePanelSettings");
+            if (panel == null) { L("no panel settings"); Running = false; yield break; }
+            var g = GameSettings.Current;
+            float uiScaleWas = g.UiScale;
+            var refWas = panel.referenceResolution;
+            var texWas = panel.targetTexture;
+            int pass = 0, fail = 0;
+            void Chk2(string what, bool ok, string note) { L($"  {what,-46} {(ok ? "ok" : "FAIL")}{(string.IsNullOrEmpty(note) ? "" : "  " + note)}"); if (ok) pass++; else fail++; }
+
+            // --- the instrument first: plant four faults and require each to be found -----------------
+            UI.UiRenderAudit.PlantNegatives();
+            yield return null; yield return null;
+            var planted = UI.UiRenderAudit.Run(Screen.width);
+            bool sawTiny = false, sawClip = false, sawTrunc = false, sawSmallBtn = false;
+            foreach (var f in planted)
+            {
+                if (f.Where.Contains("PlantedTiny") && f.Kind == "unreadable") sawTiny = true;
+                if (f.Where.Contains("PlantedClipped") && (f.Kind == "clipped" || f.Kind == "off-screen")) sawClip = true;
+                if (f.Where.Contains("PlantedTruncated") && f.Kind == "truncated") sawTrunc = true;
+                if (f.Where.Contains("PlantedTinyButton") && f.Kind == "tiny-control") sawSmallBtn = true;
+            }
+            L($"== UiRenderQa: negative controls ({planted.Count} findings with the faults planted)");
+            Chk2("instrument catches unreadable text", sawTiny, "");
+            Chk2("instrument catches a clipped element", sawClip, "");
+            Chk2("instrument catches a truncated label", sawTrunc, "");
+            Chk2("instrument catches a control too small to hit", sawSmallBtn, "");
+            UI.UiRenderAudit.ClearNegatives();
+            yield return null; yield return null;
+
+            // --- the real screens, at each resolution and interface scale -----------------------------
+            var sizes = new[] { new Vector2Int(1920, 1080), new Vector2Int(2560, 1440), new Vector2Int(3840, 2160) };
+            var scales = new[] { 1f, 1.4f };
+            var screens = new (string name, System.Action open, System.Action close)[]
+            {
+                ("free roam", () => { }, () => { }),
+                ("tablet", () => UI.TabletUI.Instance?.Open(), () => UI.TabletUI.Instance?.Close()),
+                ("inventory", () => UI.InventoryUI.Instance?.Open(), () => UI.InventoryUI.Instance?.Close()),
+                ("pause + settings", () => { UI.PauseMenu.Instance?.Open(); UI.PauseMenu.Instance?.Settings?.Select(1); }, () => UI.PauseMenu.Instance?.Close()),
+            };
+            int total = 0;
+            foreach (var size in sizes)
+            {
+                var rt = new RenderTexture(size.x, size.y, 0) { name = $"UiQa{size.x}" };
+                rt.Create();
+                panel.targetTexture = rt;
+                foreach (float scale in scales)
+                {
+                    g.UiScale = scale; g.ApplyUiScale();
+                    yield return null; yield return null; yield return null;
+                    foreach (var screen in screens)
+                    {
+                        screen.open();
+                        yield return null; yield return null; yield return null;
+                        var found = UI.UiRenderAudit.Run(size.x);
+                        total += found.Count;
+                        Chk2($"{size.x}x{size.y} @ {scale:F1}x  {screen.name}", found.Count == 0, found.Count == 0 ? "" : found.Count + " findings");
+                        for (int i = 0; i < found.Count && i < 6; i++) L("      " + found[i]);
+                        screen.close();
+                        yield return null;
+                    }
+                }
+                panel.targetTexture = null;
+                rt.Release();
+                Object.Destroy(rt);
+                yield return null;
+            }
+            panel.targetTexture = texWas;
+            g.UiScale = uiScaleWas; g.ApplyUiScale();
+            panel.referenceResolution = refWas;
+            yield return null;
+            L($"ui render qa: pass={pass} fail={fail} findings={total}");
+            Phase = "done";
+            Running = false;
+        }
 
         public void RunTitleFlow() { if (!Running) StartCoroutine(TitleFlow()); }
 

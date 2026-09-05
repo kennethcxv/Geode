@@ -139,6 +139,28 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - Verified in Play Mode on a fresh save and on a progressed one; 68/68 EditMode. Captures:
   `Geode/Assets/Output/rebuild/v64/` and `v65/`.
 
+## V6.10 — UI render QA (§66, 2026-09-05)
+- `UiRenderAudit` measures the interface instead of looking at it: every visible element on the game's own panel is
+  walked and judged against the faults §66 names — off screen, clipped, truncated, unreadable, too small to hit,
+  overlapping another card, focus lost with a menu open, notifications stacked. `Playtest.RunUiRenderQa` lays the
+  panel out into a render texture at 1920, 2560 and 3840 and runs the audit over four screens at two interface
+  scales, so each pass is a real layout rather than a proxy for one.
+- §66 asks that the instrument be proved able to fail. `PlantNegatives` breaks four things on purpose — a 4 px
+  label, an element hanging off the left edge, a long label in a 40 px box, an 8 px button — and the harness
+  requires each to be caught by name before it trusts a single pass.
+- **Three faults in the instrument, found by running it.** The checkout's POS monitor and customer display are
+  world-space screens on their own panels: 20 cm of glass on a counter, where a screen-pixel font rule is
+  meaningless — they are skipped now. The physical-pixel sum was inverted (it divided by the reference resolution
+  instead of scaling layout units up to the real screen). And content scrolled out of a list was reported as
+  clipped, which is what a scroll view is for: the walk now carries the nearest scrolling viewport as the rect an
+  element is allowed to draw in, and 70 findings on one healthy page went to none.
+- **Two real faults in the game.** The tablet panel was a fixed 1500x880, and at 1.4x interface scale the reference
+  resolution is 1371x771 — it hung off both edges; it is clamped to the panel now. And at that scale the tablet's
+  Close button landed squarely on the HUD's status card. The tablet carries its own cash readout in its header, so
+  the status card stands down for it (a side panel like the inventory leaves it up, the way R03 shows it).
+- Result: **28/28 pass, 0 findings** over three resolutions, two interface scales and four screens, with all four
+  negative controls caught. 68/68 EditMode. Captures: `Geode/Assets/Output/rebuild/v66/`.
+
 ## Defects discovered
 - (V5 baseline, from the owner's screenshots and the captures above) boxy dark saw; dough-like rough geode; muddy, shallow, sparse opened geode; colour-only material differences; mannequin customers; abstract checkout.
 - V6.1b root causes behind the "dough" and "fur":
@@ -155,7 +177,7 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - V6.1b: shell 13,632 triangles per half; crystals per hero rock 84 (ACC) / 172 (E53) / 384 (7D1) / 578 (8BF, druzy); tile generation 7 s for four 1024 sets; EditMode 35/35 (twice, before and after the mesh change).
 
 ## Tests added
-- V6.6 added 23 EditMode tests (checkout). Suite is 68 and green through V6.7.
+- V6.6 added 23 EditMode tests (checkout). Suite is 68 and green through V6.10. In-game harnesses: 37/37 settings rows, 28/28 UI render QA passes with 4 proven negative controls, 12/12 placement, 5 customer stress runs.
 
 ## Experiments / failed hypotheses / reverts
 - A finer knob octave on the mesh (`b3` at 4.6x the billow frequency) was added and removed the same session: it aliased on the 96-ring grid.
@@ -166,8 +188,8 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 
 ## Remaining work
 - V6.6 checkout and V6.7 tutorial are complete (see above). The inventory UI (§63) was built during the visual
-  rebuild phase (`InventoryUI`, R03), §61/§62 are done (V6.8) and §64/§65 are done (V6.9). Next: §66 UI
-  render QA, then §67 onward.
+  rebuild phase (`InventoryUI`, R03), §61/§62 (V6.8), §64/§65 (V6.9) and §66 (V6.10) are done. Next: §67
+  specimen diversity and §68 specimen-specific gameplay, then §69 onward.
 - V6.1 remainder: S8 tilt toward clusters, S6 per-direction wall thinning, S7 terraces, S10 luster classes for the non-quartz habits, S11 SpecimenVisual hygiene + perf gate (**partly done**: `SpecimenVisual.CrystalBudget` gives scenery a crystal budget, which took the stocked showroom from 5.19 M to 2.80 M triangles — see `Docs/VisualRebuild/PLAN.md` E), S12 machine scaffolding, S13 acceptance gate (RunGeodeGate matrix over all 24 families, standalone, report). Known visual nits: the agate face's fracture relief is strong, the staged seam frost is still chalky at full stress, non-quartz carpets (calcite, fluorite) still use the V5 habits at V5 sizes.
 - Then V6.2 machines .. V6.9 and the FINAL acceptance per the brief.
 

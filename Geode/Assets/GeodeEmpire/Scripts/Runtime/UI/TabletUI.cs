@@ -35,8 +35,12 @@ namespace GeodeEmpire.UI
             _dim = UiKit.Box(_root, "panel-dim");
             _dim.style.display = DisplayStyle.None;
             _panel = UiKit.Box(_dim, "panel");
+            // a fixed 1500x880 hung off both edges once the interface scale shrank the reference resolution
+            // below it (1.4x gives 1371x771): clamp to the panel and let the body scroll
             _panel.style.width = 1500;
             _panel.style.height = 880;
+            _panel.style.maxWidth = Length.Percent(96);
+            _panel.style.maxHeight = Length.Percent(94);
             var header = UiKit.Box(_panel, "panel-head");
             var brand = UiKit.Box(header, "panel-brand");
             UiKit.Box(brand, "brand-gem");
@@ -111,6 +115,7 @@ namespace GeodeEmpire.UI
             IsOpen = true;
             CursorController.EnterMenu();
             HudController.Instance.SetFreeRoamVisible(false);
+            HudController.Instance.SetStatusVisible(false);
             _dim.style.display = DisplayStyle.Flex;
             SelectTab(_tab);
             WorkshopAudio.Play2D("ui_click", 0.4f);
@@ -123,6 +128,7 @@ namespace GeodeEmpire.UI
             _dim.style.display = DisplayStyle.None;
             CursorController.ExitMenu();
             HudController.Instance.SetFreeRoamVisible(true);
+            HudController.Instance.SetStatusVisible(true);
             WorkshopAudio.Play2D("ui_click", 0.3f, 0.9f);
         }
 

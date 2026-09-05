@@ -289,6 +289,16 @@ namespace GeodeEmpire.UI
         public bool FreeRoam => _freeRoam;
 
         /// <summary>Hide crosshair/prompt while a station or menu owns the screen.</summary>
+        /// <summary>
+        /// The top-right status card stands down for a full-screen panel. The tablet carries its own cash readout
+        /// in its header, and at 1.4x interface scale its Close button lands squarely on top of this one.
+        /// A side panel (the inventory) leaves it up, the way the reference screens do.
+        /// </summary>
+        public void SetStatusVisible(bool visible)
+        {
+            if (_statusCard != null) _statusCard.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
         public void SetFreeRoamVisible(bool visible)
         {
             _freeRoam = visible;
