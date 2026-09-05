@@ -26,7 +26,7 @@ namespace GeodeEmpire.Workshop
         public static readonly Step[] Steps =
         {
             new Step { Id = "move", Text = "Have a look around the workshop. Move with {Move}, look with {Look}.", DoneBy = "moved", Done = "That is the workshop" },
-            new Step { Id = "order", Text = "Money is tight. Order a crate of mystery rocks from the tablet on the side bench ({Tablet} opens it anywhere).", DoneBy = "crate_bought", Target = "tablet", Done = "Crate ordered" },
+            new Step { Id = "order", Text = "Money is tight. Order a crate of mystery rocks on the tablet ({Tablet} opens it from anywhere).", DoneBy = "crate_bought", Target = "tablet", Done = "Crate ordered" },
             new Step { Id = "open", Text = "Your crate arrived on the pallet. Open it.", DoneBy = "crate_opened", Target = "crate", Done = "Crate open" },
             new Step { Id = "pickup", Text = "Pick up a rock. Hold {Inspect} to turn it over and {Strike} to tap it: light rocks ring hollow, heavy ones thud solid.", DoneBy = "rock_picked", Target = "crate", Done = "Rock in hand" },
             new Step { Id = "wash", Text = "Quarry rock comes caked in clay. Dunk it in the wash tub by the bench and hold {Interact} to scrub: a clean shell shows its seam and any mineral showing through.", DoneBy = "washed", Target = "washtub", Done = "Washed" },
@@ -42,6 +42,20 @@ namespace GeodeEmpire.Workshop
             new Step { Id = "upgrade", Text = "Profit. Check the tablet: a new supplier and bench upgrades change how you play.", DoneBy = "upgrade_or_crate", Target = "tablet", Done = "Bought" },
             new Step { Id = "retail", Text = "The showroom next door pays more than the dealer, if a customer wants the piece: put an appraised specimen on a sales shelf and keep working.", DoneBy = "for_sale", Target = "shelf", Done = "For sale" },
             new Step { Id = "checkout", Text = "When a customer waits at the counter, take the register. Ring the piece up, take their card or their cash, count the change out of the drawer and hand the bag across.", DoneBy = "checkout", Target = "counter", Done = "Served" },
+            new Step
+            {
+                Id = "build",
+                Text = "Your machine was delivered crated in the receiving bay, not installed. Press {Build} to open build mode and put it where you want it: the ghost turns red and says why if a spot will not work.",
+                DoneBy = "fixture_placed", Target = "delivery", Done = "Sited",
+                Available = st => Build.PlaceableFixture.AnyCratedFor(st),
+            },
+            new Step
+            {
+                Id = "inventory",
+                Text = "Press {Inventory} for the stock book: everything the business owns, what it is worth, and which room it is standing in.",
+                DoneBy = "inventory_opened", Done = "That is the stock book",
+                Available = st => st.Specimens.Count > 0,
+            },
             new Step
             {
                 Id = "saw", Text = "A rock too big or too solid to crack can be cut instead: clamp it in the trim saw and take a face off it.",
@@ -136,7 +150,8 @@ namespace GeodeEmpire.Workshop
             return text.Replace("{Move}", GameInput.Glyph("Move")).Replace("{Look}", GameInput.Glyph("Look"))
                 .Replace("{Interact}", GameInput.Glyph("Interact")).Replace("{Strike}", GameInput.Glyph("Strike"))
                 .Replace("{Inspect}", GameInput.Glyph("Inspect")).Replace("{Rotate}", GameInput.Glyph("Rotate"))
-                .Replace("{Drop}", GameInput.Glyph("Drop")).Replace("{Back}", GameInput.Glyph("Back")).Replace("{Tablet}", GameInput.Glyph("Tablet"));
+                .Replace("{Drop}", GameInput.Glyph("Drop")).Replace("{Back}", GameInput.Glyph("Back")).Replace("{Tablet}", GameInput.Glyph("Tablet"))
+                .Replace("{Build}", GameInput.Glyph("Build")).Replace("{Inventory}", GameInput.Glyph("Inventory"));
         }
     }
 }

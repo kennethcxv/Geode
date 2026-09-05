@@ -16,7 +16,7 @@ namespace GeodeEmpire.UI
         private UIDocument _doc;
         private VisualElement _root, _crosshair, _ring, _notifyStack, _tutorialCard;
         private VisualElement _promptChip, _goalsCard, _statusCard, _keybar, _xpFill;
-        private Label _prompt, _hint, _cash, _cashDelta, _tutorial, _promptKey, _day, _level, _xpText, _goalHead;
+        private Label _prompt, _hint, _cash, _cashDelta, _tutorial, _tutorialTick, _promptKey, _day, _level, _xpText, _goalHead;
         private readonly List<(VisualElement box, Label text, Label num)> _goalRows = new List<(VisualElement, Label, Label)>();
         private int _lastLevel = -1;
         private VisualElement _discovery, _discPlate;
@@ -27,6 +27,8 @@ namespace GeodeEmpire.UI
         private readonly List<(VisualElement el, float t)> _notes = new List<(VisualElement, float)>();
         private bool _hidden;
         private bool _freeRoam = true;
+        private string _tutorialDoneText;
+        private float _tutorialDoneTimer;
 
         private void Awake()
         {
@@ -75,6 +77,8 @@ namespace GeodeEmpire.UI
             _tutorialCard = UiKit.Box(hud, "card", "tutorial");
             _tutorial = UiKit.Label(_tutorialCard, "", "");
             _tutorial.style.whiteSpace = WhiteSpace.Normal;
+            _tutorialTick = UiKit.Label(_tutorialCard, "", "tutorial-tick");
+            _tutorialTick.style.display = DisplayStyle.None;
             _tutorialCard.style.display = DisplayStyle.None;
 
         }
@@ -215,6 +219,7 @@ namespace GeodeEmpire.UI
                 if (s.State != null) OnLoaded();
             }
             Tutorial.Changed += RefreshTutorial;
+            Tutorial.Completed += OnTutorialStepDone;
             GameSettings.Changed += OnSettingsChanged;
         }
 
@@ -236,6 +241,7 @@ namespace GeodeEmpire.UI
                 s.Discovered -= OnDiscovered;
             }
             Tutorial.Changed -= RefreshTutorial;
+            Tutorial.Completed -= OnTutorialStepDone;
             GameSettings.Changed -= OnSettingsChanged;
         }
 
@@ -312,11 +318,33 @@ namespace GeodeEmpire.UI
             _crosshair.style.display = _player.Inspecting || !GameSettings.Current.CrosshairVisible ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
+        /// <summary>A finished step is acknowledged for a couple of seconds before the next one takes the card.</summary>
+        private void OnTutorialStepDone(Tutorial.Step step)
+        {
+            if (step == null || string.IsNullOrEmpty(step.Done)) return;
+            _tutorialDoneText = step.Done;
+            _tutorialDoneTimer = 2.2f;
+            RefreshTutorial();
+        }
+
         private void RefreshTutorial()
         {
             var step = Tutorial.Current;
-            if (step == null || !_freeRoam) { _tutorialCard.style.display = DisplayStyle.None; return; }
-            _tutorial.text = Tutorial.Format(step.Text);
+            bool ack = _tutorialDoneTimer > 0f && !string.IsNullOrEmpty(_tutorialDoneText);
+            if ((step == null && !ack) || !_freeRoam) { _tutorialCard.style.display = DisplayStyle.None; return; }
+            if (ack)
+            {
+                _tutorial.text = "✓  " + _tutorialDoneText;
+                _tutorialTick.text = step != null ? "next: " + Tutorial.Format(step.Text) : "That is the whole loop. The rest is yours.";
+                _tutorialTick.style.whiteSpace = WhiteSpace.Normal;
+                _tutorialTick.style.display = DisplayStyle.Flex;
+            }
+            else
+            {
+                _tutorial.text = Tutorial.Format(step.Text);
+                _tutorialTick.style.display = DisplayStyle.None;
+            }
+            _tutorialCard.EnableInClassList("tutorial-done", ack);
             _tutorialCard.style.display = DisplayStyle.Flex;
         }
 
@@ -358,6 +386,11 @@ namespace GeodeEmpire.UI
                 else _notes[i] = (el, t);
             }
             // keep glyphs current when the player switches devices, and the clock honest as the day runs
+            if (_tutorialDoneTimer > 0f)
+            {
+                _tutorialDoneTimer -= Time.unscaledDeltaTime;
+                if (_tutorialDoneTimer <= 0f) { _tutorialDoneText = null; RefreshTutorial(); }
+            }
             if (Time.frameCount % 30 == 0) { RefreshPrompt(); RefreshTutorial(); RefreshKeybar(); RefreshStatus(); }
         }
     }

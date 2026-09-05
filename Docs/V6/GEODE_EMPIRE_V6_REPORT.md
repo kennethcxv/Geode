@@ -68,6 +68,33 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
   the target cycle (the controller path); save integrity for stock, reserved and sold pieces; a close-up pass over
   every prop. 23 new EditMode tests, suite green at 68.
 
+## V6.7 — tutorial and first-run onboarding (§56-59, 2026-09-05)
+- The tutorial existed and taught nineteen steps, but two of §57's four requirements were declared and never
+  implemented: `Tutorial.Step.Target` was a field nothing read ("so the beacon can point at it" — there was no
+  beacon), and `Tutorial.Completed` was raised with nobody subscribed, so a finished step vanished without
+  acknowledgement.
+- **`TutorialBeacon`** points at the object the current step is about. A ring sits over it while it is on screen;
+  off screen the ring becomes a chevron pinned to an inset ellipse, pointing the way to turn. Both carry the
+  distance, because "the tablet" means nothing until you know it is four metres behind you. It is drawn on the HUD
+  panel rather than in the world: no new shader, nothing to occlude, and it reads the same in a dark corner as
+  under a lamp. `Resolve()` maps each step's target key to a live object and re-resolves a few times a second, so a
+  crate that is delivered mid-step or a machine that is sited is picked up without a restart. The tablet key
+  deliberately prefers the workshop's own tablet over the office laptop: they open the same screen, but sending a
+  first-run player to the back of house on step two teaches the wrong room.
+- **Completion acknowledgement**: the hint card turns green for two seconds with the step's own `Done` line and the
+  next step underneath, then hands the card over.
+- **Two new steps** for the systems the visual rebuild added: `build` (only offered once something bought is still
+  crated — `PlaceableFixture.AnyCratedFor`) and `inventory`. `BuildMode.TryPlace` and `InventoryUI.Open` notify
+  them. Both hint texts carry the live binding through `Tutorial.Format`, so a remapped key reads correctly (§58).
+- **A real bug the first-run pass found (§59).** `Playtest.FetchRock` clamped the walker to `x >= -3.1, z <= 2.25`
+  — the V5 garage. M1 had moved the west wall to -6.4 and put the receiving bay north of z 3.2, so every rock
+  delivered to the bay left the harness standing three metres away aiming at nothing: `could not pick`,
+  `crackall processed=0`, then a retail cycle with an empty shelf and four customers leaving empty-handed. Clamped
+  to `ShopPlan` instead. The same fresh run now opens 9 rocks instead of 2, keeps 2, and makes a retail sale.
+- Verified: fresh save -> tutorial from step one, beacon on and off screen, acknowledgement, `RunFreshPlayer`
+  end to end (9 opened, 6 families, 1 retail sale, controller menu sweep green, 0 collision overlaps), 68/68
+  EditMode. Captures: `Geode/Assets/Output/rebuild/v67/`.
+
 ## Defects discovered
 - (V5 baseline, from the owner's screenshots and the captures above) boxy dark saw; dough-like rough geode; muddy, shallow, sparse opened geode; colour-only material differences; mannequin customers; abstract checkout.
 - V6.1b root causes behind the "dough" and "fur":
@@ -84,7 +111,7 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - V6.1b: shell 13,632 triangles per half; crystals per hero rock 84 (ACC) / 172 (E53) / 384 (7D1) / 578 (8BF, druzy); tile generation 7 s for four 1024 sets; EditMode 35/35 (twice, before and after the mesh change).
 
 ## Tests added
-- (none yet in V6; V5 suite 35/35 is the regression floor)
+- V6.6 added 23 EditMode tests (checkout). Suite is 68 and green through V6.7.
 
 ## Experiments / failed hypotheses / reverts
 - A finer knob octave on the mesh (`b3` at 4.6x the billow frequency) was added and removed the same session: it aliased on the 96-ring grid.
@@ -94,8 +121,10 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 - V6.0 `1e923ff`, V6.1a `07186f9`, V6.1b `b720789` (material pipeline + geode hero pass), V6.1c `927efe1` (crystal habits and carpets), V6.1d `47b0053` (family-wide review fixes), V6.2a `9b37bec` (worn machines, saw remodel), V6.3 `94f12d7` (reveal motion), V6.4 `27f0db9` (lighting and the saw cover), V6.5 (this commit): customers.
 
 ## Remaining work
-- V6.6 checkout is complete (see above). Next: V6.7 tutorial (spec §56), then the settings/inventory/buying/sourcing/career UI and rebinding.
-- V6.1 remainder: S8 tilt toward clusters, S6 per-direction wall thinning, S7 terraces, S10 luster classes for the non-quartz habits, S11 SpecimenVisual hygiene + perf gate (LOD for opened rocks on shelves), S12 machine scaffolding, S13 acceptance gate (RunGeodeGate matrix over all 24 families, standalone, report). Known visual nits: the agate face's fracture relief is strong, the staged seam frost is still chalky at full stress, non-quartz carpets (calcite, fluorite) still use the V5 habits at V5 sizes.
+- V6.6 checkout and V6.7 tutorial are complete (see above). The inventory UI (§63) was built during the visual
+  rebuild phase (`InventoryUI`, R03). Next: §61 settings rebuild, §62 key rebinding, §64 buying/sourcing UI,
+  §65 career/objective UI, §66 UI render QA.
+- V6.1 remainder: S8 tilt toward clusters, S6 per-direction wall thinning, S7 terraces, S10 luster classes for the non-quartz habits, S11 SpecimenVisual hygiene + perf gate (**partly done**: `SpecimenVisual.CrystalBudget` gives scenery a crystal budget, which took the stocked showroom from 5.19 M to 2.80 M triangles — see `Docs/VisualRebuild/PLAN.md` E), S12 machine scaffolding, S13 acceptance gate (RunGeodeGate matrix over all 24 families, standalone, report). Known visual nits: the agate face's fracture relief is strong, the staged seam frost is still chalky at full stress, non-quartz carpets (calcite, fluorite) still use the V5 habits at V5 sizes.
 - Then V6.2 machines .. V6.9 and the FINAL acceptance per the brief.
 
 ## Final acceptance status

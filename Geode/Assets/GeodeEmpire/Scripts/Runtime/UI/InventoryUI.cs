@@ -184,6 +184,7 @@ namespace GeodeEmpire.UI
             CursorController.EnterMenu();
             HudController.Instance.SetFreeRoamVisible(false);
             WorkshopAudio.Play2D("ui_click", 0.4f);
+            Workshop.Tutorial.Notify("inventory_opened");
             Refresh();
         }
 

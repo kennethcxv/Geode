@@ -410,3 +410,18 @@
 .inv-foot { flex-direction: row; align-items: center; padding-top: 8px; flex-shrink: 0;
             border-top-width: 1px; border-top-color: rgba(255,244,220,0.14); }
 .inv-rail { position: relative; left: auto; bottom: auto; margin-top: 8px; flex-shrink: 0; }
+
+/* ---- tutorial beacon (V6 §57: highlight the object the step is about) ------------------- */
+.beacon { position: absolute; width: 0; height: 0; align-items: center; justify-content: center; }
+.beacon-dot { position: absolute; width: 30px; height: 30px; left: -15px; top: -15px; border-radius: 15px;
+              border-width: 2px; border-color: rgb(232, 190, 112); background-color: rgba(232, 190, 112, 0.14); }
+/* off screen: the ring gives way to a big arrow that says which way to turn */
+.beacon-off .beacon-dot { display: none; }
+.beacon-chevron { position: absolute; width: 0; height: 0; left: -17px; top: -12px;
+                  border-left-width: 17px; border-right-width: 17px; border-bottom-width: 24px;
+                  border-left-color: rgba(0,0,0,0); border-right-color: rgba(0,0,0,0); border-bottom-color: rgb(240, 200, 120); }
+.beacon-label { position: absolute; top: 20px; left: -44px; width: 88px; font-size: 14px; letter-spacing: 1px;
+                color: rgb(244, 222, 178); -unity-text-align: middle-center; }
+.beacon-off .beacon-label { top: 26px; }
+.tutorial-done { border-left-color: rgb(92, 200, 128); }
+.tutorial-tick { font-size: 17px; color: rgb(126, 216, 156); -unity-text-align: middle-center; }

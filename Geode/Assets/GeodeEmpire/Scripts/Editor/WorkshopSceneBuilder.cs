@@ -2009,6 +2009,7 @@ namespace GeodeEmpire.EditorTools
             hud.AddComponent<SliceDirector>();
             hud.AddComponent<RetailUI>();
             hud.AddComponent<InventoryUI>();
+            hud.AddComponent<TutorialBeacon>();
             var build = new GameObject("BuildMode");
             var bm = build.AddComponent<GeodeEmpire.Build.BuildMode>();
             bm.GhostOk = WorkshopMaterials.Get("M_GhostOk");

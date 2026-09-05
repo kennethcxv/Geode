@@ -3203,14 +3203,17 @@ namespace GeodeEmpire.Core
             Vector3 dir = rp - center; dir.y = 0f;
             if (dir.sqrMagnitude < 0.0004f) dir = new Vector3(-0.2f, 0f, 0.7f);
             dir.Normalize();
-            // rocks in the receiving corner are always approached from the room side: the pocket between the pallets,
-            // the rock bin and the south wall wedges a controller that only pushes toward its target
-            bool receiving = rp.z < -0.9f && rp.x > -0.2f && rp.x < 2.6f;
+            // rocks on the receiving pallets are approached from the room side: the pocket between the pallet deck,
+            // the shutter and the north wall wedges a controller that only pushes toward its target
+            bool receiving = rp.z > Build.ShopPlan.BackZ + 0.4f && rp.x > Build.ShopPlan.BayX0 - 0.6f && rp.x < Build.ShopPlan.BayX1 + 0.6f;
             for (int attempt = 0; attempt < 2 && P.Held == null; attempt++)
             {
                 Vector3 stand = rp + dir * 0.8f; stand.y = 0f;
-                if (receiving) stand = new Vector3(Mathf.Clamp(rp.x + (attempt == 0 ? 0f : (rp.x < 1.18f ? 0.6f : -0.6f)), 0.3f, 2.1f), 0f, Mathf.Max(rp.z + 0.8f, -0.8f));
-                stand.x = Mathf.Clamp(stand.x, -3.1f, 6.6f); stand.z = Mathf.Clamp(stand.z, -2.25f, 2.25f);
+                if (receiving) stand = new Vector3(rp.x + (attempt == 0 ? 0f : (rp.x < (Build.ShopPlan.BayX0 + Build.ShopPlan.BayX1) * 0.5f ? 0.7f : -0.7f)), 0f, rp.z - 0.95f);
+                // the room, not the V5 garage: M1 moved the west wall to -6.4 and added the back of house north of
+                // z 3.2, and these clamps still pinned the walker at x -3.1 / z 2.25, three metres from the bay
+                stand.x = Mathf.Clamp(stand.x, Build.ShopPlan.XMin + 0.45f, Build.ShopPlan.PartitionX - 0.45f);
+                stand.z = Mathf.Clamp(stand.z, Build.ShopPlan.ZMin + 0.45f, Build.ShopPlan.ZMax - 0.45f);
                 yield return RouteTo(stand, 0.25f);
                 // aim at the collider's centre, not the pivot: a sawn half's pivot sits above its hull, and a ray at
                 // the pivot from a steep angle can graze past a 13 cm piece
