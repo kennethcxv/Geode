@@ -89,7 +89,51 @@ namespace GeodeEmpire.Core
             };
         }
 
+        /// <summary>One line, not a paragraph: the card is 250 px wide and §65 says not to let it dominate.</summary>
+        private static string Clip(string text, int max)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            int stop = text.IndexOf(". ", System.StringComparison.Ordinal);
+            if (stop > 0 && stop + 1 <= max) return text.Substring(0, stop + 1);
+            if (text.Length <= max) return text;
+            int cut = text.LastIndexOf(' ', Mathf.Min(max, text.Length - 1));
+            if (cut < max / 2) cut = max;
+            return text.Substring(0, cut).TrimEnd(',', ';', ':') + "…";
+        }
+
         /// <summary>Headline for the goals card: what the whole set is working towards.</summary>
         public static string GoalHeader(GameState s) => "Reach Empire Level " + (Level(s) + 1);
+
+        /// <summary>
+        /// V6 §65: the player has to be able to see what they are working towards and why. The goals are the
+        /// measure; this is the thing on the other side of them — the next piece of kit the business cannot afford
+        /// or has not earned yet, named with what stands between here and there. One line, not a second checklist.
+        /// </summary>
+        public static string NextUnlock(GameState s)
+        {
+            if (s == null) return "";
+            // the cheapest upgrade that is available and unowned: the one thing to look at
+            Economy.UpgradeDefinition best = null;
+            foreach (var u in Economy.UpgradeCatalog.All)
+            {
+                if (u.Consumable || s.HasUpgrade(u.Id)) continue;
+                if (!string.IsNullOrEmpty(u.Requires) && !s.HasUpgrade(u.Requires)) continue;
+                if (best == null || u.Price < best.Price) best = u;
+            }
+            // if it is already affordable, say so: that is something to do now, not something to work towards
+            if (best != null && s.Cash >= best.Price) return $"{best.Name} — you can afford it. {Clip(best.Effect, 66)}";
+            // otherwise the cheapest supplier still behind a condition: it changes what the player opens
+            Economy.SupplierDefinition sup = null;
+            foreach (var d in Economy.SupplierCatalog.All)
+            {
+                if (string.IsNullOrEmpty(d.UnlockHint)) continue;        // the starting quarry
+                if (s.UnlockedSuppliers.Contains(d.Id)) continue;
+                if (sup == null || d.Price < sup.Price) sup = d;
+            }
+            if (sup != null) return sup.Name + " — " + Clip(sup.UnlockHint, 76);
+            if (best == null) return "";
+            float shortfall = best.Price - s.Cash;
+            return $"{best.Name} — $" + Mathf.CeilToInt(shortfall).ToString("N0") + " to go. " + Clip(best.Effect, 60);
+        }
     }
 }

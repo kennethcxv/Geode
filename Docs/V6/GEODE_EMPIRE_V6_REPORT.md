@@ -120,6 +120,25 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
   reload from disk, reset. **37/37 settings rows pass, 0 fail**, covering §61's "interaction -> runtime effect ->
   save -> reload" for every setting in its audit. 68/68 EditMode. Captures: `Geode/Assets/Output/rebuild/v62/`.
 
+## V6.9 — buying, sourcing and the objective card (§64-65, 2026-09-05)
+- **§64 audit.** The suppliers screen already carried the dealer, the price, the rock count, the character chip, the
+  lock state, the risk, the expected quality range and the minerals to look for. Three things were wrong or absent:
+  - the header said crates arrive "to the pallet by the door", which has not been true since M6 built the receiving
+    bay — an ordered crate lands in the back of house, and the game had been telling the player the wrong room;
+  - **storage impact** was missing from §64's list entirely;
+  - and the numbers that decide a purchase were **below the fold**. The detail card scrolls, and price, rock count
+    and character sat under four paragraphs of flavour.
+- The detail card now leads with the decision: price, what the till looks like afterwards, rocks, character, where
+  it is delivered, how many crates are already waiting unopened, and how many display and sale slots are free —
+  with a warning line when there are none. The prose follows.
+- **§65.** The goals card said what to do (three standing goals and the level they add up to) but never what was on
+  the other side of them. `Progression.NextUnlock` names the nearest thing the player can act on: the cheapest
+  available upgrade if they can already afford it, otherwise the cheapest supplier still behind a condition with
+  that condition spelled out, otherwise the cheapest upgrade and the shortfall. One clipped line under the header,
+  because §65 also says not to let the card dominate the screen.
+- Verified in Play Mode on a fresh save and on a progressed one; 68/68 EditMode. Captures:
+  `Geode/Assets/Output/rebuild/v64/` and `v65/`.
+
 ## Defects discovered
 - (V5 baseline, from the owner's screenshots and the captures above) boxy dark saw; dough-like rough geode; muddy, shallow, sparse opened geode; colour-only material differences; mannequin customers; abstract checkout.
 - V6.1b root causes behind the "dough" and "fur":
@@ -147,8 +166,8 @@ Authoritative brief: `GEODE_EMPIRE_V6_PRODUCTION_ALPHA.md` (repo root). V5 basel
 
 ## Remaining work
 - V6.6 checkout and V6.7 tutorial are complete (see above). The inventory UI (§63) was built during the visual
-  rebuild phase (`InventoryUI`, R03), and §61/§62 are done (V6.8). Next: §64 buying/sourcing UI, §65
-  career/objective UI, §66 UI render QA, then §67 onward.
+  rebuild phase (`InventoryUI`, R03), §61/§62 are done (V6.8) and §64/§65 are done (V6.9). Next: §66 UI
+  render QA, then §67 onward.
 - V6.1 remainder: S8 tilt toward clusters, S6 per-direction wall thinning, S7 terraces, S10 luster classes for the non-quartz habits, S11 SpecimenVisual hygiene + perf gate (**partly done**: `SpecimenVisual.CrystalBudget` gives scenery a crystal budget, which took the stocked showroom from 5.19 M to 2.80 M triangles — see `Docs/VisualRebuild/PLAN.md` E), S12 machine scaffolding, S13 acceptance gate (RunGeodeGate matrix over all 24 families, standalone, report). Known visual nits: the agate face's fracture relief is strong, the staged seam frost is still chalky at full stress, non-quartz carpets (calcite, fluorite) still use the V5 habits at V5 sizes.
 - Then V6.2 machines .. V6.9 and the FINAL acceptance per the brief.
 

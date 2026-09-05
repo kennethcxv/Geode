@@ -220,7 +220,7 @@ namespace GeodeEmpire.UI
         // ---- Suppliers -----------------------------------------------------------------------
         private void BuildSuppliers()
         {
-            _subtitle.text = "Order mystery crates. Delivery is immediate, to the pallet by the door.";
+            _subtitle.text = "Order mystery crates. Delivery is immediate, onto the pallets in the receiving bay.";
             var st = _s.State;
             int pallet = _s.Crates.Count;
             if (pallet >= 3) UiKit.Label(_content, $"The receiving pallet is getting full ({pallet} crates). Open or break down a crate before ordering more.", "muted");
@@ -297,12 +297,27 @@ namespace GeodeEmpire.UI
             var ht = UiKit.Box(head, "grow");
             UiKit.Label(ht, sup.Name, "detail-title");
             UiKit.Label(ht, sup.Tagline, "detail-sub");
+            // §64: the numbers that decide the purchase come first. The card scrolls, and price, rocks and what
+            // the till looks like afterwards were below the fold under four paragraphs of flavour.
+            UiKit.Rule(_detail);
+            var st = _s.State;
+            UiKit.Kv(_detail, "Crate price", UiKit.Money(sup.Price), "accent");
+            UiKit.Kv(_detail, "Till after", UiKit.Money(st.Cash - sup.Price), st.Cash >= sup.Price ? "" : "danger");
+            UiKit.Kv(_detail, "Rocks", sup.RockCountLabel);
+            UiKit.Kv(_detail, "Character", VarianceTag(sup));
+            UiKit.Kv(_detail, "Delivered to", "the receiving bay, at once");
+            int waiting = UnopenedCrates();
+            if (waiting > 0) UiKit.Kv(_detail, "Crates already waiting", waiting.ToString(), "warn");
+            int free = FreeShelfSpace();
+            UiKit.Kv(_detail, "Free display and sale slots", free.ToString(), free > 0 ? "" : "warn");
+            if (free == 0)
+                UiKit.Label(_detail, "Every shelf and sales slot is full. Rocks keep coming, but nothing new goes on show until you sell something.", "build-tip");
+
             UiKit.Rule(_detail);
             var desc = UiKit.Label(_detail, unlocked ? sup.Description : sup.UnlockHint, "detail-note");
             desc.style.marginTop = 0;
             if (unlocked)
             {
-                UiKit.Rule(_detail);
                 void Line(string k, string v)
                 {
                     UiKit.Label(_detail, k.ToUpper(), "caption").style.marginTop = 8;
@@ -318,10 +333,27 @@ namespace GeodeEmpire.UI
                 UiKit.Rule(_detail);
                 UiKit.Kv(_detail, "Collection value", UiKit.Money(_s.State.CollectionValue()) + " / $1,500");
             }
-            UiKit.Rule(_detail);
-            UiKit.Kv(_detail, "Crate price", UiKit.Money(sup.Price), "accent");
-            UiKit.Kv(_detail, "Rocks", sup.RockCountLabel);
-            UiKit.Kv(_detail, "Character", VarianceTag(sup));
+        }
+
+        /// <summary>Crates delivered and not yet emptied: the honest answer to "how much is already waiting".</summary>
+        private int UnopenedCrates()
+        {
+            int n = 0;
+            foreach (var c in _s.State.Crates) if (c != null && c.Delivered && !c.Opened) n++;
+            return n;
+        }
+
+        /// <summary>Sale and display slots the player owns and has not filled.</summary>
+        private int FreeShelfSpace()
+        {
+            var st = _s.State;
+            int used = 0;
+            foreach (var r in st.Specimens)
+            {
+                if (r == null) continue;
+                if (r.Location == Save.SpecimenLocation.SaleSlot || r.Location == Save.SpecimenLocation.DisplaySlot) used++;
+            }
+            return Mathf.Max(0, st.SaleCapacity + st.DisplayCapacity - used);
         }
 
         private static string VarianceTag(SupplierDefinition sup)

@@ -16,6 +16,7 @@ namespace GeodeEmpire.UI
         private UIDocument _doc;
         private VisualElement _root, _crosshair, _ring, _notifyStack, _tutorialCard;
         private VisualElement _promptChip, _goalsCard, _statusCard, _keybar, _xpFill;
+        private Label _goalWhy;
         private Label _prompt, _hint, _cash, _cashDelta, _tutorial, _tutorialTick, _promptKey, _day, _level, _xpText, _goalHead;
         private readonly List<(VisualElement box, Label text, Label num)> _goalRows = new List<(VisualElement, Label, Label)>();
         private int _lastLevel = -1;
@@ -92,6 +93,8 @@ namespace GeodeEmpire.UI
 
             _goalsCard = UiKit.Box(hud, "goals");
             _goalHead = UiKit.Label(_goalsCard, "Expand the Business", "goals-title");
+            _goalWhy = UiKit.Label(_goalsCard, "", "goal-why");
+            _goalWhy.style.whiteSpace = WhiteSpace.Normal;
             var head = UiKit.Box(_goalsCard, "goal-row");
             UiKit.Label(head, "\u2605", "goal-star");
             var headText = UiKit.Label(head, "", "goal-text", "goal-head");
@@ -192,6 +195,10 @@ namespace GeodeEmpire.UI
             }
 
             _goalHead.text = "Expand the Business";
+            // §65: the goals are the measure; this says what is on the other side of them
+            string next = Progression.NextUnlock(st);
+            _goalWhy.text = string.IsNullOrEmpty(next) ? "" : "Next: " + next;
+            _goalWhy.style.display = string.IsNullOrEmpty(next) ? DisplayStyle.None : DisplayStyle.Flex;
             var goals = Progression.Goals(st);
             _goalRows[0].text.text = Progression.GoalHeader(st);
             for (int i = 0; i < 3; i++)
