@@ -1080,6 +1080,11 @@ namespace GeodeEmpire.EditorTools
             bench.SetParent(parent, false);
             bench.localPosition = new Vector3(-2.0f, 0f, 2.68f);   // on the cross wall, between the two back-of-house openings (back 3 cm off the trim face at 3.095)
             Prop("prop_workbench", bench, Vector3.zero, 0f, "M_Wood,M_MetalDark");
+            // §10.4: the reference bench is a working bench, with the stock it consumes stored under it. A bin of
+            // rough and a box of packing under the shelf is one prop each and it is the difference between a table
+            // and a station somebody uses.
+            Prop("prop_tray", bench, new Vector3(-0.55f, 0.30f, 0.01f), 3f, "M_PlasticBlue", collider: false, scale: new Vector3(1.35f, 1.1f, 1.2f));
+            Prop("prop_cardboard_box", bench, new Vector3(0.52f, 0.30f, 0.0f), -7f, "M_Kraft,M_Paper", collider: false, scale: Vector3.one * 0.5f);
             var cradleProp = Prop("prop_cradle", bench, new Vector3(0.25f, 0.9f, -0.05f), 0f, "M_Leather,M_Rubber", collider: true);
             var cradleZone = Support(Zone(bench, "CradleZone", new Vector3(0.25f, 0.9f, -0.05f), ZoneKind.Cradle, "the cradle", 1, true, true, new Vector3(0.32f, 0.22f, 0.32f)), 0.3f, 0.3f);
             cradleZone.SetHighlightRenderers(cradleProp.GetComponentsInChildren<Renderer>());
@@ -1172,6 +1177,8 @@ namespace GeodeEmpire.EditorTools
             appraisal.localPosition = new Vector3(-6.05f, 0f, 0.4f);
             appraisal.localRotation = Quaternion.Euler(0f, 90f, 0f);
             Prop("prop_workbench", appraisal, Vector3.zero, 0f, "M_WoodDark,M_MetalDark", scale: new Vector3(0.75f, 1f, 0.85f));
+            Prop("prop_cardboard_box", appraisal, new Vector3(0.32f, 0.30f, 0.0f), 9f, "M_Kraft,M_Paper", collider: false, scale: Vector3.one * 0.44f);
+            Prop("prop_tray", appraisal, new Vector3(-0.30f, 0.30f, 0.01f), -5f, "M_PlasticBlue", collider: false, scale: new Vector3(1.0f, 1.0f, 1.0f));
             var scaleProp = Prop("prop_scale_station", appraisal, new Vector3(0.15f, 0.9f, -0.02f), 180f, "M_PlasticDark,M_Screen,M_Stainless,M_Rubber", collider: true);
             var scaleZone = Support(Zone(appraisal, "ScaleZone", new Vector3(0.15f, 0.954f, -0.01f), ZoneKind.Scale, "the scale", 1, true, false, new Vector3(0.44f, 0.2f, 0.4f)), 0.21f, 0.19f);   // on the platform (top 0.054 above the base)
             // the reference row: one washed example of every mineral family met so far, on labelled bases along
@@ -1454,6 +1461,9 @@ namespace GeodeEmpire.EditorTools
             Prop("prop_extinguisher", parent, new Vector3(-6.28f, 0f, -0.95f), 90f, "M_Red,M_Metal,M_Rubber,M_Paper");   // on the west wall by the door
             Prop("prop_broom", parent, new Vector3(-6.1f, 0.008f, -2.5f), 20f, "M_Wood,M_Bristle,M_Rope", collider: false).transform.localRotation = Quaternion.Euler(-3f, 20f, 3f);
             Prop("prop_wall_clock", parent, new Vector3(-4.35f, 2.55f, RoomZMin + 0.02f), 180f, "M_Cream,M_Paper,M_MetalDark", collider: false);
+            // R26 hangs a safety notice where the wet work is: the one piece of paper on a wall that says somebody
+            // runs this place
+            Poster(parent, "M_PosterMinerals", new Vector3(-3.52f, 1.72f, RoomZMin + 0.02f), 0f);
             Poster(parent, "M_PosterMinerals", new Vector3(RoomXMin + 0.02f, 1.9f, -0.95f), 90f);
             Poster(parent, "M_PosterRocks", new Vector3(1.55f, 1.85f, BackZ - 0.095f), 0f);
             SignHung(parent, "RECEIVING BAY", new Vector3((BayX0 + BayX1) * 0.5f, 2.6f, RoomZMax - 1.25f), 0f, 0.95f);

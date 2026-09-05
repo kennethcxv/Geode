@@ -293,7 +293,11 @@ of a career is spent on.
 | UI render QA passes | 28/28, 0 findings, 4 planted faults still caught |
 | Automated tests green | EditMode 68/68 |
 
+**Since that table was written**, each bench gained the stock it consumes on its lower shelf — a blue bin of rough
+and a box of packing, which is what separates a working bench from a table — and a safety notice went up on the
+south wall. Audit still 0/0/0/0/0, acceptance still 35/35.
+
 **Not claimed.** The room is closer to R26 but not equal to it: the reference has visible roof trusses, a more
-polished floor and considerably more set dressing (safety poster, bins under every bench, boxes on every shelf).
-The inspection and cracking benches are still brown timber tables rather than the reference's steel-framed
-benches — the wash station is the only station wearing the machine livery so far.
+polished floor, and more set dressing again. The inspection and cracking benches are still timber rather than the
+reference's steel-framed benches — the wash station is the only station wearing the machine livery so far, and
+giving the benches theirs is the obvious next pass.
