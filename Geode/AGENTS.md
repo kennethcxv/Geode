@@ -120,3 +120,9 @@ Also change the compaction policy for this project:
 - Do not wait until ~250K tokens.
 - When approximately 30% of context remains, finish the current atomic operation, update PROGRESS.md completely, make a clean checkpoint if appropriate, compact, reread the recovery sources above, and immediately continue the same goal.
 - Treat compaction as maintenance, never as completion.
+
+## Automated player-data boundary
+
+During the active autonomous Astra rework, keep `AstraQaSession.AutomationGuardEnabled` armed. Its project-specific setting survives Editor and machine restart. It cancels unprepared Play and rejects writes to the real player directory; authorized QA still requires Prepare → exact validation → Enter → exit/Finish → original hash comparison. Verify the guard and any active manifest during recovery. Do not end this guard while autonomous production/QA remains active. The explicit `GeodeEmpire/Astra/End Automation Save Guard` command returns the Editor to normal career use when automation is finished.
+
+Tests must restore the previous `SaveSystem.DirectoryOverride` in `finally`, never unconditionally clear an outer isolation session. After any unexpected Play or protected-file change, record the timestamp, actual hashes and proven field differences, preserve newer player files, and distinguish a proven defect from an unknown initiator.

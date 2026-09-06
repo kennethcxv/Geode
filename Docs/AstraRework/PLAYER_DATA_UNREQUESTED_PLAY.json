@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-06",
+  "observedWriteLocal": "21:13:25.720986",
+  "playLog": "Geode/Logs/Editor.log lines 13084\u201313099: Entering Playmode after 21:13:17, disabled domain and scene reload",
+  "initiator": "Unproven; no Play tool request in this turn. User clarification pending.",
+  "changes": {
+    "LastSavedTicks": [
+      639243116948296490,
+      639243188057192210
+    ],
+    "PlayTimeSeconds": [
+      737.0551147460938,
+      738.6296997070312
+    ]
+  },
+  "specimensCashAndOtherFields": "Unchanged in complete JSON comparison",
+  "preservedNewFiles": true,
+  "currentSHA256": {
+    "career": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946",
+    "backup": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f",
+    "settings": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+  },
+  "containment": "Persistent editor guard armed and verified after domain reload; native unprepared Play cancellation passed in study; real-path callback refuses; isolated positive Play save/settings roundtrip passed; 9 guard/save/settings tests pass.",
+  "separateProvenDefect": "SaveSystemTests.TearDown erased an outer isolation override. Fixed with restoration in finally and passing nested-fixture regression. This run occurred after the 21:13 event and does not prove its trigger.",
+  "finishedSessions": [
+    "d3d8079fc4d04977995518ba183d8a3f",
+    "9b37f0784f8c409f9363bf78100cae3e"
+  ]
+}

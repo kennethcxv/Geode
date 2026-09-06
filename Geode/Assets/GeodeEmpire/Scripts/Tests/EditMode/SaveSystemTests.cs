@@ -10,11 +10,13 @@ namespace GeodeEmpire.Tests
     public class SaveSystemTests
     {
         private string _scratch;
+        private string _previousDirectory;
 
         [SetUp]
         public void Stash()
         {
             // never the real career: every test runs against its own scratch folder
+            _previousDirectory = SaveSystem.DirectoryOverride;
             _scratch = Path.Combine(Path.GetTempPath(), "GeodeEmpireTests", System.Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_scratch);
             SaveSystem.DirectoryOverride = _scratch;
@@ -24,9 +26,12 @@ namespace GeodeEmpire.Tests
         [TearDown]
         public void Restore()
         {
-            SaveSystem.Delete();
-            SaveSystem.DirectoryOverride = null;
-            try { Directory.Delete(_scratch, true); } catch (System.Exception) { }
+            try { if (SaveSystem.DirectoryOverride == _scratch) SaveSystem.Delete(); }
+            finally
+            {
+                SaveSystem.DirectoryOverride = _previousDirectory;
+                if (Directory.Exists(_scratch)) Directory.Delete(_scratch, true);
+            }
         }
 
         private static GameState Sample()

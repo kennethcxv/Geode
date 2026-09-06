@@ -163,6 +163,7 @@ namespace GeodeEmpire.Core
             {
                 HeadBob = HeadBobAmount > 0.001f;
                 Fullscreen = DisplayMode != 2;
+                GeodeEmpire.Save.SaveSystem.BeforeDirectoryWrite?.Invoke(GeodeEmpire.Save.SaveSystem.Directory);
                 Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
                 string tmp = FilePath + ".tmp";
                 File.WriteAllText(tmp, JsonUtility.ToJson(this, true));

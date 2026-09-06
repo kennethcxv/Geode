@@ -17,6 +17,8 @@ namespace GeodeEmpire.EditorTools
     {
         private const string ActiveKey = "GeodeEmpire.AstraQA.ActiveManifest";
         private const string LastKey = "GeodeEmpire.AstraQA.LastManifest";
+        private static string GuardKey => "GeodeEmpire.AstraQA.AutomationGuard." + Application.dataPath;
+        public static bool AutomationGuardEnabled => EditorPrefs.GetBool(GuardKey, false);
 
         [Serializable]
         public sealed class ProtectedFile
@@ -44,6 +46,7 @@ namespace GeodeEmpire.EditorTools
         static AstraQaSession()
         {
             EditorApplication.playModeStateChanged += OnPlayMode;
+            SaveSystem.BeforeDirectoryWrite = ProtectPlayerDirectory;
             // SessionState survives a domain reload. Reinstate isolation before runtime initialization.
             try
             {
@@ -55,6 +58,34 @@ namespace GeodeEmpire.EditorTools
                 EditorApplication.isPlaying = false;
                 Debug.LogError("[Astra QA] Cannot restore isolation: " + e.Message);
             }
+        }
+
+        /// <summary>Persists across Editor/machine restarts while the autonomous rework owns the project.</summary>
+        [MenuItem("GeodeEmpire/Astra/Arm Automation Save Guard")]
+        public static void ArmAutomationGuard()
+        {
+            RequireStopped();
+            EditorPrefs.SetBool(GuardKey, true);
+            SaveSystem.BeforeDirectoryWrite = ProtectPlayerDirectory;
+        }
+
+        /// <summary>Explicitly return the Editor to normal player-career use after automated work is finished.</summary>
+        [MenuItem("GeodeEmpire/Astra/End Automation Save Guard")]
+        public static void EndAutomationGuard()
+        {
+            RequireStopped();
+            if (Read(ActiveKey) != null) throw new InvalidOperationException("Finish the isolated QA session first.");
+            EditorPrefs.SetBool(GuardKey, false);
+        }
+
+        private static void ProtectPlayerDirectory(string directory)
+        {
+            if (!AutomationGuardEnabled) return;
+            string real = Path.GetFullPath(Application.persistentDataPath).TrimEnd(Path.DirectorySeparatorChar);
+            string target = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar);
+            if (string.Equals(real, target, StringComparison.OrdinalIgnoreCase)
+                || target.StartsWith(real + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new IOException("Astra automation protects the real player directory. Prepare an isolated QA session before writing.");
         }
 
         public static Session Prepare(string label, bool copyCareer = false)
@@ -145,6 +176,16 @@ namespace GeodeEmpire.EditorTools
 
         private static void OnPlayMode(PlayModeStateChange state)
         {
+            if (AutomationGuardEnabled && string.IsNullOrEmpty(SessionState.GetString(ActiveKey, ""))
+                && (state == PlayModeStateChange.ExitingEditMode || state == PlayModeStateChange.EnteredPlayMode))
+            {
+                EditorApplication.isPlaying = false;
+                string message = "[Astra QA] Unprepared Play cancelled at " + DateTime.UtcNow.ToString("O")
+                    + ". Automation save guard is armed; prepare an isolated session first.";
+                SessionState.SetString("GeodeEmpire.AstraQA.LastBlockedPlay", message);
+                Debug.LogWarning(message);
+                return;
+            }
             if (string.IsNullOrEmpty(SessionState.GetString(ActiveKey, ""))) return;
             if (state == PlayModeStateChange.ExitingEditMode)
             {

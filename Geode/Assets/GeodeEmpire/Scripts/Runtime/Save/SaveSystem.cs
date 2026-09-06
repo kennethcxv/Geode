@@ -19,6 +19,9 @@ namespace GeodeEmpire.Save
         public static string BackupPath => MainPath + ".bak";
         public static string TempPath => MainPath + ".tmp";
 
+        /// <summary>Optional editor automation boundary, invoked before any career/settings filesystem mutation.</summary>
+        public static Action<string> BeforeDirectoryWrite;
+
         public static event Action<GameState> Saved;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -34,6 +37,7 @@ namespace GeodeEmpire.Save
             string json = JsonUtility.ToJson(state, false);
             try
             {
+                BeforeDirectoryWrite?.Invoke(Directory);
                 System.IO.Directory.CreateDirectory(Directory);
                 File.WriteAllText(TempPath, json);
                 // sanity: re-read what we wrote before replacing the live save
@@ -67,7 +71,7 @@ namespace GeodeEmpire.Save
             if (bestPath != MainPath)
             {
                 Debug.LogWarning($"[SaveSystem] main save {(main == null ? "unreadable" : "older")}, restored from {Path.GetFileName(bestPath)}");
-                try { File.Copy(bestPath, MainPath, true); } catch (Exception e) { Debug.LogWarning("[SaveSystem] could not promote recovered save: " + e.Message); }
+                try { BeforeDirectoryWrite?.Invoke(Directory); File.Copy(bestPath, MainPath, true); } catch (Exception e) { Debug.LogWarning("[SaveSystem] could not promote recovered save: " + e.Message); }
             }
             return best;
         }
@@ -110,6 +114,7 @@ namespace GeodeEmpire.Save
             s.TutorialSteps ??= new System.Collections.Generic.List<string>();
             s.Encyclopedia ??= new System.Collections.Generic.List<EncyclopediaEntry>();
             s.Crates ??= new System.Collections.Generic.List<CrateRecord>();
+            s.Fixtures ??= new System.Collections.Generic.List<FixturePose>();
             s.Specimens ??= new System.Collections.Generic.List<SpecimenRecord>();
             s.Stats ??= new Statistics();
             // V5 (version 2): market, auctions, letters, exhibition
@@ -169,6 +174,7 @@ namespace GeodeEmpire.Save
         {
             try
             {
+                BeforeDirectoryWrite?.Invoke(Directory);
                 if (File.Exists(MainPath)) File.Delete(MainPath);
                 if (File.Exists(BackupPath)) File.Delete(BackupPath);
                 if (File.Exists(TempPath)) File.Delete(TempPath);

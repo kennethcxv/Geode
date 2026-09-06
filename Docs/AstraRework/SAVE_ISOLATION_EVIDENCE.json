@@ -288,6 +288,58 @@
         }
       ],
       "failures": []
+    },
+    {
+      "label": "investigate-unrequested-play-guard",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/d3d8079fc4d04977995518ba183d8a3f/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/d3d8079fc4d04977995518ba183d8a3f/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T19:37:09.1368930Z",
+      "endedUtc": "2026-09-06T19:43:47.6645440Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "guard-authorized-isolated-play",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9b37f0784f8c409f9363bf78100cae3e/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9b37f0784f8c409f9363bf78100cae3e/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T19:44:34.0019450Z",
+      "endedUtc": "2026-09-06T19:45:02.7609210Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
     }
   ],
   "input_helper": {
@@ -324,5 +376,15 @@
     "bill_paid": 141.34,
     "reload_preserved_lease_payment_and_cleared_balance": true,
     "collision_overlaps_over_4mm": 0
+  },
+  "automation_guard": {
+    "armed": true,
+    "testJob": "867fef09-d3f1-4cd6-938c-370cbeccf7a6",
+    "tests": "9 pass, 0 fail, 0 skip, 2.01s",
+    "nativeUnpreparedPlay": "Cancelled before Play at 2026-09-06T19:44:00.3990550Z in no-career AstraLayoutStudy. playing=false/willPlay=false.",
+    "protectedDirectory": "Editor directory callback refused real path without attempting a real write.",
+    "positivePlay": "9b37f078... prepared and entered normally; isolated career astra-guard-positive cash142.35/settings1.31 saved and loaded; exited/finished; all actual original hashes unchanged.",
+    "testHarnessDefect": "SaveSystemTests restored null instead of prior DirectoryOverride; fixed and nested-fixture regression passes.",
+    "note": "The 21:13 Play initiator remains unproven. User clarification pending; real files preserved."
   }
 }
