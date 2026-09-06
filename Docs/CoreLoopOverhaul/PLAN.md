@@ -229,3 +229,18 @@ Bump to version 3 with an explicit migration and a test per field.
 | M12 | Ledger model + version-3 migration | 12 EditMode tests; old saves load with 0 owed |
 | — | Editor responsiveness restored | ping 30 s timeout -> 1.2 s after moving 1,620 scratch PNGs out of `Assets/` |
 | — | EditMode suite | **91/91** (68 + 11 SurfaceTests + 12 LedgerTests) |
+| M5 | Good blow vs bad blow reachable in play | `STRIKE FEEL: live=5 (mean q 0.92) dead=1 (q 0.06)` — both branches fire |
+| M5 | Break scales by size, material and tool | 9 EditMode tests on `FractureAudio.Plan`; `audio-crack` span 0.09 ms |
+| M7 | Notification tiers restrained | 3 rocks -> 2 cards + 1 quiet line; old build popped "Best X so far" on the ordinary one |
+| M8 | Every reachable tutorial step points at something | fresh save 14 resolved / 0 dead; crate open 16 resolved / 0 dead |
+| M10 | Day-one retail, no leases | enter -> browse -> queue -> counter -> checkout -> exit, cash 350 -> 380.95, shopfront=False throughout |
+| M11 | Arrears block expansion and premium sourcing | `LedgerTests`; starter acceptance back to 35/35 |
+| M12 | Bills UI and metering | bill $121.78 shown line by line, Pay clears it; a minute of saw+lap+cracker = 0.117 units, 7.5 l |
+| M13 | Seven archetype careers, 30-90 days | bills 44-53% -> 22-27% of takings; counter $29.50/piece vs dealer $19.60 |
+| M13 | A genuine fresh-save career | 15.2 min, 16 opened, 10 sold, 12 families, dup/orphans 0, Console clean |
+| M14 | Audio set complete and level matched | 45 cues exist, peak spread inside 8x, UI quieter than a hammer tap; `scrub_dry` and `scrape` had been silent |
+| M15 | Persistence | closed crate / mid-animation / opened / held all reload; `maxMove=0.000 missing=0`, `atOrigin=0` |
+| M15 | Controller | tablet tabs, purchase, pause, settings tabs, sliders, toggles, fullscreen confirm/revert, back to gameplay |
+| M15 | Customer stress | 30 spawned, 24 served (80%), 0 stuck / loops / stalls / path failures, 0 overlaps, 60-82 fps |
+| M15 | UI render QA | 28/28 pass, 0 findings at 1080p/1440p/4K and 1.0x/1.4x (was 6 fail / 24 findings) |
+| M15 | EditMode suite | **121/121** |

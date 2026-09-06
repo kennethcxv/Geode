@@ -2049,6 +2049,15 @@ namespace GeodeEmpire.EditorTools
                 q.position = new Vector3(-0.70f, 0f, qz); rs.StarterQueue.Add(q);
             }
             SignHung(starter, "SHOP", new Vector3(-2.30f, 2.30f, RoomZMin + 0.10f), 0f, 0.5f);
+            // §20.2: the same counter, but this one is standing in a workshop rather than a lit showroom. Its
+            // display shelves are finished in a bright retail cream that reads as shop-fit furniture under
+            // pendant lamps and wrong under a workshop's task lighting. Tinted down per-renderer, so the
+            // showroom's counter — the same prop, the same material — keeps the look it was made for.
+            var workday = new MaterialPropertyBlock();
+            workday.SetColor("_BaseColor", new Color(0.60f, 0.55f, 0.47f, 1f));
+            foreach (var r in starterCounter.GetComponentsInChildren<MeshRenderer>())
+                if (r.sharedMaterial != null && r.sharedMaterial.name.StartsWith("M_CreamLit"))
+                    r.SetPropertyBlock(workday);
             _starterCounter = starter.gameObject;
 
             // wall case: two shelves of three
