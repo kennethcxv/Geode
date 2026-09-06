@@ -2289,6 +2289,7 @@ namespace GeodeEmpire.Core
             if (!string.IsNullOrEmpty(why)) { L("  buy counter failed: " + why); Running = false; yield break; }
             yield return new WaitForSeconds(0.6f);
             L($"  bought {def.Name} for {def.Price:0}: trading={shop.Trading} (expected True)");
+            if (!shop.SetOpen(true, out string openingError)) { L("  open shop failed: " + openingError); Running = false; yield break; }
             L($"  sale slots standing: {ActiveSaleSlots()}");
             Snap("starter_counter");
 
@@ -2412,6 +2413,9 @@ namespace GeodeEmpire.Core
                 yield return null;
             }
             yield return new WaitForSeconds(0.25f);
+            var shop = Retail.RetailShop.Instance;
+            if (shop == null) L("open shop: RetailShop missing");
+            else if (!shop.SetOpen(true, out string why)) L("open shop: " + why);
         }
 
         public void RunRetailStress(float minutes = 16f) { if (!Running) StartCoroutine(RetailStress(minutes)); }
@@ -3633,7 +3637,17 @@ namespace GeodeEmpire.Core
             {
                 c = shop.SpawnNow();
                 float w = 0f;
-                while (c != null && c.State != Retail.Customer.Phase.AtCounter && c.State != Retail.Customer.Phase.Done && w < 70f) { w += Time.deltaTime; yield return null; }
+                while (w < 70f)
+                {
+                    // A natural arrival may reach the counter before the shopper this harness requested.
+                    // Serve the actual front of the queue instead of waiting behind an unserved customer.
+                    var atCounter = shop.AtCounter;
+                    if (atCounter != null && atCounter.State == Retail.Customer.Phase.AtCounter && atCounter.Wanted != null)
+                    { c = atCounter; break; }
+                    if (c == null || c.State == Retail.Customer.Phase.Done) break;
+                    w += Time.deltaTime;
+                    yield return null;
+                }
                 if (c != null && c.State == Retail.Customer.Phase.AtCounter && c.Wanted != null) break;
                 L($"  attempt {attempt + 1}: {(c == null ? "no spawn" : c.State.ToString())} - trying another shopper");
                 while (c != null && c.State != Retail.Customer.Phase.Done) yield return null;

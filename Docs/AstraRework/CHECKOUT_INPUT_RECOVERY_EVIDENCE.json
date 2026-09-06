@@ -1,0 +1,14 @@
+{
+  "date": "2026-09-06",
+  "evidenceType": "Isolated diagnostic with injected shop/stock and a controlled one-cent drawer conflict. Station camera entry was staged through code; keyboard retry and gamepad scan/exit used normal Dynamic InputSystem updates. This is not the primary fresh career or full controller checkout acceptance.",
+  "session": "5cad0407283d4ed2a68f163f9ad944c2",
+  "rootCause": "CursorController.EnterMenu disabled the Player action map that CheckoutStation.Update itself reads. Checkout now explicitly requests station controls while movement/look stay locked; ordinary and nested menus still block the action map.",
+  "readback": "project=/Users/kenneth/Documents/GitHub/Geode/Geode/Assets playing=False compiling=False updating=False scene=Assets/GeodeEmpire/Scenes/Workshop.unity dirty=False\nactive= override=\n{\"label\":\"checkout-input-recovery-after-menu-fix\",\"manifestPath\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/5cad0407283d4ed2a68f163f9ad944c2/session.json\",\"originalDirectory\":\"/Users/kenneth/Library/Application Support/DefaultCompany/Geode\",\"isolatedDirectory\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/5cad0407283d4ed2a68f163f9ad944c2/player-data\",\"phase\":\"Finished\",\"startedUtc\":\"2026-09-06T11:56:17.1514570Z\",\"endedUtc\":\"2026-09-06T17:14:39.9546920Z\",\"copiedCareer\":false,\"originalDataUnchanged\":true,\"originals\":[{\"name\":\"geode_career.json\",\"sha256\":\"d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694\"},{\"name\":\"geode_career.json.bak\",\"sha256\":\"d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694\"},{\"name\":\"settings.json\",\"sha256\":\"b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340\"}],\"failures\":[]}\nInputRecoveryRefusal=id=S0003-0E53 banked=False cash=200 sales=0 actionsEnabled=True stationControls=True movementEnabled=False inputLocked=True\nInputRecoveryResult=PASS keyboardPerformed=1 id=S0003-0E53 cashBefore=200 cashAfter=245.95 sales=1 drawer=418.7 diskCash=245.95 diskDrawer=418.7 exactDrawer=True txNull=true active=False entityGone=true\nGamepadScan=id=S0001-07D1 unscannedBefore=1 after=0 scheme=Gamepad active=True actionEnabled=True displacement=0\nGamepadExit=PASS active=false ticketRetained=True cashBefore=245.95 cashAfter=245.95 gameplay=True menu=False movement=True\n",
+  "tests": {
+    "job": "f491f7b7-1dd6-478c-a491-a14c9d36272c",
+    "passed": 44,
+    "failed": 0,
+    "skipped": 0
+  },
+  "remainingDefect": "Exact-cents display defect subsequently fixed and verified with actual card key input; see CHECKOUT_CENTS_EVIDENCE.json."
+}

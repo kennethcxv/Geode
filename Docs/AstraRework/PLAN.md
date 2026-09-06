@@ -21,10 +21,12 @@ Validation tools also need scrutiny: the MCP screenshot default caps even an exp
 
 Immediate sequence:
 
-1. Finish the baseline interaction and reload diagnostics; preserve exact evidence and restore Editor settings.
-2. Complete the historical requirement extraction and live audit across all matrix areas. Mark unobserved claims as partial; code and old reports do not establish acceptance.
-3. Resolve the baseline timeout through measured work and rerun the affected test, then the necessary full milestone gate. Commit/push the verified safety milestone on the branch.
-4. Finish benchmark analysis, review the provided reference pack, generate original variants, select concrete targets and budgets, then execute the architecture phase.
+1. Resume the exact interrupted checkout/input milestone from PROGRESS.md. The safety milestone 39463d2 is already committed/pushed; 44 scoped tests and actual keyboard retry/gamepad scan/exit passed. Finish the remaining exact-cents display defect, verify its affected behavior, and commit the coherent known-good checkout/opening/input work. Do not repeat completed integrity/checkout checks without a regression.
+2. Immediately return to the master phase order: complete historical requirement extraction and live truth audit across all matrix areas. Mark unobserved claims as partial; code and old reports do not establish acceptance.
+3. Finish Steam simulator benchmarking, provided reference review, all required original concept variants, final art selection and budgets.
+4. Redesign the entire architecture/storefront/entrance/zoning/customer flow before proceeding through the Blender asset manifest. The unimported draft bench is parked. Address the measured geometry timeout in the appropriate geometry/performance pass; do not hide it with a higher timeout or let it derail the phase order.
+
+PROGRESS.md is the durable interruption/recovery state. Update after meaningful milestones and before substantial/risky work, commits or compaction. At about 30% remaining context, finish the atomic operation, checkpoint, compact where supported, reread the prescribed recovery sources and continue the same goal. Capacity failures, tool timeouts and restarts are interruptions, never acceptance.
 
 ## Production order and exit evidence
 

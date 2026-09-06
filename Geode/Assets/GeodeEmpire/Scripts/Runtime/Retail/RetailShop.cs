@@ -63,6 +63,28 @@ namespace GeodeEmpire.Retail
                 return c != null && c.gameObject.activeInHierarchy;
             }
         }
+        public bool IsOpen => GameSession.Instance != null && GameSession.Instance.State != null
+            && GameSession.Instance.State.ShopOpen;
+        public bool AcceptingCustomers => IsOpen && Trading;
+
+        /// <summary>Closing stops admission only. Browsing, checkout, handover and the exit route keep running.</summary>
+        public bool SetOpen(bool open, out string error)
+        {
+            error = null;
+            var session = GameSession.Instance;
+            if (session == null || session.State == null) { error = "Load a career before opening the shop."; return false; }
+            if (open && !Trading) { error = "Place the checkout before opening the shop."; return false; }
+            if (session.State.ShopOpen == open) return true;
+            session.State.ShopOpen = open;
+            _nextSpawnIn = open ? 8f : 30f;
+            session.RaiseStateChanged();
+            session.FlushSave(open ? "shop-opened" : "shop-closed");
+            Changed?.Invoke();
+            session.Notify(open ? "Shop open. Customers are welcome."
+                : _customers.Count > 0 ? "Shop closed to new arrivals. Finish serving the customers inside."
+                : "Shop closed. Time to work on your shop.");
+            return true;
+        }
         public Font LabelFont;
         public Material LabelMaterial;
         public NavMeshSurface Navigation;
@@ -156,6 +178,7 @@ namespace GeodeEmpire.Retail
             _browseClaims.Clear();
             _nextSpawnIn = 30f;
             RefreshCapacity();
+            Changed?.Invoke();
         }
 
         public void RefreshCapacity()
@@ -303,20 +326,22 @@ namespace GeodeEmpire.Retail
             var session = GameSession.Instance;
             if (session == null || session.State == null) return;
             if (CursorController.InMenu) return;   // paused menus already freeze time; letters/tablet do not: hold the clock
-            if (!Trading) return;                  // no counter, no trade: nobody is called in to buy from a wall
-            _nextSpawnIn -= Time.deltaTime;
-            if (_nextSpawnIn <= 0f)
+            if (AcceptingCustomers)
             {
-                int forSale = session.State.ForSaleCount();
-                if (_customers.Count < MaxCustomers && (forSale > 0 || _customers.Count == 0))
+                _nextSpawnIn -= Time.deltaTime;
+                if (_nextSpawnIn <= 0f)
                 {
-                    SpawnCustomer();
-                    // a stocked shop draws people; an empty one gets the odd browser who leaves again
-                    _nextSpawnIn = forSale > 0 ? UnityEngine.Random.Range(38f, 70f) : UnityEngine.Random.Range(140f, 220f);
+                    int forSale = session.State.ForSaleCount();
+                    if (_customers.Count < MaxCustomers && (forSale > 0 || _customers.Count == 0))
+                    {
+                        SpawnCustomer();
+                        // a stocked shop draws people; an empty one gets the odd browser who leaves again
+                        _nextSpawnIn = forSale > 0 ? UnityEngine.Random.Range(38f, 70f) : UnityEngine.Random.Range(140f, 220f);
+                    }
+                    else _nextSpawnIn = 12f;
                 }
-                else _nextSpawnIn = 12f;
             }
-            // door swings for anyone near the threshold
+            // Closing must not strand the final customer behind a motionless door.
             bool nearDoor = false;
             if (DoorPoint != null)
                 foreach (var c in _customers) if (c != null && (c.transform.position - DoorPoint.position).sqrMagnitude < 1.4f * 1.4f) nearDoor = true;
@@ -324,12 +349,12 @@ namespace GeodeEmpire.Retail
             if (DoorLeaf != null) DoorLeaf.localRotation = _doorClosedRot * Quaternion.Euler(0f, -95f * Mathf.SmoothStep(0f, 1f, _doorOpen), 0f);
         }
 
-        /// <summary>Dev/test: bring a customer in right now.</summary>
-        public Customer SpawnNow() { SpawnCustomer(); return _customers.Count > 0 ? _customers[_customers.Count - 1] : null; }
+        /// <summary>Dev/test: request an arrival now, respecting opening hours, checkout and capacity.</summary>
+        public Customer SpawnNow() => SpawnCustomer();
 
-        private void SpawnCustomer()
+        private Customer SpawnCustomer()
         {
-            if (CustomerTemplate == null || OutsidePoint == null) return;
+            if (!AcceptingCustomers || _customers.Count >= MaxCustomers || CustomerTemplate == null || OutsidePoint == null) return null;
             var go = Instantiate(CustomerTemplate, OutsidePoint.position, OutsidePoint.rotation);
             go.name = "Customer_" + (++_customerCounter);
             go.SetActive(true);
@@ -339,6 +364,7 @@ namespace GeodeEmpire.Retail
             _customers.Add(c);
             WorkshopAudio.Play("shop_bell", DoorPoint != null ? DoorPoint.position : transform.position, 0.6f);
             Changed?.Invoke();
+            return c;
         }
 
         public void Remove(Customer c)
@@ -402,10 +428,13 @@ namespace GeodeEmpire.Retail
         public bool CompleteSale(Customer c) => CompleteSale(c, true);
 
         /// <summary>handOver=false: the money changes hands but the piece stays on the counter for the checkout to pack and pass across.</summary>
-        public bool CompleteSale(Customer c, bool handOver)
+        public bool CompleteSale(Customer c, bool handOver) => CompleteSale(c, handOver, null, 0f);
+
+        /// <summary>Commit the balanced drawer and any excess change in the same career write as the sold item.</summary>
+        internal bool CompleteSale(Customer c, bool handOver, Checkout.MoneyStack drawerAfterSale, float changeLoss)
         {
             var session = GameSession.Instance;
-            if (c == null || c.Wanted == null || AtCounter != c) return false;
+            if (session == null || session.State == null || c == null || c.Wanted == null || AtCounter != c) return false;
             var e = c.Wanted;
             var rec = e.Record;
             if (rec.Location == SpecimenLocation.Sold) return false;   // never twice
@@ -420,7 +449,9 @@ namespace GeodeEmpire.Retail
             st.CustomersServed++;
             if (price > st.BiggestRetailSale) { st.BiggestRetailSale = price; st.BiggestRetailSaleName = rec.DisplayName; }
             if (price > st.BiggestSale) { st.BiggestSale = price; st.BiggestSaleName = rec.DisplayName; }
+            if (drawerAfterSale != null) session.State.CashDrawer = drawerAfterSale;
             session.AddCash(price, "retail");
+            if (changeLoss > 0f) session.AddCash(-changeLoss, "cash-over-short");
             if (handOver) { LeaveQueue(c); c.Paid(e); }   // the piece leaves with the buyer; it is despawned at the door
             else c.AwaitHandover();                        // the checkout packs it and hands it across; the queue moves once they leave
             Metrics.LastSaleSeconds = Time.time - _counterSince;

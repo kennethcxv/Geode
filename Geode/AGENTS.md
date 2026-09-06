@@ -41,3 +41,82 @@ This section is managed by KitWright MCP for Unity. Everything between the begin
 
 - Re-run `KitWright > Project Skills` after changing selected skills or platforms.
 <!-- /KitWright Unity managed project skills -->
+
+## ASTRA CAPACITY / INTERRUPTION RECOVERY
+
+The active authoritative goal is the full ASTRA PROJECT REWORK + STEAM READINESS master specification.
+
+This work is expected to survive:
+- "Selected model is at capacity" failures
+- API/server overload
+- network interruption
+- Codex restart
+- context compaction
+- Unity domain reload
+- Unity MCP timeout
+- Blender MCP timeout
+- machine sleep/restart
+- user absence
+
+These events are interruptions, NEVER completion.
+
+Maintain Docs/AstraRework/PROGRESS.md as the durable recovery state.
+
+Update PROGRESS.md:
+- after every meaningful milestone
+- before every substantial/high-risk operation
+- after discovering an important defect
+- after every known-good commit
+- before context compaction
+- whenever remaining context reaches about 30%
+
+PROGRESS.md must always contain:
+- authoritative master-spec path
+- active goal
+- current branch
+- latest known-good commit
+- current phase
+- completed milestones
+- work currently in progress
+- exact unfinished operation
+- unresolved defects
+- modified/uncommitted files
+- Unity state
+- Blender state
+- test results
+- player-data isolation state
+- generated concept-art paths
+- important architectural/design decisions
+- exact next actions
+
+Before long or risky implementation work, create a coherent checkpoint whenever practical.
+
+If the model/API returns "Selected model is at capacity":
+- do not reinterpret the goal
+- do not roll back work
+- do not change model automatically
+- preserve the current state in PROGRESS.md if execution is still available
+- on the next successful request, reread PROGRESS.md and resume the exact interrupted operation
+
+After any Codex restart or context compaction:
+1. read GEODE_EMPIRE_ASTRA6_FULL_PROJECT_REWORK_STEAM_READINESS_MASTER_SPEC.md
+2. read Docs/AstraRework/PROGRESS.md
+3. read Docs/AstraRework/PLAN.md
+4. read Geode/AGENTS.md
+5. inspect git status/log
+6. inspect Unity state
+7. inspect Blender state if relevant
+8. verify any active QA isolation session
+9. resume the exact unfinished operation
+
+Never begin a duplicate test/build because the previous MCP/tool request timed out. First determine whether the underlying process is still running.
+
+Never declare the full rework complete because a Codex turn, context window, capacity allocation, or session ends.
+
+Only the master specification's Definition of Done may terminate the goal.
+
+Also change the compaction policy for this project:
+
+- Do not wait until ~250K tokens.
+- When approximately 30% of context remains, finish the current atomic operation, update PROGRESS.md completely, make a clean checkpoint if appropriate, compact, reread the recovery sources above, and immediately continue the same goal.
+- Treat compaction as maintenance, never as completion.

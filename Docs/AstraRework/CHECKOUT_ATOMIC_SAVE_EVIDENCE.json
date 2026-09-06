@@ -1,0 +1,51 @@
+{
+  "evidenceType": "Isolated injected-state/scripted runtime tests. Cash/card first-save and reload pass. Controlled conflict refuses sale. The initial keyboard retry exposed the disabled checkout action map; correction and actual keyboard/gamepad proof are recorded in CHECKOUT_INPUT_RECOVERY_EVIDENCE.json.",
+  "cash": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "firstSave=sales=1 cash=245.95 drawer=418.7 diskSales=1 diskCash=245.95 diskDrawer=418.7 exactDrawer=True\nclosing=id=S0003-0E53 before=2 after=2 closed=True refusedNewArrival=True error=\nrunning=False\n[48.9]   stocked 4 -> forSale=4\n[73.8] at counter: Collector pays by Cash for Banded Agate Nodule (Large) 45.95\n[75.5] snap Output/AstraQA/atomic-cash-save/00_00_arrival.png\n[75.8] entered: state=WaitingForScan active=True\n[76.1]   WaitingForScan: stage=Scanning total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Ring up the order'\n[76.1]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=idle\n[76.1] snap Output/AstraQA/atomic-cash-save/01_01_WaitingForScan.png\n[76.7]   AllProductsScanned: stage=Scanning total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Ring up the order'\n[76.7]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=idle\n[76.7] snap Output/AstraQA/atomic-cash-save/02_02_AllProductsScanned.png\n[77.5] snap Output/AstraQA/atomic-cash-save/03_03_CashPresented_busy.png\n[78.1]   CashPresented: stage=CashTender total=45.95 tendered=0.00 change=15.00 hand=0.00 status='Take the $61'\n[78.1]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=idle\n[78.1] snap Output/AstraQA/atomic-cash-save/04_04_CashPresented.png\n[78.7] snap Output/AstraQA/atomic-cash-save/05_05_DrawerOpening_busy.png\n[79.3] snap Output/AstraQA/atomic-cash-save/06_06_DepositingCash_busy.png\n[79.6]   SelectingChange: stage=CashDrawer total=45.95 tendered=60.95 change=15.00 hand=0.00 status='Count $15 change'\n[79.6]     cam=(1.05, 1.60, -0.24) fov=50 head vp=(0.74, 1.22, 1.79) drawer=1.00 trace=takeCash:selecting\n[79.6] snap Output/AstraQA/atomic-cash-save/07_07_SelectingChange.png\n[80.7] snap Output/AstraQA/atomic-cash-save/08_08_GivingChange_busy.png\n[81.3] snap Output/AstraQA/atomic-cash-save/09_09_GivingChange_busy.png\n[81.9] snap Output/AstraQA/atomic-cash-save/10_10_Bagging_busy.png\n[82.4] snap Output/AstraQA/atomic-cash-save/11_11_BagHandoff_busy.png\n[83.0] snap Output/AstraQA/atomic-cash-save/12_12_CustomerLeaving_busy.png\n[83.6] snap Output/AstraQA/atomic-cash-save/13_13_CustomerLeaving_busy.png\n[84.2]   TransactionComplete: (station reset)\n[84.2]     cam=(1.22, 1.63, -0.70) fov=59 head vp=(0.69, 0.93, 1.78) drawer=0.00 trace=handover:start\n[84.2] snap Output/AstraQA/atomic-cash-save/14_14_TransactionComplete.png\n[85.1] snap Output/AstraQA/atomic-cash-save/15_99_reset.png\n[85.1] after: cash 200 -> 245.95 ok recordLoc=Sold ok states=WaitingForScan>AllProductsScanned>CashPresented>SelectingChange>TransactionComplete\n[85.1] drawer: 372.75 -> 418.70 delta=45.95 expected=45.95 ok\n[86.6] customer gone=ok entity gone=ok station idle=ok active=False\n[86.6] leftover checkout objects=0 ok\n",
+      "compiler": "Roslyn"
+    }
+  },
+  "card": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "firstCardSave=sales=2 cash=291.9 drawerBefore=418.7 drawerAfter=418.7 diskCash=291.9 diskDrawer=418.7 exactDrawer=True\nrunning=False\n[223.9]   stocked 4 -> forSale=7\n[256.6] at counter: Tourist pays by Card for Banded Agate Nodule (Large) 45.95\n[258.3] snap Output/AstraQA/atomic-card-save/16_00_arrival.png\n[258.7] entered: state=WaitingForScan active=True\n[258.9]   WaitingForScan: stage=Scanning total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Ring up the order'\n[258.9]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=handover:start\n[258.9] snap Output/AstraQA/atomic-card-save/17_01_WaitingForScan.png\n[259.5]   AllProductsScanned: stage=Scanning total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Ring up the order'\n[259.5]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=handover:start\n[259.5] snap Output/AstraQA/atomic-card-save/18_02_AllProductsScanned.png\n[260.4] snap Output/AstraQA/atomic-card-save/19_03_CardPresented_busy.png\n[260.7]   CardInsertReady: stage=CardReady total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Take the card'\n[260.7]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=handover:start\n[260.7] snap Output/AstraQA/atomic-card-save/20_04_CardInsertReady.png\n[261.3]   CardAmountEntry: stage=CardEntry total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Key the total, then OK'\n[261.3]     cam=(1.40, 1.39, -0.72) fov=52 head vp=(0.60, 1.26, 1.47) drawer=0.00 trace=handover:start\n[261.3] snap Output/AstraQA/atomic-card-save/21_05_CardAmountEntry.png\n[262.8] snap Output/AstraQA/atomic-card-save/22_06_CardProcessing_busy.png\n[263.5] snap Output/AstraQA/atomic-card-save/23_07_CardProcessing_busy.png\n[264.1] snap Output/AstraQA/atomic-card-save/24_08_CardApproved_busy.png\n[264.6] snap Output/AstraQA/atomic-card-save/25_09_Bagging_busy.png\n[265.2] snap Output/AstraQA/atomic-card-save/26_10_BagHandoff_busy.png\n[265.8] snap Output/AstraQA/atomic-card-save/27_11_CustomerLeaving_busy.png\n[266.4] snap Output/AstraQA/atomic-card-save/28_12_CustomerLeaving_busy.png\n[267.0]   TransactionComplete: (station reset)\n[267.0]     cam=(1.20, 1.65, -0.61) fov=60 head vp=(0.74, 0.94, 1.69) drawer=0.00 trace=handover:start\n[267.0] snap Output/AstraQA/atomic-card-save/29_13_TransactionComplete.png\n[267.9] snap Output/AstraQA/atomic-card-save/30_99_reset.png\n[267.9] after: cash 245.95 -> 291.9 ok recordLoc=Sold ok states=WaitingForScan>AllProductsScanned>CardInsertReady>CardAmountEntry>TransactionComplete\n[267.9] drawer: 418.70 -> 418.70 delta=0.00 expected=0.00 ok\n[270.5] customer gone=ok entity gone=ok station idle=ok active=False\n[270.5] leftover checkout objects=0 ok\n",
+      "compiler": "Roslyn"
+    }
+  },
+  "reload": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "cash=245.95 drawer=418.7 stationDrawer=418.7 sameReference=True sales=1 soldLoc=Sold soldEntity=False closed=True arrivalsRefused=True txNull=True",
+      "compiler": "Roslyn"
+    }
+  },
+  "conflict": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "injected=true recovery=true id=S0005-07D1 location=SaleSlot banked=False cashBefore=291.9 cashAfter=291.9 salesBefore=2 salesAfter=2 stage=Closing trace=settle:refused active=True busy=False status=The drawer changed before this sale could bank. Interact to retry.\nRestored injected drawer change; current=418.7 pending=1061.65 active=True awaiting keyboard Interact retry.",
+      "compiler": "Roslyn"
+    }
+  },
+  "inputCause": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "beforeInteract=True\nduringCheckout active=True inMenu=True interactEnabled=False moveEnabled=False backEnabled=False\nafterInteract=True",
+      "compiler": "Roslyn"
+    }
+  },
+  "emptyDrawer": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "emptyDrawerAfterContinue=0 station=0 sameReference=True\nrestoredDrawer=418.7 cash=291.9 sales=2",
+      "compiler": "Roslyn"
+    }
+  }
+}

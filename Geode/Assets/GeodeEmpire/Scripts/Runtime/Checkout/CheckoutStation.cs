@@ -70,6 +70,8 @@ namespace GeodeEmpire.Checkout
         private int _cycleIndex = -1;
         private float _busyClock;
         private int _ticketNumber;
+        private bool _started;
+        private RetailShop _subscribedShop;
 
         public float DrawerOpen { get; private set; }
 
@@ -92,14 +94,60 @@ namespace GeodeEmpire.Checkout
             _screens.ShowIdle();
             _drawer = LoadDrawer();
             _money.RefreshDrawer(_drawer);
-            if (Shop != null) Shop.CustomerArrivedAtCounter += OnCustomerArrived;
             AttachWellTargets();
             AttachKeyTargets();
+            _started = true;
+            SubscribeToShop();
         }
 
-        private void OnDestroy()
+        private void OnEnable()
         {
-            if (Shop != null) Shop.CustomerArrivedAtCounter -= OnCustomerArrived;
+            if (_started) SubscribeToShop();
+        }
+
+        private void OnDisable() => UnsubscribeFromShop();
+        private void OnDestroy() => UnsubscribeFromShop();
+
+        private void SubscribeToShop()
+        {
+            UnsubscribeFromShop();
+            if (!isActiveAndEnabled || Shop == null) return;
+            _subscribedShop = Shop;
+            _subscribedShop.CustomerArrivedAtCounter += OnCustomerArrived;
+            _subscribedShop.Changed += OnShopChanged;
+            OnShopChanged();
+        }
+
+        private void UnsubscribeFromShop()
+        {
+            if (_subscribedShop != null)
+            {
+                _subscribedShop.CustomerArrivedAtCounter -= OnCustomerArrived;
+                _subscribedShop.Changed -= OnShopChanged;
+            }
+            _subscribedShop = null;
+        }
+
+        private void OnShopChanged()
+        {
+            if (Tx != null && !Tx.Banked
+                && (_customer == null || Shop == null || Shop.AtCounter != _customer || _customer.Wanted == null))
+            {
+                // The customer owns returning unpaid stock. Discard only the station's local payment and props.
+                StopAllCoroutines();
+                Tx.Void();
+                ResetStation();
+                _money.RefreshDrawer(_drawer);
+                Mark("abandoned:cleared");
+            }
+            var session = GameSession.Instance;
+            if (Tx == null && session != null && session.State != null
+                && !ReferenceEquals(_drawer, session.State.CashDrawer))
+            {
+                // Continue/New Game replaces the career object while the authored station stays alive.
+                _drawer = LoadDrawer();
+                _money.RefreshDrawer(_drawer);
+            }
         }
 
         private void CacheTrayHome()
@@ -113,7 +161,7 @@ namespace GeodeEmpire.Checkout
         {
             var state = GameSession.Instance != null ? GameSession.Instance.State : null;
             if (state == null) return Money.NewDrawer();
-            if (state.CashDrawer == null || state.CashDrawer.Pieces == 0) state.CashDrawer = Money.NewDrawer();
+            if (state.CashDrawer == null) state.CashDrawer = Money.NewDrawer();
             else state.CashDrawer = Money.MigrateDrawer(state.CashDrawer);
             return state.CashDrawer;
         }
@@ -130,6 +178,8 @@ namespace GeodeEmpire.Checkout
 
         public void Begin(Customer c)
         {
+            // Both authored counters share the shop. Only the installed route's active counter owns this sale.
+            if (!isActiveAndEnabled || Shop == null || Shop.CounterItemPoint != StagingPoint || c == null || c.Wanted == null) return;
             _customer = c;
             _pieces.Clear();
             _pieces.Add(c.Wanted);
@@ -242,11 +292,15 @@ namespace GeodeEmpire.Checkout
             if (_controller != null) _controller.EnterStationView(WorkingCamera, Layout.WorkingFov);
             if (_player == null) _player = FindAnyObjectByType<PlayerInteractor>();
             if (_player != null) _player.InputLocked = true;   // the world prompt must not float over the counter
-            CursorController.EnterMenu();
+            CursorController.EnterMenu(stationControls: true);
+            CursorController.MarkInputConsumed();
             WorkshopAudio.Play2D("ui_click", 0.5f);
-            Flow.To(CheckoutState.EnteringCashierMode, Time.time, "player took the register");
-            Flow.To(CheckoutState.WaitingForScan, Time.time, "station ready");
-            StatusLine = "Ring up the order";
+            if (State == CheckoutState.WaitingForCashier)
+            {
+                Flow.To(CheckoutState.EnteringCashierMode, Time.time, "player took the register");
+                Flow.To(CheckoutState.WaitingForScan, Time.time, "station ready");
+                StatusLine = "Ring up the order";
+            }
             RefreshScreens();
         }
 
@@ -256,7 +310,7 @@ namespace GeodeEmpire.Checkout
             Active = false;
             if (_controller != null) _controller.ExitStationView();
             if (_player != null) _player.InputLocked = false;
-            CursorController.ExitMenu();
+            CursorController.ExitMenu(stationControls: true);
             SetHovered(null);
         }
 
@@ -400,13 +454,13 @@ namespace GeodeEmpire.Checkout
         {
             float dt = Time.deltaTime;
             AnimateDrawer(dt);
-            if (!Active) return;
+            if (!Active || !CursorController.StationControlsActive || CursorController.InputConsumedThisFrame) return;
             UpdatePicking();
             if (Busy) return;
 
             if (GameInput.BackPressed) { Exit(); return; }
             if (GameInput.InteractPressed || (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame))
-                Activate(Hovered ?? ObviousTarget());
+                PressInteract();
             HandleKeyboard();
             CheckWatchdog();
         }
@@ -583,7 +637,7 @@ namespace GeodeEmpire.Checkout
         {
             Tx.CustomerCash();
             Flow.To(CheckoutState.CashPresented, Time.time, "customer counts it out");
-            StatusLine = $"Take the {UI.UiKit.Money(Tx.Tendered.Total)}";
+            StatusLine = $"Take the {Money.Format(Tx.Tendered.Total)}";
             if (_customer != null) _customer.Reach(true);
             yield return new WaitForSeconds(0.5f);
             _money.ShowTender(Tx.Tendered, new Vector3(Layout.CustomerTender.CentreX, Layout.TopY, Layout.CustomerTender.CentreZ));
@@ -631,7 +685,7 @@ namespace GeodeEmpire.Checkout
             // player still closes the drawer themselves
             Mark("takeCash:selecting");
             Go(CheckoutState.SelectingChange, "counting the change");
-            StatusLine = Money.Cents(Tx.ChangeDue) == 0 ? "Exact - close the drawer" : $"Count {UI.UiKit.Money(Tx.ChangeDue)} change";
+            StatusLine = Money.Cents(Tx.ChangeDue) == 0 ? "Exact - close the drawer" : $"Count {Money.Format(Tx.ChangeDue)} change";
             RefreshScreens();
             Busy = false;
         }
@@ -645,7 +699,7 @@ namespace GeodeEmpire.Checkout
             _money.RefreshDrawer(Tx.DrawerContents(_drawer));
             _money.ShowChange(Tx.Hand, new Vector3(Layout.ChangeHandoff.CentreX, Layout.TopY, Layout.ChangeHandoff.CentreZ));
             var state = Tx.ChangeGivingState(out _);
-            StatusLine = state == ChangeState.Exact ? "Exact - hand it across" : $"Counting {UI.UiKit.Money(Tx.HandTotal)}";
+            StatusLine = state == ChangeState.Exact ? "Exact - hand it across" : $"Counting {Money.Format(Tx.HandTotal)}";
             RefreshScreens();
         }
 
@@ -795,7 +849,7 @@ namespace GeodeEmpire.Checkout
             _screens.ShowTerminal("ENTER AMOUNT", Amount(), "Type the total, press OK");
         }
 
-        private string Amount() => Tx.CardEntryDigits.Length == 0 ? "0.00" : (Tx.CardEntryCents / 100f).ToString("0.00");
+        private string Amount() => Tx.CardEntryDigits.Length == 0 ? "0.00" : (Tx.CardEntryCents / 100m).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
 
         private IEnumerator RunCard()
         {
@@ -812,7 +866,7 @@ namespace GeodeEmpire.Checkout
             }
             Tx.RunCard();
             Flow.To(CheckoutState.CardApproved, Time.time, "approved");
-            _screens.ShowTerminal("APPROVED", UI.UiKit.Money(Tx.Total), "Remove the card", new Color(0.45f, 0.95f, 0.6f));
+            _screens.ShowTerminal("APPROVED", Money.Format(Tx.Total), "Remove the card", new Color(0.45f, 0.95f, 0.6f));
             WorkshopAudio.Play2D("crystal_chime", 0.4f, 1.3f);
             yield return new WaitForSeconds(0.5f);
             if (_card != null) { Destroy(_card); _card = null; }
@@ -826,10 +880,23 @@ namespace GeodeEmpire.Checkout
         {
             Busy = true;
             Mark("settle:start");
-            Flow.To(CheckoutState.PaymentComplete, Time.time, "payment complete");
+            if (State == CheckoutState.Recovery)
+            {
+                if (!Flow.Resume(Time.time, CheckoutState.PaymentComplete, "retry settlement"))
+                { Busy = false; yield break; }
+            }
+            else Flow.To(CheckoutState.PaymentComplete, Time.time, "payment complete");
             StatusLine = "";
             RefreshScreens();
-            Bank();
+            if (!Bank())
+            {
+                Flow.EnterRecovery(Time.time, StatusLine, Facts());
+                Busy = false;
+                Mark("settle:refused");
+                StatusLine += " Interact to retry.";
+                RefreshScreens();
+                yield break;
+            }
             yield return new WaitForSeconds(0.2f);
             Flow.To(CheckoutState.ReceiptPrinting, Time.time, "closing the sale");
             Tx.CloseSale();
@@ -843,26 +910,29 @@ namespace GeodeEmpire.Checkout
         }
 
         /// <summary>The sale banks exactly once, through the career's own books, and the till's contents move with it.</summary>
-        private void Bank()
+        private bool Bank()
         {
-            if (Tx == null || Tx.Banked) return;
-            var commit = Tx.CommitFor(_drawer);
+            if (Tx == null) return false;
+            if (Tx.Banked) return true;
+            var session = GameSession.Instance;
+            if (session == null || session.State == null)
+            { StatusLine = "No career is loaded."; return false; }
+            var commit = Tx.CommitFor(session.State.CashDrawer);
             if (!commit.Ok)
             {
                 StatusLine = commit.Reason;
                 Debug.LogWarning("[Checkout] " + commit.Reason);
-                return;
+                return false;
             }
-            var session = GameSession.Instance;
-            if (Shop != null && _customer != null) Shop.CompleteSale(_customer, false);
-            if (commit.Contents != null && session != null && session.State != null)
+            if (Shop == null || !Shop.CompleteSale(_customer, false, commit.Contents, Tx.Lost))
             {
-                session.State.CashDrawer = commit.Contents;
-                _drawer = session.State.CashDrawer;
-                _money.RefreshDrawer(_drawer);
+                StatusLine = "The customer and their item could not be confirmed.";
+                return false;
             }
-            if (Tx.Lost > 0f && session != null) session.AddCash(-Tx.Lost, "cash-over-short");
             Tx.Banked = true;
+            _drawer = session.State.CashDrawer;
+            _money.RefreshDrawer(_drawer);
+            return true;
         }
 
         private IEnumerator HandOver()
@@ -903,7 +973,7 @@ namespace GeodeEmpire.Checkout
             _tx = null;
             _customer = null;
             _pieces.Clear();
-            _targets.RemoveAll(t => t == null);
+            _targets.RemoveAll(t => t == null || t.Kind == CheckoutTargetKind.Piece);
             _money.ClearTender();
             _money.ClearChange();
             if (_card != null) { Destroy(_card); _card = null; }
@@ -966,6 +1036,9 @@ namespace GeodeEmpire.Checkout
         public bool PressInteract()
         {
             if (Busy || Tx == null) return false;
+            if (State == CheckoutState.Recovery && Tx.Stage == TxStage.Closing
+                && Flow.RecoveryResume == CheckoutState.PaymentComplete)
+            { StartCoroutine(Settle()); return true; }
             var target = Hovered ?? ObviousTarget();
             if (target == null) return false;
             Activate(target);

@@ -106,6 +106,162 @@
         }
       ],
       "failures": []
+    },
+    {
+      "label": "opening-hours-boundary-diagnostic",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/96745d174a8040519ba168ead993bd83/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/96745d174a8040519ba168ead993bd83/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T10:33:56.6272130Z",
+      "endedUtc": "2026-09-06T10:42:19.2865730Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "shop-hours-counter-lifecycle-regression",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/66f3f1d8007542fa89f42bf240a6e7a4/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/66f3f1d8007542fa89f42bf240a6e7a4/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T10:48:40.1932160Z",
+      "endedUtc": "2026-09-06T10:57:47.7059270Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "checkout-cash-and-abandonment-regression",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/8c4aa3f76e594e508868dbfb0bfd7d56/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/8c4aa3f76e594e508868dbfb0bfd7d56/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T11:06:57.3091850Z",
+      "endedUtc": "2026-09-06T11:33:11.1478650Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "atomic-checkout-save-and-drawer-reload",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/036d031d531e47579d5d93543dc0a31e/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/036d031d531e47579d5d93543dc0a31e/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T11:36:05.4074040Z",
+      "endedUtc": "2026-09-06T11:50:31.2418940Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "checkout-input-recovery-after-menu-fix",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/5cad0407283d4ed2a68f163f9ad944c2/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/5cad0407283d4ed2a68f163f9ad944c2/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T11:56:17.1514570Z",
+      "endedUtc": "2026-09-06T17:14:39.9546920Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "checkout-exact-cents-card-input",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/a784c4555121468f9dc595c33290809f/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/a784c4555121468f9dc595c33290809f/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T17:35:45.2400090Z",
+      "endedUtc": "2026-09-06T17:40:11.8691930Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "42f698a6b27e7139b88f980e01874da1ae00846a03112cdb60c5e5d38fc04b63"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
     }
   ],
   "input_helper": {

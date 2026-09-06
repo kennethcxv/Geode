@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using UnityEngine;
 
 namespace GeodeEmpire.Checkout
@@ -70,6 +71,14 @@ namespace GeodeEmpire.Checkout
         public static int Cents(float v) => Mathf.RoundToInt(v * 100f);
         public static float Dollars(int cents) => cents / 100f;
         public static float Round(float v) => Dollars(Cents(v));
+        /// <summary>Exact till amounts must retain cents, including the total copied into the card terminal.</summary>
+        public static string Format(float amount)
+        {
+            int cents = Cents(amount);
+            return (cents < 0 ? "-$" : "$")
+                + (Math.Abs((decimal)cents) / 100m).ToString("N2", CultureInfo.InvariantCulture);
+        }
+
         public static bool IsBill(float denom) => denom >= 1f;
 
         public static int IndexOf(float denom)

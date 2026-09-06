@@ -159,6 +159,9 @@ namespace GeodeEmpire.Save
                 // a migrated rock keeps its old whole-rock cleanliness: SpecimenCondition.CleanAt falls back to
                 // Cleaned while RegionClean is empty, so nothing suddenly becomes filthy or spotless
             }
+            // Version 4 adds player-controlled opening hours. Old careers resume closed so the owner can
+            // inspect their shop before inviting new customers; existing stock, money and fixtures are retained.
+            if (s.Version < 4) s.ShopOpen = false;
             s.Version = GameState.CurrentVersion;
         }
 

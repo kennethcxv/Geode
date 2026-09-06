@@ -242,7 +242,7 @@ namespace GeodeEmpire.Checkout
             _posRows.Clear();
             _posCustomer.text = "";
             _posTicket.text = "";
-            _posTotal.text = UiKit.Money(0f);
+            _posTotal.text = Money.Format(0f);
             _posPayment.text = "";
             _posHint.text = "";
             SetStage("waiting");
@@ -268,7 +268,7 @@ namespace GeodeEmpire.Checkout
             SetStage(posState);
             _posCustomer.text = tx.CustomerName;
             _posTicket.text = $"#{ticketNumber:0000}";
-            _posTotal.text = UiKit.Money(tx.Total);
+            _posTotal.text = Money.Format(tx.Total);
             _posPayment.text = tx.Method == PaymentMethod.None ? "" : $"PAYMENT   {tx.Method.ToString().ToUpperInvariant()}";
             _posHint.text = hint ?? "";
 
@@ -290,31 +290,31 @@ namespace GeodeEmpire.Checkout
                 row.Add(dot);
                 var name = Text(row, item.Name, 22, item.Scanned ? Muted : Charcoal, item.Scanned ? FontStyle.Normal : FontStyle.Bold);
                 name.style.flexGrow = 1;
-                Text(row, UiKit.Money(item.Price), 20, Green, FontStyle.Bold);
+                Text(row, Money.Format(item.Price), 20, Green, FontStyle.Bold);
                 _posRows.Add(row);
             }
 
             if (_posCash.style.display == DisplayStyle.Flex)
             {
                 var state = tx.ChangeGivingState(out int delta);
-                _cashReceived.text = UiKit.Money(tx.TenderedTotal > 0f ? tx.TenderedTotal : tx.Tendered.Total);
-                _cashTotal.text = UiKit.Money(tx.CashTotal);
-                _cashChange.text = UiKit.Money(tx.ChangeDue);
-                _cashGiving.text = UiKit.Money(tx.HandTotal);
+                _cashReceived.text = Money.Format(tx.TenderedTotal > 0f ? tx.TenderedTotal : tx.Tendered.Total);
+                _cashTotal.text = Money.Format(tx.CashTotal);
+                _cashChange.text = Money.Format(tx.ChangeDue);
+                _cashGiving.text = Money.Format(tx.HandTotal);
                 _cashGiving.style.color = state == ChangeState.Exact ? new Color(0.33f, 0.94f, 0.43f)
                                         : state == ChangeState.Over ? new Color(1f, 0.79f, 0.30f)
                                         : new Color(1f, 0.32f, 0.28f);
                 _cashCaption.text = tx.Stage == TxStage.CashTender ? "TAKE THEIR CASH"
                                   : !tx.Deposited ? "SORTING THE RECEIVED CASH"
                                   : state == ChangeState.Exact ? "EXACT CHANGE"
-                                  : state == ChangeState.Over ? $"{UiKit.Money(delta / 100f)} OVER - THEY KEEP IT"
+                                  : state == ChangeState.Over ? $"{Money.Format(delta / 100f)} OVER - THEY KEEP IT"
                                   : state == ChangeState.Excess ? "TOO MUCH - MAX EXTRA IS $5.00"
-                                  : $"SHORT BY {UiKit.Money(-delta / 100f)}";
+                                  : $"SHORT BY {Money.Format(-delta / 100f)}";
             }
 
             if (_display != null)
             {
-                _displayPrice.text = UiKit.Money(tx.Total);
+                _displayPrice.text = Money.Format(tx.Total);
                 _displayNote.text = tx.Stage == TxStage.Done ? "Thank you." : tx.Items.Count == 1 ? tx.Items[0].Name : $"{tx.Items.Count} pieces";
             }
         }

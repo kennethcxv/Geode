@@ -1,0 +1,35 @@
+{
+  "observation": "Real career files changed between the prior finished QA session and current preparation. Changes predate current code compilation and the 19:34 targeted test run. No rollback performed; current player files copied and protected by the new session.",
+  "previousQaFinishedUtc": "2026-09-06T17:14:39.9546920Z",
+  "realMainMtimeLocal": "2026-09-06T19:14:54.832552",
+  "realBackupMtimeLocal": "2026-09-06T19:14:53.350534",
+  "currentPreparation": "a784c4555121468f9dc595c33290809f",
+  "sameRealSaveId": true,
+  "cashUnchanged": true,
+  "specimenCountUnchanged": true,
+  "versionChange": [
+    3,
+    4
+  ],
+  "playTimeSecondsChange": [
+    729.06494140625,
+    737.0551147460938
+  ],
+  "specimenChanges": [
+    {
+      "id": "S0015-8B62",
+      "field": "WorldPosition",
+      "before": {
+        "x": -6.0,
+        "y": 0.6988273859024048,
+        "z": 2.450000047683716
+      },
+      "after": {
+        "x": -6.0,
+        "y": 0.6989372372627258,
+        "z": 2.450000047683716
+      }
+    }
+  ],
+  "causeLimit": "The current real career was loaded/migrated and ran for about eight seconds after the prior isolation session finished. The initiating action is not established by retained evidence; do not attribute it to the later targeted tests or call it proven QA corruption."
+}

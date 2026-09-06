@@ -65,6 +65,20 @@ namespace GeodeEmpire.EditorTools
                 () => { if (device.added) InputSystem.QueueStateEvent(device, new GamepadState()); });
         }
 
+        public static void TapGamepadButton(string button)
+        {
+            const float seconds = 0.06f;
+            RequireSession(seconds);
+            if (!Enum.TryParse(button, true, out GamepadButton parsed) || !Enum.IsDefined(typeof(GamepadButton), parsed))
+                throw new ArgumentException("Unknown gamepad button: " + button);
+            if (_gamepad == null || !_gamepad.added)
+                _gamepad = InputSystem.AddDevice<Gamepad>("AstraQaGamepad");
+            var device = _gamepad;
+            var state = new GamepadState().WithButton(parsed);
+            Schedule(seconds, () => InputSystem.QueueStateEvent(device, state),
+                () => { if (device.added) InputSystem.QueueStateEvent(device, new GamepadState()); });
+        }
+
         public static void Cancel()
         {
             if (_tick != null) InputSystem.onBeforeUpdate -= _tick;

@@ -11,6 +11,18 @@ namespace GeodeEmpire.Tests
     /// </summary>
     public sealed class CheckoutMoneyTests
     {
+        [TestCase(45.95f, "$45.95")]
+        [TestCase(7.05f, "$7.05")]
+        [TestCase(0.01f, "$0.01")]
+        [TestCase(-0.01f, "-$0.01")]
+        [TestCase(1234f, "$1,234.00")]
+        [TestCase(0f, "$0.00")]
+        [SetCulture("de-DE")]
+        public void CheckoutAmountsKeepExactCentsRegardlessOfEditorLocale(float amount, string displayed)
+        {
+            Assert.AreEqual(displayed, Money.Format(amount));
+        }
+
         [Test]
         public void CurrencyIsIntegerCents()
         {

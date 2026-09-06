@@ -1,0 +1,19 @@
+{
+  "evidenceType": "Scripted isolated shop/stock/card staging, then actual Digit4/Digit5/Digit9/Digit5/Enter via normal Dynamic InputSystem updates. No direct terminal API used for the tested amount entry. Not the primary full fresh career.",
+  "session": "a784c4555121468f9dc595c33290809f",
+  "rootCause": "Whole-dollar UiKit.Money (N0) hid the exact cents required by RegisterTransaction.SubmitCardAmount. Checkout now formats integer cents with two decimal places; the typed terminal amount uses the same invariant decimal separator.",
+  "targetedTests": {
+    "job": "59eb3483-008a-4a28-9e0f-25c30770ed88",
+    "pass": 50,
+    "fail": 0,
+    "skip": 0,
+    "seconds": 3.83
+  },
+  "proof": "CentsPosReadback=id=S0003-0E53 total=45.95 digits=\nScreen_POS: GEODE WORKS | ROCK SHOP  /  COUNTER | ORDER | Banded Agate Nodule | $45.95 | Key the total, then OK | CURRENT TRANSACTION | Rockhound | #0001 | CARD PAYMENT | Insert the customer card into the chip reader. | TOTAL | $45.95 | PAYMENT   CARD | CASH PAYMENT | RECEIVED | $0.00 | TOTAL | $0.00 | CHANGE | $0.00 | GIVING | $0.00 | \nScreen_Terminal: ENTER AMOUNT | 0.00 | Type the total, press OK\nScreen_CustomerDisplay: GEODE WORKS | $45.95 | Banded Agate Nodule\n\nCentsTyped=digits=4595 cents=4595 total=45.95\nterminal=ENTER AMOUNT | 45.95 | Type the total, press OK\n\nCentsApproved=APPROVED | $45.95 | Remove the card\nCentsSale=id=S0003-0E53 cashBefore=200 cashAfter=245.95 diskCash=245.95 sales=1 diskSales=1 drawerSame=True diskDrawerSame=True sold=Sold txNull=True entityGone=False\ninputBusy=False\n",
+  "customerExit": "id=S0003-0E53 entityGone=True location=Sold cash=245.95 sales=1",
+  "limits": "The initial entityGone=False read was immediately after station reset while the paid customer was walking out; the later exit read above proves that same sold entity left.",
+  "screenshots": [
+    "Checkout/pos-and-terminal.png",
+    "Checkout/typed-45-95.png"
+  ]
+}

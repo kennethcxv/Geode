@@ -1,0 +1,38 @@
+Injected-state diagnostic using Playtest.RunStation("card") and scripted checkout actions; this is not the genuine-career or full input acceptance run.
+This pre-lifecycle-fix run completed the transaction but exposed an inactive starter-counter coroutine error after the showroom lease. Repeat the transition after fixing CheckoutStation's event subscription before declaring the runtime gate clean.
+
+boundary=customer=Customer_3 wanted=S0003-0E53 before=2 after=2 closed=True stillPresent=True newArrivalRefused=True error=
+[314.5]   stocked 4 -> forSale=4
+[345.3] at counter: Jeweller pays by Card for Banded Agate Nodule (Large) 45.95
+[347.0] snap Output/AstraQA/closing-card-sale/00_00_arrival.png
+[347.3] entered: state=WaitingForScan active=True
+[347.6]   WaitingForScan: stage=Scanning total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Ring up the order'
+[347.6]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=idle
+[347.6] snap Output/AstraQA/closing-card-sale/01_01_WaitingForScan.png
+[348.2]   AllProductsScanned: stage=Scanning total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Ring up the order'
+[348.2]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=idle
+[348.2] snap Output/AstraQA/closing-card-sale/02_02_AllProductsScanned.png
+[349.0] snap Output/AstraQA/closing-card-sale/03_03_CardPresented_busy.png
+[349.3]   CardInsertReady: stage=CardReady total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Take the card'
+[349.3]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=idle
+[349.3] snap Output/AstraQA/closing-card-sale/04_04_CardInsertReady.png
+[349.8]   CardAmountEntry: stage=CardEntry total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Key the total, then OK'
+[349.8]     cam=(1.40, 1.39, -0.72) fov=52 head vp=(0.60, 1.26, 1.47) drawer=0.00 trace=idle
+[349.8] snap Output/AstraQA/closing-card-sale/05_05_CardAmountEntry.png
+[351.4] snap Output/AstraQA/closing-card-sale/06_06_CardProcessing_busy.png
+[352.0] snap Output/AstraQA/closing-card-sale/07_07_CardProcessing_busy.png
+[352.5] snap Output/AstraQA/closing-card-sale/08_08_CardApproved_busy.png
+[353.0] snap Output/AstraQA/closing-card-sale/09_09_Bagging_busy.png
+[353.6] snap Output/AstraQA/closing-card-sale/10_10_BagHandoff_busy.png
+[354.1] snap Output/AstraQA/closing-card-sale/11_11_CustomerLeaving_busy.png
+[354.7] snap Output/AstraQA/closing-card-sale/12_12_CustomerLeaving_busy.png
+[355.2]   TransactionComplete: (station reset)
+[355.2]     cam=(1.16, 1.59, -0.87) fov=55 head vp=(0.59, 0.91, 1.91) drawer=0.00 trace=handover:start
+[355.2] snap Output/AstraQA/closing-card-sale/13_13_TransactionComplete.png
+[356.2] snap Output/AstraQA/closing-card-sale/14_99_reset.png
+[356.2] after: cash 200 -> 245.95 ok recordLoc=Sold ok states=WaitingForScan>AllProductsScanned>CardInsertReady>CardAmountEntry>TransactionComplete
+[356.2] drawer: 372.75 -> 372.75 delta=0.00 expected=0.00 ok
+[358.2] customer gone=ok entity gone=ok station idle=ok active=False
+[358.2] leftover checkout objects=0 ok
+
+navRecoveries=0 repositions=0 pathFailures=0

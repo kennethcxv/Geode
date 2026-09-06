@@ -1,0 +1,19 @@
+{
+  "evidenceType": "Isolated scripted station recovery diagnostic; not complete career or actual-input acceptance.",
+  "abandonment": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "arrival=customer=Customer_3 id=S0002-0ACC patience=90 tx=True closed=True error=\nresult=id=S0002-0ACC location=SaleSlot entity=True txNull=True active=False busy=False trace=abandoned:cleared cashBefore=245.95 cashAfter=245.95 drawerBefore=418.7 drawerAfter=418.7 salesBefore=1 salesAfter=1 customers=0",
+      "compiler": "Roslyn"
+    }
+  },
+  "subsequentCardAndReload": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "Before Continue sameDrawerReference=True value=418.7 customers=0 tx=False\nAfter Continue sameDrawerReference=False stationDrawer=418.7 stateDrawer=418.7 cash=291.9 sales=2 closed=True txNull=True\n[1310.4]   stocked 4 -> forSale=7\n[1337.0] at counter: Tourist pays by Card for Banded Agate Nodule (Large) 45.95\n[1337.1] snap Output/AstraQA/post-abandonment-card/16_00_arrival.png\n[1337.4] entered: state=WaitingForScan active=True\n[1337.7]   WaitingForScan: stage=Scanning total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Ring up the order'\n[1337.7]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=abandoned:cleared\n[1337.7] snap Output/AstraQA/post-abandonment-card/17_01_WaitingForScan.png\n[1338.3]   AllProductsScanned: stage=Scanning total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Ring up the order'\n[1338.3]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=abandoned:cleared\n[1338.3] snap Output/AstraQA/post-abandonment-card/18_02_AllProductsScanned.png\n[1339.2] snap Output/AstraQA/post-abandonment-card/19_03_CardPresented_busy.png\n[1339.5]   CardInsertReady: stage=CardReady total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Take the card'\n[1339.5]     cam=(1.15, 1.57, -0.95) fov=54 head vp=(0.54, 0.89, 1.90) drawer=0.00 trace=abandoned:cleared\n[1339.5] snap Output/AstraQA/post-abandonment-card/20_04_CardInsertReady.png\n[1340.1]   CardAmountEntry: stage=CardEntry total=45.95 tendered=0.00 change=0.00 hand=0.00 status='Key the total, then OK'\n[1340.1]     cam=(1.40, 1.39, -0.72) fov=52 head vp=(0.60, 1.26, 1.47) drawer=0.00 trace=abandoned:cleared\n[1340.1] snap Output/AstraQA/post-abandonment-card/21_05_CardAmountEntry.png\n[1341.7] snap Output/AstraQA/post-abandonment-card/22_06_CardProcessing_busy.png\n[1342.3] snap Output/AstraQA/post-abandonment-card/23_07_CardProcessing_busy.png\n[1342.9] snap Output/AstraQA/post-abandonment-card/24_08_CardApproved_busy.png\n[1343.5] snap Output/AstraQA/post-abandonment-card/25_09_Bagging_busy.png\n[1344.1] snap Output/AstraQA/post-abandonment-card/26_10_BagHandoff_busy.png\n[1344.7] snap Output/AstraQA/post-abandonment-card/27_11_CustomerLeaving_busy.png\n[1345.3] snap Output/AstraQA/post-abandonment-card/28_12_CustomerLeaving_busy.png\n[1345.8]   TransactionComplete: (station reset)\n[1345.8]     cam=(1.27, 1.64, -0.66) fov=59 head vp=(0.72, 0.97, 1.68) drawer=0.00 trace=handover:start\n[1345.8] snap Output/AstraQA/post-abandonment-card/29_13_TransactionComplete.png\n[1346.8] snap Output/AstraQA/post-abandonment-card/30_99_reset.png\n[1346.8] after: cash 245.95 -> 291.9 ok recordLoc=Sold ok states=WaitingForScan>AllProductsScanned>CardInsertReady>CardAmountEntry>TransactionComplete\n[1346.8] drawer: 418.70 -> 418.70 delta=0.00 expected=0.00 ok\n[1349.5] customer gone=ok entity gone=ok station idle=ok active=False\n[1349.5] leftover checkout objects=0 ok\n",
+      "compiler": "Roslyn"
+    }
+  }
+}

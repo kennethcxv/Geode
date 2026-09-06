@@ -282,7 +282,7 @@ namespace GeodeEmpire.Save
     public sealed class GameState
     {
         /// <summary>1 = V4 career; 2 = V5 (provenance, calls, history, favourites, certification, market, auctions, letters, exhibition).</summary>
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
 
         public int Version = CurrentVersion;
         public string SaveId;
@@ -290,6 +290,8 @@ namespace GeodeEmpire.Save
         public long CreatedTicks;
         public long LastSavedTicks;
         public float Cash;
+        /// <summary>Player's opening-hours choice. A new business starts closed while its owner gets ready.</summary>
+        public bool ShopOpen;
         public int CrateCounter;
         public int SpecimenCounter;
         public List<SpecimenRecord> Specimens = new List<SpecimenRecord>();

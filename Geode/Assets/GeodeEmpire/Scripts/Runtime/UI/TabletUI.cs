@@ -24,6 +24,8 @@ namespace GeodeEmpire.UI
         private readonly List<Button> _tabs = new List<Button>();
         private int _tab;
         private GameSession _s;
+        private Retail.RetailShop _retailShop;
+        private int _businessCustomerCount = -1;
 
         private void Awake() => Instance = this;
 
@@ -85,6 +87,8 @@ namespace GeodeEmpire.UI
 
             OrderTablet.Opened += Open;
             _s.StateChanged += Refresh;
+            _retailShop = Retail.RetailShop.Instance;
+            if (_retailShop != null) _retailShop.Changed += OnRetailChanged;
             _s.CashChanged += (c, d) => { if (IsOpen) Refresh(); };
             _dim.RegisterCallback<NavigationCancelEvent>(e => { Close(); e.StopPropagation(); });
         }
@@ -93,7 +97,14 @@ namespace GeodeEmpire.UI
         {
             OrderTablet.Opened -= Open;
             if (_s != null) _s.StateChanged -= Refresh;
+            if (_retailShop != null) _retailShop.Changed -= OnRetailChanged;
             if (Instance == this) Instance = null;
+        }
+
+        private void OnRetailChanged()
+        {
+            if (IsOpen && _tab == 3 && _retailShop != null && _retailShop.Customers.Count != _businessCustomerCount)
+                Refresh();
         }
 
         private void Update()
@@ -930,6 +941,25 @@ namespace GeodeEmpire.UI
                 var strip = UiKit.Box(_content, "coll-summary");
                 foreach (var (k, v, cls) in cells) Metric(strip, k, v, cls);
             }
+
+            // ---- OPENING HOURS -------------------------------------------------------------------
+            var shop = Retail.RetailShop.Instance;
+            int inside = shop != null ? shop.Customers.Count : 0;
+            _businessCustomerCount = inside;
+            Group("OPENING HOURS", ("SHOP", s.ShopOpen ? "OPEN" : "CLOSED", s.ShopOpen ? "success" : "muted"),
+                ("CUSTOMERS INSIDE", inside.ToString(), null));
+            UiKit.Label(_content, s.ShopOpen ? "New customers can enter while the checkout is in place."
+                : inside > 0 ? "New arrivals are stopped. Customers inside can finish shopping and paying."
+                : "Open when you are ready to welcome customers.", "muted").style.whiteSpace = WhiteSpace.Normal;
+            var hoursButton = UiKit.Button(_content, s.ShopOpen ? "Close shop" : "Open shop", () =>
+            {
+                if (shop != null && !shop.SetOpen(!s.ShopOpen, out string error) && error != null)
+                    _s.Notify(error, NotificationKind.Warning);
+            }, "btn-primary");
+            hoursButton.name = "shop-hours-toggle";
+            hoursButton.SetEnabled(shop != null && (s.ShopOpen || shop.Trading));
+            if (shop != null && !shop.Trading && !s.ShopOpen)
+                UiKit.Label(_content, "Place the checkout to open your shop.", "muted");
 
             // ---- PREMISES ------------------------------------------------------------------------
             string unit = Workshop.PremisesExpansion.ShopFrontOpen ? "Unit 1 + back room + shop front"
