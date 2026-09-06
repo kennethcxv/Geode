@@ -98,7 +98,7 @@ namespace GeodeEmpire.Core
 
         private static void OnSceneLoaded(Scene s, LoadSceneMode m) { _current?.ApplyCamera(Camera.main); _current?.ApplyUiScale(); }
 
-        public static string FilePath => Path.Combine(Application.persistentDataPath, "settings.json");
+        public static string FilePath => Path.Combine(GeodeEmpire.Save.SaveSystem.Directory, "settings.json");
 
         public float EffectiveHeadBob => ReducedMotion ? 0f : HeadBobAmount;
         public float EffectiveShake => ReducedMotion ? 0f : CameraShake;

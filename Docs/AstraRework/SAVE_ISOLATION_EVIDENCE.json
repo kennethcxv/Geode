@@ -1,0 +1,146 @@
+{
+  "date": "2026-09-06",
+  "negative_control": "Incorrect DirectoryOverride refused before Play; exact paths restored and revalidated.",
+  "settings_write": "Saved from a guarded Play session; original files preserved.",
+  "finished_sessions": [
+    {
+      "label": "astra-safety-and-day-one-audit",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0dcfb4ce14314c41b63a54c1d54587f4/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0dcfb4ce14314c41b63a54c1d54587f4/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T09:35:33.3943080Z",
+      "endedUtc": "2026-09-06T09:41:48.7452930Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "input-audit-with-full-play-reload",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/7e68ddcf5a504125b208499a542e4737/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/7e68ddcf5a504125b208499a542e4737/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T09:42:47.4476370Z",
+      "endedUtc": "2026-09-06T09:54:27.7961920Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "warm-reload-input-diagnostic",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/989c5bd37a8243629293b0d62dfc5035/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/989c5bd37a8243629293b0d62dfc5035/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T09:56:04.2017480Z",
+      "endedUtc": "2026-09-06T09:57:58.1213840Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "qa-input-helper-and-baseline-state-audit",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/770907924afa4376b8839625b0d60026/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/770907924afa4376b8839625b0d60026/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T10:04:00.3205120Z",
+      "endedUtc": "2026-09-06T10:16:23.2229450Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    }
+  ],
+  "input_helper": {
+    "keyboard_hold": {
+      "key": "W",
+      "seconds": 0.6,
+      "moved_m": 1.444465,
+      "released": true
+    },
+    "menu_tap": "Tab opened tablet; Escape closed it",
+    "gamepad_look": {
+      "seconds": 0.4,
+      "yaw_delta_degrees": 30.43543,
+      "scheme": "Gamepad"
+    },
+    "exit": {
+      "busy": false,
+      "qa_gamepads": 0,
+      "directory_override": "",
+      "workshop_dirty": false
+    }
+  },
+  "baseline_phase_diagnostic": {
+    "state_injected": true,
+    "genuine_career": false,
+    "passed": 20,
+    "failed": 0,
+    "crate_capacity": 2,
+    "nearest_crate_spacing_m": 1.71,
+    "refused_order_charged": false,
+    "navigation_cells_before": 680,
+    "navigation_cells_after_lease": 1494,
+    "rent_after_lease": 122,
+    "bill_paid": 141.34,
+    "reload_preserved_lease_payment_and_cleared_balance": true,
+    "collision_overlaps_over_4mm": 0
+  }
+}
