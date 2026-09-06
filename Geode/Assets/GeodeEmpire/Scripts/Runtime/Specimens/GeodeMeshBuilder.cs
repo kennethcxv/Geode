@@ -40,31 +40,83 @@ namespace GeodeEmpire.Specimens
         public float[] EquatorY;             // per longitude, rim jitter (already signed)
         public float PoleY;
 
-        /// <summary>Coarse convex hull source (exterior every 4th longitude / 3rd ring + rim) so PhysX stays under its polygon limit.</summary>
+        private static readonly Vector3[] CollisionPatchDirections = ColliderDirections(8, 16);
+
+        private static Vector3[] ColliderDirections(int rings, int columns)
+        {
+            var directions = new Vector3[rings * columns];
+            for (int r = 0; r < rings; r++)
+            {
+                float lat = r == 0 ? 0f : (r - 0.5f) / (rings - 1) * Mathf.PI * 0.5f;
+                float radial = Mathf.Cos(lat), y = Mathf.Sin(lat);
+                for (int c = 0; c < columns; c++)
+                {
+                    float lon = (c + 0.5f) / columns * Mathf.PI * 2f;
+                    directions[r * columns + c] = new Vector3(Mathf.Cos(lon) * radial, y, Mathf.Sin(lon) * radial);
+                }
+            }
+            return directions;
+        }
+
+        /// <summary>
+        /// Collision-only convex hull source, capped at the fracture plane. At most 129 vertices:
+        /// even a fully triangulated convex hull stays below PhysX's polygon limit, independent of visual detail.
+        /// Each exterior patch contributes its outermost point, retaining knobs that uniform decimation misses.
+        /// The jagged visual rims mate, but their convex envelopes overlap; a shared flat cap keeps the two
+        /// collision halves on opposite sides of the seam.
+        /// </summary>
         public Mesh ToColliderMesh(string name, int longitudes, int latitudes)
         {
-            int N = longitudes, M = latitudes;
-            int stepLon = 4, stepLat = 3;
-            var pts = new List<Vector3>();
-            for (int k = 0; k < M; k += stepLat)
-                for (int i = 0; i < N; i += stepLon)
-                    pts.Add(Vertices[k * N + i]);
-            pts.Add(Vertices[M * N]); // pole
-            int cols = N / stepLon;
-            var tris = new List<int>();
-            int rows = (M + stepLat - 1) / stepLat;
+            int rows = Mathf.Min(latitudes, 8), cols = Mathf.Min(longitudes, 16);
+            var directions = rows == 8 && cols == 16 ? CollisionPatchDirections : ColliderDirections(rows, cols);
+            var pts = new Vector3[rows * cols + 1];
+            // Partition the exterior once. The first ring stays on the common fracture plane; subsequent
+            // rings select the furthest point in each angular patch without repeatedly scanning the mesh.
+            for (int r = 0; r < rows; r++)
+                for (int c = 0; c < cols; c++)
+                {
+                    var direction = directions[r * cols + c];
+                    if (!IsTop) direction.y = -direction.y;
+                    float furthest = float.MinValue;
+                    var support = Vector3.zero;
+                    int first = r == 0 ? 0 : 1 + (r - 1) * (latitudes - 1) / (rows - 1);
+                    int end = r == 0 ? 1 : 1 + r * (latitudes - 1) / (rows - 1);
+                    for (int k = first; k < end; k++)
+                        for (int i = c * longitudes / cols; i < (c + 1) * longitudes / cols; i++)
+                        {
+                            var p = Vertices[k * longitudes + i];
+                            if (k == 0) p.y = 0f;
+                            float distance = Vector3.Dot(p, direction);
+                            if (distance > furthest) { furthest = distance; support = p; }
+                        }
+                    pts[r * cols + c] = support;
+                }
+            int pole = pts.Length - 1;
+            pts[pole] = Vertices[latitudes * longitudes];
+            // Closed, welded input topology: 254 triangles at the maximum resolution, including the cap.
+            var tris = new int[(2 * rows * cols - 2) * 3];
+            int index = 0;
+            void Triangle(int a, int b, int c)
+            {
+                tris[index++] = a;
+                tris[index++] = IsTop ? c : b;
+                tris[index++] = IsTop ? b : c;
+            }
             for (int r = 0; r < rows - 1; r++)
                 for (int c = 0; c < cols; c++)
                 {
-                    int a = r * cols + c, b = r * cols + (c + 1) % cols, d = (r + 1) * cols + c, e = (r + 1) * cols + (c + 1) % cols;
-                    tris.Add(a); tris.Add(b); tris.Add(e); tris.Add(a); tris.Add(e); tris.Add(d);
+                    int next = (c + 1) % cols;
+                    int a = r * cols + c, b = r * cols + next;
+                    int d = a + cols, e = b + cols;
+                    Triangle(a, b, e);
+                    Triangle(a, e, d);
                 }
-            int pole = pts.Count - 1;
-            for (int c = 0; c < cols; c++) { tris.Add((rows - 1) * cols + c); tris.Add((rows - 1) * cols + (c + 1) % cols); tris.Add(pole); }
+            for (int c = 0; c < cols; c++)
+                Triangle((rows - 1) * cols + c, (rows - 1) * cols + (c + 1) % cols, pole);
+            for (int c = 1; c < cols - 1; c++) Triangle(0, c + 1, c);
             var m = new Mesh { name = name };
             m.SetVertices(pts);
             m.SetTriangles(tris, 0);
-            m.RecalculateNormals();
             m.RecalculateBounds();
             return m;
         }

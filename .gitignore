@@ -7,6 +7,9 @@
 [Oo]bj/
 [Bb]uild/
 [Bb]uilds/
+# Runtime building/placement source is not generated build output.
+!/Geode/Assets/GeodeEmpire/Scripts/Runtime/Build/
+!/Geode/Assets/GeodeEmpire/Scripts/Runtime/Build/**
 [Ll]ogs/
 UserSettings/
 MemoryCaptures/

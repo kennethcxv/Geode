@@ -1,0 +1,791 @@
+{
+  "date": "2026-09-06",
+  "unityVersion": "6000.6.0f1",
+  "delivery": {
+    "afterSecondRestart": {
+      "playing": false,
+      "version": "6000.6.0f1",
+      "options": "DisableDomainReload, DisableSceneReload",
+      "optionsEnabled": true,
+      "scenes": [
+        {
+          "path": "Assets/GeodeEmpire/Scenes/Workshop.unity",
+          "isDirty": false,
+          "isLoaded": true
+        }
+      ],
+      "savePath": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode/geode_career.json",
+      "rows": [
+        {
+          "sibling": 2,
+          "id": "27791:256",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-166829468-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "27792:256",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "27793:256",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "27792:256",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "27793:256",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        },
+        {
+          "sibling": 3,
+          "id": "31014:256",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-1990628457-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "31015:256",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "31016:256",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "31015:256",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "31016:256",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        },
+        {
+          "sibling": 4,
+          "id": "28602:256",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-616842565-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "28603:256",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "28604:256",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "28603:256",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "28604:256",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        }
+      ],
+      "scriptGuid": "7278791689a2a466ba98fe248067bacf",
+      "scriptClass": "GeodeEmpire.Build.DeliveryCrate",
+      "testAssembly": true
+    },
+    "beforePlay": {
+      "playing": false,
+      "version": "6000.6.0f1",
+      "options": "DisableDomainReload, DisableSceneReload",
+      "optionsEnabled": true,
+      "scenes": [
+        {
+          "path": "Assets/GeodeEmpire/Scenes/Workshop.unity",
+          "isDirty": false,
+          "isLoaded": true
+        }
+      ],
+      "savePath": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode/geode_career.json",
+      "rows": [
+        {
+          "sibling": 2,
+          "id": "45371:2816",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-166829468-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "45372:2816",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "45373:2816",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "45372:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "45373:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        },
+        {
+          "sibling": 3,
+          "id": "48576:2816",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-1990628457-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "48577:2816",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "48578:2816",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "48577:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "48578:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        },
+        {
+          "sibling": 4,
+          "id": "46181:2816",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-616842565-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "46182:2816",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "46183:2816",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "46182:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "46183:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        }
+      ],
+      "scriptGuid": "7278791689a2a466ba98fe248067bacf",
+      "scriptClass": "GeodeEmpire.Build.DeliveryCrate",
+      "testAssembly": true
+    },
+    "duringPlay": {
+      "playing": true,
+      "version": "6000.6.0f1",
+      "options": "DisableDomainReload, DisableSceneReload",
+      "optionsEnabled": true,
+      "scenes": [
+        {
+          "path": "Assets/GeodeEmpire/Scenes/Workshop.unity",
+          "isDirty": false,
+          "isLoaded": true
+        }
+      ],
+      "savePath": "/var/folders/nb/_dglgw092ll115jzc1bhyt_m0000gn/T/geode-integrity-final-d92d0b7b012a45eaa223acbb3e0e3f4c/geode_career.json",
+      "rows": [
+        {
+          "sibling": 2,
+          "id": "45371:2816",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-166829468-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "45372:2816",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "45373:2816",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "45372:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "45373:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        },
+        {
+          "sibling": 3,
+          "id": "48576:2816",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-1990628457-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "48577:2816",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "48578:2816",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "48577:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "48578:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        },
+        {
+          "sibling": 4,
+          "id": "46181:2816",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-616842565-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "46182:2816",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "46183:2816",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "46182:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "46183:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        }
+      ],
+      "scriptGuid": "7278791689a2a466ba98fe248067bacf",
+      "scriptClass": "GeodeEmpire.Build.DeliveryCrate",
+      "testAssembly": true
+    },
+    "afterPlay": {
+      "playing": false,
+      "version": "6000.6.0f1",
+      "options": "DisableDomainReload, DisableSceneReload",
+      "optionsEnabled": true,
+      "scenes": [
+        {
+          "path": "Assets/GeodeEmpire/Scenes/Workshop.unity",
+          "isDirty": false,
+          "isLoaded": true
+        }
+      ],
+      "savePath": "/var/folders/nb/_dglgw092ll115jzc1bhyt_m0000gn/T/geode-integrity-final-d92d0b7b012a45eaa223acbb3e0e3f4c/geode_career.json",
+      "rows": [
+        {
+          "sibling": 2,
+          "id": "45371:2816",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-166829468-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "45372:2816",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "45373:2816",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "45372:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "45373:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        },
+        {
+          "sibling": 3,
+          "id": "48576:2816",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-1990628457-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "48577:2816",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "48578:2816",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "48577:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "48578:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        },
+        {
+          "sibling": 4,
+          "id": "46181:2816",
+          "globalId": "GlobalObjectId_V1-2-269a87f726d4240969a7890ea226ab06-616842565-0",
+          "active": false,
+          "components": [
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform",
+              "id": "46182:2816",
+              "script": null
+            },
+            {
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate",
+              "id": "46183:2816",
+              "script": "Assets/GeodeEmpire/Scripts/Runtime/Build/DeliveryCrate.cs"
+            }
+          ],
+          "typedFound": true,
+          "nativeMissingCount": 0,
+          "serializedRefs": [
+            {
+              "slot": 0,
+              "id": "46182:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "UnityEngine.Transform"
+            },
+            {
+              "slot": 1,
+              "id": "46183:2816",
+              "unityNull": false,
+              "clrNull": false,
+              "type": "GeodeEmpire.Build.DeliveryCrate"
+            }
+          ]
+        }
+      ],
+      "scriptGuid": "7278791689a2a466ba98fe248067bacf",
+      "scriptClass": "GeodeEmpire.Build.DeliveryCrate",
+      "testAssembly": true
+    }
+  },
+  "tests": {
+    "ResultState": "Passed",
+    "PassCount": 18,
+    "FailCount": 0,
+    "SkipCount": 0,
+    "Duration": 1.4225484,
+    "suites": [
+      "IntegrityGateTests",
+      "PreparationTests",
+      "PrepMatrixTests"
+    ]
+  },
+  "colliderMatrix": {
+    "seeds": 128,
+    "halves": 256,
+    "maxVertices": 129,
+    "maxInputTriangles": 254,
+    "maxPossibleConvexTriangles": 254,
+    "baseline": {
+      "buildMs": 13.2686,
+      "cookMs": 63.3617,
+      "totalMs": 76.6303,
+      "maxHalfMs": 12.021
+    },
+    "fixedProxy": {
+      "buildMs": 21.4441,
+      "cookMs": 52.8274,
+      "totalMs": 74.2715,
+      "maxHalfMs": 13.2109
+    },
+    "warnings": [
+      "baseline seed=62 top=True Warning Couldn't create a Convex Mesh from source mesh, within the maximum polygons limit (256). The partial hull will be used. Consider simplifying your mesh. Source mesh name: Baseline_Half"
+    ]
+  },
+  "runtime": {
+    "running": false,
+    "phase": "done",
+    "log": "[33.3] == CrackPerf\n[33.9] prompt='Pick up rock  5.8 kg' (want 'Pick up rock')\n[36.9] prompt='Set on the cradle' (want 'Set on the cradle')\n[59.9] PERF rock 1 strike 15\n  spans (32, 26.5 ms total)\n        7.27 ms  f+160  record-discovery\n        4.27 ms  f+484  thumbnail-render\n        2.53 ms  f+161  flush-save\n        2.51 ms  f+484  deferred:discovery-card\n        1.88 ms  f+160  audio-crack\n        1.83 ms  f+484    thumb:proxy\n        1.75 ms  f+483  flush-save-revealed\n        1.48 ms  f+484    thumb:camera\n        1.28 ms  f+485  deferred:state-changed\n        0.39 ms  f+485      sc:TabletUI.Refresh\n        0.39 ms  f+160  vfx-split\n        0.37 ms  f+483  revealed-event\n        0.24 ms  f+483  result-note\n        0.06 ms  f+160  damage-fraction\n        0.06 ms  f+485      sc:SliceDirector.Evaluate\n        0.03 ms  f+485      sc:FixtureWorld.Apply\n        0.03 ms  f+485      sc:CrackingBench.RefreshCradle\n        0.02 ms  f+485      sc:RetailShop.RefreshCapacity\n        0.02 ms  f+485      sc:FixtureDelivery.Refresh\n        0.02 ms  f+160  rebuild-crystals\n        0.02 ms  f+485      sc:MineralShelf.Refresh\n        0.02 ms  f+160  crack-state\n  frames 540  mean 5.7 ms  worst 149.4 ms @485  over 33 ms: 3\n  worst-frame window: 4.9 7.6 17.8 149.4 148.0 2.4 2.1\n  around the worst frame  ms / gc0 / kB:  5/0/8  8/0/220  18/0/12  149/0/328  148/2/3248  2/0/0  2/0/0\n  gen-0 collections in window: 2\n\n[59.9] rock 1: opened in 15 strikes\n",
+    "watch": "{\"samples\":24300,\"overlapSamples\":0,\"revealSamples\":585,\"openedSamples\":7338,\"maxDepth\":0.0,\"worstSeed\":\"\",\"worstPose\":\"\",\"worstRevealing\":false,\"messages\":[],\"stopped\":true}",
+    "cash": 45,
+    "entities": 9,
+    "crates": 1
+  },
+  "settling": [
+    {
+      "Id": "S0003-8978",
+      "seed": "1866503178557163896",
+      "location": "AppraisalStation",
+      "zone": "ScaleZone",
+      "kinematic": true,
+      "sleeping": true,
+      "speed": 0,
+      "angularSpeed": 0,
+      "lowestWorldY": 0.954,
+      "colliders": [
+        {
+          "name": "BottomHalf",
+          "enabled": true,
+          "mesh": "BottomHalf_Collider",
+          "vertices": 129
+        },
+        {
+          "name": "TopHalf",
+          "enabled": true,
+          "mesh": "TopHalf_Collider",
+          "vertices": 129
+        }
+      ]
+    },
+    {
+      "Id": "S0007-8415",
+      "seed": "5708485099617747989",
+      "location": "World",
+      "zone": null,
+      "kinematic": false,
+      "sleeping": true,
+      "speed": 0,
+      "angularSpeed": 0,
+      "lowestWorldY": -1.21816993e-05,
+      "colliders": [
+        {
+          "name": "BottomHalf",
+          "enabled": true,
+          "mesh": "BottomHalf_Collider",
+          "vertices": 129
+        },
+        {
+          "name": "TopHalf",
+          "enabled": true,
+          "mesh": "TopHalf_Collider",
+          "vertices": 129
+        }
+      ]
+    },
+    {
+      "Id": "S0009-C301",
+      "seed": "5460848115171115777",
+      "location": "World",
+      "zone": null,
+      "kinematic": false,
+      "sleeping": true,
+      "speed": 0,
+      "angularSpeed": 0,
+      "lowestWorldY": 0.000649500638,
+      "colliders": [
+        {
+          "name": "BottomHalf",
+          "enabled": true,
+          "mesh": "BottomHalf_Collider",
+          "vertices": 129
+        },
+        {
+          "name": "TopHalf",
+          "enabled": true,
+          "mesh": "TopHalf_Collider",
+          "vertices": 129
+        }
+      ]
+    }
+  ],
+  "openedPlacement": {
+    "seed": "1866503178557163896",
+    "pickup": true,
+    "accepts": true,
+    "placed": true,
+    "kinematic": true,
+    "collidersEnabled": true,
+    "pose": "Natural",
+    "overlap": false
+  },
+  "toolchain": {
+    "editor": {
+      "success": true,
+      "message": "Editor state",
+      "data": {
+        "projectName": "Geode",
+        "projectPath": "/Users/kenneth/Documents/GitHub/Geode/Geode",
+        "isPlaying": false,
+        "isPaused": false,
+        "isCompiling": false,
+        "isUpdating": false,
+        "isPlayingOrWillChange": false,
+        "applicationPath": "/Applications/Unity/Hub/Editor/6000.6.0f1/Unity.app",
+        "timeSinceStartup": 2517.110037458,
+        "timeScale": 1,
+        "unityVersion": "6000.6.0f1"
+      }
+    },
+    "compilation": {
+      "success": true,
+      "message": "No compilation errors or warnings detected."
+    },
+    "errors": {
+      "success": true,
+      "message": "No error entries found in cached logs from the last 300 second(s)"
+    },
+    "warnings": {
+      "success": true,
+      "message": "Console logs (1 entries, filter: warning, source: cache, last 300s):\n10:48:26 [WARN] Couldn't create a Convex Mesh from source mesh, within the maximum polygons limit (256). The partial hull will be used. Consider simplifying your mesh. Source mesh name: Baseline_Half\n"
+    },
+    "blenderAddon": {
+      "result": "{\n  \"up_to_date\": true,\n  \"protocol_version\": 5,\n  \"expected_protocol_version\": 5,\n  \"addon_version\": [\n    1,\n    6\n  ],\n  \"capabilities\": [\n    \"drain_human_activity\",\n    \"execute_code\",\n    \"get_addon_info\",\n    \"get_object_info\",\n    \"get_scene_info\",\n    \"get_telemetry_consent\",\n    \"get_viewport_screenshot\",\n    \"get_world_state_snapshot\",\n    \"set_telemetry_consent\"\n  ],\n  \"blender_version\": \"5.2.1 LTS\",\n  \"source\": \"native\",\n  \"warning\": null,\n  \"telemetry_consent\": false,\n  \"update_command\": \"uvx blender-mcp install-addon\",\n  \"after_install\": \"If the addon file was updated: in Blender, Preferences \\u2192 Add-ons \\u2192 disable/enable 'Interface: Blender MCP', or restart Blender, then Start MCP Server.\"\n}"
+    },
+    "blenderScene": {
+      "result": "{\n  \"name\": \"Scene\",\n  \"object_count\": 3,\n  \"objects\": [\n    {\n      \"name\": \"Cube\",\n      \"type\": \"MESH\",\n      \"location\": [\n        0.0,\n        0.0,\n        0.0\n      ]\n    },\n    {\n      \"name\": \"Light\",\n      \"type\": \"LIGHT\",\n      \"location\": [\n        4.08,\n        1.01,\n        5.9\n      ]\n    },\n    {\n      \"name\": \"Camera\",\n      \"type\": \"CAMERA\",\n      \"location\": [\n        7.36,\n        -6.93,\n        4.96\n      ]\n    }\n  ],\n  \"materials_count\": 2\n}"
+    },
+    "blenderCli": {
+      "chunk_id": "06b97f",
+      "wall_time_seconds": 0.000180667,
+      "exit_code": 0,
+      "original_token_count": 27,
+      "output": "Integrity gate CLI: 5.2.1 LTS\nBlender 5.2.1 LTS (hash 9e2066aef7ef built 2026-08-25 01:35:57)\n\nBlender quit\n"
+    }
+  },
+  "serializedDelivery": {
+    "rows": [
+      {
+        "sibling": 2,
+        "gameObjectFileId": 166829468,
+        "transformFileId": 166829469,
+        "componentFileId": 166829470,
+        "beforeGameObject": "--- !u!1 &166829468\nGameObject:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  serializedVersion: 6\n  m_Component:\n  - component: {fileID: 166829469}\n  - component: {fileID: 166829470}\n  m_Layer: 0\n  m_Name: Delivery\n  m_TagString: Untagged\n  m_Icon: {fileID: 0}\n  m_NavMeshLayer: 0\n  m_StaticEditorFlags: 0\n  m_IsActive: 0\n",
+        "beforeComponent": "--- !u!114 &166829470\nMonoBehaviour:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  m_GameObject: {fileID: 166829468}\n  m_Enabled: 1\n  m_EditorHideFlags: 0\n  m_Script: {fileID: 1487154252}\n  m_Name: \n  m_EditorClassIdentifier: GeodeEmpire.Runtime::GeodeEmpire.Build.DeliveryCrate\n  highlightRenderers: []\n",
+        "afterComponent": "--- !u!114 &166829470\nMonoBehaviour:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  m_GameObject: {fileID: 166829468}\n  m_Enabled: 1\n  m_EditorHideFlags: 0\n  m_Script: {fileID: 11500000, guid: 7278791689a2a466ba98fe248067bacf, type: 3}\n  m_Name: \n  m_EditorClassIdentifier: GeodeEmpire.Runtime::GeodeEmpire.Build.DeliveryCrate\n  highlightRenderers: []\n"
+      },
+      {
+        "sibling": 3,
+        "gameObjectFileId": 1990628457,
+        "transformFileId": 1990628458,
+        "componentFileId": 1990628459,
+        "beforeGameObject": "--- !u!1 &1990628457\nGameObject:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  serializedVersion: 6\n  m_Component:\n  - component: {fileID: 1990628458}\n  - component: {fileID: 1990628459}\n  m_Layer: 0\n  m_Name: Delivery\n  m_TagString: Untagged\n  m_Icon: {fileID: 0}\n  m_NavMeshLayer: 0\n  m_StaticEditorFlags: 0\n  m_IsActive: 0\n",
+        "beforeComponent": "--- !u!114 &1990628459\nMonoBehaviour:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  m_GameObject: {fileID: 1990628457}\n  m_Enabled: 1\n  m_EditorHideFlags: 0\n  m_Script: {fileID: 1487154252}\n  m_Name: \n  m_EditorClassIdentifier: GeodeEmpire.Runtime::GeodeEmpire.Build.DeliveryCrate\n  highlightRenderers: []\n",
+        "afterComponent": "--- !u!114 &1990628459\nMonoBehaviour:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  m_GameObject: {fileID: 1990628457}\n  m_Enabled: 1\n  m_EditorHideFlags: 0\n  m_Script: {fileID: 11500000, guid: 7278791689a2a466ba98fe248067bacf, type: 3}\n  m_Name: \n  m_EditorClassIdentifier: GeodeEmpire.Runtime::GeodeEmpire.Build.DeliveryCrate\n  highlightRenderers: []\n"
+      },
+      {
+        "sibling": 4,
+        "gameObjectFileId": 616842565,
+        "transformFileId": 616842566,
+        "componentFileId": 616842567,
+        "beforeGameObject": "--- !u!1 &616842565\nGameObject:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  serializedVersion: 6\n  m_Component:\n  - component: {fileID: 616842566}\n  - component: {fileID: 616842567}\n  m_Layer: 0\n  m_Name: Delivery\n  m_TagString: Untagged\n  m_Icon: {fileID: 0}\n  m_NavMeshLayer: 0\n  m_StaticEditorFlags: 0\n  m_IsActive: 0\n",
+        "beforeComponent": "--- !u!114 &616842567\nMonoBehaviour:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  m_GameObject: {fileID: 616842565}\n  m_Enabled: 1\n  m_EditorHideFlags: 0\n  m_Script: {fileID: 1487154252}\n  m_Name: \n  m_EditorClassIdentifier: GeodeEmpire.Runtime::GeodeEmpire.Build.DeliveryCrate\n  highlightRenderers: []\n",
+        "afterComponent": "--- !u!114 &616842567\nMonoBehaviour:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  m_GameObject: {fileID: 616842565}\n  m_Enabled: 1\n  m_EditorHideFlags: 0\n  m_Script: {fileID: 11500000, guid: 7278791689a2a466ba98fe248067bacf, type: 3}\n  m_Name: \n  m_EditorClassIdentifier: GeodeEmpire.Runtime::GeodeEmpire.Build.DeliveryCrate\n  highlightRenderers: []\n"
+      }
+    ],
+    "beforeEmbeddedMonoScript": "--- !u!115 &1487154252\nMonoScript:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  m_Name: \n  serializedVersion: 7\n  m_DefaultReferences: {}\n  m_Icon: {fileID: 0}\n  m_Type: 0\n  m_ExecutionOrder: 0\n  m_ClassName: DeliveryCrate\n  m_Namespace: GeodeEmpire.Build\n  m_AssemblyName: GeodeEmpire.Runtime\n",
+    "fixtureDeliveryMeta": "fileFormatVersion: 2\nguid: 94aa8389180204879b1495a594632039",
+    "deliveryCrateMeta": "fileFormatVersion: 2\nguid: 7278791689a2a466ba98fe248067bacf",
+    "beforeSceneSha256": "a4af31270a54157ff76024b2af86d7abe19433c50a872b74abb734353a7689bb",
+    "afterSceneSha256": "ffaf74cd0e9097457ac40e826c1442ce35b901f18096fed27d8402ebc2d125fc"
+  },
+  "preservation": {
+    "trackedFilesChangedSinceStart": [
+      "Geode/Assets/GeodeEmpire/Scenes/Workshop.unity",
+      "Geode/Assets/GeodeEmpire/Scripts/Runtime/Specimens/GeodeMeshBuilder.cs",
+      "Geode/Assets/GeodeEmpire/Scripts/Runtime/Specimens/SpecimenEntity.cs"
+    ],
+    "persistentFileMatchesBaseline": {
+      "TestResults.xml": false,
+      "settings.json": true,
+      "geode_career.json.bak": false,
+      "geode_career.json": true
+    },
+    "saveRestoration": {
+      "mainRestoredExactly": true,
+      "settingsUnchanged": true,
+      "backupContains": "original current career; previous rolling backup was rotated by the unisolated cycle"
+    },
+    "baselineDirectory": "/var/folders/nb/_dglgw092ll115jzc1bhyt_m0000gn/T/geode-integrity-20260906-_oem8mf1"
+  }
+}

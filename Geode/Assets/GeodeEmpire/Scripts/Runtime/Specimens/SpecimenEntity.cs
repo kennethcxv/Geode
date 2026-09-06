@@ -83,11 +83,13 @@ namespace GeodeEmpire.Specimens
         {
             if (half == null || colliderMesh == null) return;
             var mc = half.gameObject.AddComponent<MeshCollider>();
+            // Unity initially assigns the MeshFilter's visual shell. Clear it before enabling convex cooking.
+            mc.sharedMesh = null;
             // the generated hulls are already clean and welded; asking PhysX to do it again is the expensive part
             mc.cookingOptions = MeshColliderCookingOptions.CookForFasterSimulation
                               | MeshColliderCookingOptions.UseFastMidphase;
-            mc.sharedMesh = colliderMesh;
             mc.convex = true;
+            mc.sharedMesh = colliderMesh;
             mc.material = null;
             _colliders.Add(mc);
         }
@@ -230,20 +232,11 @@ namespace GeodeEmpire.Specimens
             if (IsOpened)
             {
                 Visual.SetCrystalsVisible(true);
-                var geo = Visual.Geometry;
-                if (Record.HasOpenPose)
+                if (TopPoseFor(DisplayPose.Natural, out var position, out var rotation))
                 {
-                    // exactly how it lay when it left the bench
-                    Visual.TopHalf.localRotation = Record.OpenTopLocalRot;
-                    Visual.TopHalf.localPosition = Record.OpenTopLocalPos;
-                    return;
+                    Visual.TopHalf.localRotation = rotation;
+                    Visual.TopHalf.localPosition = position;
                 }
-                float r = geo.MeanEquatorRadius;
-                // lie the top half next to the bottom half, cavity up (rotated 180 around Z, shifted along -X);
-                // both halves rest on their real lowest hull points on the same surface
-                var flip = Quaternion.Euler(0f, 0f, 180f);
-                Visual.TopHalf.localRotation = flip;
-                Visual.TopHalf.localPosition = new Vector3(-r * 2.15f, -RestHeightOffset(false) - LowestOfTop(flip), 0f);
             }
             else
             {
@@ -278,15 +271,39 @@ namespace GeodeEmpire.Specimens
                 case DisplayPose.Clamshell:
                     rot = Quaternion.Euler(-72f, 0f, 0f) * Quaternion.Euler(0f, 0f, 180f);
                     pos = new Vector3(0f, -RestHeightOffset(false) - LowestOfTop(rot), r * 1.02f + 0.012f);
-                    return true;
+                    break;
                 case DisplayPose.Natural when Record.HasOpenPose:
                     pos = Record.OpenTopLocalPos; rot = Record.OpenTopLocalRot;
-                    return true;
+                    break;
                 default:
                     rot = Quaternion.Euler(0f, 0f, 180f);
                     pos = new Vector3(-r * 2.15f, -RestHeightOffset(false) - LowestOfTop(rot), 0f);
-                    return true;
+                    break;
             }
+            SeparateTopPose(ref pos, rot);
+            return true;
+        }
+
+        /// <summary>Distance between half pivots that leaves a small gap along the given specimen-local direction.</summary>
+        public static float HalfSeparation(Mesh bottom, Mesh top, Quaternion topRotation, Vector3 direction)
+        {
+            if (bottom == null || top == null) return 0f;
+            direction.Normalize();
+            float bottomExtent = float.MinValue, topExtent = float.MinValue;
+            foreach (var p in bottom.vertices) bottomExtent = Mathf.Max(bottomExtent, Vector3.Dot(p, direction));
+            foreach (var p in top.vertices) topExtent = Mathf.Max(topExtent, Vector3.Dot(topRotation * p, -direction));
+            return bottomExtent + topExtent + 0.004f;
+        }
+
+        private void SeparateTopPose(ref Vector3 position, Quaternion rotation)
+        {
+            // Mean radius misses large knobs. Keep the requested layout and base height, but move the lid
+            // far enough sideways that the actual hulls cannot intersect, including poses from older saves.
+            var direction = new Vector3(position.x, 0f, position.z);
+            float distance = direction.magnitude;
+            if (distance < 0.0001f) return; // an intentionally closed pose
+            float minimum = HalfSeparation(Visual.BottomColliderMesh, Visual.TopColliderMesh, rotation, direction);
+            if (distance < minimum) position += direction / distance * (minimum - distance);
         }
 
         public void ApplyPose(DisplayPose pose)
@@ -332,6 +349,7 @@ namespace GeodeEmpire.Specimens
             if (Visual == null || Visual.TopHalf == null || !IsOpened) return;
             var p = Visual.TopHalf.localPosition;
             p.y = -RestHeightOffset(false) - LowestOfTop(Visual.TopHalf.localRotation);
+            SeparateTopPose(ref p, Visual.TopHalf.localRotation);
             Visual.TopHalf.localPosition = p;
             Record.OpenTopLocalPos = p;
             Record.OpenTopLocalRot = Visual.TopHalf.localRotation;
