@@ -3196,6 +3196,8 @@ GameObject:
   m_Component:
   - component: {fileID: 59341300}
   - component: {fileID: 59341301}
+  - component: {fileID: 59341303}
+  - component: {fileID: 59341302}
   m_Layer: 0
   m_Name: GalleryPlinths
   m_TagString: Untagged
@@ -3246,9 +3248,46 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 1791943738}
+  NavigationObstacle: {fileID: 59341302}
   Slots: 3
   Price: 0
   SitedByDefault: 0
+--- !u!208 &59341302
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59341299}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 1.23, y: 0.5, z: 0.23}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.5, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &59341303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59341299}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &59953299
 GameObject:
   m_ObjectHideFlags: 0
@@ -3867,6 +3906,8 @@ GameObject:
   - component: {fileID: 71194018}
   - component: {fileID: 71194017}
   - component: {fileID: 71194016}
+  - component: {fileID: 71194020}
+  - component: {fileID: 71194019}
   m_Layer: 0
   m_Name: checkout_counter
   m_TagString: Untagged
@@ -4004,6 +4045,42 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.6, y: 0.95000005, z: 0.85000014}
   m_Center: {x: 0, y: 0.47499996, z: -0.000000074505806}
+--- !u!208 &71194019
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 71194014}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 1.3, y: 0.47500002, z: 0.42500007}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.47499996, z: -0.000000074505806}
+  m_TimeToStationary: 0.5
+--- !u!114 &71194020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 71194014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &71230942
 GameObject:
   m_ObjectHideFlags: 0
@@ -6095,6 +6172,8 @@ GameObject:
   m_Component:
   - component: {fileID: 103232731}
   - component: {fileID: 103232732}
+  - component: {fileID: 103232734}
+  - component: {fileID: 103232733}
   m_Layer: 0
   m_Name: MainDisplayCase
   m_TagString: Untagged
@@ -6145,9 +6224,46 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 4891991489145142390}
+  NavigationObstacle: {fileID: 103232733}
   Slots: 6
   Price: 0
   SitedByDefault: 0
+--- !u!208 &103232733
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 103232730}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.925, y: 1.2, z: 0.27}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 1.2, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &103232734
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 103232730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &103753253
 GameObject:
   m_ObjectHideFlags: 0
@@ -9950,6 +10066,8 @@ GameObject:
   m_Component:
   - component: {fileID: 202007326}
   - component: {fileID: 202007327}
+  - component: {fileID: 202007329}
+  - component: {fileID: 202007328}
   m_Layer: 0
   m_Name: MaterialCollectionRack
   m_TagString: Untagged
@@ -10000,9 +10118,46 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 1969168887}
+  NavigationObstacle: {fileID: 202007328}
   Slots: 17
   Price: 0
   SitedByDefault: 0
+--- !u!208 &202007328
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 202007325}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.9, y: 1.35, z: 0.33}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 1.35, z: -0.08}
+  m_TimeToStationary: 0.5
+--- !u!114 &202007329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 202007325}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &202556016
 GameObject:
   m_ObjectHideFlags: 0
@@ -13714,15 +13869,16 @@ Material:
   m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - _EMISSION
+  m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
+  stringTagMap:
+    RenderType: Opaque
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -13821,7 +13977,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.9, g: 0.92, b: 0.94, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.9, g: 0.92, b: 0.94, a: 1}
     - _EmissionColor: {r: 1.1, g: 1.14, b: 1.18, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
@@ -15067,6 +15223,8 @@ GameObject:
   m_Component:
   - component: {fileID: 309159970}
   - component: {fileID: 309159971}
+  - component: {fileID: 309159973}
+  - component: {fileID: 309159972}
   m_Layer: 0
   m_Name: SpecialistDisplayCase
   m_TagString: Untagged
@@ -15117,9 +15275,46 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 988056815270412889}
+  NavigationObstacle: {fileID: 309159972}
   Slots: 6
   Price: 0
   SitedByDefault: 0
+--- !u!208 &309159972
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 309159969}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.925, y: 0.8, z: 0.27}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.8, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &309159973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 309159969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &311032785
 GameObject:
   m_ObjectHideFlags: 0
@@ -16970,6 +17165,8 @@ GameObject:
   - component: {fileID: 344680982}
   - component: {fileID: 344680981}
   - component: {fileID: 344680980}
+  - component: {fileID: 344680984}
+  - component: {fileID: 344680983}
   m_Layer: 0
   m_Name: ClosedOfficeDoor
   m_TagString: Untagged
@@ -17070,6 +17267,42 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 344680978}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!208 &344680983
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 344680978}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &344680984
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 344680978}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &345622840
 GameObject:
   m_ObjectHideFlags: 0
@@ -24447,6 +24680,8 @@ GameObject:
   - component: {fileID: 531242884}
   - component: {fileID: 531242883}
   - component: {fileID: 531242882}
+  - component: {fileID: 531242886}
+  - component: {fileID: 531242885}
   m_Layer: 0
   m_Name: ClosedStreetDoor
   m_TagString: Untagged
@@ -24547,6 +24782,42 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 531242880}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!208 &531242885
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 531242880}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &531242886
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 531242880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &533419527
 GameObject:
   m_ObjectHideFlags: 0
@@ -33364,8 +33635,8 @@ MonoBehaviour:
   m_IgnoreNavMeshObstacle: 1
   m_OverrideTileSize: 0
   m_TileSize: 256
-  m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.16666667
+  m_OverrideVoxelSize: 1
+  m_VoxelSize: 0.05
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 0}
   m_BuildHeightMesh: 0
@@ -34261,6 +34532,8 @@ GameObject:
   m_Component:
   - component: {fileID: 777476529}
   - component: {fileID: 777476530}
+  - component: {fileID: 777476532}
+  - component: {fileID: 777476531}
   m_Layer: 0
   m_Name: DisplayWall_display_wall_c
   m_TagString: Untagged
@@ -34276,7 +34549,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 777476528}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 3.2, y: 0, z: 5.68}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -34311,9 +34584,46 @@ MonoBehaviour:
   WallBacked: 1
   Movable: 1
   Body: {fileID: 1104301494}
+  NavigationObstacle: {fileID: 777476531}
   Slots: 9
   Price: 0
   SitedByDefault: 0
+--- !u!208 &777476531
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777476528}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.775, y: 1.15, z: 0.2175}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 1.15, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &777476532
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777476528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &778861887
 GameObject:
   m_ObjectHideFlags: 0
@@ -43047,6 +43357,8 @@ GameObject:
   - component: {fileID: 966722460}
   - component: {fileID: 966722459}
   - component: {fileID: 966722458}
+  - component: {fileID: 966722462}
+  - component: {fileID: 966722461}
   m_Layer: 0
   m_Name: checkout_counter
   m_TagString: Untagged
@@ -43189,6 +43501,42 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.6, y: 0.95000005, z: 0.85000014}
   m_Center: {x: 0, y: 0.47499996, z: -0.000000074505806}
+--- !u!208 &966722461
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 966722456}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 1.3, y: 0.47500002, z: 0.42500007}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.47499996, z: -0.000000074505806}
+  m_TimeToStationary: 0.5
+--- !u!114 &966722462
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 966722456}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &967105861
 GameObject:
   m_ObjectHideFlags: 0
@@ -47738,6 +48086,8 @@ GameObject:
   - component: {fileID: 1106454522}
   - component: {fileID: 1106454523}
   - component: {fileID: 1106454524}
+  - component: {fileID: 1106454526}
+  - component: {fileID: 1106454525}
   m_Layer: 0
   m_Name: AppraisalStation
   m_TagString: Untagged
@@ -47802,9 +48152,46 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 1856886112}
+  NavigationObstacle: {fileID: 1106454525}
   Slots: 0
   Price: 0
   SitedByDefault: 0
+--- !u!208 &1106454525
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1106454521}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.675, y: 0.775, z: 0.32}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.775, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1106454526
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1106454521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1109845222
 GameObject:
   m_ObjectHideFlags: 0
@@ -49456,6 +49843,8 @@ GameObject:
   - component: {fileID: 1143890567}
   - component: {fileID: 1143890566}
   - component: {fileID: 1143890565}
+  - component: {fileID: 1143890569}
+  - component: {fileID: 1143890568}
   m_Layer: 0
   m_Name: ClosedShowroomStaffDoor
   m_TagString: Untagged
@@ -49556,6 +49945,42 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1143890563}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!208 &1143890568
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1143890563}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1143890569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1143890563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1149624179
 GameObject:
   m_ObjectHideFlags: 0
@@ -51568,6 +51993,8 @@ GameObject:
   - component: {fileID: 1197599137}
   - component: {fileID: 1197599139}
   - component: {fileID: 1197599138}
+  - component: {fileID: 1197599141}
+  - component: {fileID: 1197599140}
   m_Layer: 0
   m_Name: PolishStation
   m_TagString: Untagged
@@ -51618,6 +52045,7 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 324750392}
+  NavigationObstacle: {fileID: 1197599140}
   Slots: 0
   Price: 420
   SitedByDefault: 0
@@ -51641,6 +52069,42 @@ MonoBehaviour:
   Before: {fileID: 406223374}
   PlatenY: 0.786
   PlatenRadius: 0.148
+--- !u!208 &1197599140
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1197599136}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.39, y: 0.475, z: 0.34}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.475, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1197599141
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1197599136}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1198034492
 GameObject:
   m_ObjectHideFlags: 0
@@ -55478,6 +55942,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1286443080}
   - component: {fileID: 1286443081}
+  - component: {fileID: 1286443083}
+  - component: {fileID: 1286443082}
   m_Layer: 0
   m_Name: WashStation
   m_TagString: Untagged
@@ -55528,9 +55994,46 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 964137983}
+  NavigationObstacle: {fileID: 1286443082}
   Slots: 0
   Price: 0
   SitedByDefault: 0
+--- !u!208 &1286443082
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1286443079}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.575, y: 0.675, z: 0.4}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.675, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1286443083
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1286443079}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1287287705
 GameObject:
   m_ObjectHideFlags: 0
@@ -66094,6 +66597,8 @@ GameObject:
   - component: {fileID: 1527914784}
   - component: {fileID: 1527914783}
   - component: {fileID: 1527914782}
+  - component: {fileID: 1527914786}
+  - component: {fileID: 1527914785}
   m_Layer: 0
   m_Name: ClosedStaffDoor
   m_TagString: Untagged
@@ -66194,6 +66699,42 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1527914780}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!208 &1527914785
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1527914780}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1527914786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1527914780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1528135241
 GameObject:
   m_ObjectHideFlags: 0
@@ -67445,6 +67986,8 @@ GameObject:
   - component: {fileID: 1568773183}
   - component: {fileID: 1568773185}
   - component: {fileID: 1568773184}
+  - component: {fileID: 1568773187}
+  - component: {fileID: 1568773186}
   m_Layer: 0
   m_Name: CrackerStation
   m_TagString: Untagged
@@ -67495,6 +68038,7 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 94116765}
+  NavigationObstacle: {fileID: 1568773186}
   Slots: 0
   Price: 380
   SitedByDefault: 0
@@ -67523,6 +68067,42 @@ MonoBehaviour:
   RailCrestY: 0.94
   MaxRockRadius: 0.11
   DevPump: 0
+--- !u!208 &1568773186
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1568773182}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.36, y: 0.825, z: 0.33}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.825, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1568773187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1568773182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1572044306
 GameObject:
   m_ObjectHideFlags: 0
@@ -68433,6 +69013,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1589060229}
   - component: {fileID: 1589060230}
+  - component: {fileID: 1589060232}
+  - component: {fileID: 1589060231}
   m_Layer: 0
   m_Name: DisplayWall_display_wall_a
   m_TagString: Untagged
@@ -68483,9 +69065,46 @@ MonoBehaviour:
   WallBacked: 1
   Movable: 1
   Body: {fileID: 2104510842}
+  NavigationObstacle: {fileID: 1589060231}
   Slots: 9
   Price: 0
   SitedByDefault: 0
+--- !u!208 &1589060231
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1589060228}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.775, y: 1.15, z: 0.2175}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 1.15, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1589060232
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1589060228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1592556270
 GameObject:
   m_ObjectHideFlags: 0
@@ -69494,8 +70113,10 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
+  stringTagMap:
+    RenderType: Opaque
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -69594,7 +70215,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.69, g: 0.72, b: 0.73, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.69, g: 0.72, b: 0.73, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
@@ -72167,6 +72788,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1660827651}
   - component: {fileID: 1660827650}
+  - component: {fileID: 1660827653}
+  - component: {fileID: 1660827652}
   m_Layer: 0
   m_Name: StorageShelf
   m_TagString: Untagged
@@ -72201,6 +72824,7 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 1593042694}
+  NavigationObstacle: {fileID: 1660827652}
   Slots: 4
   Price: 0
   SitedByDefault: 0
@@ -72220,6 +72844,42 @@ Transform:
   - {fileID: 1593042695}
   m_Father: {fileID: 75237308}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!208 &1660827652
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1660827649}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.46, y: 0.925, z: 0.2}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.925, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1660827653
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1660827649}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1661192407
 GameObject:
   m_ObjectHideFlags: 0
@@ -75545,6 +76205,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1721038740}
   - component: {fileID: 1721038741}
+  - component: {fileID: 1721038743}
+  - component: {fileID: 1721038742}
   m_Layer: 0
   m_Name: DisplayWall_display_wall_b
   m_TagString: Untagged
@@ -75595,9 +76257,46 @@ MonoBehaviour:
   WallBacked: 1
   Movable: 1
   Body: {fileID: 1857871325}
+  NavigationObstacle: {fileID: 1721038742}
   Slots: 9
   Price: 0
   SitedByDefault: 0
+--- !u!208 &1721038742
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1721038739}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.775, y: 1.15, z: 0.2175}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 1.15, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1721038743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1721038739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1721183486
 GameObject:
   m_ObjectHideFlags: 0
@@ -84858,6 +85557,8 @@ GameObject:
   - component: {fileID: 1902090599}
   - component: {fileID: 1902090601}
   - component: {fileID: 1902090600}
+  - component: {fileID: 1902090603}
+  - component: {fileID: 1902090602}
   m_Layer: 0
   m_Name: SawStation
   m_TagString: Untagged
@@ -84908,6 +85609,7 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 865602548}
+  NavigationObstacle: {fileID: 1902090602}
   Slots: 0
   Price: 650
   SitedByDefault: 0
@@ -84960,6 +85662,42 @@ MonoBehaviour:
   ViseZ: -0.056
   JawGapOpen: 0.03
   ScrewLead: 0.004
+--- !u!208 &1902090602
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1902090598}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.89, y: 0.775, z: 0.43}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: -0.2, y: 0.775, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1902090603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1902090598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1903182573
 GameObject:
   m_ObjectHideFlags: 0
@@ -85191,6 +85929,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1904103750}
   - component: {fileID: 1904103751}
+  - component: {fileID: 1904103753}
+  - component: {fileID: 1904103752}
   m_Layer: 0
   m_Name: ShopIsland
   m_TagString: Untagged
@@ -85241,9 +85981,46 @@ MonoBehaviour:
   WallBacked: 0
   Movable: 1
   Body: {fileID: 590025300}
+  NavigationObstacle: {fileID: 1904103752}
   Slots: 12
   Price: 0
   SitedByDefault: 0
+--- !u!208 &1904103752
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1904103749}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.725, y: 0.5, z: 0.4}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.5, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &1904103753
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1904103749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1904618184
 GameObject:
   m_ObjectHideFlags: 0
@@ -87417,6 +88194,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1967314417}
+  - component: {fileID: 1967314418}
   m_Layer: 0
   m_Name: Hinge
   m_TagString: Untagged
@@ -87440,6 +88218,26 @@ Transform:
   - {fileID: 643079439}
   m_Father: {fileID: 1209341731}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1967314418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1967314416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &1969168887
 GameObject:
   m_ObjectHideFlags: 0
@@ -92428,6 +93226,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2077804125}
+  - component: {fileID: 2077804126}
   m_Layer: 0
   m_Name: Hinge
   m_TagString: Untagged
@@ -92451,6 +93250,26 @@ Transform:
   - {fileID: 877453630}
   m_Father: {fileID: 831001339}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2077804126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2077804124}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &2078220586
 GameObject:
   m_ObjectHideFlags: 0
@@ -92783,6 +93602,8 @@ GameObject:
   - component: {fileID: 2090708808}
   - component: {fileID: 2090708810}
   - component: {fileID: 2090708809}
+  - component: {fileID: 2090708812}
+  - component: {fileID: 2090708811}
   m_Layer: 0
   m_Name: DisplayCabinet
   m_TagString: Untagged
@@ -92833,6 +93654,7 @@ MonoBehaviour:
   WallBacked: 1
   Movable: 1
   Body: {fileID: 1737716192}
+  NavigationObstacle: {fileID: 2090708811}
   Slots: 12
   Price: 0
   SitedByDefault: 0
@@ -92899,6 +93721,42 @@ MonoBehaviour:
   - gallery plinth 1
   LabelFont: {fileID: 12800000, guid: c57ca5d878d124422a50319cb2b4a3e1, type: 3}
   LabelMaterial: {fileID: 2100000, guid: f7b999bbd252445f7a443002b0474928, type: 2}
+--- !u!208 &2090708811
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2090708807}
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.62, y: 0.925, z: 0.23}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 0.925, z: 0}
+  m_TimeToStationary: 0.5
+--- !u!114 &2090708812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2090708807}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 1
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &2094635107
 GameObject:
   m_ObjectHideFlags: 0

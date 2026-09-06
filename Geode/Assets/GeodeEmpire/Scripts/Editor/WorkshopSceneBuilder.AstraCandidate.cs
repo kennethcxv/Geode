@@ -354,6 +354,8 @@ namespace GeodeEmpire.EditorTools
             var wallC = CandidatePath(scene, "Stations/DisplayWall_display_wall_c").GetComponent<PlaceableFixture>();
             Undo.RecordObject(wallC, "Make the third wall run an earned placement");
             wallC.RequiresUpgrade = Economy.UpgradeCatalog.Stage2; wallC.SitedByDefault = false;
+            // This shelf's open face and customer standing points are local -Z: face into the showroom.
+            CandidatePose(wallC.transform, new Vector2(3.2f, 5.68f), 0f);
             foreach (string name in new[] { "SawStation", "PolishStation", "CrackerStation" })
             {
                 var f = CandidatePath(scene, "Stations/" + name).GetComponent<PlaceableFixture>();
@@ -501,6 +503,74 @@ namespace GeodeEmpire.EditorTools
             light.color = new Color(.97f, .985f, 1f); light.intensity = intensity; light.range = range;
             light.shadows = shadows ? LightShadows.Soft : LightShadows.None;
             light.shadowBias = .025f; light.shadowNormalBias = .18f;
+        }
+
+        [MenuItem("GeodeEmpire/Astra/Configure Candidate Navigation")]
+        public static void ConfigureAstraCandidateNavigation()
+        {
+            var scene = SceneManager.GetActiveScene();
+            if (EditorApplication.isPlayingOrWillChangePlaymode || scene.path != AstraCandidatePath || scene.isDirty)
+                throw new InvalidOperationException("Open the clean saved Astra candidate in Edit Mode first.");
+            var retail = CandidatePath(scene, "Stations/RetailShop").GetComponent<RetailShop>();
+            var premises = CandidatePath(scene, "Environment/Premises").GetComponent<PremisesExpansion>();
+            if (retail == null || retail.Navigation == null || premises == null)
+                throw new InvalidOperationException("Retail navigation or premises missing.");
+            var fixtures = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<PlaceableFixture>(true)).ToArray();
+            var doors = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<ShopEntranceDoor>(true)).ToArray();
+            var counters = new[] { retail.StarterCounterItem, retail.ShowroomCounterItem }
+                .Select(t => t != null ? t.GetComponentInParent<Checkout.CheckoutStation>(true) : null).ToArray();
+            var closures = new[] { premises.BackRoomHoarding, premises.ShopFrontHoarding }
+                .SelectMany(g => g.GetComponentsInChildren<BoxCollider>(true)).ToArray();
+            if (fixtures.Length != 15 || doors.Length != 2 || closures.Length != 4 || counters.Any(c => c == null || c.GetComponent<BoxCollider>() == null))
+                throw new InvalidOperationException("Expected all 15 fixtures, two doors/counters and four lease closures.");
+            var blockers = fixtures.Select(f => f.gameObject).Concat(counters.Select(c => c.gameObject))
+                .Concat(closures.Select(c => c.gameObject)).ToArray();
+            if (retail.Navigation.overrideVoxelSize || fixtures.Any(f => f.Body == null || f.NavigationObstacle != null
+                    || (f.transform.lossyScale - Vector3.one).sqrMagnitude > .00001f)
+                || blockers.Any(g => g.GetComponent<UnityEngine.AI.NavMeshObstacle>() != null || g.GetComponent<Unity.AI.Navigation.NavMeshModifier>() != null)
+                || doors.Any(d => d.Leaf == null || d.Leaf.GetComponent<Unity.AI.Navigation.NavMeshModifier>() != null))
+                throw new InvalidOperationException("Navigation already configured or an expected body/scale changed. Inspect; do not repeat.");
+            var deliveryIds = DeliveryFileIds(scene);
+            foreach (var door in doors) CandidateExcludeFromNavigation(door.Leaf.gameObject);
+            foreach (var fixture in fixtures)
+            {
+                Undo.RecordObject(fixture, "Follow the placed fixture in navigation");
+                fixture.NavigationObstacle = CandidateNavigationBlocker(fixture.gameObject,
+                    new Vector3(fixture.BodyOffset.x, fixture.Height * .5f, fixture.BodyOffset.y),
+                    new Vector3(fixture.Footprint.x, fixture.Height, fixture.Footprint.y));
+                fixture.NavigationObstacle.enabled = false; // FixtureWorld enables it only for an installed body.
+            }
+            foreach (var counter in counters)
+            {
+                var box = counter.GetComponent<BoxCollider>();
+                CandidateNavigationBlocker(counter.gameObject, box.center, box.size);
+            }
+            foreach (var closure in closures) CandidateNavigationBlocker(closure.gameObject, closure.center, closure.size);
+            Undo.RecordObject(retail.Navigation, "Keep human-scale entrances in the navigation bake");
+            retail.Navigation.overrideVoxelSize = true;
+            retail.Navigation.voxelSize = .05f;
+            if (!deliveryIds.SequenceEqual(DeliveryFileIds(scene))) throw new InvalidOperationException("Delivery component IDs changed.");
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene, AstraCandidatePath)) throw new InvalidOperationException("Could not save navigation setup.");
+        }
+
+        private static void CandidateExcludeFromNavigation(GameObject root)
+        {
+            var modifier = Undo.AddComponent<Unity.AI.Navigation.NavMeshModifier>(root);
+            modifier.ignoreFromBuild = true;
+            modifier.applyToChildren = true;
+        }
+
+        private static UnityEngine.AI.NavMeshObstacle CandidateNavigationBlocker(GameObject root, Vector3 centre, Vector3 size)
+        {
+            CandidateExcludeFromNavigation(root);
+            var obstacle = Undo.AddComponent<UnityEngine.AI.NavMeshObstacle>(root);
+            obstacle.shape = UnityEngine.AI.NavMeshObstacleShape.Box;
+            obstacle.center = centre;
+            obstacle.size = size;
+            obstacle.carving = true;
+            obstacle.carveOnlyStationary = false;
+            return obstacle;
         }
 
         private static PlaceableFixture CandidateWrappedFixture(Transform stations, Transform body, string name, string id,

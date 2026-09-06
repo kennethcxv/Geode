@@ -254,6 +254,8 @@ namespace GeodeEmpire.Build
             {
                 session.State.SetFixture(f.Id, pos, yaw, true);
                 session.RaiseStateChanged();
+                // The tutorial only queues its first placement. Every later move must also reach the save.
+                session.QueueSave("fixture-placed");
             }
             if (f.Body != null && !f.Body.activeSelf) f.Body.SetActive(true);
             PlacementValidator.InvalidateMask();

@@ -1,0 +1,22 @@
+{
+  "rootCause": "Candidate shelf root authored at yaw180 although DisplayWall's front/price cards/browse points are local -Z. Its north-wall position makes browsing z6.63 exterior. Temporary yaw0 makes all9points z4.73, all9native paths Complete with no rebake. PlacementValidator treats customer standing points as arm-length interaction targets and uses current rather than proposed own anchors; it also allows already unreachable targets.",
+  "guardedProbe": "A reflection GetMethod diagnostic was refused by MCP safety checks before execution. Rewritten using public live data; guard remained enabled.",
+  "yawControl": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"scope\":\"temporary isolated runtime yaw-only control, no save/no nav rebake\",\"Trading\":true,\"IsOpen\":false,\"activeBrowse\":55,\"before\":{\"Valid\":true,\"Reason\":\"\"},\"candidate\":{\"Valid\":true,\"Reason\":\"\"},\"inward\":{\"Valid\":true,\"Reason\":\"\"},\"poseSavedYaw\":180.0,\"liveYaw\":0.0,\"browse\":[\"(2.74, 0.00, 4.73)\",\"(3.20, 0.00, 4.73)\",\"(3.66, 0.00, 4.73)\",\"(2.74, 0.00, 4.73)\",\"(3.20, 0.00, 4.73)\",\"(3.66, 0.00, 4.73)\",\"(2.74, 0.00, 4.73)\",\"(3.20, 0.00, 4.73)\",\"(3.66, 0.00, 4.73)\"]}",
+      "compiler": "Roslyn"
+    }
+  },
+  "inwardPaths": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"scope\":\"same live scene after yaw-only change, no navigation rebake\",\"points\":[{\"point\":\"(2.74, 0.00, 4.73)\",\"sampled\":true,\"pathFound\":true,\"path\":\"PathComplete\",\"sample\":\"(2.74, 0.01, 4.73)\"},{\"point\":\"(3.20, 0.00, 4.73)\",\"sampled\":true,\"pathFound\":true,\"path\":\"PathComplete\",\"sample\":\"(3.20, 0.01, 4.73)\"},{\"point\":\"(3.66, 0.00, 4.73)\",\"sampled\":true,\"pathFound\":true,\"path\":\"PathComplete\",\"sample\":\"(3.66, 0.01, 4.73)\"},{\"point\":\"(2.74, 0.00, 4.73)\",\"sampled\":true,\"pathFound\":true,\"path\":\"PathComplete\",\"sample\":\"(2.74, 0.01, 4.73)\"},{\"point\":\"(3.20, 0.00, 4.73)\",\"sampled\":true,\"pathFound\":true,\"path\":\"PathComplete\",\"sample\":\"(3.20, 0.01, 4.73)\"},{\"point\":\"(3.66, 0.00, 4.73)\",\"sampled\":true,\"pathFound\":true,\"path\":\"PathComplete\",\"sample\":\"(3.66, 0.01, 4.73)\"},{\"point\":\"(2.74, 0.00, 4.73)\",\"sampled\":true,\"pathFound\":true,\"path\":\"PathComplete\",\"sample\":\"(2.74, 0.01, 4.73)\"},{\"point\":\"(3.20, 0.00, 4.73)\",\"sampled\":true,\"pathFound\":true,\"path\":\"PathComplete\",\"sample\":\"(3.20, 0.01, 4.73)\"},{\"point\":\"(3.66, 0.00, 4.73)\",\"sampled\":true,\"pathFound\":true,\"path\":\"PathComplete\",\"sample\":\"(3.66, 0.01, 4.73)\"}],\"doors\":2}",
+      "compiler": "Roslyn"
+    }
+  },
+  "capture": "Geode/Output/AstraQA/c43f112e745a48f69afe9821a4ceb379/wall-c-inward-control.png",
+  "visualReview": "Front is now visible from showroom. Existing brown shelves and warm strips remain below the selected art target; Phase4 reauthoring is still required."
+}

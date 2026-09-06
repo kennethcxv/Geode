@@ -109,7 +109,7 @@ namespace GeodeEmpire.Build
                 if (!Owns(f, a.t) && PointInBox(a.p, centre, half, rot, 0.2f)) return Result.No("it stands where a customer has to stand");
 
             // 7. everything must still be walkable from everything else
-            if (routeCheck && !RouteHolds(f, centre, half, rot, out string blocked)) return Result.No(blocked);
+            if (routeCheck && !RouteHolds(f, pos, centre, half, rot, out string blocked)) return Result.No(blocked);
             return Result.Ok;
         }
 
@@ -226,6 +226,21 @@ namespace GeodeEmpire.Build
         private static List<(Vector3 p, Transform t)> Anchors() { Gather(); return _anchors; }
         private static List<(Vector3 p, Transform t)> CustomerPoints() { Gather(); return _customer; }
 
+        private static IEnumerable<(Vector3 p, Transform t)> CustomerPointsFor(PlaceableFixture candidate)
+        {
+            foreach (var a in CustomerPoints()) if (!Owns(candidate, a.t)) yield return a;
+            // A delivered case has an inactive body until placement. Its standing points still constrain
+            // the proposed pose, and must not vanish from validation just because it is not installed yet.
+            var shop = Object.FindAnyObjectByType<RetailShop>();
+            if (shop == null) yield break;
+            foreach (var b in shop.BrowsePoints)
+                if (Owns(candidate, b)) yield return (b.position, b);
+            foreach (var a in CustomerPoints()) if (Owns(candidate, a.t) && !shop.BrowsePoints.Contains(a.t)) yield return a;
+        }
+
+        private static Vector3 ProposedPoint(PlaceableFixture f, Vector3 pos, Quaternion rot, Vector3 p, Transform t)
+            => Owns(f, t) ? pos + rot * Quaternion.Inverse(f.transform.rotation) * (p - f.transform.position) : p;
+
         // ---------------------------------------------------------------------------------------------
         private static bool[] _walkable;
         private static int _gw, _gh, _maskFrame = -10000;
@@ -272,7 +287,7 @@ namespace GeodeEmpire.Build
         /// Flood fill from the player's own position over the walkable mask, with the candidate fixture added as a
         /// blocker. Every station anchor, queue position and browsing spot must still be reached.
         /// </summary>
-        private static bool RouteHolds(PlaceableFixture f, Vector3 centre, Vector3 half, Quaternion rot, out string reason)
+        private static bool RouteHolds(PlaceableFixture f, Vector3 pos, Vector3 centre, Vector3 half, Quaternion rot, out string reason)
         {
             reason = "";
             EnsureMask();
@@ -310,10 +325,34 @@ namespace GeodeEmpire.Build
                 }
             }
             foreach (var a in Anchors())
-                if (!Reached(seen, open, a.p)) { reason = "it cuts off the way to a workstation"; return false; }
-            foreach (var a in CustomerPoints())
-                if (!Reached(seen, open, a.p)) { reason = "it cuts off a customer's route to the counter"; return false; }
+                if (!Reached(seen, open, ProposedPoint(f, pos, rot, a.p, a.t))) { reason = "it cuts off the way to a workstation"; return false; }
+            foreach (var a in CustomerPointsFor(f))
+                if (!StandingReached(seen, ProposedPoint(f, pos, rot, a.p, a.t), f))
+                { reason = "no clear customer route to a browsing or checkout position"; return false; }
             return true;
+        }
+
+        // A customer must stand here, not reach a shelf from 1.25m away or through a wall. A small
+        // tolerance accounts for the quarter-metre grid. There is no already-unreachable exemption.
+        private static bool StandingReached(bool[] seen, Vector3 p, PlaceableFixture candidate)
+        {
+            if (!ShopPlan.Open(p)) return false;
+            int ci = Mathf.FloorToInt((p.x - ShopPlan.XMin) / Cell), cj = Mathf.FloorToInt((p.z - ShopPlan.ZMin) / Cell);
+            for (int dj = -2; dj <= 2; dj++)
+                for (int di = -2; di <= 2; di++)
+                {
+                    int i = ci + di, j = cj + dj;
+                    if (i < 0 || j < 0 || i >= _gw || j >= _gh || !seen[j * _gw + i]) continue;
+                    var delta = CellCentre(i, j) - new Vector3(p.x, 0f, p.z);
+                    if (delta.sqrMagnitude > .35f * .35f) continue;
+                    int n = Physics.RaycastNonAlloc(new Ray(new Vector3(p.x, .35f, p.z), delta.normalized),
+                        _rays, delta.magnitude, ~0, QueryTriggerInteraction.Ignore);
+                    bool blocked = false;
+                    for (int k = 0; k < n; k++)
+                        if (!Skip(_rays[k].collider, candidate)) { blocked = true; break; }
+                    if (!blocked) return true;
+                }
+            return false;
         }
 
         private static bool Seed(bool[] open, Vector3 p, out int si, out int sj)

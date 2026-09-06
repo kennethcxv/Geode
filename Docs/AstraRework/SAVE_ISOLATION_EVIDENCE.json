@@ -600,6 +600,84 @@
         }
       ],
       "failures": []
+    },
+    {
+      "label": "astra-navigation-placement-regression",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/c43f112e745a48f69afe9821a4ceb379/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/c43f112e745a48f69afe9821a4ceb379/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T23:04:50.0376120Z",
+      "endedUtc": "2026-09-06T23:30:15.0817130Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "astra-customer-standing-regression",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T23:33:47.0777500Z",
+      "endedUtc": "2026-09-06T23:47:05.4371020Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "astra-navigation-legacy-preservation",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/d8d2b18fc2e0435ea599a7e5efc01035/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/d8d2b18fc2e0435ea599a7e5efc01035/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T23:48:05.6577400Z",
+      "endedUtc": "2026-09-06T23:50:40.9411020Z",
+      "copiedCareer": true,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
     }
   ],
   "input_helper": {

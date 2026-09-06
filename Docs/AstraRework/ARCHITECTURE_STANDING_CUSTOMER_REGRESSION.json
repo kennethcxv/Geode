@@ -1,0 +1,159 @@
+{
+  "status": "QA25 FINISHED \u2014 placement/default/custom navigation controls,3mature+3custom served,Continue passed",
+  "notes": [
+    "Targeted synthetic ownership/stock diagnostics, normal pickup/placement/navigation and checkout harness. Not primary no-cheat career or full retail input acceptance.",
+    "Mature observer emptyIds counts paid shoppers because Wanted clears after purchase. Correct result is3served/0empty: all3 have Thanking and3sales. Custom observer uses !Bought.",
+    "Initial3D .35m SamplePosition failure on4elevated attachment anchors was a diagnostic mismatch. Direct native CalculatePath to their actual positions allComplete, as are ground-plane routes; no production regression.",
+    "Performance capture camera may enter checkout during harness; native fixed-camera label is overly specific.1408frames,978x519, noMCP during3swarmup+10scapture. GPU zero entries mean GPU distribution is incomplete. Allocation includes activeEditor and observer; standalone/fullstock/performancegatepending.",
+    "Wrongfacing nativeTryPlace refuses andpreserves savedpose. Unpacked/inactive Body proposedwrongfacingrefused. All15mature/customplacementsand60routespass. Custom wallshift that blocks case browsing and combined islandmove/rotation correctlyrefused; island90atcurrentcenter accepted."
+  ],
+  "readbacks": {
+    "qa25Prepare": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"label\":\"astra-customer-standing-regression\",\"manifestPath\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/session.json\",\"originalDirectory\":\"/Users/kenneth/Library/Application Support/DefaultCompany/Geode\",\"isolatedDirectory\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/player-data\",\"phase\":\"Prepared\",\"startedUtc\":\"2026-09-06T23:33:47.0777500Z\",\"endedUtc\":\"\",\"copiedCareer\":false,\"originalDataUnchanged\":false,\"originals\":[{\"name\":\"geode_career.json\",\"sha256\":\"7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946\"},{\"name\":\"geode_career.json.bak\",\"sha256\":\"3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f\"},{\"name\":\"settings.json\",\"sha256\":\"b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340\"}],\"failures\":[]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25Validated": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ guard = True, directoryOverride = /Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/player-data, career = /Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/player-data/geode_career.json, settings = /Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/player-data/settings.json }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25Fresh": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"Cash\":120.0,\"Upgrades\":[\"retail_counter_table\"],\"bodyCount\":0,\"wallDefault\":0.0,\"paths\":[\"StarterDoorPoint:True:PathComplete\",\"StarterCounterCustomerPoint:True:PathComplete\",\"Browse:True:PathComplete\",\"Browse:True:PathComplete\"]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25MatureActivation": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ scope = explicit synthetic mature fixture ownership; no stock or cash injection, bodies = 15, carvers = 15 }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25MatureRoutes": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"placements\":[{\"Id\":\"display_cabinet\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"specialist_display_case\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"shop_island\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"display_wall_b\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"storage_shelf\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"geode_cracker\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"main_display_case\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"rock_rack\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"gallery_plinths\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"display_wall_c\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"trim_saw\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"wash_station\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"flat_lap\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"display_wall_a\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"appraisal_station\",\"Valid\":true,\"Reason\":\"\"}],\"targets\":60,\"pathFailures\":[{\"name\":\"Browse\",\"point\":\"(2.67, 0.75, 3.90)\",\"sample\":false,\"found\":false,\"status\":\"PathInvalid\"},{\"name\":\"Browse\",\"point\":\"(2.67, 0.75, 4.30)\",\"sample\":false,\"found\":false,\"status\":\"PathInvalid\"},{\"name\":\"Browse\",\"point\":\"(2.67, 0.75, 4.70)\",\"sample\":false,\"found\":false,\"status\":\"PathInvalid\"},{\"name\":\"Browse\",\"point\":\"(2.67, 0.75, 5.10)\",\"sample\":false,\"found\":false,\"status\":\"PathInvalid\"}],\"wrong\":{\"Valid\":false,\"Reason\":\"no clear customer route to a browsing or checkout position\"},\"right\":{\"Valid\":true,\"Reason\":\"\"},\"liveYawBefore\":0.0,\"liveYawAfter\":0.0}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25MatureRoutesGroundPlane": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"placements\":[{\"Id\":\"display_cabinet\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"specialist_display_case\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"shop_island\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"display_wall_b\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"storage_shelf\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"geode_cracker\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"main_display_case\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"rock_rack\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"gallery_plinths\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"display_wall_c\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"trim_saw\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"wash_station\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"flat_lap\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"display_wall_a\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"appraisal_station\",\"Valid\":true,\"Reason\":\"\"}],\"targets\":60,\"pathFailures\":[],\"wrong\":{\"Valid\":false,\"Reason\":\"no clear customer route to a browsing or checkout position\"},\"right\":{\"Valid\":true,\"Reason\":\"\"},\"liveYawBefore\":0.0,\"liveYawAfter\":0.0}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25NegativePlacement": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"exactElevatedDestinationPaths\":[{\"name\":\"Browse\",\"point\":\"(2.67, 0.75, 3.90)\",\"found\":true,\"status\":\"PathComplete\"},{\"name\":\"Browse\",\"point\":\"(2.67, 0.75, 4.30)\",\"found\":true,\"status\":\"PathComplete\"},{\"name\":\"Browse\",\"point\":\"(2.67, 0.75, 4.70)\",\"found\":true,\"status\":\"PathComplete\"},{\"name\":\"Browse\",\"point\":\"(2.67, 0.75, 5.10)\",\"found\":true,\"status\":\"PathComplete\"}],\"accepted\":false,\"reason\":\"no clear customer route to a browsing or checkout position\",\"poseUnchanged\":true,\"liveYaw\":0.0,\"hiddenBad\":{\"Valid\":false,\"Reason\":\"no clear customer route to a browsing or checkout position\"},\"hiddenGood\":{\"Valid\":true,\"Reason\":\"\"}}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25MatureStock": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "S0001-0002:SaleSlot:40:asking=4.95;S0002-0004:SaleSlot:41:asking=1.95;S0003-0002:SaleSlot:36:asking=4.95;S0004-0004:SaleSlot:37:asking=1.95",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25FinishedMatureAndPerf": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"mature\":\"{\\\"running\\\":false,\\\"elapsed\\\":77.65741,\\\"scope\\\":\\\"synthetic4stock/allowned; staggered3arrivals; native walking and choice; checkout action harness\\\",\\\"spawned\\\":3,\\\"maxConcurrent\\\":3,\\\"remaining\\\":0,\\\"served\\\":3,\\\"emptyIds\\\":[1,2,3],\\\"cashBefore\\\":120.0,\\\"cash\\\":128.849991,\\\"checkoutCalls\\\":18,\\\"stuckMax\\\":0.0,\\\"overlapMaxSecondsUnder52cm\\\":0.0,\\\"counterMaxSeconds\\\":11.3087006,\\\"metrics\\\":{\\\"StuckRecoveries\\\":0,\\\"Repositions\\\":0,\\\"PathFailures\\\":0,\\\"LastSaleSeconds\\\":4.8487854,\\\"SaleSecondsTotal\\\":14.3477173,\\\"SalesTimed\\\":3,\\\"JamReports\\\":[]},\\\"seen\\\":[\\\"Customer_1:Browsing:\\\",\\\"Customer_2:Browsing:\\\",\\\"Customer_3:Browsing:\\\",\\\"Customer_1:Deciding:\\\",\\\"Customer_1:ToQueue:S0002-0004\\\",\\\"Customer_2:Deciding:\\\",\\\"Customer_1:AtCounter:S0002-0004\\\",\\\"Customer_2:ToQueue:S0003-0002\\\",\\\"Customer_1:Thanking:\\\",\\\"Customer_1:Leaving:\\\",\\\"Customer_2:Queued:S0003-0002\\\",\\\"Customer_2:AtCounter:S0003-0002\\\",\\\"Customer_3:Deciding:\\\",\\\"Customer_3:ToQueue:S0004-0004\\\",\\\"Customer_2:Thanking:\\\",\\\"Customer_2:Leaving:\\\",\\\"Customer_3:AtCounter:S0004-0004\\\",\\\"Customer_3:Thanking:\\\",\\\"Customer_3:Leaving:\\\"],\\\"stock\\\":[{\\\"Id\\\":\\\"S0001-0002\\\",\\\"location\\\":\\\"SaleSlot\\\",\\\"LocationIndex\\\":40},{\\\"Id\\\":\\\"S0002-0004\\\",\\\"location\\\":\\\"Sold\\\",\\\"LocationIndex\\\":41},{\\\"Id\\\":\\\"S0003-0002\\\",\\\"location\\\":\\\"Sold\\\",\\\"LocationIndex\\\":36},{\\\"Id\\\":\\\"S0004-0004\\\",\\\"location\\\":\\\"Sold\\\",\\\"LocationIndex\\\":37}]}\",\"perf\":\"{\\\"scope\\\":\\\"Editor architecture diagnostic; fixed showroom camera, synthetic4stock and3staggeredcustomers, checkout harness observer running; NOT standalone or FHD acceptance\\\",\\\"width\\\":978,\\\"height\\\":519,\\\"frameMs\\\":{\\\"count\\\":1408,\\\"p50\\\":6.5732495859265327,\\\"p95\\\":12.991582043468952,\\\"p99\\\":16.525162383913994,\\\"max\\\":29.425743967294693},\\\"cpuMs\\\":{\\\"count\\\":1408,\\\"p50\\\":6.570625,\\\"p95\\\":12.962333,\\\"p99\\\":16.757375,\\\"max\\\":29.939917},\\\"gpuMs\\\":{\\\"count\\\":1408,\\\"p50\\\":0.0,\\\"p95\\\":8.6081665940582752,\\\"p99\\\":14.185999985784292,\\\"max\\\":17.310749972239137},\\\"gcBytesPerFrame\\\":{\\\"count\\\":1408,\\\"p50\\\":9076.0,\\\"p95\\\":9624.0,\\\"p99\\\":22599.0,\\\"max\\\":1034986.0},\\\"allocatedMB\\\":581.081503868103}\"}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25CustomPlacement": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "display_wall_c:False:it stands where a customer has to stand:{\"Id\":\"display_wall_c\",\"Position\":{\"x\":3.200000047683716,\"y\":0.0,\"z\":5.679999828338623},\"Yaw\":0.0,\"Placed\":true,\"Delivered\":false,\"DeliveryPosition\":{\"x\":0.0,\"y\":0.0,\"z\":0.0}}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25CustomIsland": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ Id = shop_island, accepted = False, why = no clear customer route to a browsing or checkout position, pose = {\"Id\":\"shop_island\",\"Position\":{\"x\":4.449999809265137,\"y\":0.0,\"z\":2.700000047683716},\"Yaw\":0.0,\"Placed\":true,\"Delivered\":false,\"DeliveryPosition\":{\"x\":0.0,\"y\":0.0,\"z\":0.0}} }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25CustomCandidateChecks": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "(4.45, 0.00, 2.70) yaw=90:True:;(4.25, 0.00, 2.70) yaw=0:True:;(4.45, 0.00, 2.25) yaw=0:True:;(4.45, 0.00, 3.00) yaw=0:True:",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25CustomPlacedStock": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ fixture = {\"Id\":\"shop_island\",\"Position\":{\"x\":4.449999809265137,\"y\":0.0,\"z\":2.700000047683716},\"Yaw\":90.0,\"Placed\":true,\"Delivered\":false,\"DeliveryPosition\":{\"x\":0.0,\"y\":0.0,\"z\":0.0}}, stock = System.String[] }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25CustomRoutes": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"placements\":[{\"Id\":\"display_cabinet\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"specialist_display_case\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"shop_island\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"display_wall_b\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"storage_shelf\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"geode_cracker\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"main_display_case\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"rock_rack\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"gallery_plinths\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"display_wall_c\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"trim_saw\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"wash_station\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"flat_lap\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"display_wall_a\",\"Valid\":true,\"Reason\":\"\"},{\"Id\":\"appraisal_station\",\"Valid\":true,\"Reason\":\"\"}],\"targets\":60,\"pathFailures\":[],\"wrong\":{\"Valid\":false,\"Reason\":\"no clear customer route to a browsing or checkout position\"},\"right\":{\"Valid\":true,\"Reason\":\"\"},\"liveYawBefore\":0.0,\"liveYawAfter\":0.0}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa25CustomRunStart": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "Started bounded 150s custom layout route diagnostic; staggered3arrivals, normal navigation/choice and checkout harness. Status=AstraQA.CustomRoute25",
+        "compiler": "Roslyn"
+      }
+    }
+  },
+  "isolationFinish": {
+    "label": "astra-customer-standing-regression",
+    "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/session.json",
+    "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+    "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/player-data",
+    "phase": "Finished",
+    "startedUtc": "2026-09-06T23:33:47.0777500Z",
+    "endedUtc": "2026-09-06T23:47:05.4371020Z",
+    "copiedCareer": false,
+    "originalDataUnchanged": true,
+    "originals": [
+      {
+        "name": "geode_career.json",
+        "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+      },
+      {
+        "name": "geode_career.json.bak",
+        "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+      },
+      {
+        "name": "settings.json",
+        "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+      }
+    ],
+    "failures": []
+  },
+  "followup": "ARCHITECTURE_CUSTOM_CONTINUE.json"
+}

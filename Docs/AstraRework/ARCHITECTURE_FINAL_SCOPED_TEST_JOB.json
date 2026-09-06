@@ -1,0 +1,20 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"success\":true,\"message\":\"Test run started (EditMode). Poll get_test_job with this job_id; PlayMode runs may take a while and reload the domain.\",\"data\":{\"job_id\":\"15410bb6-17e7-4834-9782-f554ae9fe9f3\",\"mode\":\"EditMode\"}}"
+      }
+    ],
+    "structuredContent": {
+      "success": true,
+      "message": "Test run started (EditMode). Poll get_test_job with this job_id; PlayMode runs may take a while and reload the domain.",
+      "data": {
+        "job_id": "15410bb6-17e7-4834-9782-f554ae9fe9f3",
+        "mode": "EditMode"
+      }
+    }
+  }
+}

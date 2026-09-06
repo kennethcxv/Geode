@@ -49,6 +49,7 @@ namespace GeodeEmpire.Build
                     bool show = f.Owned && (pose == null ? !f.Movable || f.SitedByDefault : pose.Placed);
                     if (f.Body.activeSelf != show) f.Body.SetActive(show);
                 }
+                f.RefreshNavigation();
                 // a purchase the player has not sited yet is waiting in a crate: say so once
                 bool pending = f.Owned && f.Movable && !f.SitedByDefault && (pose == null || !pose.Placed);
                 if (pending && _announced.Add(f.Id))

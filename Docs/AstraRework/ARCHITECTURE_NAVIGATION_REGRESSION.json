@@ -1,0 +1,165 @@
+{
+  "status": "QA24 FINISHED; navigation/autosave controls passed; Wall C defect proven, production fix pending",
+  "scope": "Isolated architecture navigation and repeated-placement save regressions. Synthetic diagnostic cash/stock, API purchases, normal placement and pickup, observed customer walking, established checkout completion harness. Not the primary no-cheat career or final manual input acceptance.",
+  "sessionId": "c43f112e745a48f69afe9821a4ceb379",
+  "readbacks": {
+    "qa24Prepare": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"label\":\"astra-navigation-placement-regression\",\"manifestPath\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/c43f112e745a48f69afe9821a4ceb379/session.json\",\"originalDirectory\":\"/Users/kenneth/Library/Application Support/DefaultCompany/Geode\",\"isolatedDirectory\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/c43f112e745a48f69afe9821a4ceb379/player-data\",\"phase\":\"Prepared\",\"startedUtc\":\"2026-09-06T23:04:50.0376120Z\",\"endedUtc\":\"\",\"copiedCareer\":false,\"originalDataUnchanged\":false,\"originals\":[{\"name\":\"geode_career.json\",\"sha256\":\"7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946\"},{\"name\":\"geode_career.json.bak\",\"sha256\":\"3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f\"},{\"name\":\"settings.json\",\"sha256\":\"b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340\"}],\"failures\":[]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24FreshNavigationState": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ scope = fresh no manual navigation rebuild, player moved off public route for deterministic path probes, cash = 120, qa = Playing, bodyCount = 0, fixtureObstacles = 0, activeModifiers = 21, time = 1, dirty = False }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24FreshEntrancePaths": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"radius\":0.5,\"voxel\":0.05,\"voxelOverride\":true,\"paths\":[{\"name\":\"StarterDoorPoint\",\"found\":true,\"status\":\"PathComplete\",\"sample\":true,\"point\":\"(-5.60, 0.01, -2.10)\",\"corners\":[\"(-5.60, -0.02, -3.60)\",\"(-5.60, 0.01, -2.10)\"]},{\"name\":\"StarterCounterCustomerPoint\",\"found\":true,\"status\":\"PathComplete\",\"sample\":true,\"point\":\"(-4.45, 0.01, -1.08)\",\"corners\":[\"(-5.60, -0.02, -3.60)\",\"(-5.55, 0.01, -2.60)\",\"(-5.45, 0.01, -2.40)\",\"(-4.45, 0.01, -1.08)\"]}],\"door\":[{\"name\":\"StarterEntrance\",\"enabled\":true,\"hinge\":\"(0.00, 0.00, 0.00)\"}]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24ClosedShowroomPaths": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"scope\":\"closed lease negative control\",\"paths\":[{\"name\":\"DoorPoint\",\"found\":true,\"status\":\"PathPartial\"},{\"name\":\"CounterCustomerPoint\",\"found\":true,\"status\":\"PathPartial\"}],\"walls\":[{\"name\":\"ClosedShowroomStaffDoor\",\"enabled\":true,\"carving\":true},{\"name\":\"ClosedStaffDoor\",\"enabled\":true,\"carving\":true},{\"name\":\"ClosedStreetDoor\",\"enabled\":true,\"carving\":true},{\"name\":\"ClosedOfficeDoor\",\"enabled\":true,\"carving\":true}]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24FirstPlacement": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ scope = diagnostic funding; normal purchase/placement; no explicit save or navigation rebuild, placed = True, why = , cash = 2310, navEnabled = True, position = (-5.75, 0.00, 3.00), tutorialDone = True }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24BeforeMove": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ saved = {\"Id\":\"wash_station\",\"Position\":{\"x\":-5.75,\"y\":0.0,\"z\":3.0},\"Yaw\":90.0,\"Placed\":true,\"Delivered\":true,\"DeliveryPosition\":{\"x\":-4.150000095367432,\"y\":0.11999999731779099,\"z\":4.46999979019165}}, oldWalkable = False, newWalkable = True, nav = True }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24MoveAutosaveCarving": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ scope = after ordinary idle frames; no force save/rebake, live = {\"Id\":\"wash_station\",\"Position\":{\"x\":-1.5,\"y\":0.0,\"z\":3.0},\"Yaw\":270.0,\"Placed\":true,\"Delivered\":true,\"DeliveryPosition\":{\"x\":-4.150000095367432,\"y\":0.11999999731779099,\"z\":4.46999979019165}}, saved = {\"Id\":\"wash_station\",\"Position\":{\"x\":-1.5,\"y\":0.0,\"z\":3.0},\"Yaw\":270.0,\"Placed\":true,\"Delivered\":true,\"DeliveryPosition\":{\"x\":-4.150000095367432,\"y\":0.11999999731779099,\"z\":4.46999979019165}}, equal = True, oldWalkable = True, newWalkable = False, nav = True }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24MoveContinue": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ scope = Continue with no explicit pre-load save, equal = True, position = (-1.50, 0.00, 3.00), nav = True, Sited = True, cash = 2310 }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24StarterRouteStatus": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"running\":false,\"scope\":\"synthetic small unappraised stock; natural customer navigation/choice; checkout harness\",\"spawned\":2,\"cashBefore\":2310.0,\"cash\":2314.95,\"served\":1,\"empty\":1,\"remaining\":0,\"open\":false,\"metrics\":{\"StuckRecoveries\":0,\"Repositions\":0,\"PathFailures\":0,\"JamReports\":[]},\"seen\":[\"Customer_1:Browsing:(-5.60, 0.00, -3.60)\",\"Customer_2:Browsing:(-5.60, 0.00, -3.60)\",\"Customer_2:Deciding:(-5.50, 0.01, -1.10)\",\"Customer_2:ToQueue:(-5.49, 0.01, -1.10)\",\"Customer_1:Deciding:(-4.60, 0.01, -1.61)\",\"Customer_1:Leaving:(-4.61, 0.01, -1.62)\",\"Customer_2:AtCounter:(-4.70, 0.01, -1.08)\",\"Customer_2:Thanking:(-4.45, 0.01, -1.08)\",\"Customer_2:Leaving:(-4.50, 0.01, -1.14)\"],\"stock\":[{\"Id\":\"S0001-0002\",\"location\":\"Sold\",\"Appraised\":false},{\"Id\":\"S0002-0004\",\"location\":\"SaleSlot\",\"Appraised\":false}]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24ShopfrontPurchasePlacement": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"scope\":\"normal showroom lease and valid snapped case placement, no nav rebake\",\"bought\":true,\"placed\":true,\"why\":\"\",\"cash\":1114.95,\"caseNav\":true,\"stock\":[{\"Id\":\"S0001-0002\",\"location\":\"Sold\",\"RecoveryCrateId\":null,\"CrateId\":\"QA24-SYNTHETIC-STARTER\",\"Appraised\":false},{\"Id\":\"S0002-0004\",\"location\":\"SaleSlot\",\"RecoveryCrateId\":\"REC-A1-S0002-0004\",\"CrateId\":\"QA24-SYNTHETIC-STARTER\",\"Appraised\":false}],\"crates\":[{\"Id\":\"REC-A1-S0002-0004\",\"Recovery\":true,\"IsOpened\":false,\"position\":\"(-4.15, 0.12, 4.47)\"}],\"currentOutside\":\"(5.60, 0.00, -3.60)\",\"counter\":\"(3.80, 0.00, -0.65)\"}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24ExpandedEntrancePaths": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"radius\":0.5,\"voxel\":0.05,\"voxelOverride\":true,\"paths\":[{\"name\":\"DoorPoint\",\"found\":true,\"status\":\"PathComplete\",\"sample\":true,\"point\":\"(5.60, 0.01, -2.10)\",\"corners\":[\"(5.60, -0.02, -3.60)\",\"(5.60, 0.01, -2.10)\"]},{\"name\":\"CounterCustomerPoint\",\"found\":true,\"status\":\"PathComplete\",\"sample\":true,\"point\":\"(3.93, 0.01, -0.65)\",\"corners\":[\"(5.60, -0.02, -3.60)\",\"(5.55, -0.02, -2.90)\",\"(5.45, 0.01, -2.40)\",\"(3.93, 0.01, -0.65)\"]}],\"door\":[{\"name\":\"ShowroomEntrance\",\"enabled\":true,\"hinge\":\"(0.00, 0.00, 0.00)\"},{\"name\":\"StarterEntrance\",\"enabled\":true,\"hinge\":\"(0.00, 0.00, 0.00)\"}]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24RetiredStockRecovery": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ id = S0002-0004, location = SaleSlot, RecoveryCrateId = , CrateId = QA24-SYNTHETIC-STARTER, Appraised = False, AskingPrice = 1.95, zone = Sale0 }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24ExpandedRouteStatus": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"running\":false,\"scope\":\"synthetic and recovered unappraised stock; natural navigation/choice; checkout harness\",\"spawned\":2,\"cashBefore\":1114.95,\"cash\":1121.84985,\"served\":2,\"empty\":0,\"remaining\":0,\"open\":false,\"metrics\":{\"StuckRecoveries\":0,\"Repositions\":0,\"PathFailures\":0,\"JamReports\":[]},\"seen\":[\"Customer_3:Browsing:(5.60, 0.00, -3.60)\",\"Customer_4:Browsing:(5.60, 0.00, -3.60)\",\"Customer_3:Deciding:(3.49, 0.01, 4.87)\",\"Customer_4:Deciding:(2.95, 0.01, 3.95)\",\"Customer_3:ToQueue:(3.49, 0.01, 4.87)\",\"Customer_4:ToQueue:(2.97, 0.01, 3.90)\",\"Customer_4:AtCounter:(3.93, 0.01, -0.41)\",\"Customer_3:Queued:(4.41, 0.01, 0.08)\",\"Customer_4:Thanking:(3.93, 0.01, -0.65)\",\"Customer_4:Leaving:(3.93, 0.01, -0.65)\",\"Customer_3:AtCounter:(4.09, 0.01, -0.41)\",\"Customer_3:Thanking:(3.93, 0.01, -0.65)\",\"Customer_3:Leaving:(3.94, 0.01, -0.67)\"],\"stock\":[{\"Id\":\"S0001-0002\",\"location\":\"Sold\",\"Appraised\":false},{\"Id\":\"S0002-0004\",\"location\":\"Sold\",\"Appraised\":false},{\"Id\":\"S0003-0002\",\"location\":\"Sold\",\"Appraised\":false}]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24RuntimeErrorsSoFar": {
+      "success": true,
+      "message": "No error entries found in cached logs from the last 1800 second(s)"
+    },
+    "qa24MatureActivation": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ scope = explicit full-owned mature navigation/performance diagnostic; no nav rebake, bodies = 15, obstacles = 15, lights = 49 }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24MatureNavPlacementAudit": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"scope\":\"all current mature sale browse/door/counter/queue routes; no explicit nav rebake\",\"targets\":60,\"pathFailures\":[\"Browse:(3.66, 0.00, 6.63):PathInvalid\",\"Browse:(3.20, 0.00, 6.63):PathInvalid\",\"Browse:(2.74, 0.00, 6.63):PathInvalid\",\"Browse:(3.66, 0.00, 6.63):PathInvalid\",\"Browse:(3.20, 0.00, 6.63):PathInvalid\",\"Browse:(2.74, 0.00, 6.63):PathInvalid\",\"Browse:(3.66, 0.00, 6.63):PathInvalid\",\"Browse:(3.20, 0.00, 6.63):PathInvalid\",\"Browse:(2.74, 0.00, 6.63):PathInvalid\"],\"placements\":15,\"placementFailures\":[]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa24WallCBrowseDefect": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"Id\":\"display_wall_c\",\"position\":\"(3.20, 0.00, 5.68)\",\"yaw\":180.0,\"defaultYaw\":180.0,\"body\":\"Body\",\"WallBacked\":true,\"localSlots\":[{\"name\":\"Sale40\",\"local\":\"(-0.46, 0.91, -0.01)\",\"world\":\"(3.66, 0.91, 5.69)\",\"browse\":\"(3.66, 0.00, 6.63)\"},{\"name\":\"Sale41\",\"local\":\"(0.00, 0.91, -0.01)\",\"world\":\"(3.20, 0.91, 5.69)\",\"browse\":\"(3.20, 0.00, 6.63)\"},{\"name\":\"Sale42\",\"local\":\"(0.46, 0.91, -0.01)\",\"world\":\"(2.74, 0.91, 5.69)\",\"browse\":\"(2.74, 0.00, 6.63)\"},{\"name\":\"Sale43\",\"local\":\"(-0.46, 1.36, -0.01)\",\"world\":\"(3.66, 1.36, 5.69)\",\"browse\":\"(3.66, 0.00, 6.63)\"},{\"name\":\"Sale44\",\"local\":\"(0.00, 1.36, -0.01)\",\"world\":\"(3.20, 1.36, 5.69)\",\"browse\":\"(3.20, 0.00, 6.63)\"},{\"name\":\"Sale45\",\"local\":\"(0.46, 1.36, -0.01)\",\"world\":\"(2.74, 1.36, 5.69)\",\"browse\":\"(2.74, 0.00, 6.63)\"},{\"name\":\"Sale46\",\"local\":\"(-0.46, 1.81, -0.01)\",\"world\":\"(3.66, 1.81, 5.69)\",\"browse\":\"(3.66, 0.00, 6.63)\"},{\"name\":\"Sale47\",\"local\":\"(0.00, 1.81, -0.01)\",\"world\":\"(3.20, 1.81, 5.69)\",\"browse\":\"(3.20, 0.00, 6.63)\"},{\"name\":\"Sale48\",\"local\":\"(0.46, 1.81, -0.01)\",\"world\":\"(2.74, 1.81, 5.69)\",\"browse\":\"(2.74, 0.00, 6.63)\"}],\"children\":[{\"name\":\"Body\",\"position\":\"(0.00, 0.00, 0.00)\",\"rotation\":\"(0.00, 0.00, 0.00)\"}]}",
+        "compiler": "Roslyn"
+      }
+    }
+  },
+  "isolationFinish": {
+    "label": "astra-navigation-placement-regression",
+    "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/c43f112e745a48f69afe9821a4ceb379/session.json",
+    "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+    "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/c43f112e745a48f69afe9821a4ceb379/player-data",
+    "phase": "Finished",
+    "startedUtc": "2026-09-06T23:04:50.0376120Z",
+    "endedUtc": "2026-09-06T23:30:15.0817130Z",
+    "copiedCareer": false,
+    "originalDataUnchanged": true,
+    "originals": [
+      {
+        "name": "geode_career.json",
+        "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+      },
+      {
+        "name": "geode_career.json.bak",
+        "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+      },
+      {
+        "name": "settings.json",
+        "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+      }
+    ],
+    "failures": []
+  }
+}

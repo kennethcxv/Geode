@@ -1,0 +1,35 @@
+{
+  "scope": "Final affected legacy regression after customer standing/proposed-placement validation change. Copies current protected legacy career; all specimen fields compared except world position/rotation. No cash/stock/unlock injection.",
+  "input": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ playing = False, guard = True, directoryOverride = /Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/d8d2b18fc2e0435ea599a7e5efc01035/player-data, career = /Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/d8d2b18fc2e0435ea599a7e5efc01035/player-data/geode_career.json, settings = /Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/d8d2b18fc2e0435ea599a7e5efc01035/player-data/settings.json, SaveId = 140e70b158f042049603ce094dc23f36, Version = 5, LayoutRevision = 0, Cash = 3321.66, records = 18 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "fields": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"SaveId\":\"140e70b158f042049603ce094dc23f36\",\"saveIdUnchanged\":true,\"recordsOld\":18,\"recordsNow\":18,\"differences\":[],\"oldCash\":3321.66,\"nowCash\":3321.66,\"billsExact\":true,\"ownedPreserved\":true,\"LayoutRevision\":1,\"LayoutRentCredit\":0.0,\"live\":17,\"crates\":2,\"occupied\":[\"S0015-8B62:WashZone:WashTub\"],\"placements\":[{\"Id\":\"appraisal_station\",\"Valid\":true,\"Reason\":\"\",\"carver\":true,\"pose\":\"{\\\"Id\\\":\\\"appraisal_station\\\",\\\"Position\\\":{\\\"x\\\":-4.900000095367432,\\\"y\\\":0.0,\\\"z\\\":1.8200000524520874},\\\"Yaw\\\":180.0,\\\"Placed\\\":true,\\\"Delivered\\\":false,\\\"DeliveryPosition\\\":{\\\"x\\\":0.0,\\\"y\\\":0.0,\\\"z\\\":0.0}}\"},{\"Id\":\"wash_station\",\"Valid\":true,\"Reason\":\"\",\"carver\":true,\"pose\":\"{\\\"Id\\\":\\\"wash_station\\\",\\\"Position\\\":{\\\"x\\\":-5.949999809265137,\\\"y\\\":0.0,\\\"z\\\":3.0},\\\"Yaw\\\":90.0,\\\"Placed\\\":true,\\\"Delivered\\\":false,\\\"DeliveryPosition\\\":{\\\"x\\\":0.0,\\\"y\\\":0.0,\\\"z\\\":0.0}}\"},{\"Id\":\"storage_shelf\",\"Valid\":true,\"Reason\":\"\",\"carver\":true,\"pose\":\"{\\\"Id\\\":\\\"storage_shelf\\\",\\\"Position\\\":{\\\"x\\\":0.949999988079071,\\\"y\\\":0.0,\\\"z\\\":0.15000000596046448},\\\"Yaw\\\":90.0,\\\"Placed\\\":true,\\\"Delivered\\\":false,\\\"DeliveryPosition\\\":{\\\"x\\\":0.0,\\\"y\\\":0.0,\\\"z\\\":0.0}}\"}]}",
+      "compiler": "Roslyn"
+    }
+  },
+  "continue": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ wholeStateSame = True, SaveId = 140e70b158f042049603ce094dc23f36, Cash = 3321.66, count = 18, live = 17 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "finish": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ finish = {\"label\":\"astra-navigation-legacy-preservation\",\"manifestPath\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/d8d2b18fc2e0435ea599a7e5efc01035/session.json\",\"originalDirectory\":\"/Users/kenneth/Library/Application Support/DefaultCompany/Geode\",\"isolatedDirectory\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/d8d2b18fc2e0435ea599a7e5efc01035/player-data\",\"phase\":\"Finished\",\"startedUtc\":\"2026-09-06T23:48:05.6577400Z\",\"endedUtc\":\"2026-09-06T23:50:40.9411020Z\",\"copiedCareer\":true,\"originalDataUnchanged\":true,\"originals\":[{\"name\":\"geode_career.json\",\"sha256\":\"7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946\"},{\"name\":\"geode_career.json.bak\",\"sha256\":\"3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f\"},{\"name\":\"settings.json\",\"sha256\":\"b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340\"}],\"failures\":[]}, guard = True, directoryOverride = , dirty = False, playing = False }",
+      "compiler": "Roslyn"
+    }
+  }
+}

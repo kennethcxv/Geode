@@ -1,0 +1,34 @@
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"success\":true,\"message\":\"Test job finished.\",\"data\":{\"jobId\":\"15410bb6-17e7-4834-9782-f554ae9fe9f3\",\"status\":\"finished\",\"mode\":\"EditMode\",\"startedAt\":\"2026-09-07 01:48:30\",\"lastActivityAt\":\"2026-09-07 01:48:44\",\"testsCompleted\":29,\"hasFilters\":true,\"finishedAt\":\"2026-09-07 01:48:44\",\"resultState\":\"Passed\",\"passCount\":29,\"failCount\":0,\"skipCount\":0,\"inconclusiveCount\":0,\"totalTests\":29,\"durationSeconds\":1.22,\"failures\":[]}}"
+      }
+    ],
+    "structuredContent": {
+      "success": true,
+      "message": "Test job finished.",
+      "data": {
+        "jobId": "15410bb6-17e7-4834-9782-f554ae9fe9f3",
+        "status": "finished",
+        "mode": "EditMode",
+        "startedAt": "2026-09-07 01:48:30",
+        "lastActivityAt": "2026-09-07 01:48:44",
+        "testsCompleted": 29,
+        "hasFilters": true,
+        "finishedAt": "2026-09-07 01:48:44",
+        "resultState": "Passed",
+        "passCount": 29,
+        "failCount": 0,
+        "skipCount": 0,
+        "inconclusiveCount": 0,
+        "totalTests": 29,
+        "durationSeconds": 1.22,
+        "failures": []
+      }
+    }
+  }
+}

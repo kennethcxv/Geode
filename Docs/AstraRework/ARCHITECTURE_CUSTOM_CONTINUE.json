@@ -1,0 +1,34 @@
+{
+  "custom": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"running\":false,\"report\":\"{\\\"running\\\":false,\\\"elapsed\\\":67.20056,\\\"scope\\\":\\\"synthetic3remainingstock/rotatedisland/allowned; staggered3arrivals; native walking and choice; checkout action harness\\\",\\\"spawned\\\":3,\\\"maxConcurrent\\\":3,\\\"remaining\\\":0,\\\"served\\\":3,\\\"emptyIds\\\":[],\\\"cashBefore\\\":128.849991,\\\"cash\\\":140.699982,\\\"checkoutCalls\\\":14,\\\"stuckMax\\\":0.0,\\\"overlapMaxSecondsUnder52cm\\\":0.0,\\\"counterMaxSeconds\\\":10.9217262,\\\"metrics\\\":{\\\"StuckRecoveries\\\":0,\\\"Repositions\\\":0,\\\"PathFailures\\\":0,\\\"LastSaleSeconds\\\":4.416382,\\\"SaleSecondsTotal\\\":27.8974,\\\"SalesTimed\\\":6,\\\"JamReports\\\":[]},\\\"seen\\\":[\\\"Customer_4:Browsing:\\\",\\\"Customer_5:Browsing:\\\",\\\"Customer_6:Browsing:\\\",\\\"Customer_4:Deciding:\\\",\\\"Customer_4:ToQueue:S0005-0002\\\",\\\"Customer_4:AtCounter:S0005-0002\\\",\\\"Customer_5:Deciding:\\\",\\\"Customer_5:ToQueue:S0006-0004\\\",\\\"Customer_4:Thanking:\\\",\\\"Customer_4:Leaving:\\\",\\\"Customer_5:AtCounter:S0006-0004\\\",\\\"Customer_6:Deciding:\\\",\\\"Customer_6:ToQueue:S0001-0002\\\",\\\"Customer_5:Thanking:\\\",\\\"Customer_5:Leaving:\\\",\\\"Customer_6:Queued:S0001-0002\\\",\\\"Customer_6:AtCounter:S0001-0002\\\",\\\"Customer_6:Thanking:\\\",\\\"Customer_6:Leaving:\\\"],\\\"stock\\\":[{\\\"Id\\\":\\\"S0001-0002\\\",\\\"location\\\":\\\"Sold\\\",\\\"LocationIndex\\\":40},{\\\"Id\\\":\\\"S0002-0004\\\",\\\"location\\\":\\\"Sold\\\",\\\"LocationIndex\\\":41},{\\\"Id\\\":\\\"S0003-0002\\\",\\\"location\\\":\\\"Sold\\\",\\\"LocationIndex\\\":36},{\\\"Id\\\":\\\"S0004-0004\\\",\\\"location\\\":\\\"Sold\\\",\\\"LocationIndex\\\":37},{\\\"Id\\\":\\\"S0005-0002\\\",\\\"location\\\":\\\"Sold\\\",\\\"LocationIndex\\\":6},{\\\"Id\\\":\\\"S0006-0004\\\",\\\"location\\\":\\\"Sold\\\",\\\"LocationIndex\\\":7}]}\"}",
+      "compiler": "Roslyn"
+    }
+  },
+  "continueResult": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ withoutForcedFlush = True, posesSaved = True, cashBefore = 140.7, savedCash = 140.7, cashAfter = 140.7, wholeStateEqualsSaved = True, island = {\"Id\":\"shop_island\",\"Position\":{\"x\":4.449999809265137,\"y\":0.0,\"z\":2.700000047683716},\"Yaw\":90.0,\"Placed\":true,\"Delivered\":false,\"DeliveryPosition\":{\"x\":0.0,\"y\":0.0,\"z\":0.0}}, yaw = 90, obstacle = True, sold = 6, live = 0 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "changedCollision": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"scope\":\"Wall C inward orientation and custom island90 physical colliders vs activeworld\",\"checkedPairs\":2,\"overlapsOver1mm\":[]}",
+      "compiler": "Roslyn"
+    }
+  },
+  "finish": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ finish = {\"label\":\"astra-customer-standing-regression\",\"manifestPath\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/session.json\",\"originalDirectory\":\"/Users/kenneth/Library/Application Support/DefaultCompany/Geode\",\"isolatedDirectory\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9326b7b61ba142089d0632f414445219/player-data\",\"phase\":\"Finished\",\"startedUtc\":\"2026-09-06T23:33:47.0777500Z\",\"endedUtc\":\"2026-09-06T23:47:05.4371020Z\",\"copiedCareer\":false,\"originalDataUnchanged\":true,\"originals\":[{\"name\":\"geode_career.json\",\"sha256\":\"7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946\"},{\"name\":\"geode_career.json.bak\",\"sha256\":\"3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f\"},{\"name\":\"settings.json\",\"sha256\":\"b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340\"}],\"failures\":[]}, directoryOverride = , guard = True, dirty = False, playing = False }",
+      "compiler": "Roslyn"
+    }
+  }
+}

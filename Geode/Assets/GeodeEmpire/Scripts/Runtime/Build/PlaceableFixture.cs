@@ -40,6 +40,8 @@ namespace GeodeEmpire.Build
         public bool Movable = true;
         /// <summary>Turned on once the fixture is both owned and placed.</summary>
         public GameObject Body;
+        /// <summary>Carves the current physical footprint from the static floor navigation as the fixture moves.</summary>
+        public UnityEngine.AI.NavMeshObstacle NavigationObstacle;
         /// <summary>Number of display or sale slots it adds, for the overview panel.</summary>
         public int Slots;
         public float Price;
@@ -148,6 +150,17 @@ namespace GeodeEmpire.Build
             foreach (var fixture in All)
                 if (fixture != null && fixture.RequiresUpgrade == upgrade && fixture.RequiresPlacementFor(state)) return true;
             return false;
+        }
+
+        public void RefreshNavigation()
+        {
+            if (NavigationObstacle == null) return;
+            var centre = new Vector3(BodyOffset.x, Height * .5f, BodyOffset.y);
+            var size = new Vector3(Footprint.x, Height, Footprint.y);
+            if (NavigationObstacle.center != centre) NavigationObstacle.center = centre;
+            if (NavigationObstacle.size != size) NavigationObstacle.size = size;
+            bool active = Body != null && Body.activeInHierarchy && Sited;
+            if (NavigationObstacle.enabled != active) NavigationObstacle.enabled = active;
         }
 
         /// <summary>Sited state for a station root; true when the object carries no fixture at all.</summary>
