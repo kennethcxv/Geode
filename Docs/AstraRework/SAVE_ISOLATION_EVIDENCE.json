@@ -548,6 +548,58 @@
         }
       ],
       "failures": []
+    },
+    {
+      "label": "astra-practical-lighting",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/643cf00f633e4088bc7a909d63e09ed7/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/643cf00f633e4088bc7a909d63e09ed7/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T21:59:53.8443880Z",
+      "endedUtc": "2026-09-06T22:19:31.3516780Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "astra-starter-guidance-equipment",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/237a3e02af324739b0cfe8486e6e7d41/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/237a3e02af324739b0cfe8486e6e7d41/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T22:32:25.8227920Z",
+      "endedUtc": "2026-09-06T22:56:16.1286380Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
     }
   ],
   "input_helper": {

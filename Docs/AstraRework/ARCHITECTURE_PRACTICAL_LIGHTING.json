@@ -1,0 +1,86 @@
+{
+  "qa": "643cf00f633e4088bc7a909d63e09ed7",
+  "scope": "Practical layout lighting and normal controller order/open in candidate. Mature state is explicitly synthetic. Lighting remains a Phase 3 aid; fixtures/materials and final performance acceptance remain outstanding.",
+  "freshLights": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"cash\":45.0,\"scene\":\"Assets/GeodeEmpire/Scenes/Workshop_AstraCandidate.unity\",\"lights\":[{\"name\":\"CounterLight\",\"active\":true,\"shadows\":\"Soft\",\"intensity\":3.2,\"range\":4.8,\"colliders\":0},{\"name\":\"WorkLight\",\"active\":true,\"shadows\":\"None\",\"intensity\":3.2,\"range\":4.8,\"colliders\":0},{\"name\":\"WetWorkLight\",\"active\":false,\"shadows\":\"Soft\",\"intensity\":3.6,\"range\":4.8,\"colliders\":0},{\"name\":\"MachineLight\",\"active\":false,\"shadows\":\"None\",\"intensity\":3.6,\"range\":4.8,\"colliders\":0},{\"name\":\"OfficeLight\",\"active\":false,\"shadows\":\"None\",\"intensity\":2.2,\"range\":3.2,\"colliders\":0},{\"name\":\"RetailLight\",\"active\":false,\"shadows\":\"Soft\",\"intensity\":4.2,\"range\":5.6,\"colliders\":0},{\"name\":\"GalleryLight\",\"active\":false,\"shadows\":\"None\",\"intensity\":4.2,\"range\":5.6,\"colliders\":0}],\"specimenIds\":[\"S0001-94F8\",\"S0002-8879\",\"S0003-96F1\",\"S0004-03A3\",\"S0005-DD0F\",\"S0006-BF89\",\"S0007-6962\",\"S0008-90B4\",\"S0009-F631\"]}",
+      "compiler": "Roslyn"
+    }
+  },
+  "controllerPurchase": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ focused = True, Cash = 45, crates = 1, specimens = 9, first = C001, point = (-1.20, 0.12, -2.05), free = 1, IsOpen = True, FocusedText = Button:Details }",
+      "compiler": "Roslyn"
+    }
+  },
+  "controllerCrateOpen": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ IsOpened = True, RemainingRocks = 9, entities = 9, focus = True }",
+      "compiler": "Roslyn"
+    }
+  },
+  "recoveredLive": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"playing\":true,\"compiling\":false,\"scene\":\"Assets/GeodeEmpire/Scenes/Workshop_AstraCandidate.unity\",\"dirty\":false,\"focused\":false,\"busy\":false,\"qa\":{\"label\":\"astra-practical-lighting\",\"manifestPath\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/643cf00f633e4088bc7a909d63e09ed7/session.json\",\"originalDirectory\":\"/Users/kenneth/Library/Application Support/DefaultCompany/Geode\",\"isolatedDirectory\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/643cf00f633e4088bc7a909d63e09ed7/player-data\",\"phase\":\"Playing\",\"startedUtc\":\"2026-09-06T21:59:53.8443880Z\",\"endedUtc\":\"\",\"copiedCareer\":false,\"originalDataUnchanged\":false,\"originals\":[{\"name\":\"geode_career.json\",\"sha256\":\"7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946\"},{\"name\":\"geode_career.json.bak\",\"sha256\":\"3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f\"},{\"name\":\"settings.json\",\"sha256\":\"b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340\"}],\"failures\":[]},\"guard\":true,\"path\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/643cf00f633e4088bc7a909d63e09ed7/player-data/geode_career.json\",\"settings\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/643cf00f633e4088bc7a909d63e09ed7/player-data/settings.json\",\"cash\":45.0,\"crate\":{\"Id\":\"C001\",\"IsOpened\":true,\"RemainingRocks\":9},\"entities\":9,\"position\":\"(-2.86, 0.04, -1.81)\",\"prompt\":\"\",\"held\":\"none\"}",
+      "compiler": "Roslyn"
+    }
+  },
+  "reload": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"wholeStateExact\":true,\"cash\":45.0,\"upgrades\":[\"retail_counter_table\"],\"entities\":9,\"crates\":[{\"Id\":\"C001\",\"IsOpened\":true,\"RemainingRocks\":9}],\"activeRoomLights\":2}",
+      "compiler": "Roslyn"
+    }
+  },
+  "matureLights": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"scope\":\"synthetic full-owned layout lighting diagnostic after preserving normal controller save\",\"lights\":[{\"name\":\"CounterLight\",\"active\":true,\"shadow\":\"Soft\"},{\"name\":\"WorkLight\",\"active\":true,\"shadow\":\"None\"},{\"name\":\"WetWorkLight\",\"active\":true,\"shadow\":\"Soft\"},{\"name\":\"MachineLight\",\"active\":true,\"shadow\":\"None\"},{\"name\":\"OfficeLight\",\"active\":true,\"shadow\":\"None\"},{\"name\":\"RetailLight\",\"active\":true,\"shadow\":\"Soft\"},{\"name\":\"GalleryLight\",\"active\":true,\"shadow\":\"None\"}],\"bodies\":15}",
+      "compiler": "Roslyn"
+    }
+  },
+  "freshSnapshot": {
+    "success": true,
+    "message": "Performance Snapshot\nMode: Play Mode\nScene(s): Workshop_AstraCandidate\nTarget Frame Rate: -1\nVSync Count: 1\nTime Scale: 1.00\nFrame Timing:\n- CPU Frame: 12.14 ms\n- GPU Frame: 5.82 ms\n- Approx FPS: 82.4\n- Delta Time: 11.99 ms, Smooth Delta: 8.21 ms\nMemory:\n- Total Allocated: 587.28 MB\n- Total Reserved: 1.97 GB\n- Unused Reserved: 1.39 GB\n- Mono Used: 95.83 MB / Heap: 130.67 MB\n- GC Managed Estimate: 95.83 MB\nScene Counts:\n- GameObjects: 1994 total, 802 active\n- Components: 5346\n- Renderers: 1073 (0 skinned)\n- Triangles: 1,517,022\n- Material Slots: 1380\n- Canvases: 0, UI Graphics: 0\n- Colliders: 615, Rigidbodies: 9\n- Lights: 92, Particle Systems: 6, Animators: 0\n- Audio Sources: 3, Cameras: 2, Scripts: 481\n"
+  },
+  "matureSnapshot": {
+    "success": true,
+    "message": "Performance Snapshot\nMode: Play Mode\nScene(s): Workshop_AstraCandidate\nTarget Frame Rate: -1\nVSync Count: 1\nTime Scale: 1.00\nFrame Timing:\n- CPU Frame: 5.50 ms\n- GPU Frame: 5.27 ms\n- Approx FPS: 181.7\n- Delta Time: 5.12 ms, Smooth Delta: 5.49 ms\nMemory:\n- Total Allocated: 589.41 MB\n- Total Reserved: 1.97 GB\n- Unused Reserved: 1.39 GB\n- Mono Used: 96.25 MB / Heap: 145.94 MB\n- GC Managed Estimate: 96.25 MB\nScene Counts:\n- GameObjects: 2523 total, 1281 active\n- Components: 6598\n- Renderers: 1293 (0 skinned)\n- Triangles: 1,545,106\n- Material Slots: 1600\n- Canvases: 0, UI Graphics: 0\n- Colliders: 638, Rigidbodies: 9\n- Lights: 92, Particle Systems: 6, Animators: 0\n- Audio Sources: 3, Cameras: 2, Scripts: 741\n"
+  },
+  "runtimeErrors": {
+    "success": true,
+    "message": "No error entries found in cached logs from the last 2400 second(s)"
+  },
+  "finish": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ phase = Finished, endedUtc = 2026-09-06T22:19:31.3516780Z, originalDataUnchanged = True, path = , guard = True, playing = False, dirty = False, scene = Assets/GeodeEmpire/Scenes/Workshop_AstraCandidate.unity }",
+      "compiler": "Roslyn"
+    }
+  },
+  "captures": [
+    "Geode/Output/AstraQA/643cf00f633e4088bc7a909d63e09ed7/starter-practical-lighting.png",
+    "Geode/Output/AstraQA/643cf00f633e4088bc7a909d63e09ed7/starter-work-angle.png",
+    "Geode/Output/AstraQA/643cf00f633e4088bc7a909d63e09ed7/controller-crate-open-confirmed.png",
+    "Geode/Output/AstraQA/643cf00f633e4088bc7a909d63e09ed7/mature-practical-lighting.png"
+  ],
+  "limits": [
+    "Camera actually rendered 978x519; 1956x1080 capture is GameView at 2x, not target-resolution acceptance.",
+    "Performance entries are single Editor snapshots, not percentiles or standalone proof.",
+    "Precise controller pickup aiming after opening was interrupted by app focus changes; no input production change or pickup pass claimed.",
+    "The first persistence snippet was blocked before execution by MCP filesystem policy. Native saved input was independently inspected/copied through the repository shell and then loaded successfully; whole runtime state matched the saved career exactly. No guard was disabled.",
+    "Filename controller-crate-open.png precedes the successful open; use controller-crate-open-confirmed.png instead."
+  ],
+  "critique": "Neutral ceiling lights make starter surfaces and receiving easier to see; earned room lighting correctly gates on leases. Mature shelving remains old dark wood with excessive warm local lighting and empty prototype presentation. Final Blender fixture/material/light consolidation and concept parity are still required."
+}

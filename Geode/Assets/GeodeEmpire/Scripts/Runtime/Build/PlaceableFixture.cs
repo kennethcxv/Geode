@@ -134,7 +134,19 @@ namespace GeodeEmpire.Build
         public static bool AnyCratedFor(GameState st)
         {
             if (st == null) return false;
-            foreach (var f in All) if (f != null && f.Owned && !f.SitedByDefault && !f.Sited) return true;
+            foreach (var f in All) if (f != null && f.RequiresPlacementFor(st)) return true;
+            return false;
+        }
+
+        public bool RequiresPlacementFor(GameState state)
+            => state != null && Movable && !SitedByDefault
+                && (string.IsNullOrEmpty(RequiresUpgrade) || state.HasUpgrade(RequiresUpgrade))
+                && (state.Fixture(Id) == null || !state.Fixture(Id).Placed);
+
+        public static bool HasUnplacedFor(GameState state, string upgrade)
+        {
+            foreach (var fixture in All)
+                if (fixture != null && fixture.RequiresUpgrade == upgrade && fixture.RequiresPlacementFor(state)) return true;
             return false;
         }
 

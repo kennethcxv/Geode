@@ -94,7 +94,7 @@ namespace GeodeEmpire.UI
             UiKit.Label(brand, "GEODE EMPIRE", "brand-name");
 
             _goalsCard = UiKit.Box(hud, "goals");
-            _goalHead = UiKit.Label(_goalsCard, "Expand the Business", "goals-title");
+            _goalHead = UiKit.Label(_goalsCard, "Build your business", "goals-title");
             _goalWhy = UiKit.Label(_goalsCard, "", "goal-why");
             _goalWhy.style.whiteSpace = WhiteSpace.Normal;
             var head = UiKit.Box(_goalsCard, "goal-row");
@@ -240,7 +240,7 @@ namespace GeodeEmpire.UI
                 _lastLevel = level;
             }
 
-            _goalHead.text = "Expand the Business";
+            _goalHead.text = "Build your business";
             // §65: the goals are the measure; this says what is on the other side of them
             string next = Progression.NextUnlockShort(st);
             _goalWhy.text = string.IsNullOrEmpty(next) ? "" : "Next: " + next;

@@ -523,7 +523,7 @@ namespace GeodeEmpire.UI
             var upgrade = up;
             void Detail() => UpgradeDetail(upgrade, owned);
             card.RegisterCallback<PointerEnterEvent>(_ => Detail());
-            if (owned) UiKit.Label(side, "INSTALLED", "tag", "tag-owned");
+            if (owned) UiKit.Label(side, Build.PlaceableFixture.HasUnplacedFor(st, up.Id) ? "OWNED · PLACE IT" : "INSTALLED", "tag", "tag-owned");
             else
             {
                 if (up.Id == UpgradeCatalog.SawBlade && st.HasUpgrade(UpgradeCatalog.TrimSaw))
@@ -586,7 +586,8 @@ namespace GeodeEmpire.UI
             var ht = UiKit.Box(head, "grow");
             UiKit.Label(ht, up.Name, "detail-title");
             UiKit.Label(ht, up.Category ?? "BENCH", "detail-sub");
-            UiKit.Label(head, owned ? "INSTALLED" : locked ? "LOCKED" : "AVAILABLE", "tag", owned ? "tag-owned" : null);
+            string status = owned ? (Build.PlaceableFixture.HasUnplacedFor(st, up.Id) ? "OWNED · PLACE IT" : "INSTALLED") : locked ? "LOCKED" : "AVAILABLE";
+            UiKit.Label(head, status, "tag", owned ? "tag-owned" : null);
             UiKit.Rule(_detail);
             UiKit.Label(_detail, up.Description, "detail-note").style.marginTop = 0;
             UiKit.Label(_detail, "WHAT IT CHANGES", "caption").style.marginTop = 12;

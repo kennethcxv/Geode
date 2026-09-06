@@ -1,0 +1,169 @@
+{
+  "qa": "237a3e02af324739b0cfe8486e6e7d41",
+  "scope": "Fresh guidance native; equipment uses explicit3000 diagnostic cash and normal purchase/unpack/placement APIs, with actual controllerSouth confirming controlled camera preview. Navigation uses temporary causal controls; customer stock is explicitly synthetic and checkout uses the established harness. Not the primary no-cheat career or full input/customer acceptance.",
+  "notes": [
+    "Initial guidance test failure was invalid fixture missing SaveId, corrected; final12testsPassed.",
+    "Native evidence serializer failed after successful purchase; readback verified cash2310 and no duplicate purchase.",
+    "Before corrected navReadCode, reported voxel fields came from global agent settings, not surface overrides. Fine .05m surface bake is reported correctly in final closed-door control.",
+    "Temporary navigation changes reverted upon Play exit. Production correction is pending; P1 still open.",
+    "After normal relocation and idle, live wash(-1.5,0,3)270 differs from saved(-5.75,0,3)90. Tutorial build already done; TryPlace only queues indirectly through lesson notification."
+  ],
+  "qa23StarterNavigation": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"nav\":{\"collectObjects\":0,\"useGeometry\":1,\"mask\":-1,\"agentTypeID\":0},\"points\":[\"StarterOutsidePoint:(-5.60, 0.00, -3.60):True:(-5.60, 0.03, -3.60)\",\"StarterDoorPoint:(-5.60, 0.00, -2.10):False:\",\"StarterCounterCustomerPoint:(-4.45, 0.00, -0.90):True:(-4.45, 0.03, -1.17)\",\"Browse:(-4.95, 0.00, -1.10):True:(-4.95, 0.03, -1.17)\",\"Browse:(-5.50, 0.00, -1.10):True:(-5.78, 0.03, -1.17)\"],\"routes\":[\"StarterOutsidePoint→StarterDoorPoint:False:PathInvalid:\",\"StarterOutsidePoint→StarterCounterCustomerPoint:True:PathPartial:(-5.60, 0.03, -3.60);(-4.51, 0.03, -3.37)\",\"StarterOutsidePoint→Browse:True:PathPartial:(-5.60, 0.03, -3.60);(-5.01, 0.03, -3.36)\",\"StarterOutsidePoint→Browse:True:PathPartial:(-5.60, 0.03, -3.60);(-5.84, 0.03, -3.34)\"],\"obstacles\":[{\"name\":\"Player\",\"carving\":true,\"enabled\":true,\"position\":\"(-5.46, 0.04, -1.90)\"}],\"sawdoordriver\":false}",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23NavPlayerControl": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = move only player away from entrance; no navigation rebuild, player = (-3.00, 0.08, 2.90), door = StarterEntrance, hinge = (0.00, 265.00, 0.00), leafColliders = System.String[] }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23NavPlayerAway": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"radius\":0.5,\"voxel\":0.166666672,\"voxelOverride\":false,\"paths\":[{\"name\":\"StarterDoorPoint\",\"found\":true,\"status\":\"PathPartial\",\"sample\":true,\"point\":\"(-5.60, 0.03, -2.10)\",\"corners\":[\"(-5.60, 0.03, -3.60)\",\"(-5.63, 0.03, -3.34)\"]},{\"name\":\"StarterCounterCustomerPoint\",\"found\":true,\"status\":\"PathPartial\",\"sample\":true,\"point\":\"(-4.45, 0.03, -1.17)\",\"corners\":[\"(-5.60, 0.03, -3.60)\",\"(-4.51, 0.03, -3.37)\"]}],\"door\":[{\"name\":\"StarterEntrance\",\"enabled\":true,\"hinge\":\"(0.00, 0.00, 0.00)\"}]}",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23NavOpenLeafSameBake": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"radius\":0.5,\"voxel\":0.166666672,\"voxelOverride\":false,\"paths\":[{\"name\":\"StarterDoorPoint\",\"found\":true,\"status\":\"PathPartial\",\"sample\":true,\"point\":\"(-5.60, 0.03, -2.10)\",\"corners\":[\"(-5.60, 0.03, -3.60)\",\"(-5.63, 0.03, -3.34)\"]},{\"name\":\"StarterCounterCustomerPoint\",\"found\":true,\"status\":\"PathPartial\",\"sample\":true,\"point\":\"(-4.45, 0.03, -1.17)\",\"corners\":[\"(-5.60, 0.03, -3.60)\",\"(-4.51, 0.03, -3.37)\"]}],\"door\":[{\"name\":\"StarterEntrance\",\"enabled\":false,\"hinge\":\"(0.00, 265.00, 0.00)\"}]}",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23NavOmitLeafBuild": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = controlled rebuild with only starter leaf colliders omitted; colliders restored, colliders = 1, buildMs = 14.6245 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23NavOmitLeafPaths": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"radius\":0.5,\"voxel\":0.166666672,\"voxelOverride\":false,\"paths\":[{\"name\":\"StarterDoorPoint\",\"found\":true,\"status\":\"PathPartial\",\"sample\":true,\"point\":\"(-5.60, 0.03, -2.10)\",\"corners\":[\"(-5.60, 0.03, -3.60)\",\"(-5.83, 0.03, -3.17)\"]},{\"name\":\"StarterCounterCustomerPoint\",\"found\":true,\"status\":\"PathPartial\",\"sample\":true,\"point\":\"(-4.45, 0.03, -1.17)\",\"corners\":[\"(-5.60, 0.03, -3.60)\",\"(-4.45, 0.03, -3.50)\"]}],\"door\":[{\"name\":\"StarterEntrance\",\"enabled\":false,\"hinge\":\"(0.00, 265.00, 0.00)\"}]}",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23NavFineVoxelBuild": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = leaf omitted plus finer .05m surface voxel, default agent radius unchanged, buildMs = 29.1873 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23NavFineVoxelPaths": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"radius\":0.5,\"voxel\":0.166666672,\"voxelOverride\":false,\"paths\":[{\"name\":\"StarterDoorPoint\",\"found\":true,\"status\":\"PathComplete\",\"sample\":true,\"point\":\"(-5.60, 0.01, -2.10)\",\"corners\":[\"(-5.60, -0.02, -3.60)\",\"(-5.60, 0.01, -2.10)\"]},{\"name\":\"StarterCounterCustomerPoint\",\"found\":true,\"status\":\"PathComplete\",\"sample\":true,\"point\":\"(-4.45, 0.01, -1.07)\",\"corners\":[\"(-5.60, -0.02, -3.60)\",\"(-5.55, 0.01, -2.60)\",\"(-5.45, 0.01, -2.40)\",\"(-4.45, 0.01, -1.07)\"]}],\"door\":[{\"name\":\"StarterEntrance\",\"enabled\":false,\"hinge\":\"(0.00, 265.00, 0.00)\"}]}",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23NavClosedFineBuild": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = negative control fine .05m voxel but closed door collider INCLUDED, voxel = 0.05, leafColliders = True }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23NavClosedFinePaths": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"radius\":0.5,\"voxel\":0.05,\"voxelOverride\":true,\"paths\":[{\"name\":\"StarterDoorPoint\",\"found\":true,\"status\":\"PathPartial\",\"sample\":true,\"point\":\"(-5.60, 0.01, -2.10)\",\"corners\":[\"(-5.60, -0.02, -3.60)\",\"(-5.60, -0.02, -3.35)\"]},{\"name\":\"StarterCounterCustomerPoint\",\"found\":true,\"status\":\"PathPartial\",\"sample\":true,\"point\":\"(-4.45, 0.01, -1.07)\",\"corners\":[\"(-5.60, -0.02, -3.60)\",\"(-4.43, -0.02, -3.40)\"]}],\"door\":[{\"name\":\"StarterEntrance\",\"enabled\":false,\"hinge\":\"(0.00, 0.00, 0.00)\"}]}",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23NavModifierControl": {
+    "success": true,
+    "message": "Command executed.",
+    "data": {
+      "compiler": "Roslyn",
+      "logged_error_count": 0,
+      "first_logged_error": null,
+      "logs": [],
+      "created": [
+        "181761:256"
+      ],
+      "modified": [],
+      "destroyed": [],
+      "returnValue": {
+        "scope": "temporary Play-only production approach, .05m voxels and leaf ignored, physical door collider retained",
+        "buildMs": 23.3813,
+        "ignoreFromBuild": true,
+        "enabled": true,
+        "colliders": true
+      }
+    }
+  },
+  "qa23CustomerStart": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = small seeded synthetic unappraised stock; oversized negative witness retained in dealer tray, stock = S0002-0002:SaleSlot:appraised=False:asking=4.95:refusal=Slot taken: pick a free slot or swap it out;S0003-0004:SaleSlot:appraised=False:asking=1.95:refusal=Slot taken: pick a free slot or swap it out, customer = Customer_1, phase = Browsing, IsOpen = True }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23CustomerFlow1": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"time\":1.0,\"open\":true,\"customers\":[{\"name\":\"Customer_1\",\"state\":\"AtCounter\",\"position\":\"(-4.45, 0.01, -1.07)\",\"Walking\":false,\"Speed\":0.0,\"StuckSeconds\":0.0,\"Recoveries\":0,\"wanted\":\"S0002-0002\",\"path\":\"PathComplete\",\"remaining\":0.0},{\"name\":\"Customer_2\",\"state\":\"Queued\",\"position\":\"(-5.14, 0.01, -1.35)\",\"Walking\":false,\"Speed\":0.0,\"StuckSeconds\":0.0,\"Recoveries\":0,\"wanted\":\"S0003-0004\",\"path\":\"PathComplete\",\"remaining\":0.755749643}],\"QueueLength\":2,\"counter\":\"Customer_1\",\"metrics\":{\"PathFailures\":0,\"StuckRecoveries\":0,\"Repositions\":0,\"JamReports\":[]},\"doors\":[{\"name\":\"StarterEntrance\",\"rotation\":\"(0.00, 265.00, 0.00)\"}]}",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23CloseAndFinishStart": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = close admission via normal API, finish existing transaction using established checkout diagnostic harness, closed = True, why = , admissionRefused = True, customers = 1, station = checkout_counter, state = WaitingForCashier, cashBefore = 2310 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23ClosingFlow": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"cash\":2314.95,\"open\":false,\"sold\":1,\"abandoned\":2,\"customers\":[],\"checkout\":{\"Active\":false,\"Busy\":false,\"state\":\"WaitingForCashier\",\"tx\":\"none\",\"Trace\":\"handover:start\",\"StatusLine\":\"\"},\"metrics\":{\"StuckRecoveries\":0,\"Repositions\":0,\"PathFailures\":0}}",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23MovedFixtureNavDefect": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = normal validated wash relocation; navigation never explicitly rebuilt, placed = True, reason = , oldCentre = (-5.75, 0.00, 3.00), newCentre = (-1.50, 0.00, 3.00), oldWalkableBefore = False, newWalkableBefore = True, oldWalkableAfter = False, newWalkableAfter = True, obstacles = 0, specimens = S0001-0539:SellTray:appraised=False;S0002-0002:Sold:appraised=False;S0003-0004:SaleSlot:appraised=False, cash = 2314.95 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23RepeatPlacementPersistenceDefect": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = read only after prior valid relocation and idle frames, no explicit save, livePose = {\"Id\":\"wash_station\",\"Position\":{\"x\":-1.5,\"y\":0.0,\"z\":3.0},\"Yaw\":270.0,\"Placed\":true,\"Delivered\":true,\"DeliveryPosition\":{\"x\":-4.150000095367432,\"y\":0.11999999731779099,\"z\":4.46999979019165}}, diskPose = {\"Id\":\"wash_station\",\"Position\":{\"x\":-5.75,\"y\":0.0,\"z\":3.0},\"Yaw\":90.0,\"Placed\":true,\"Delivered\":true,\"DeliveryPosition\":{\"x\":-4.150000095367432,\"y\":0.11999999731779099,\"z\":4.46999979019165}}, buildTutorialAlreadyDone = True, time = 1178.377, playing = True }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23Finish": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ phase = Finished, endedUtc = 2026-09-06T22:56:16.1286380Z, originalDataUnchanged = True, overridePath = , guard = True, dirty = False, scene = Assets/GeodeEmpire/Scenes/Workshop_AstraCandidate.unity, doorEnabled = True, leafRotation = (0.00, 0.00, 0.00), modifiers = 0, voxelOverride = False }",
+      "compiler": "Roslyn"
+    }
+  }
+}

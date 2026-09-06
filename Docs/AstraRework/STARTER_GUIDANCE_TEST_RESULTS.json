@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "message": "Test job finished.",
+  "data": {
+    "jobId": "aa2e9069-65cd-4a12-a567-654f6c08c74c",
+    "status": "finished",
+    "mode": "EditMode",
+    "startedAt": "2026-09-07 00:33:07",
+    "lastActivityAt": "2026-09-07 00:33:15",
+    "testsCompleted": 12,
+    "hasFilters": true,
+    "finishedAt": "2026-09-07 00:33:15",
+    "resultState": "Failed(Child)",
+    "passCount": 11,
+    "failCount": 1,
+    "skipCount": 0,
+    "inconclusiveCount": 0,
+    "totalTests": 12,
+    "durationSeconds": 0.9,
+    "failures": [
+      {
+        "test": "GeodeEmpire.Tests.AstraStarterGuidanceTests.DeferredWashLessonSurvivesReloadAndWaitsForPlacement",
+        "message": "System.NullReferenceException : Object reference not set to an instance of an object",
+        "stackTrace": "  at GeodeEmpire.Tests.AstraStarterGuidanceTests.DeferredWashLessonSurvivesReloadAndWaitsForPlacement () [0x0006c] in /Users/kenneth/Documents/GitHub/Geode/Geode/Assets/GeodeEmpire/Scripts/Tests/EditMode/AstraStarterGuidanceTests.cs:56 \n  at (wrapper managed-to-native) System.Reflection.RuntimeMethodInfo.InternalInvoke(System.Reflection.RuntimeMethodInfo,object,object[],System.Exception&)\n  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAtt... (+156 chars)"
+      }
+    ]
+  }
+}

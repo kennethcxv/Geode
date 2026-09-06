@@ -421,7 +421,6 @@ namespace GeodeEmpire.EditorTools
             foreach (var root in roots)
                 if (root.Find("Body") != null || root.GetComponent<PlaceableFixture>() == null)
                     throw new InvalidOperationException("Machine body is already configured or fixture missing: " + root.name);
-            var small = CandidatePath(scene, "Stations/SawStation/Machine");
             var shared = new[] { "tray", "SawLight", "SawTray", "MatSaw", "Sign_DIAMOND SAW" }
                 .Select(name => CandidatePath(scene, "Stations/SawStation/Machine/" + name)).ToArray();
             var beforeIds = DeliveryFileIds(scene);
@@ -444,6 +443,64 @@ namespace GeodeEmpire.EditorTools
                 throw new InvalidOperationException("A gameplay component ID changed; do not promote this candidate.");
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, AstraCandidatePath)) throw new InvalidOperationException("Could not save machine bodies.");
+        }
+
+        [MenuItem("GeodeEmpire/Astra/Configure Candidate Practical Lighting")]
+        public static void ConfigureAstraCandidatePracticalLighting()
+        {
+            var scene = SceneManager.GetActiveScene();
+            if (EditorApplication.isPlayingOrWillChangePlaymode || scene.path != AstraCandidatePath || scene.isDirty)
+                throw new InvalidOperationException("Open the clean saved Astra candidate in Edit Mode first.");
+            var shell = CandidatePath(scene, "Environment/AstraArchitecture");
+            if (shell.Find("PracticalLighting") != null) throw new InvalidOperationException("Practical lighting already exists; inspect it instead of rebuilding.");
+            var premises = CandidatePath(scene, "Environment/Premises").GetComponent<PremisesExpansion>();
+            if (premises == null) throw new InvalidOperationException("Premises component missing.");
+            var gallerySpots = CandidatePath(scene, "Stations/GalleryPlinths").GetComponentsInChildren<Light>(true)
+                .Where(l => l.type == LightType.Spot).OrderBy(l => l.transform.position.x).ToArray();
+            if (gallerySpots.Length != 3) throw new InvalidOperationException("Expected the three existing gallery spots.");
+            var lighting = CandidateRoot(shell, "PracticalLighting");
+            var housing = StudyMaterial("Astra_CeilingHousing_Layout", new Color(.69f, .72f, .73f));
+            var diffuser = StudyMaterial("Astra_CeilingDiffuser_Layout", new Color(.90f, .92f, .94f));
+            diffuser.EnableKeyword("_EMISSION"); diffuser.SetColor("_EmissionColor", new Color(1.1f, 1.14f, 1.18f));
+            var starter = CandidateRoot(lighting, "Starter");
+            var processing = CandidateRoot(lighting, "Processing");
+            var office = CandidateRoot(lighting, "Office");
+            var showroom = CandidateRoot(lighting, "Showroom");
+            CandidateBatten(starter, "CounterLight", new Vector2(-4.55f, -.55f), 3.2f, 4.8f, true, housing, diffuser);
+            CandidateBatten(starter, "WorkLight", new Vector2(-1.85f, -.55f), 3.2f, 4.8f, false, housing, diffuser);
+            CandidateBatten(processing, "WetWorkLight", new Vector2(-4.8f, 2.95f), 3.6f, 4.8f, true, housing, diffuser);
+            CandidateBatten(processing, "MachineLight", new Vector2(-.8f, 3.55f), 3.6f, 4.8f, false, housing, diffuser);
+            CandidateBatten(office, "OfficeLight", new Vector2(.5f, -.65f), 2.2f, 3.2f, false, housing, diffuser);
+            CandidateBatten(showroom, "RetailLight", new Vector2(3.4f, .15f), 4.2f, 5.6f, true, housing, diffuser);
+            CandidateBatten(showroom, "GalleryLight", new Vector2(4.7f, 4.15f), 4.2f, 5.6f, false, housing, diffuser);
+            Undo.RecordObject(premises, "Light only leased rooms");
+            premises.Gates.Add(new PremisesExpansion.Gate { Upgrade = Economy.UpgradeCatalog.BackRoom, Root = processing.gameObject });
+            premises.Gates.Add(new PremisesExpansion.Gate { Upgrade = Economy.UpgradeCatalog.BackRoom, Root = office.gameObject });
+            premises.Gates.Add(new PremisesExpansion.Gate { Upgrade = Economy.UpgradeCatalog.ShopFront, Root = showroom.gameObject });
+            processing.gameObject.SetActive(false); office.gameObject.SetActive(false); showroom.gameObject.SetActive(false);
+            for (int i = 0; i < gallerySpots.Length; i++)
+            {
+                Undo.RecordObject(gallerySpots[i], "Budget gallery shadows alongside room lighting");
+                gallerySpots[i].shadows = i == 1 ? LightShadows.Soft : LightShadows.None;
+            }
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene, AstraCandidatePath)) throw new InvalidOperationException("Could not save practical lighting.");
+        }
+
+        private static void CandidateBatten(Transform parent, string name, Vector2 point, float intensity, float range,
+            bool shadows, Material housing, Material diffuser)
+        {
+            var root = CandidateRoot(parent, name);
+            root.position = new Vector3(point.x, 2.87f, point.y);
+            StudyBox(root, "Housing", Vector3.zero, new Vector3(1.08f, .06f, .14f), housing, false);
+            StudyBox(root, "Diffuser", new Vector3(0f, -.036f, 0f), new Vector3(.96f, .012f, .10f), diffuser, false);
+            var source = CandidateRoot(root, "Light"); source.localPosition = new Vector3(0f, -.05f, 0f);
+            source.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            var light = Undo.AddComponent<Light>(source.gameObject);
+            light.type = LightType.Spot; light.spotAngle = 125f; light.innerSpotAngle = 85f;
+            light.color = new Color(.97f, .985f, 1f); light.intensity = intensity; light.range = range;
+            light.shadows = shadows ? LightShadows.Soft : LightShadows.None;
+            light.shadowBias = .025f; light.shadowNormalBias = .18f;
         }
 
         private static PlaceableFixture CandidateWrappedFixture(Transform stations, Transform body, string name, string id,

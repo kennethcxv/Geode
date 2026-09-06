@@ -1,0 +1,67 @@
+{
+  "qa": "237a3e02af324739b0cfe8486e6e7d41",
+  "scope": "Fresh guidance native; equipment uses explicit3000 diagnostic cash and normal purchase/unpack/placement APIs, with actual controllerSouth confirming controlled camera preview. Navigation uses temporary causal controls; customer stock is explicitly synthetic and checkout uses the established harness. Not the primary no-cheat career or full input/customer acceptance.",
+  "notes": [
+    "Initial guidance test failure was invalid fixture missing SaveId, corrected; final12testsPassed.",
+    "Native evidence serializer failed after successful purchase; readback verified cash2310 and no duplicate purchase.",
+    "Before corrected navReadCode, reported voxel fields came from global agent settings, not surface overrides. Fine .05m surface bake is reported correctly in final closed-door control.",
+    "Temporary navigation changes reverted upon Play exit. Production correction is pending; P1 still open.",
+    "After normal relocation and idle, live wash(-1.5,0,3)270 differs from saved(-5.75,0,3)90. Tutorial build already done; TryPlace only queues indirectly through lesson notification."
+  ],
+  "qa23FreshGuidance": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"playing\":true,\"qa\":\"Playing\",\"cash\":120.0,\"upgrades\":[\"retail_counter_table\"],\"next\":\"Order your first local crate\",\"lesson\":\"move\",\"brush\":false,\"brushWhy\":\"Needs the Manual Wash Station\",\"saw\":false,\"sawWhy\":\"Needs the Back Room Lease\",\"headline\":\"Build your business | Next: Order your first local crate\",\"focus\":true,\"time\":1.0}",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23EquipmentPurchaseVerified": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{\"scope\":\"readback only after evidence serializer failed; purchases not repeated\",\"cash\":2310.0,\"upgrades\":[\"retail_counter_table\",\"premises_backroom\",\"wash_station\"],\"fixture\":{\"Id\":\"wash_station\",\"Owned\":true,\"Sited\":false,\"pending\":true,\"body\":false,\"defaultPosition\":\"(-5.95, 0.00, 3.00)\",\"DefaultYaw\":90.0,\"pose\":\"{\\\"Id\\\":\\\"wash_station\\\",\\\"Position\\\":{\\\"x\\\":0.0,\\\"y\\\":0.0,\\\"z\\\":0.0},\\\"Yaw\\\":0.0,\\\"Placed\\\":false,\\\"Delivered\\\":true,\\\"DeliveryPosition\\\":{\\\"x\\\":-4.150000095367432,\\\"y\\\":0.11999999731779099,\\\"z\\\":4.46999979019165}}\"},\"parcels\":[{\"name\":\"Delivery\",\"fixture\":\"wash_station\",\"position\":\"(-4.15, 0.12, 4.47)\",\"component\":true}],\"player\":\"(-6.06, 0.04, -1.34)\",\"camera\":\"(19.41, 59.19, 0.00)\",\"SpawnYaw\":0.0,\"Yaw\":59.1937523,\"Pitch\":19.4062557,\"focus\":false}",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23EquipmentUnpackNegative": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = normal parcel Interact then production placement API negative control, Active = True, holding = wash_station, refused = False, reason = keep the marked receiving spaces clear, saved = {\"Id\":\"wash_station\",\"Position\":{\"x\":0.0,\"y\":0.0,\"z\":0.0},\"Yaw\":0.0,\"Placed\":false,\"Delivered\":true,\"DeliveryPosition\":{\"x\":-4.150000095367432,\"y\":0.11999999731779099,\"z\":4.46999979019165}}, lesson = False }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23ActualBuildPreview": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ Active = True, CurrentValid = True, CurrentReason = , position = (-5.75, 0.00, 3.00), yaw = 90, focus = False }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23ControllerPlaceResult": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ Sited = True, body = True, pose = {\"Id\":\"wash_station\",\"Position\":{\"x\":-5.75,\"y\":0.0,\"z\":3.0},\"Yaw\":90.0,\"Placed\":true,\"Delivered\":true,\"DeliveryPosition\":{\"x\":-4.150000095367432,\"y\":0.11999999731779099,\"z\":4.46999979019165}}, pending = False, focus = True, busy = False }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23PlacementReload": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = Exit API because app focus prevented East input, then normal save/load, equal = True, Sited = True, body = True, position = (-5.75, 0.00, 3.00), cash = 2310, washLessonAvailable = True, receivingFree = 4, visibleParcels = 0 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "qa23Finish": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ phase = Finished, endedUtc = 2026-09-06T22:56:16.1286380Z, originalDataUnchanged = True, overridePath = , guard = True, dirty = False, scene = Assets/GeodeEmpire/Scenes/Workshop_AstraCandidate.unity, doorEnabled = True, leafRotation = (0.00, 0.00, 0.00), modifiers = 0, voxelOverride = False }",
+      "compiler": "Roslyn"
+    }
+  }
+}

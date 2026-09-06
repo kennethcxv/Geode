@@ -111,6 +111,8 @@ namespace GeodeEmpire.Core
         public static string NextUnlockShort(GameState s)
         {
             if (s == null) return "";
+            string opening = OpeningAction(s);
+            if (opening != null) return opening;
             Economy.UpgradeDefinition best = null;
             foreach (var u in Economy.UpgradeCatalog.All)
             {
@@ -130,6 +132,8 @@ namespace GeodeEmpire.Core
         public static string NextUnlock(GameState s)
         {
             if (s == null) return "";
+            string opening = OpeningAction(s);
+            if (opening != null) return opening;
             // the cheapest upgrade that is available and unowned: the one thing to look at
             Economy.UpgradeDefinition best = null;
             foreach (var u in Economy.UpgradeCatalog.All)
@@ -152,6 +156,14 @@ namespace GeodeEmpire.Core
             if (best == null) return "";
             float shortfall = best.Price - s.Cash;
             return $"{best.Name} — $" + Mathf.CeilToInt(shortfall).ToString("N0") + " to go. " + Clip(best.Effect, 60);
+        }
+
+        private static string OpeningAction(GameState s)
+        {
+            if (s.Stats.CratesPurchased == 0) return "Order your first local crate";
+            if (s.Stats.SpecimensOpened == 0) return "Open a rock at the cracking bench";
+            if (s.Stats.SpecimensSold + s.Stats.RetailSales == 0) return "Sell your first opened specimen";
+            return null;
         }
     }
 }

@@ -652,7 +652,7 @@ namespace GeodeEmpire.Core
             State.Stats.CratesPurchased++;
             Economy.Auction.OnDelivery(this);   // the courier collects consigned pieces and brings back the hammer
             Audio.WorkshopAudio.Play2D("ui_buy", 0.7f);
-            Notify($"{sup.Name} ordered. Delivery at the pallet.", NotificationKind.Success);
+            Notify($"{sup.Name} ordered. Delivery in goods-in.", NotificationKind.Success);
             Tutorial.Notify("crate_bought");
             if (State.CrateCounter >= 2) Tutorial.Notify("upgrade_or_crate");
             RaiseStateChanged();
@@ -761,18 +761,20 @@ namespace GeodeEmpire.Core
             if (upgradeId == Economy.UpgradeCatalog.Stage2)
             {
                 Audio.WorkshopAudio.Play2D("thud", 0.8f);
-                Notify("Workshop expanded: saw bay, polishing corner, rock rack, trophy wall and showroom shelf are in.", NotificationKind.Discovery);
+                Notify("Workshop package purchased. Unpack and place its material/collection cabinet and retail shelving. The cracker, lap and showroom lease are separate purchases.", NotificationKind.Discovery);
                 foreach (var id in Economy.SupplierCatalog.EvaluateUnlocks(State))
                     Notify($"New supplier available: {Economy.SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
             }
             else if (upgradeId == Economy.UpgradeCatalog.Stage3)
             {
                 Audio.WorkshopAudio.Play2D("thud", 0.8f);
-                Notify("Stage 3: the slab saw is in the bay, the UV lamp is at the scale, the gallery plinths and the second case are in the showroom, the receiving bay is bigger.", NotificationKind.Discovery);
+                Notify("Specialist package purchased. The saw and appraisal bench gain fittings; unpack and place the gallery and sales case in a leased showroom.", NotificationKind.Discovery);
                 foreach (var id in Economy.SupplierCatalog.EvaluateUnlocks(State))
                     Notify($"New supplier available: {Economy.SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
             }
-            else Notify($"{up.Name} installed.", NotificationKind.Success);
+            else Notify(Build.PlaceableFixture.HasUnplacedFor(State, upgradeId)
+                ? $"{up.Name} purchased. Unpack its equipment in goods-in and choose a position."
+                : $"{up.Name} installed.", NotificationKind.Success);
             Tutorial.Notify("upgrade_or_crate");
             RaiseStateChanged();
             FlushSave("upgrade");
