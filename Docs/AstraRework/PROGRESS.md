@@ -1,6 +1,6 @@
 # Astra durable recovery state
 
-Updated 2026-09-06 20:20 local after baseline audit and concept-selection checkpoint preparation. Interruptions never complete the goal.
+Updated 2026-09-06 after completed measured architecture study and recovery verification. Interruptions never complete the goal.
 
 ## Authority, branch and phase
 
@@ -14,8 +14,11 @@ Checkout/opening/input P0/P1 regression work is complete at 6874769. Return to m
 
 No test, build, image generation, Blender batch or Unity coroutine is running. Unity is in Edit Mode with a clean Workshop. All QA isolation finished.
 
-Current atomic work: checkpoint the Phase 1/2 evidence and original concepts, then implement the measured architecture through the existing Unity/Blender pipeline. Initial architecture design preserves the building's outer coordinate frame but replaces the starter footprint/frontage/zoning: 6×4 m (24 m²) Day 1, physical checkout/laptop, bench, two receiving marks, real street door/window; back processing lease and mature showroom open actual connected space. Authored machine defaults all failed placement validation, so operator/route envelopes must drive the new layout. This is design work, NOT yet a production scene change.
+Current atomic work: checkpoint the completed measured architecture study, then integrate the real scene with ownership/receiving/save migration. Phase 1/2 evidence and target concepts are committed/pushed at 86f06ac8f552f6a83215967f73b0056d13cef1a9; remote verified and main unchanged. AstraLayout.cs and the existing partial WorkshopSceneBuilder now create a separate measured AstraLayoutStudy.unity (not in build settings; no gameplay/save systems). Nineteen envelopes pass native body/operator/route checks, including the blocked-counter negative control. The initial 44.5 mm bench/partition and cashier/wall intersections were corrected. Saved scene reload has no missing material references; Workshop was restored clean with its original hash. Native overhead and eye-height renders reviewed, in Architecture/. These are geometry study evidence, not actual game or Day-1 visual acceptance.
 
+Recovery found one incidental M_CaseGlass material blend diff (SrcBlend 5→1). Read-only temporary-material control proved URP SetupMaterialBlendMode derives 1 when preserve-specular is enabled and 5 when disabled. The existing builder wrote 5 while leaving preserve-specular/premultiplied shading enabled. Correcting the builder to use URP's own setup makes the normalized material intentional and consistent; do not manually force a conflicting blend factor back. The exact event that first serialized normalization was not observed. Compilation required the editor-only Universal.Editor assembly reference; validate after reload before committing.
+
+Next substantial operation: extend the existing builder with an in-place apply to a validation copy of Workshop, preserve gameplay and Delivery IDs, and synchronize ShopPlan with a scene-version marker. Implement minimum Day-1 selling, shared finite receiving and explicit safe legacy layout/ownership migration before any isolated Play of that scene. Old saves must not enter new walls without migration. No whole-scene rebuild or production promotion before validation.
 Read the current scene/component paths from live MCP before editing. A full pre-change shallow hierarchy is cached in functions store `architectureBefore`; use bounded filtered output. Existing `WorkshopSceneBuilder.Build` replaces the scene and duplicates ShopPlan constants. Prefer extending that pipeline with an in-place architecture apply that preserves existing gameplay/component/Delivery IDs. Do not blindly run the full old builder or patch YAML.
 
 Dependencies now being inspected: ShopPlan, PremisesExpansion/WorkshopExpansion, ReceivingArea/FixtureDelivery, fixture defaults, RetailShop route points and starter counter, SaveSystem migration/player positions. Appraised-only SaleSlot currently prevents Day-1 retail without the installed appraisal station; resolve the minimum-kit dependency explicitly without introducing a free premium inspection station.
@@ -31,11 +34,12 @@ Dependencies now being inspected: ShopPlan, PremisesExpansion/WorkshopExpansion,
 - Fixture diagnostic: injected credit, normal purchase/unpack APIs, full route validation. All three actual Delivery objects resolved the correct purchased machine. Saw/cracker defaults cut off a workstation route; lap default lacks standing room. No invalid pose saved. `TRUTH_FIXTURE_PLACEMENT_DIAGNOSTIC.json`. This does not prove no custom placement is possible or pass machine gameplay.
 - Five official Steam games / 15 screenshots reviewed; benchmarks written. All 26 unique provided references reviewed (27 files, one duplicate); clickable reference contact sheet/index and critique saved.
 - Sixteen original concept outputs complete, copied and viewed. Every master §8 subject has A/B variants. Art direction selected and corrections recorded; concept coverage, 121-FBX + 13-family asset manifest and provisional performance budgets saved. No asset has final Unity acceptance.
+- Measured architecture study completed: 24 m² starter, 36.66 m² processing, 48.72 m² showroom, 7.2 m² office. Nineteen body envelopes, native operator overlap/capsule routes, negative control, saved-scene material reload and two native renders. ARCHITECTURE_STUDY_EVIDENCE.json records limits.
 - Permanent capacity/interruption rules are saved below and outside KitWright's managed block in `Geode/AGENTS.md`; useful prior instructions preserved.
 
 ## Unity, Blender and isolation
 
-Unity 6000.6.0f1, project `/Users/kenneth/Documents/GitHub/Geode/Geode`; MCP responsive. NOT playing, compiling or updating. Workshop clean. No production scene/model changed since integrity baseline. Scene SHA256 `ffaf74cd0e9097457ac40e826c1442ce35b901f18096fed27d8402ebc2d125fc`. Original Play options enabled: DisableDomainReload + DisableSceneReload.
+Unity 6000.6.0f1, project `/Users/kenneth/Documents/GitHub/Geode/Geode`; MCP responsive. NOT playing, compiling or updating. Workshop clean. No production scene/model changed since integrity baseline; separate study scene added. Glass blend normalization is being made consistent with its URP material builder. Scene SHA256 `ffaf74cd0e9097457ac40e826c1442ce35b901f18096fed27d8402ebc2d125fc`. Original Play options enabled: DisableDomainReload + DisableSceneReload.
 
 Latest QA `8992bb7873e24bff9c3a2bba329d2714` (whole-game-truth-wash-and-machines) FINISHED `2026-09-06T18:06:35.7315710Z`. Override cleared, actual original hashes rechecked equal preparation, Workshop unchanged. Eleven finished sessions in SAVE_ISOLATION_EVIDENCE.json. Current originals:
 - career `3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f`
@@ -68,8 +72,8 @@ Historical master, final/Fable/V4/V5/V6, starter/core-loop specs and principal r
 
 ## Exact next actions
 
-1. Finish the coherent baseline/art-direction commit and verify branch push; main remains untouched.
-2. Define/measure the new whole-shop layout, resolving Day-1 appraisal/retail, receiving capacity, lease roots and route/placement dependencies. Extend the existing builder in place with Undo/API edits, preserving Delivery/script IDs. No YAML patches.
+1. Evidence/art-direction checkpoint 86f06ac is committed/pushed and verified. Continue the measured architecture; main remains untouched.
+2. Commit the completed measured study and intentional transparent-material builder correction after clean compilation; preserve parked Blender work unstaged. Then extend the existing builder in place on a validation scene copy, preserving Delivery/script IDs. No YAML patches.
 3. Implement starter storefront/door/checkout/laptop access, minimal earned kit, open/closed sign, back processing and mature retail routes, and safe save-coordinate/fixture migration. Validate against actual collider envelopes before asset detail.
 4. Play isolated fresh/expanded/custom layouts with keyboard/controller, collision/placement/arrival-close-settlement checks and performance capture. Commit a coherent architecture milestone, then proceed through the Blender manifest and every subsequent master phase.
 
@@ -77,7 +81,7 @@ Resource/workflow: 8GB M2; heavy Blender/Unity tests/builds sequential. Use narr
 
 ## Modified/uncommitted files
 
-At this pre-architecture checkpoint: evidence/planning documents and 14 new concept boards, reference index/contact sheet/review, audio review/index, wash/fixture diagnostics, and PROGRESS/PLAN/SAVE_ISOLATION_EVIDENCE. No production C# or scene changes since 6874769. Parked unrelated-to-this-checkpoint draft: `Tools/Blender/gen_props.py` and `ArtSource/Blender/Props/prop_workbench.blend`. Inspect git status for exact current paths before committing.
+86f06ac committed the evidence/planning/concept set. Pending coherent study checkpoint: PROGRESS.md; ARCHITECTURE_PLAN.md, BEFORE/DEPENDENCIES/CHECK text, LAYOUT/STUDY_EVIDENCE JSON, Architecture/ native renders; AstraLayout.cs/meta; WorkshopSceneBuilder.AstraLayout.cs/meta; AstraLayoutStudy.unity/meta; WorkshopSceneBuilder.cs partial declaration and URP transparent setup; GeodeEmpire.Editor.asmdef URP editor reference; M_CaseGlass.mat normalized blend. Parked draft stays unstaged: Tools/Blender/gen_props.py and ArtSource/Blender/Props/prop_workbench.blend. Inspect git status for exact paths before committing.
 
 ## ASTRA CAPACITY / INTERRUPTION RECOVERY
 

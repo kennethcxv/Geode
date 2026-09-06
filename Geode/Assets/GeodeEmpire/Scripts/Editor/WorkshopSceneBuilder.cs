@@ -344,11 +344,9 @@ namespace GeodeEmpire.EditorTools
         {
             m.SetFloat("_Surface", 1f);
             m.SetFloat("_Blend", 0f);
-            m.SetFloat("_ZWrite", 0f);
-            m.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
-            m.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
-            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            m.renderQueue = (int)RenderQueue.Transparent;
+            // URP's preserve-specular alpha mode uses One and premultiplies diffuse in the shader.
+            // Keep the blend factors and keywords consistent with the importer/Inspector.
+            BaseShaderGUI.SetupMaterialBlendMode(m);
             m.SetShaderPassEnabled("ShadowCaster", false);
             EditorUtility.SetDirty(m);
         }
@@ -398,7 +396,7 @@ namespace GeodeEmpire.EditorTools
         }
     }
 
-    public static class WorkshopSceneBuilder
+    public static partial class WorkshopSceneBuilder
     {
         public const string ScenePath = "Assets/GeodeEmpire/Scenes/Workshop.unity";
         public const string PropFolder = "Assets/GeodeEmpire/Models/Props";
