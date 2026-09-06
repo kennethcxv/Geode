@@ -1,0 +1,7 @@
+# Baseline audio evidence
+
+6 September 2026. Eight generated runtime-bank clips were read through `WorkshopAudio.GetClip`/`AudioClip.GetData` in Edit Mode. No scene or player data was modified. PCM copies remain under `Geode/Output/AstraQA/baseline-audio`; [review MP3](Baseline/audio-review.mp3) concatenates them in the [timestamp/RMS index](Baseline/audio-index.json) with 0.5-second gaps. No normalization was applied. These are source clips, not a recording of the final spatial mix.
+
+Order: ambience, chisel ring, dead hit, final crack, stone split, debris settle, scrub, saw motor. Ambience is a five-second excerpt; the other clips contain the first complete variant. Source analysis confirms the current room ambience is filtered deterministic noise plus 60/120 Hz hum, played through one looping nonspatial source. This cannot communicate customer occupancy, exterior position, shop state or machine zones. Chisel ring and dead hit use distinct generators; fracture has separate layers, but wiring and different spectra do not establish a satisfying result.
+
+The tool returned “audio content omitted because you do not support audio input.” Perceptual listening has therefore **not** been completed in this session. Do not claim the clips sounded good/bad or that audio passed. A supported listening review of every important sound and the actual game mix remains required in the audio and final QA phases. The measured source RMS values do not establish runtime loudness, harshness, fatigue or mix balance.

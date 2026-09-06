@@ -1,0 +1,35 @@
+{
+  "date": "2026-09-06",
+  "session": "8992bb7873e24bff9c3a2bba329d2714",
+  "scope": "Baseline audit using Playtest.RunWashRock and scheduled input. Scripted setup/navigation; not full career acceptance.",
+  "result": "PARTIAL; visual rework required",
+  "observed": {
+    "specimen": "S0001-620A",
+    "oneFaceClean": 1,
+    "oppositeFaceClean": 0,
+    "remainingDirtyRegions": 9,
+    "cleanedFraction": 0.65,
+    "originalDirt": 0.24,
+    "finalDirt": 0.09,
+    "scriptedWashSeconds": 73.3,
+    "collisionOverlapsOver4mm": 0,
+    "brush": "Bristles visibly point away from rock; wooden back approaches shell",
+    "basin": "Bright flat surface loses water/support readability",
+    "hud": "Large left objective, right station panel and bottom instructions compete with specimen"
+  },
+  "limitations": [
+    "Nine regions remain after the harness yaw-based sweep; this does not prove they are unreachable with full manual rotation.",
+    "Harness filename 04_basin_clean.png is inaccurate: cleaning remained incomplete.",
+    "Harness filename 06_hand_clean.png is inaccurate: the specimen remained in WashTub, and interaction reopened washing.",
+    "No full controller wash, audio judgement, or persistence/relaunch acceptance yet."
+  ],
+  "screenshots": "Geode/Output/AstraQA/truth-wash",
+  "readback": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "running=False phase=done\n[107.2] == WashRock cash=120\n[107.2] buy: ok\n[110.5] prompt='Open crate' (want 'Open crate')\n[112.0] rock S0001-620A Amethyst size=Medium tex=Coarse dirt=0.24 stain=0.85 chip=False seamQ=0.70 mass=5.1\n[126.0]   walk ended 0.66 m short of its target (player at (-0.07, 0.58, 2.73))\n[126.2] prompt='Pick up rock  5.1 kg' (want 'Pick up')\n[127.3] inspect prompt='medium rock, heavy for its size, dusty  •  from Keokuk beds  •  Muted response\n<size=17><color=#E8C88A>clay covers this face</color></size>' hint='Mouse turn   Q/R roll   RMB release   LMB tap   G call it   E square it up'\n[127.3] snap Output/AstraQA/truth-wash/00_hand_dirty.png\n[131.5] prompt='Dunk in the wash tub' (want 'Dunk in')\n[132.3] in tub: loc=WashTub held=False\n[132.3] snap Output/AstraQA/truth-wash/01_tub_before.png\n[132.6] tub prompt='Wash the rock  (tap to take it out)'\n[133.5] basin active=True dirty patches=24\n[133.9] brush aim: on rock region 17\n[133.9] snap Output/AstraQA/truth-wash/02_basin_start.png\n[136.1] ONE FACE: front region 17 clean=1.00  opposite region 21 clean=0.00  (spatial=YES)\n[136.1] snap Output/AstraQA/truth-wash/03_basin_one_side.png\n[207.2] washed in 73.3s: dirt=0.09 cleaned=0.65 dirtyPatches=9\n[207.2] snap Output/AstraQA/truth-wash/04_basin_clean.png\n[208.0] basin closed active=False inputLocked=False\n[208.4] snap Output/AstraQA/truth-wash/05_tub_after.png\n[208.9]   probe[miss] pos=(-5.94, 0.39, 1.56) fwd=(-0.04, -0.83, 0.55) yaw=-4 hit=WashZone@1.20 inter=True target=True prompt='Wash the rock  (tap to take it out)' locked=False gameplay=True held=False inspecting=False\n[209.3]   probe[retry] pos=(-5.94, 0.39, 1.56) fwd=(-0.04, -0.83, 0.55) yaw=-4 hit=WashZone@1.20 inter=True target=True prompt='Wash the rock  (tap to take it out)' locked=False gameplay=True held=False inspecting=False\n[209.3] prompt='Wash the rock  (tap to take it out)' (want 'Take')\n[209.6] held after wash=none loc=WashTub\n[210.1] inspect clean prompt=''\n[210.1] snap Output/AstraQA/truth-wash/06_hand_clean.png\n[210.3] [CollisionAudit wash end] overlaps>4mm: 0\n",
+      "compiler": "Roslyn"
+    }
+  }
+}

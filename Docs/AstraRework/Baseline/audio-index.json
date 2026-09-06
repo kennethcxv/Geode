@@ -1,0 +1,50 @@
+[
+  {
+    "clip": "ambience",
+    "startSeconds": 0.0,
+    "seconds": 5.0,
+    "rmsDbFS": -30.15225269398478
+  },
+  {
+    "clip": "chisel_ring",
+    "startSeconds": 5.5,
+    "seconds": 0.21997732426303854,
+    "rmsDbFS": -21.672821146300308
+  },
+  {
+    "clip": "tap_dead",
+    "startSeconds": 6.219977324263039,
+    "seconds": 0.18997732426303854,
+    "rmsDbFS": -18.768714593218142
+  },
+  {
+    "clip": "crack_final",
+    "startSeconds": 6.909954648526077,
+    "seconds": 0.8999773242630386,
+    "rmsDbFS": -17.404348687926348
+  },
+  {
+    "clip": "stone_split",
+    "startSeconds": 8.309931972789116,
+    "seconds": 0.75,
+    "rmsDbFS": -14.352120235158024
+  },
+  {
+    "clip": "debris_settle",
+    "startSeconds": 9.559931972789116,
+    "seconds": 1.6,
+    "rmsDbFS": -44.90444471938168
+  },
+  {
+    "clip": "scrub",
+    "startSeconds": 11.659931972789115,
+    "seconds": 0.31997732426303854,
+    "rmsDbFS": -16.922303297075175
+  },
+  {
+    "clip": "saw_motor",
+    "startSeconds": 12.479909297052155,
+    "seconds": 1.0,
+    "rmsDbFS": -15.685554899775925
+  }
+]

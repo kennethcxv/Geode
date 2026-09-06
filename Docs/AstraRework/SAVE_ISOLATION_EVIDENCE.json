@@ -262,6 +262,32 @@
         }
       ],
       "failures": []
+    },
+    {
+      "label": "whole-game-truth-wash-and-machines",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/8992bb7873e24bff9c3a2bba329d2714/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/8992bb7873e24bff9c3a2bba329d2714/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T17:46:37.1011850Z",
+      "endedUtc": "2026-09-06T18:06:35.7315710Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "42f698a6b27e7139b88f980e01874da1ae00846a03112cdb60c5e5d38fc04b63"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
     }
   ],
   "input_helper": {

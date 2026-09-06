@@ -1,0 +1,15 @@
+{
+  "date": "2026-09-06",
+  "session": "8992bb7873e24bff9c3a2bba329d2714",
+  "scope": "Diagnostic-only 5000 credit; normal purchase trim_saw, stage2_workshop, geode_cracker, polish_lap. Three real DeliveryCrate references resolved and unpack APIs entered build holding the correct item. BuildMode.TryPlace used each authored DefaultPosition and DefaultYaw with full route validation.",
+  "result": "All three authored default poses rejected; no poses committed",
+  "readback": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "DIAGNOSTIC API unpack and validated placement, not player placement acceptance\ntrim_saw delivery=Unpack the Trim Saw and choose where it goes\nholding=trim_saw\nplaced=False reason=it cuts off the way to a workstation sited=False body=False\ngeode_cracker delivery=Unpack the Geode Cracker and choose where it goes\nholding=geode_cracker\nplaced=False reason=it cuts off the way to a workstation sited=False body=False\nflat_lap delivery=Unpack the Flat Lap and choose where it goes\nholding=flat_lap\nplaced=False reason=no room to stand and work at it sited=False body=False\n",
+      "compiler": "Roslyn"
+    }
+  },
+  "implication": "Architecture must provide validated operator areas and connected routes; unowned body visibility correctly remained off before purchase/siting. This does not prove no valid custom position exists, nor establish full machine input acceptance."
+}
