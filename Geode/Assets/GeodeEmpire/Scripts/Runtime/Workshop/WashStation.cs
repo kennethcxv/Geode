@@ -38,6 +38,8 @@ namespace GeodeEmpire.Workshop
         public SpecimenEntity Current => Tub != null ? Tub.First : null;
         /// <summary>0..1 water in the bristles: full straight out of the basin, falling as it works.</summary>
         public float BrushWet { get; private set; }
+        private AudioSource _water;
+        private float _waterLoud;
         public bool Scrubbing { get; private set; }
         public bool BrushOnRock { get; private set; }
         public Vector2 Cursor => _cursor;
@@ -147,6 +149,9 @@ namespace GeodeEmpire.Workshop
             if (CameraAnchor != null && _controller != null) _controller.EnterStationView(CameraAnchor);
             if (_player != null) _player.InputLocked = true;
             Note = "";
+            // §21: the tap runs while the player is at the basin, so the station is not silent between strokes
+            if (_water == null && WaterSurface != null)
+                _water = WorkshopAudio.StartLoop("water_run", WaterSurface.position, 0f, Nozzle ? 1.06f : 1f);
             Entered?.Invoke();
         }
 
@@ -176,6 +181,7 @@ namespace GeodeEmpire.Workshop
             CursorController.MarkInputConsumed();
             Active = false;
             Scrubbing = false;
+            if (_water != null) { WorkshopAudio.StopLoop(_water); _water = null; }
             RestBrush();
             if (_controller != null) _controller.ExitStationView();
             if (_player != null) _player.InputLocked = false;
@@ -235,6 +241,7 @@ namespace GeodeEmpire.Workshop
                 // bristles in the water: the brush fills again
                 float before = BrushWet;
                 BrushWet = Mathf.MoveTowards(BrushWet, 1f, dt * (Nozzle ? 2.4f : 1.3f));
+                _waterLoud = 1f;                                   // the brush is in the stream
                 GameSession.Instance?.MeterWater(Nozzle ? Economy.Ledger.NozzleLitresPerMinute : Economy.Ledger.BasinLitresPerMinute, dt);
                 if (BrushWet > 0.3f && before <= 0.3f) WorkshopAudio.Play("splash", _contact, 0.35f, 1.35f);
             }
@@ -301,11 +308,18 @@ namespace GeodeEmpire.Workshop
             e.Visual.RefreshCondition();
             _stroke += dt * (6.5f + BrushWet * 2f);
 
+            // the tap is always on at the basin; it opens up when the brush goes under it
+            _waterLoud = Mathf.MoveTowards(_waterLoud, 0f, dt * 2.2f);
+            if (_water != null)
+                WorkshopAudio.SetLoop(_water, Mathf.Lerp(0.12f, 0.42f, _waterLoud) * WorkshopAudio.SfxVolume,
+                                      Mathf.Lerp(0.97f, 1.05f, _waterLoud));
             _nextScrubSound -= dt;
             if (_nextScrubSound <= 0f)
             {
                 _nextScrubSound = BrushWet > 0.25f ? 0.3f : 0.42f;
-                WorkshopAudio.Play(BrushWet > 0.25f ? "scrub" : "scrub_dry", _contact, BrushWet > 0.25f ? 0.55f : 0.4f,
+                // §21: a soft brush on a wet rock is a sponge, not bristles; a dry brush drags whatever it is
+                string wipe = BrushWet <= 0.25f ? "scrub_dry" : SoftBrush ? "sponge" : "scrub";
+                WorkshopAudio.Play(wipe, _contact, BrushWet > 0.25f ? 0.55f : 0.4f,
                                    0.9f + 0.2f * Mathf.Sin(_stroke));
                 if (UnityEngine.Random.value < 0.5f)
                     VFX.EffectsFactory.Instance?.Impact(_contact + _contactNormal * 0.005f, _contactNormal, BrushWet > 0.25f ? 0.14f : 0.09f);

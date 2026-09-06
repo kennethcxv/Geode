@@ -41,6 +41,8 @@ namespace GeodeEmpire.EditorTools
             [UpgradeCatalog.CollectionCabinet] = new Shot { Prop = "prop_display_cabinet", Materials = "M_WoodDark,M_CaseLight", Yaw = 208f, Pitch = 10f },
             [UpgradeCatalog.DisplayExpansion] = new Shot { Prop = "prop_display_cabinet", Materials = "M_WoodDark,M_CaseLight", Yaw = 152f, Pitch = 8f },
             [UpgradeCatalog.SalesTable] = new Shot { Prop = "prop_glass_counter", Materials = "M_ShopWood,M_CaseGlass,M_Brass", Pitch = 12f },
+            // the day-one trade counter (§15.1): the same glass counter shot from the customer's side
+            [UpgradeCatalog.CounterTable] = new Shot { Prop = "prop_glass_counter", Materials = "M_ShopWood,M_CaseGlass,M_Brass", Yaw = 202f, Pitch = 15f },
             [UpgradeCatalog.ShopShelving] = new Shot { Prop = "prop_display_wall", Materials = "M_ShopWood,M_ShelfBack,M_LedStrip", Yaw = 26f, Pitch = 12f },
             [UpgradeCatalog.ShopSignage] = new Shot { Prop = "prop_logo_mountains", Materials = "M_LogoBrass,M_LogoCap", Yaw = 8f, Pitch = 8f },
             [UpgradeCatalog.Wedge] = new Shot { Prop = "prop_wedge", Materials = "M_Steel", Pitch = 14f,

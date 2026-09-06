@@ -153,7 +153,7 @@ namespace GeodeEmpire.Core
                 b.NoticeShown = true;
                 b.FeeAppliedForThisBill = false;
                 Notify($"Bill: {UI.UiKit.Money(b.LastBillAmount)} — rent and utilities, due day {b.DueDay}. Pay it on the tablet.", NotificationKind.Warning);
-                Audio.WorkshopAudio.Play2D("ui_click", 0.4f, 0.85f);
+                Audio.WorkshopAudio.Play2D("bill_notice", 0.5f);
                 BillIssued?.Invoke(b.LastBillAmount);
                 Defer("bill-issued", RaiseStateChanged);
                 QueueSave("bill");

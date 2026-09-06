@@ -183,7 +183,9 @@ namespace GeodeEmpire.Audio
             _bank["wood_knock"] = Variants(2, i => Impact(0.16f, 300f + i * 40f, 0.6f, 0.15f, 0.45f, 2.0f, seed: 110 + (ulong)i));
             _bank["crystal_chime"] = Variants(3, i => Chime(2400f + i * 500f, 0.5f, seed: 120 + (ulong)i));
             _bank["crystal_break"] = Variants(2, i => CrystalBreak(seed: 130 + (ulong)i));
-            _bank["ui_click"] = Variants(1, i => Chime(1500f, 0.08f, seed: 140, noise: 0.2f));
+            // §21 measured: at 1500 Hz this was brighter than a hammer tap on stone. A UI click should sit under
+            // the world it interrupts, not over it.
+            _bank["ui_click"] = Variants(1, i => Chime(1020f, 0.08f, seed: 140, noise: 0.12f));
             _bank["ui_buy"] = Variants(1, i => Chime(880f, 0.35f, seed: 150, second: 1320f));
             _bank["ui_sell"] = Variants(1, i => Chime(1046f, 0.4f, seed: 160, second: 1568f));
             _bank["ui_error"] = Variants(1, i => Chime(220f, 0.25f, seed: 170, noise: 0.35f));
@@ -201,6 +203,15 @@ namespace GeodeEmpire.Audio
             _bank["knock_1"] = Variants(2, i => Knock(0.5f, seed: 264 + (ulong)i));
             _bank["knock_2"] = Variants(2, i => Knock(1f, seed: 268 + (ulong)i));
             _bank["scrub"] = Variants(3, i => Scrub(0.32f + i * 0.04f, seed: 270 + (ulong)i));
+            // §21: a sponge is not a bristle brush — softer, wetter, and with none of the brush's rasp
+            _bank["sponge"] = Variants(3, i => Sponge(0.38f + i * 0.05f, seed: 274 + (ulong)i));
+            // a brush with no water in it drags rather than washes; and steel skating over stone
+            _bank["scrub_dry"] = Variants(3, i => Scrub(0.26f + i * 0.03f, seed: 282 + (ulong)i, dry: true));
+            _bank["scrape"] = Variants(2, i => Scrub(0.30f + i * 0.05f, seed: 286 + (ulong)i, dry: true, metal: true));
+            // the tap over the basin, so the wash station is not silent between strokes
+            _bank["water_run"] = new[] { LoopClip(WaterRun(seed: 278)) };
+            // a bill arriving: low, two-tone, deliberately not a piercing UI ping (§21)
+            _bank["bill_notice"] = Variants(1, i => BillNotice(seed: 279));
             _bank["splash"] = Variants(2, i => Splash(seed: 280 + (ulong)i));
             // lapidary saw: motor loop, blade-in-stone grind loop, clamp clack, the released piece dropping, the cut-through ring
             _bank["saw_motor"] = new[] { LoopClip(Motor(seed: 400)) };
@@ -368,7 +379,11 @@ namespace GeodeEmpire.Audio
         }
 
         /// <summary>One stroke of a stiff brush over wet stone.</summary>
-        private static float[] Scrub(float duration, ulong seed)
+        /// <summary>
+        /// A brush over stone. <paramref name="dry"/> drags instead of washing — brighter, grittier, with the
+        /// water's body gone; <paramref name="metal"/> puts the ring of steel skating over rock on top of it.
+        /// </summary>
+        private static float[] Scrub(float duration, ulong seed, bool dry = false, bool metal = false)
         {
             int n = (int)(duration * SampleRate);
             var d = new float[n];
@@ -379,11 +394,12 @@ namespace GeodeEmpire.Audio
                 float t = i / (float)SampleRate;
                 float x = t / duration;
                 float noise = rng.NextFloat() * 2f - 1f;
-                lp += (noise - lp) * 0.45f;
-                lp2 += (lp - lp2) * 0.6f;
+                lp += (noise - lp) * (dry ? 0.70f : 0.45f);          // dry is brighter: less water damping it
+                lp2 += (lp - lp2) * (dry ? 0.80f : 0.6f);
                 float env = Mathf.Pow(Mathf.Sin(x * Mathf.PI), 1.4f);
-                float bristles = rng.NextFloat() < 0.06f ? noise * 0.5f : 0f;
-                d[i] = Mathf.Clamp((lp2 * 1.6f + bristles) * env * 0.5f, -1f, 1f);
+                float bristles = rng.NextFloat() < (dry ? 0.13f : 0.06f) ? noise * (dry ? 0.7f : 0.5f) : 0f;
+                float ring = metal ? Mathf.Sin(2f * Mathf.PI * 3100f * t + Mathf.Sin(t * 90f)) * 0.10f * env : 0f;
+                d[i] = Mathf.Clamp((lp2 * (dry ? 1.35f : 1.6f) + bristles + ring) * env * (dry ? 0.42f : 0.5f), -1f, 1f);
             }
             return d;
         }
@@ -537,6 +553,66 @@ namespace GeodeEmpire.Audio
                 }
             }
             for (int i = 0; i < n; i++) d[i] = Mathf.Clamp(d[i], -1f, 1f);
+            return d;
+        }
+
+        /// <summary>A sponge or cloth: the same wipe as the brush with the rasp taken out and the water left in.</summary>
+        private static float[] Sponge(float duration, ulong seed)
+        {
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float lp = 0f, lp2 = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float noise = rng.NextFloat() * 2f - 1f;
+                lp += (noise - lp) * 0.09f;          // much duller than Scrub's rasp
+                lp2 += (lp - lp2) * 0.20f;
+                // one soft push-and-release rather than a run of bristle strokes
+                float env = Mathf.Sin(Mathf.PI * Mathf.Clamp01(t / duration));
+                float squeeze = Mathf.Sin(2f * Mathf.PI * 190f * t) * Mathf.Exp(-t * 9f) * 0.10f;
+                d[i] = Mathf.Clamp((lp2 * 2.6f + squeeze) * env * 0.55f, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>A tap running into a basin: broadband water with the hollow note of the bowl under it. Loop-safe.</summary>
+        private static float[] WaterRun(ulong seed)
+        {
+            float duration = 1.0f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            float hp = 0f, prev = 0f, lp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float noise = rng.NextFloat() * 2f - 1f;
+                hp = 0.72f * (hp + noise - prev); prev = noise;      // the hiss of the stream
+                lp += (noise - lp) * 0.05f;                          // the body in the bowl
+                // the basin's own note, at whole periods so the loop does not click
+                float bowl = Mathf.Sin(2f * Mathf.PI * 220f * t) * 0.05f + Mathf.Sin(2f * Mathf.PI * 330f * t) * 0.03f;
+                d[i] = Mathf.Clamp((hp * 0.42f + lp * 0.8f + bowl) * 0.5f, -1f, 1f);
+            }
+            return d;
+        }
+
+        /// <summary>The post arriving: two soft low tones, nothing like a UI ping.</summary>
+        private static float[] BillNotice(ulong seed)
+        {
+            float duration = 0.7f;
+            int n = (int)(duration * SampleRate);
+            var d = new float[n];
+            var rng = new SeededRandom(seed);
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)SampleRate;
+                float a = Mathf.Sin(2f * Mathf.PI * 392f * t) * Mathf.Exp(-t * 5f);
+                float b = t > 0.16f ? Mathf.Sin(2f * Mathf.PI * 294f * (t - 0.16f)) * Mathf.Exp(-(t - 0.16f) * 4.2f) : 0f;
+                float paper = (rng.NextFloat() * 2f - 1f) * Mathf.Exp(-t * 26f) * 0.10f;
+                d[i] = Mathf.Clamp((a * 0.30f + b * 0.34f + paper) * 0.85f, -1f, 1f);
+            }
             return d;
         }
 

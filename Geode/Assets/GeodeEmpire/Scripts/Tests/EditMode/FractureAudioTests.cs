@@ -122,20 +122,93 @@ namespace GeodeEmpire.Tests
             Assert.Greater(Brightness(onset), Brightness(split) * 1.5f);
         }
 
-        /// <summary>Zero-crossing rate: a cheap, stable stand-in for spectral centroid.</summary>
+        /// <summary>
+        /// Fraction of a clip's energy above about 2.5 kHz — the band the ear finds shrill. A one-pole high pass
+        /// and two sums; no FFT needed for a comparison this coarse.
+        ///
+        /// Zero-crossing rate was the first attempt and it was the wrong measure: it scores broadband noise as
+        /// bright whatever its centre frequency, so a 220 Hz error tone with a bit of grit in it read as more
+        /// piercing than a hammer on stone. "Piercing" is about where the energy sits, not how often the signal
+        /// changes sign.
+        /// </summary>
         private static float Brightness(AudioClip clip)
         {
             Assert.IsNotNull(clip);
             var d = new float[clip.samples * clip.channels];
             clip.GetData(d, 0);
-            int crossings = 0, counted = 0;
+            const float alpha = 0.737f;                 // one-pole high pass, ~2.5 kHz at 44.1 kHz
+            float y = 0f, hi = 0f, all = 0f;
             for (int i = 1; i < d.Length; i++)
             {
-                if (Mathf.Abs(d[i]) < 0.004f && Mathf.Abs(d[i - 1]) < 0.004f) continue;   // ignore the silent tail
-                counted++;
-                if ((d[i] < 0f) != (d[i - 1] < 0f)) crossings++;
+                y = alpha * (y + d[i] - d[i - 1]);
+                hi += y * y;
+                all += d[i] * d[i];
             }
-            return counted > 0 ? crossings / (float)counted : 0f;
+            return all > 1e-9f ? hi / all : 0f;
         }
-    }
+    
+        /// <summary>
+        /// §21 asks for the set to be volume-matched and for UI sounds not to be piercing. Both are measurable:
+        /// peak level across the bank, and brightness on the cues that play into the player's ear rather than
+        /// into the room. This also catches a cue that is referenced by name but never generated — those play
+        /// silence, and nothing else in the project would notice.
+        /// </summary>
+        [Test]
+        public void Every_cue_the_game_asks_for_exists_and_the_set_is_level_matched()
+        {
+            // every name the runtime plays, gathered here so a typo or a deleted generator fails loudly
+            string[] cues =
+            {
+                "swing", "chisel_ring", "tension", "tap_light", "tap_medium", "tap_heavy", "tap_dead", "creak",
+                "tick", "crack_final", "crack_onset", "stone_split", "debris_settle", "fragments", "rock_place",
+                "rock_pickup", "crate_open", "wood_knock", "crystal_chime", "crystal_break", "discovery", "slip",
+                "thud", "loupe_up", "loupe_down", "shop_bell", "counter_bell", "register_beep", "register",
+                "knock_0", "knock_1", "knock_2", "scrub", "scrub_dry", "sponge", "scrape", "splash", "clamp",
+                "cut_through", "slab_place", "bill_notice",
+                "ui_click", "ui_buy", "ui_sell", "ui_error",
+            };
+            var peaks = new Dictionary<string, float>();
+            foreach (var cue in cues)
+            {
+                var clip = WorkshopAudio.GetClip(cue);
+                Assert.IsNotNull(clip, $"'{cue}' is played by the game but generates no clip — it plays silence");
+                peaks[cue] = Peak(clip);
+            }
+
+            // nothing may be inaudible, and nothing may be three times the level of the quietest thing in the set
+            float lo = float.MaxValue, hi = 0f; string loName = "", hiName = "";
+            foreach (var kv in peaks)
+            {
+                if (kv.Value < lo) { lo = kv.Value; loName = kv.Key; }
+                if (kv.Value > hi) { hi = kv.Value; hiName = kv.Key; }
+            }
+            Assert.Greater(lo, 0.05f, $"'{loName}' peaks at {lo:0.000}: effectively silent");
+            Assert.LessOrEqual(hi, 1.0001f, $"'{hiName}' clips at {hi:0.000}");
+            Assert.Less(hi / lo, 8f, $"the set is not level matched: '{hiName}' {hi:0.00} against '{loName}' {lo:0.00}");
+        }
+
+        /// <summary>§21: "avoid piercing UI sounds" — the cues that go straight to the ear stay off the top end.</summary>
+        [Test]
+        public void The_interface_does_not_shriek()
+        {
+            float room = Brightness(WorkshopAudio.GetClip("tap_medium"));
+            foreach (var ui in new[] { "ui_click", "ui_buy", "ui_sell", "ui_error", "bill_notice", "register_beep" })
+            {
+                var clip = WorkshopAudio.GetClip(ui);
+                Assert.IsNotNull(clip, ui);
+                Assert.Less(Brightness(clip), room * 1.6f,
+                    $"'{ui}' is brighter than a hammer tap on stone — that is the piercing UI sound §21 forbids");
+                Assert.Less(Peak(clip), 0.92f, $"'{ui}' is louder than the world it interrupts");
+            }
+        }
+
+        private static float Peak(AudioClip clip)
+        {
+            var d = new float[clip.samples * clip.channels];
+            clip.GetData(d, 0);
+            float p = 0f;
+            for (int i = 0; i < d.Length; i++) p = Mathf.Max(p, Mathf.Abs(d[i]));
+            return p;
+        }
+}
 }
