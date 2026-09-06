@@ -67,8 +67,13 @@ namespace GeodeEmpire.Retail
         public Material LabelMaterial;
         public NavMeshSurface Navigation;
 
-        /// <summary>Retail markup over the appraised (dealer) value. A customer with the right taste pays it; the dealer never does.</summary>
-        public const float Markup = 1.4f;
+        /// <summary>
+        /// Retail markup over the appraised (dealer) value. A customer with the right taste pays it; the dealer
+        /// never does. §19.1 wants early customer sales to matter: at 1.4 the counter's slower turn — a piece can
+        /// sit on the shelf for days before anyone wants it — left it earning less than simply shipping
+        /// everything to the dealer, which is the wrong lesson to teach about running a shop.
+        /// </summary>
+        public const float Markup = 1.6f;
         public const int MaxCustomers = 3;
 
         public event Action Changed;

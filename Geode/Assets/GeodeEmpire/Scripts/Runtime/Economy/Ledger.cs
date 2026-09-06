@@ -32,8 +32,12 @@ namespace GeodeEmpire.Economy
         public const int FirstBillDay = 4;
 
         // ---- rent (§17.1) --------------------------------------------------------------------
-        /// <summary>Rent per period for the starter unit alone.</summary>
-        public const float UnitRent = 96f;
+        /// <summary>
+        /// Rent per period for the starter unit alone. §19: simulated across seven archetypes, 96 took 44-53% of
+        /// every career's takings and nobody could reach the $550 back room inside a month — that is punishment,
+        /// not pressure. The starter unit is one small workshop; the expansions are where the rent bites.
+        /// </summary>
+        public const float UnitRent = 48f;
         public const float BackRoomRent = 74f;
         public const float ShopFrontRent = 138f;
 
@@ -61,7 +65,7 @@ namespace GeodeEmpire.Economy
         /// <summary>Price per unit (kWh). Round numbers: the player should be able to do this in their head.</summary>
         public const float PricePerUnit = 0.34f;
         /// <summary>Standing charge per period, whatever is plugged in.</summary>
-        public const float ElectricityStanding = 11f;
+        public const float ElectricityStanding = 7f;
 
         /// <summary>What a running machine draws, in units per minute of actual use.</summary>
         public static float DrawPerMinute(string upgradeId) => upgradeId switch
@@ -89,7 +93,7 @@ namespace GeodeEmpire.Economy
         // ---- water (§17.3) -------------------------------------------------------------------
         /// <summary>Price per hundred litres.</summary>
         public const float PricePerHundredLitres = 0.42f;
-        public const float WaterStanding = 6f;
+        public const float WaterStanding = 4f;
         /// <summary>Litres a minute at the basin, and again with the nozzle running.</summary>
         public const float BasinLitresPerMinute = 7.5f;
         public const float NozzleLitresPerMinute = 13f;
