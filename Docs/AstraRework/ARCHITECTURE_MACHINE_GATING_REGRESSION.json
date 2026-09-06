@@ -1,0 +1,60 @@
+{
+  "qa": "6e894c2f09a4470b8fdb7aa57faf2c4e",
+  "fresh": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ Cash = 120, upgrades = retail_counter_table, bodiesActive = 0, clampActive = False, outputActive = False, largeActive = False, sawBayLightActive = False, lapActive = False, crackerBedActive = False, screen = 1960x1132, cam = 978x519 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "mature": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ diagnostic = all-owned synthetic gating only, bodies = 15, stableBody = True, UsingLarge = True, large = True, small = False, clamp = True, output = True, tray = True, taskLightObject = True, bay = True }",
+      "compiler": "Roslyn"
+    }
+  },
+  "maturePlacement": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "display_cabinet:True:\nmain_display_case:True:\nflat_lap:True:\ngeode_cracker:True:\nstorage_shelf:True:\nappraisal_station:True:\nspecialist_display_case:True:\ngallery_plinths:True:\ntrim_saw:True:\ndisplay_wall_c:True:\ndisplay_wall_b:True:\nrock_rack:True:\nwash_station:True:\nshop_island:True:\ndisplay_wall_a:True:",
+      "compiler": "Roslyn"
+    }
+  },
+  "matureCollision": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scope = active static colliders, cross-fixture and fixture/fixed-shell, internal asset overlaps excluded, colliders = 256, tested = 37, unsupported = 0, overlapCount = 0, details =  }",
+      "compiler": "Roslyn"
+    }
+  },
+  "stage2": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ diagnostic = Stage2 variant control, body = True, UsingLarge = False, small = True, large = False, clamp = True, output = True, tray = True }",
+      "compiler": "Roslyn"
+    }
+  },
+  "reload": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ stage2Reload = True, freshCash = 120, freshBodies = 0, freshClamp = False, freshOutput = False, freshLarge = False }",
+      "compiler": "Roslyn"
+    }
+  },
+  "finish": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ phase = Finished, endedUtc = 2026-09-06T21:50:11.9327610Z, originalDataUnchanged = True, path = , guard = True, dirty = False }",
+      "compiler": "Roslyn"
+    }
+  },
+  "scope": "Fresh startup is unmodified; full-owned Stage3/Stage2 switch uses explicit diagnostic injection. Cross-fixture/fixed scenery audit excludes internal asset geometry and moving rigidbodies. No standalone/full controller/customer acceptance."
+}

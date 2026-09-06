@@ -409,6 +409,43 @@ namespace GeodeEmpire.EditorTools
             if (!EditorSceneManager.SaveScene(scene, AstraCandidatePath)) throw new InvalidOperationException("Could not save late fixtures.");
         }
 
+        /// <summary>One stable purchased body owns every machine variant, working zone and shared output surface.</summary>
+        [MenuItem("GeodeEmpire/Astra/Configure Candidate Machine Bodies")]
+        public static void ConfigureAstraCandidateMachineBodies()
+        {
+            var scene = SceneManager.GetActiveScene();
+            if (EditorApplication.isPlayingOrWillChangePlaymode || scene.path != AstraCandidatePath || scene.isDirty)
+                throw new InvalidOperationException("Open the clean saved Astra candidate in Edit Mode first.");
+            var roots = new[] { "SawStation", "PolishStation", "CrackerStation" }
+                .Select(name => CandidatePath(scene, "Stations/" + name)).ToArray();
+            foreach (var root in roots)
+                if (root.Find("Body") != null || root.GetComponent<PlaceableFixture>() == null)
+                    throw new InvalidOperationException("Machine body is already configured or fixture missing: " + root.name);
+            var small = CandidatePath(scene, "Stations/SawStation/Machine");
+            var shared = new[] { "tray", "SawLight", "SawTray", "MatSaw", "Sign_DIAMOND SAW" }
+                .Select(name => CandidatePath(scene, "Stations/SawStation/Machine/" + name)).ToArray();
+            var beforeIds = DeliveryFileIds(scene);
+            var zones = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Interaction.PlacementZone>(true)).ToArray();
+            var beforeZones = zones.Select(z => GlobalObjectId.GetGlobalObjectIdSlow(z).targetObjectId).OrderBy(x => x).ToArray();
+            foreach (var root in roots)
+            {
+                var children = root.Cast<Transform>().ToArray();
+                var body = CandidateRoot(root, "Body");
+                foreach (var child in children) Undo.SetTransformParent(child, body, "Keep machine hardware with its purchased body");
+                var fixture = root.GetComponent<PlaceableFixture>();
+                Undo.RecordObject(fixture, "Use stable machine body across variants");
+                fixture.Body = body.gameObject;
+                if (root == roots[0])
+                    foreach (var child in shared) Undo.SetTransformParent(child, body, "Share saw output and lighting between variants");
+                body.gameObject.SetActive(false);
+            }
+            var afterZones = zones.Select(z => GlobalObjectId.GetGlobalObjectIdSlow(z).targetObjectId).OrderBy(x => x).ToArray();
+            if (!beforeIds.SequenceEqual(DeliveryFileIds(scene)) || !beforeZones.SequenceEqual(afterZones))
+                throw new InvalidOperationException("A gameplay component ID changed; do not promote this candidate.");
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene, AstraCandidatePath)) throw new InvalidOperationException("Could not save machine bodies.");
+        }
+
         private static PlaceableFixture CandidateWrappedFixture(Transform stations, Transform body, string name, string id,
             string title, string upgrade, Vector2 size, float height, Room room, Vector3? centre = null)
         {

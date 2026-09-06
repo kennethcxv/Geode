@@ -1,0 +1,11 @@
+{
+  "readback": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ scene = Assets/GeodeEmpire/Scenes/Workshop_AstraCandidate.unity, dirty = True, body = Body, bodyActive = False, smallParent = Body, largeParent = Body, clampParent = Body, trayParent = Body, lightParent = Body, zoneCount = 91, delivery = 166829470,1990628459,616842567 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "note": "Deferred Undo left candidate dirty after method-internal save. Separate save_scene called and native isDirty=false verified. This is authoring readback, not Play gating or collision acceptance."
+}
