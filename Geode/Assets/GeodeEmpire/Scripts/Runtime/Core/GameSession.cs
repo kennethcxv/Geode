@@ -582,6 +582,10 @@ namespace GeodeEmpire.Core
             var sup = Economy.SupplierCatalog.Get(supplierId);
             if (sup == null) { error = "Unknown supplier"; return false; }
             if (!State.HasSupplier(supplierId)) { error = "Supplier not unlocked"; return false; }
+            // §17.7: three missed bills and the suppliers who extend terms stop extending them. The local yard,
+            // which is cash over the counter anyway, keeps trading — a career can always dig itself back out.
+            if (supplierId != Economy.SupplierCatalog.Local && Economy.Ledger.PremiumSourcingBlocked(State))
+            { error = "Word has got round. They want the arrears cleared before another lot goes out."; return false; }
             if (!CanAfford(sup.Price)) { error = "Not enough cash"; return false; }
             var receiving = FindAnyObjectByType<ReceivingArea>();
             if (receiving == null) { error = "No receiving area"; return false; }
@@ -640,6 +644,9 @@ namespace GeodeEmpire.Core
             if (!string.IsNullOrEmpty(up.Requires) && !State.HasUpgrade(up.Requires)) { reason = "Needs the " + Economy.UpgradeCatalog.Get(up.Requires).Name; return false; }
             if (up.Consumable && upgradeId == Economy.UpgradeCatalog.SawBlade && State.BladeWear < 0.2f) { reason = "Blade still sharp"; return false; }
             if (upgradeId == Economy.UpgradeCatalog.Stage3 && Economy.Reputation.Tier(State) < 3) { reason = $"Needs a respected name ({Economy.Reputation.Word(State).ToLowerInvariant()} now)"; return false; }
+            // §17.7: the landlord will not put his name to more floor for a tenant who is behind on this one
+            if (up.Category == "PREMISES" && Economy.Ledger.ExpansionBlocked(State))
+            { reason = $"The landlord wants {UI.UiKit.Money(State.Bills.Outstanding)} of arrears cleared first"; return false; }
             if (!CanAfford(up.Price)) { reason = $"{UI.UiKit.Money(up.Price - State.Cash)} more"; return false; }
             float cheapest = Economy.SupplierCatalog.Get(Economy.SupplierCatalog.Local).Price;
             if (State.Cash - up.Price < cheapest && !HasProcessableMaterial()) { reason = $"Keep {UI.UiKit.Money(cheapest)} for a crate"; return false; }

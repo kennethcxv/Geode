@@ -579,7 +579,11 @@ namespace GeodeEmpire.Core
             Check("shop front is not leased", premises != null && !premises.ShopFrontRoot.activeSelf);
             Check("the hoarding is up", premises != null && premises.ShopFrontHoarding.activeSelf);
             Check("the north openings are boarded", premises != null && premises.BackRoomHoarding.activeSelf);
-            Check("no retail shop is running", Retail.RetailShop.Instance == null);
+            // §15.1 changed this: the shop exists from day one so a trade counter can open before the showroom
+            // lease. What must still be true is that nobody is trading until the player has bought a counter.
+            Check("the shop exists but is not trading yet",
+                  Retail.RetailShop.Instance != null && !Retail.RetailShop.Instance.Trading,
+                  Retail.RetailShop.Instance == null ? "no RetailShop at all" : "trading=" + Retail.RetailShop.Instance.Trading);
 
             // how much floor the player can actually reach, measured the way build mode measures it
             Build.PlacementValidator.InvalidateMask();

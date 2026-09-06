@@ -195,5 +195,32 @@ namespace GeodeEmpire.Tests.EditMode
             Assert.IsTrue(sawElectricity);
             Assert.AreEqual(charged, summed, 0.02f, "the stored lines add up to what was charged");
         }
+
+        /// <summary>
+        /// §17.7's consequences are graduated and always recoverable. These were written and then never consulted
+        /// by anything, so a player could miss five bills and still sign a new lease.
+        /// </summary>
+        [Test]
+        public void Arrears_bite_in_stages_and_paying_up_clears_them()
+        {
+            var s = Fresh();
+            Assert.IsFalse(Ledger.ExpansionBlocked(s));
+            Assert.IsFalse(Ledger.PremiumSourcingBlocked(s));
+
+            s.Bills.Outstanding = 120f;
+            Ledger.ApplyLateFee(s);
+            Assert.IsFalse(Ledger.ExpansionBlocked(s), "one missed bill is a fee, not a consequence");
+
+            Ledger.ApplyLateFee(s);
+            Assert.IsTrue(Ledger.ExpansionBlocked(s), "two: no new floor");
+            Assert.IsFalse(Ledger.PremiumSourcingBlocked(s));
+
+            Ledger.ApplyLateFee(s);
+            Assert.IsTrue(Ledger.PremiumSourcingBlocked(s), "three: the good suppliers want cash up front");
+
+            s.Bills.MissedPayments = 0;                  // what PayBill does
+            Assert.IsFalse(Ledger.ExpansionBlocked(s), "paying up lifts all of it");
+            Assert.IsFalse(Ledger.PremiumSourcingBlocked(s));
+        }
 }
 }
