@@ -31,10 +31,16 @@ namespace GeodeEmpire.Workshop
 
         private Transform ActiveAnchor => PremisesExpansion.BackRoomOpen && BayAnchor != null ? BayAnchor : KerbAnchor;
 
-        /// <summary>Two spaces at the kerb: enough to have one open and one waiting, and no more.</summary>
+        /// <summary>
+        /// Two spaces at the kerb: enough to have one open and one waiting, and no more. The second used to sit
+        /// 1.32 m due west of the first, which put it 162 mm inside the workbench — the collision audit caught it
+        /// the first time two crates were ordered on one save, and a first move at -0.95 caught a stool. It sits
+        /// south-west of the pallets now, with clearance to the bench behind it and to the trade counter in front
+        /// (which is switched off on a fresh save, so a clearance cast alone does not see it).
+        /// </summary>
         private static readonly Vector3[] KerbCells =
         {
-            new Vector3(0f, 0.12f, 0f), new Vector3(-1.32f, 0.12f, 0f),
+            new Vector3(0f, 0.12f, 0f), new Vector3(-1.35f, 0.12f, -1.05f),
         };
 
         /// <summary>Four pallet cells in the bay, front row first, each 1.2 x 0.8 m so a crate and its lid fit.</summary>

@@ -2153,6 +2153,112 @@ namespace GeodeEmpire.Core
 
         private IEnumerator OpenShopRoutine() { Running = true; yield return EnsureShop(); Running = false; }
 
+        public void RunPhaseAcceptance() { if (!Running) StartCoroutine(PhaseAcceptance()); }
+
+        /// <summary>
+        /// The boxes in §30 that only a running game can tick: several crates ordered until goods-in says no, the
+        /// business physically expanding and staying expanded across a reload, and a bill arriving, being paid,
+        /// and the ledger remembering it.
+        /// </summary>
+        private IEnumerator PhaseAcceptance()
+        {
+            Running = true;
+            Phase = "phase-acceptance";
+            float t0 = Time.time;
+            while ((S == null || S.State == null) && Time.time - t0 < 20f) yield return null;
+            if (S == null || S.State == null) { L("no session"); Running = false; yield break; }
+            int pass = 0, fail = 0;
+            void Check(string what, bool ok, string detail = null)
+            { if (ok) pass++; else fail++; L($"  {(ok ? "ok  " : "FAIL")}  {what}" + (detail != null ? "  (" + detail + ")" : "")); }
+            L("== PhaseAcceptance");
+
+            // ---- several crates, and a real capacity (§14, §30 receiving) ---------------------
+            // the trade counter stands between the pallets and the door, so goods-in has to work with it there
+            S.State.Cash = 400f;
+            S.BuyUpgrade(Economy.UpgradeCatalog.CounterTable, out _);
+            yield return new WaitForSeconds(0.5f);
+            var recv = Find<Workshop.ReceivingArea>();
+            Check("goods-in exists", recv != null);
+            Check("the trade counter is standing", Retail.RetailShop.Instance != null && Retail.RetailShop.Instance.Trading);
+            if (recv != null)
+            {
+                int cap = recv.Capacity;
+                S.State.Cash = 4000f;
+                int bought = 0; string lastErr = null;
+                for (int i = 0; i < cap + 3; i++)
+                {
+                    if (!S.BuyCrate("local", out string err)) { lastErr = err; break; }
+                    bought++;
+                    yield return new WaitForSeconds(1.6f);
+                }
+                Check($"goods-in takes exactly its {cap} crates", bought == cap, $"took {bought}");
+                Check("and then refuses in words", !string.IsNullOrEmpty(lastErr), lastErr);
+                // measure the real gaps rather than trusting the slot maths
+                var pts = new List<Vector3>();
+                foreach (var c in S.Crates.Values) if (c != null) pts.Add(c.transform.position);
+                float worst = 999f;
+                for (int i = 0; i < pts.Count; i++)
+                    for (int j = i + 1; j < pts.Count; j++)
+                    {
+                        var d = pts[i] - pts[j]; d.y = 0f;
+                        worst = Mathf.Min(worst, d.magnitude);
+                    }
+                Check("no two crates overlap", pts.Count < 2 || worst >= Workshop.ReceivingArea.SlotRadius,
+                      $"{pts.Count} crates, closest {(pts.Count < 2 ? 0f : worst):F3} m");
+                float cashBefore = S.State.Cash;
+                S.BuyCrate("local", out _);
+                Check("a refused order costs nothing", Mathf.Abs(S.State.Cash - cashBefore) < 0.01f,
+                      $"{cashBefore:F2} -> {S.State.Cash:F2}");
+            }
+
+            // ---- the business physically expands, and stays expanded (§16, §30 expansion) ------
+            var premises = Find<Workshop.PremisesExpansion>();
+            Check("the back room is boarded up to start", premises != null && premises.BackRoomHoarding.activeSelf);
+            Build.PlacementValidator.InvalidateMask();
+            Core.WorldIntegrityAudit.Clearance(out _, out int reachBefore);
+            S.State.Cash = 4000f;
+            S.BuyUpgrade(Economy.UpgradeCatalog.BackRoom, out string leaseWhy);
+            yield return new WaitForSeconds(0.6f);
+            Check("the lease can be signed", string.IsNullOrEmpty(leaseWhy), leaseWhy);
+            Check("the hoarding comes down", premises != null && !premises.BackRoomHoarding.activeSelf && premises.BackRoomRoot.activeSelf);
+            Build.PlacementValidator.InvalidateMask();
+            Core.WorldIntegrityAudit.Clearance(out _, out int reachAfter);
+            Check("there is visibly more floor to stand on", reachAfter > reachBefore * 1.3f, $"{reachBefore} -> {reachAfter} cells");
+            Check("the rent went up with it", Economy.Ledger.RentPerPeriod(S.State) > Economy.Ledger.UnitRent,
+                  $"{Economy.Ledger.RentPerPeriod(S.State):F0} a period");
+
+            // ---- a bill, paid, remembered (§17, §30 operating costs) ---------------------------
+            var b = S.State.Bills;
+            b.ElectricityUnits = 15f; b.WaterLitres = 220f;
+            int today = Progression.Day(S.State);
+            Economy.Ledger.IssueBill(S.State, today);
+            float owed = b.Outstanding;
+            Check("the bill has an amount and a due date", owed > 0.01f && b.DueDay > today, $"{owed:F2} due day {b.DueDay}");
+            Check("it comes with a breakdown", b.LastLines.Count >= 3, b.LastLines.Count + " lines");
+            Check("the warning says what is owed and when", !string.IsNullOrEmpty(Economy.Ledger.StandingWarning(S.State, today)),
+                  Economy.Ledger.StandingWarning(S.State, today));
+            float before = S.State.Cash;
+            bool paid = S.PayBill(out string payErr);
+            Check("paying it clears it", paid && b.Outstanding < 0.01f, payErr);
+            Check("and takes exactly what was owed", Mathf.Abs((before - S.State.Cash) - owed) < 0.02f,
+                  $"{before:F2} -> {S.State.Cash:F2} for {owed:F2}");
+            float paidTotal = b.TotalPaid;
+
+            S.FlushSave("acceptance");
+            S.ContinueGame();
+            yield return new WaitForSeconds(1.2f);
+            Check("the lease survives a reload", S.State.HasUpgrade(Economy.UpgradeCatalog.BackRoom));
+            Check("the room is still open after a reload", premises == null || premises.BackRoomRoot.activeSelf);
+            Check("the ledger remembers what was paid", Mathf.Abs(S.State.Bills.TotalPaid - paidTotal) < 0.02f,
+                  $"{S.State.Bills.TotalPaid:F2}");
+            Check("nothing is owed after a reload", !Economy.Ledger.Due(S.State));
+
+            L(Core.CollisionAudit.Report("phase acceptance end"));
+            L($"phase acceptance: pass={pass} fail={fail}");
+            Phase = "done";
+            Running = false;
+        }
+
         public void RunStarterRetail() { if (!Running) StartCoroutine(StarterRetail()); }
 
         /// <summary>

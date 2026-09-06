@@ -244,3 +244,20 @@ Bump to version 3 with an explicit migration and a test per field.
 | M15 | Customer stress | 30 spawned, 24 served (80%), 0 stuck / loops / stalls / path failures, 0 overlaps, 60-82 fps |
 | M15 | UI render QA | 28/28 pass, 0 findings at 1080p/1440p/4K and 1.0x/1.4x (was 6 fail / 24 findings) |
 | M15 | EditMode suite | **121/121** |
+| DoD | Several crates, capacity, refusal | goods-in takes exactly its 2, refuses in words, closest 1.710 m, refused order costs $0 |
+| DoD | Expansion is physical and persists | hoarding down, floor 1096 -> 1707 cells, rent 48 -> 122, lease and ledger survive a reload |
+| DoD | A bill arrives, is paid, is remembered | $141.34 with a 3-line breakdown and a due date; paid exactly; nothing owed after reload |
+| DoD | Phase acceptance, with the counter standing | **20/20, 0 collision overlaps** |
+
+## J. Definition of Done (§30)
+
+Every box in §30 that a running game can prove has been proved in Play Mode and is listed above. Two
+carry a caveat rather than a tick:
+
+- **"performance measured"** — measured and written down (`PERFORMANCE.md`), but the figures were taken on
+  a machine deep into swap. The idle control run reads 2,417 ms worst frame while doing nothing at all, so
+  the numbers describe the operating system as much as the game. They need re-taking with memory free.
+- **"no major interaction hitch"** — the crack hitch is gone (189-325 ms -> 29.7-55.5), which was the
+  defect §10 was written about. A 6.8-10.9 MB allocation still lands on the frame after the discovery card
+  is presented; it is recorded as outstanding rather than claimed as fixed.
+
