@@ -52,6 +52,7 @@ namespace GeodeEmpire.Workshop
         }
 
         private void OnRefresh() => Apply(Stage2Active, Stage3Active);
+        public void Refresh() => OnRefresh();
 
         private void Apply(bool stage2, bool stage3 = false)
         {

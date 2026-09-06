@@ -172,7 +172,8 @@ namespace GeodeEmpire.Interaction
             bool opened = e.Record.IsOpened;
             if (opened && !AcceptsOpened) return "Unopened rocks only";
             if (!opened && !AcceptsUnopened) return Kind == ZoneKind.DisplaySlot || Kind == ZoneKind.SaleSlot ? "Crack it open first" : "Opened specimens only";
-            if (Kind == ZoneKind.SaleSlot && !e.Record.Appraised) return "Appraise it first: the scale sets the price";
+            // Basic retail uses the specimen's damaged estimate. A purchased appraisal station improves
+            // documentation/value certainty; it must not be required to sell the first opened rock.
             if ((Kind == ZoneKind.SaleSlot || Kind == ZoneKind.SellTray) && e.Record.Favorite) return "A favourite: take the star off it on the tablet before selling";
             if (Kind == ZoneKind.Wash && e.Visual != null && e.Visual.DirtRemaining < 0.04f && !(opened && !e.IsPiece && e.Record.Condition != null && !e.Record.Condition.Rinsed)) return "Already clean";
             if (ExtraRefusal != null) { string why = ExtraRefusal(e); if (why != null) return why; }
@@ -263,6 +264,7 @@ namespace GeodeEmpire.Interaction
             if (Packed) Repack();
             else Seat(e, idx, pose);
             e.Record.Location = LocationFor();
+            e.Record.RecoveryCrateId = null;
             e.Record.LocationIndex = IsIndexedSlot ? SlotIndex : idx;   // which slot, not which occupant: the reload looks it up by this
             e.Record.WorldPosition = e.transform.position;
             e.Record.WorldRotation = e.transform.rotation;

@@ -1,0 +1,91 @@
+{
+  "at": "2026-09-06T22:31:00+02:00",
+  "scene": "Assets/GeodeEmpire/Scenes/Workshop_AstraCandidate.unity",
+  "mode": "Native Edit Mode preview; all earned fixture bodies/leases enabled temporarily and original states restored in finally",
+  "initial": {
+    "success": true,
+    "message": "Command executed.",
+    "data": {
+      "compiler": "Roslyn",
+      "logged_error_count": 0,
+      "first_logged_error": null,
+      "logs": [],
+      "created": [],
+      "modified": [
+        "90291:3840",
+        "92928:3328",
+        "93402:3328",
+        "92299:3328",
+        "93073:3328",
+        "92393:3328",
+        "93195:3328",
+        "93496:3328",
+        "93210:3328",
+        "93993:3328",
+        "93498:3328",
+        "91886:3840",
+        "90319:3840",
+        "93350:3328",
+        "89792:4864",
+        "116931:2816",
+        "93727:3328",
+        "90960:3840",
+        "94239:3328",
+        "92879:3328",
+        "93142:3328",
+        "91682:3840",
+        "93356:3328",
+        "91622:3840",
+        "90879:3840",
+        "93067:3328"
+      ],
+      "destroyed": [],
+      "returnValue": "PLACE appraisal_station True  pos=(-4.90, 0.00, 1.82) yaw=180\nPLACE display_cabinet True  pos=(0.50, 0.00, -2.34) yaw=180\nPLACE display_wall_a True  pos=(6.70, 0.00, 1.20) yaw=90\nPLACE display_wall_b True  pos=(6.70, 0.00, 4.25) yaw=90\nPLACE display_wall_c False it overlaps the retailshop pos=(3.20, 0.00, 5.68) yaw=180\nPLACE flat_lap True  pos=(-1.18, 0.00, 1.83) yaw=270\nPLACE gallery_plinths False it overlaps the retailshop pos=(5.30, 0.00, 5.68) yaw=0\nPLACE geode_cracker True  pos=(-1.63, 0.00, 5.48) yaw=0\nPLACE main_display_case True  pos=(1.82, 0.00, 4.50) yaw=270\nPLACE rock_rack False no room to stand at it without blocking a doorway pos=(-6.20, 0.00, 4.85) yaw=270\nPLACE shop_island True  pos=(4.45, 0.00, 2.70) yaw=0\nPLACE specialist_display_case False no room to stand at it without blocking a doorway pos=(6.70, 0.00, -1.35) yaw=90\nPLACE storage_shelf True  pos=(0.95, 0.00, 0.15) yaw=90\nPLACE trim_saw True  pos=(0.15, 0.00, 5.45) yaw=0\nPLACE wash_station True  pos=(-5.95, 0.00, 3.10) yaw=90\nSOLID WestWall/WestWall vs rock_rack/rock_rack depth=0.02500057\nSOLID WestWall/WestWall vs rock_rack/rock_rack depth=0.03000021\nSOLID WestWall/WestWall vs rock_rack/rock_rack depth=0.03000021\nSOLID WestWall/WestWall vs rock_rack/rock_rack depth=0.0250001\nSOLID WestWall/WestWall vs rock_rack/rock_rack depth=0.02500057\nSOLID WestWall/WestWall vs rock_rack/rock_rack depth=0.0250001\nSOLID WestWall/WestWall vs rock_rack/rock_rack depth=0.02500057\nSOLID WestWall/WestWall vs rock_rack/rock_rack depth=0.0250001\nSOLID WestWall/WestWall vs rock_rack/rock_rack depth=0.02500057\nSOLID shop_plant/shop_plant vs display_wall_c/Unit depth=0.12\nSOLID shop_plant/shop_plant vs display_wall_c/Unit depth=0.1799998\nSOLID shop_plant/shop_plant vs gallery_plinths/plinth depth=0.2417665\nsolidOverlaps=12"
+    }
+  },
+  "corrected": {
+    "success": true,
+    "message": "Command executed.",
+    "data": {
+      "compiler": "Roslyn",
+      "logged_error_count": 0,
+      "first_logged_error": null,
+      "logs": [],
+      "created": [],
+      "modified": [
+        "90291:3840",
+        "92928:3328",
+        "93402:3328",
+        "92299:3328",
+        "93073:3328",
+        "92393:3328",
+        "93195:3328",
+        "93496:3328",
+        "93210:3328",
+        "93993:3328",
+        "93498:3328",
+        "91886:3840",
+        "90319:3840",
+        "93350:3328",
+        "89792:4864",
+        "116931:2816",
+        "93727:3328",
+        "90960:3840",
+        "94239:3328",
+        "92879:3328",
+        "93142:3328",
+        "91682:3840",
+        "91622:3840",
+        "90879:3840",
+        "93067:3328"
+      ],
+      "destroyed": [],
+      "returnValue": "PLACE appraisal_station True  pos=(-4.90, 0.00, 1.82) yaw=180\nPLACE display_cabinet True  pos=(0.50, 0.00, -2.34) yaw=180\nPLACE display_wall_a True  pos=(6.70, 0.00, 1.20) yaw=90\nPLACE display_wall_b True  pos=(6.70, 0.00, 4.25) yaw=90\nPLACE display_wall_c True  pos=(3.20, 0.00, 5.68) yaw=180\nPLACE flat_lap True  pos=(-1.18, 0.00, 1.83) yaw=270\nPLACE gallery_plinths True  pos=(5.30, 0.00, 5.68) yaw=0\nPLACE geode_cracker True  pos=(-1.63, 0.00, 5.48) yaw=0\nPLACE main_display_case True  pos=(1.82, 0.00, 4.50) yaw=270\nPLACE rock_rack True  pos=(-6.15, 0.00, 4.55) yaw=270\nPLACE shop_island True  pos=(4.45, 0.00, 2.70) yaw=0\nPLACE specialist_display_case True  pos=(6.70, 0.00, -0.90) yaw=90\nPLACE storage_shelf True  pos=(0.95, 0.00, 0.15) yaw=90\nPLACE trim_saw True  pos=(0.15, 0.00, 5.45) yaw=0\nPLACE wash_station True  pos=(-5.95, 0.00, 3.00) yaw=90\nsolidOverlaps=0"
+    }
+  },
+  "limits": [
+    "No Play Mode or customer stress acceptance yet",
+    "Overlap audit compares separate fixtures against fixtures/shell; does not certify internal asset geometry",
+    "Original production Workshop unchanged"
+  ]
+}

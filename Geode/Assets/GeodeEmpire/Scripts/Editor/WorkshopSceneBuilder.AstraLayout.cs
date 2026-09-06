@@ -36,27 +36,7 @@ namespace GeodeEmpire.EditorTools
             var work = StudyMaterial("Study_Operator", new Color(0.27f, 0.53f, 0.42f));
             var publicRoute = StudyMaterial("Study_PublicRoute", new Color(0.22f, 0.49f, 0.68f));
 
-            foreach (var zone in new[] { "Starter", "Processing", "Showroom", "Office" })
-            {
-                var rect = AstraLayout.Bounds(zone);
-                StudyBox(root.transform, zone + "_Floor", new Vector3(rect.center.x, -0.06f, rect.center.y),
-                    new Vector3(rect.width, 0.12f, rect.height), floor);
-            }
-            // New storefronts: left starter door/window and mature street entrance; no sealed brick porch.
-            StudyWallX(root.transform, "Front", -6.4f, 7f, -2.77f,
-                new[] { (-6.175f, -5.025f, 2.2f), (-4.70f, -0.75f, 2.35f), (5.025f, 6.175f, 2.2f) }, plaster);
-            StudyBox(root.transform, "StarterWindowSill", new Vector3(-2.725f, 0.42f, -2.77f), new Vector3(3.95f, 0.84f, 0.14f), cream);
-            StudyWallX(root.transform, "North", -6.4f, 7f, 6.07f, new[] { (-5.4f, -2.6f, 2.5f) }, plaster);
-            StudyWallX(root.transform, "ProcessingPartition", -6.4f, 1.4f, 1.30f,
-                new[] { (-3.9f, -2.7f, 2.2f), (-0.1f, 1.1f, 2.2f) }, plaster);
-            StudyBox(root.transform, "WestWall", new Vector3(-6.47f, 1.45f, 1.65f), new Vector3(0.14f, 2.9f, 8.7f), plaster);
-            StudyBox(root.transform, "EastWall", new Vector3(7.07f, 1.45f, 1.65f), new Vector3(0.14f, 2.9f, 8.7f), plaster);
-            StudyBox(root.transform, "StarterEastPartition", new Vector3(-0.40f, 1.45f, -0.70f), new Vector3(0.14f, 2.9f, 4f), plaster);
-            // Staff connection to the showroom at z 2.0…3.2.
-            StudyBox(root.transform, "ShowroomPartitionS", new Vector3(1.40f, 1.45f, -0.35f), new Vector3(0.14f, 2.9f, 4.7f), plaster);
-            StudyBox(root.transform, "ShowroomPartitionN", new Vector3(1.40f, 1.45f, 4.60f), new Vector3(0.14f, 2.9f, 2.8f), plaster);
-            StudyBox(root.transform, "ShowroomDoorHeader", new Vector3(1.40f, 2.55f, 2.60f), new Vector3(0.14f, 0.7f, 1.2f), plaster);
-            StudyBox(root.transform, "StreetPavement", new Vector3(0.30f, -0.08f, -3.75f), new Vector3(15f, 0.12f, 2.0f), floor);
+            BuildAstraShell(root.transform, plaster, floor, cream);
 
             foreach (var space in AstraLayout.Spaces)
             {
@@ -84,6 +64,32 @@ namespace GeodeEmpire.EditorTools
             Physics.SyncTransforms();
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, AstraStudyPath)) throw new InvalidOperationException("Could not save the layout study.");
+        }
+
+        private static void BuildAstraShell(Transform parent, Material plaster, Material floor, Material cream)
+        {
+            foreach (var zone in new[] { "Starter", "Processing", "Showroom", "Office" })
+            {
+                var rect = AstraLayout.Bounds(zone);
+                StudyBox(parent, zone + "_Floor", new Vector3(rect.center.x, -0.06f, rect.center.y),
+                    new Vector3(rect.width, 0.12f, rect.height), floor);
+            }
+            // New storefronts: left starter door/window and mature street entrance; no sealed brick porch.
+            StudyWallX(parent, "Front", -6.4f, 7f, -2.77f,
+                new[] { (-6.175f, -5.025f, 2.2f), (-4.70f, -0.75f, 2.35f), (5.025f, 6.175f, 2.2f) }, plaster);
+            StudyBox(parent, "StarterWindowSill", new Vector3(-2.725f, 0.42f, -2.77f), new Vector3(3.95f, 0.84f, 0.14f), cream);
+            StudyWallX(parent, "North", -6.4f, 7f, 6.07f, new[] { (-5.4f, -2.6f, 2.5f) }, plaster);
+            StudyWallX(parent, "ProcessingPartition", -6.4f, 1.4f, 1.30f,
+                new[] { (-3.9f, -2.7f, 2.2f), (-0.1f, 1.1f, 2.2f) }, plaster);
+            StudyBox(parent, "WestWall", new Vector3(-6.47f, 1.45f, 1.65f), new Vector3(0.14f, 2.9f, 8.7f), plaster);
+            StudyBox(parent, "EastWall", new Vector3(7.07f, 1.45f, 1.65f), new Vector3(0.14f, 2.9f, 8.7f), plaster);
+            StudyBox(parent, "StarterEastPartition", new Vector3(-0.40f, 1.45f, -0.70f), new Vector3(0.14f, 2.9f, 4f), plaster);
+            // Staff connection to the showroom at z 2.0…3.2.
+            StudyBox(parent, "ShowroomPartitionS", new Vector3(1.40f, 1.45f, -0.35f), new Vector3(0.14f, 2.9f, 4.7f), plaster);
+            StudyBox(parent, "ShowroomPartitionN", new Vector3(1.40f, 1.45f, 4.60f), new Vector3(0.14f, 2.9f, 2.8f), plaster);
+            StudyBox(parent, "ShowroomDoorHeader", new Vector3(1.40f, 2.55f, 2.60f), new Vector3(0.14f, 0.7f, 1.2f), plaster);
+            StudyBox(parent, "StreetPavement", new Vector3(0.30f, -0.08f, -3.75f), new Vector3(15f, 0.12f, 2.0f), floor);
+
         }
 
         private static Material StudyMaterial(string name, Color colour)

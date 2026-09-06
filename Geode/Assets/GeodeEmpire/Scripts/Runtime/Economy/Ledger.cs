@@ -48,13 +48,20 @@ namespace GeodeEmpire.Economy
             if (s.HasUpgrade(UpgradeCatalog.BackRoom)) r += BackRoomRent;
             if (s.HasUpgrade(UpgradeCatalog.ShopFront)) r += ShopFrontRent;
             if (s.HasUpgrade(UpgradeCatalog.Stage3)) r += 90f;      // the specialist lapidary is more floor again
-            return r;
+            return Mathf.Max(UnitRent, r - s.LayoutRentCredit);
         }
 
         /// <summary>Usable floor, square metres, so the premises page can show what the rent is buying.</summary>
         public static float LeasedAreaM2(GameState s)
         {
             if (s == null) return 0f;
+            if (s.LayoutRevision > 0)
+            {
+                float area = 24f;
+                if (s.HasUpgrade(UpgradeCatalog.BackRoom)) area += 36.66f + 7.2f;
+                if (s.HasUpgrade(UpgradeCatalog.ShopFront)) area += 48.72f;
+                return area;
+            }
             float a = 41.3f;
             if (s.HasUpgrade(UpgradeCatalog.BackRoom)) a += 34.2f;
             if (s.HasUpgrade(UpgradeCatalog.ShopFront)) a += 41.1f;

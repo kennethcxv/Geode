@@ -415,7 +415,7 @@ namespace GeodeEmpire.EditorTools
         const float RoomCX = (RoomXMin + RoomXMax) * 0.5f;
         const float RoomCZ = (RoomZMin + RoomZMax) * 0.5f;
         const float PartitionX = 2.4f;
-        const float HoardX = GeodeEmpire.Build.ShopPlan.HoardX;
+        const float HoardX = 0.6f; // legacy full-builder path; Astra apply uses AstraLayout
         const float ShopDoorX = 5.6f;
         /// <summary>The cross wall dividing the workshop from the back of house, and its two openings.</summary>
         const float BackZ = 3.2f;

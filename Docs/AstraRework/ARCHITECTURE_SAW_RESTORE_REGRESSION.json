@@ -1,0 +1,35 @@
+{
+  "ordinaryLoad": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ Location = Saw, CutCommitted = True, CutProgress = 0.37, RecoveryCrateId = , live = True, zone = ClampZone, locked = True, prompt = Resume the cut  (37% through) }",
+      "compiler": "Roslyn"
+    }
+  },
+  "staleLockControl": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ diagnostic = same stale lock control after fix, Locked = False, RecoveryCrateId = , live = True, clamp = ClampZone, CutProgress = 0.37, exactRecordSame = True }",
+      "compiler": "Roslyn"
+    }
+  },
+  "matureLivePlacement": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "geode_cracker:True:\ndisplay_wall_b:True:\nshop_island:True:\nwash_station:True:\ngallery_plinths:True:\nmain_display_case:True:\ndisplay_cabinet:True:\nflat_lap:True:\nstorage_shelf:True:\nappraisal_station:True:\ntrim_saw:True:\ndisplay_wall_c:True:\nrock_rack:True:\nspecialist_display_case:True:\ndisplay_wall_a:True:",
+      "compiler": "Roslyn"
+    }
+  },
+  "finish": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ phase = Finished, endedUtc = 2026-09-06T21:32:19.0404550Z, originalDataUnchanged = True, path = , guard = True, dirty = False }",
+      "compiler": "Roslyn"
+    }
+  },
+  "limits": "Temporary diagnostics removed after proof and source recompiled clean. No full standalone/performance/input acceptance; stable machine Body and shared saw output tray still need correction."
+}

@@ -212,11 +212,13 @@ namespace GeodeEmpire.Core
                 Cash = StartingCash,
             };
             State.UnlockedSuppliers.Add("local");
+            if (Build.AstraWorkshop.Active) Build.AstraLayoutMigration.InitializeNew(State);
             IsLoaded = true;
+            if (Build.AstraWorkshop.Active) Build.AstraWorldLayout.ApplyVisibility();
             PlacePlayerAtStart();
             CursorController.Reset();
             Loaded?.Invoke();
-            StateChanged?.Invoke();
+            RaiseStateChanged();
             FlushSave("new-game");
         }
 
@@ -230,14 +232,27 @@ namespace GeodeEmpire.Core
                 NewGame();
                 return;
             }
-            IsLoaded = true;
-            RebuildWorld();
-            DisplayCabinet.RecomputePrestige(State);
-            PlacePlayerAtStart();
+            bool migratedLayout = Build.AstraWorkshop.Active && State.LayoutRevision < Build.AstraWorkshop.Revision;
+            try
+            {
+                if (migratedLayout) Build.AstraWorldLayout.MigrateLegacy(this);
+                else if (Build.AstraWorkshop.Active) Build.AstraWorldLayout.ApplyVisibility();
+                PlacePlayerAtStart();
+                RebuildWorld();
+                DisplayCabinet.RecomputePrestige(State);
+                IsLoaded = true;
+            }
+            catch
+            {
+                // A failed reconstruction must never replace the readable career with a partially migrated state.
+                State = null; IsLoaded = false;
+                throw;
+            }
             CursorController.Reset();
             Loaded?.Invoke();
-            StateChanged?.Invoke();
+            RaiseStateChanged();
             CheckSolvency();
+            if (migratedLayout) FlushSave("layout-migrated");
         }
 
         private void PlacePlayerAtStart()
@@ -253,6 +268,7 @@ namespace GeodeEmpire.Core
 
         private void ClearWorld()
         {
+            IsLoaded = false;
             foreach (var e in _entities.Values) if (e != null) Destroy(e.gameObject);
             _entities.Clear();
             foreach (var c in _crates.Values) if (c != null) Destroy(c.gameObject);
@@ -265,15 +281,20 @@ namespace GeodeEmpire.Core
         {
             var zones = FindObjectsByType<PlacementZone>(FindObjectsInactive.Include);
             // every delivered crate comes back, opened or not; an emptied crate stays until the player breaks it down
-            State.Crates.RemoveAll(cr => !cr.Delivered);
             foreach (var cr in State.Crates)
             {
+                if (!cr.Delivered) continue;
                 var ce = CrateEntity.Create(cr, this);
                 ce.transform.SetPositionAndRotation(cr.Position, cr.Rotation);
                 _crates[cr.Id] = ce;
             }
             foreach (var r in State.Specimens)
             {
+                if (r.InRecovery)
+                {
+                    if (_crates.TryGetValue(r.RecoveryCrateId, out var recovery) && recovery.IsOpened) recovery.RestoreRock(r);
+                    continue;
+                }
                 switch (r.Location)
                 {
                     case SpecimenLocation.Sold:
@@ -285,7 +306,11 @@ namespace GeodeEmpire.Core
                     {
                         // rocks of a closed crate have no pose yet: they are laid out when the crate is opened
                         if (_crates.TryGetValue(r.CrateId ?? "", out var ce)) { if (ce.IsOpened) ce.RestoreRock(r); }
-                        else { r.Location = SpecimenLocation.World; Spawn(r, r.WorldPosition, r.WorldRotation, true); }
+                        else if (State.FindCrate(r.CrateId) == null)
+                        {
+                            if (Build.AstraWorkshop.Active) Build.AstraLayoutMigration.Pack(State, r);
+                            else { r.Location = SpecimenLocation.World; Spawn(r, r.WorldPosition, r.WorldRotation, true); }
+                        }
                         break;
                     }
                     case SpecimenLocation.Held:
@@ -306,7 +331,14 @@ namespace GeodeEmpire.Core
                     {
                         var e = Spawn(r, r.WorldPosition, r.WorldRotation, false);
                         var zone = FindZone(zones, r.Location, r.LocationIndex);
-                        if (zone != null) zone.Place(e, true);
+                        string fit = Build.AstraWorkshop.Active && zone != null ? zone.FitRefusal(e) : null;
+                        if (zone != null && fit == null) zone.Place(e, true);
+                        else if (Build.AstraWorkshop.Active)
+                        {
+                            Despawn(e);
+                            Build.AstraLayoutMigration.Pack(State, r);
+                            break;
+                        }
                         else { e.SetPhysics(true); r.Location = SpecimenLocation.World; r.AskingPrice = 0f; }
                         if (r.Location == SpecimenLocation.SaleSlot && r.AskingPrice <= 0f) r.AskingPrice = Retail.RetailShop.AskingPrice(r);
                         break;
@@ -314,6 +346,20 @@ namespace GeodeEmpire.Core
                 }
             }
             foreach (var ce in _crates.Values) ce.FinishRestore();
+        }
+
+        public void RestoreDeliveredCrate(CrateRecord record)
+        {
+            if (record == null || !record.Delivered || _crates.ContainsKey(record.Id)) return;
+            var crate = CrateEntity.Create(record, this);
+            crate.transform.SetPositionAndRotation(record.Position, record.Rotation);
+            if (!record.Opened) return;
+            foreach (string id in record.SpecimenIds)
+            {
+                var r = State.FindSpecimen(id);
+                if (r != null && r.IsInside(record)) crate.RestoreRock(r);
+            }
+            crate.FinishRestore();
         }
 
         private static bool HasRemainingRocks(CrateRecord cr)
@@ -333,6 +379,7 @@ namespace GeodeEmpire.Core
             PlacementZone spare = null;
             foreach (var z in zones)
             {
+                if (Build.AstraWorkshop.Active && (!z.gameObject.activeInHierarchy || z.Locked || z.IsFull)) continue;
                 if (z.LocationFor() != loc) continue;
                 if (loc == SpecimenLocation.DisplaySlot || loc == SpecimenLocation.SaleSlot)
                 {
@@ -446,7 +493,7 @@ namespace GeodeEmpire.Core
             }
             var entity = GetEntity(parent.Id);
             if (entity != null) Despawn(entity);
-            StateChanged?.Invoke();
+            RaiseStateChanged();
             FlushSave("cut");
             return (a, b);
         }
@@ -506,6 +553,7 @@ namespace GeodeEmpire.Core
 
         public void RaiseStateChanged()
         {
+            if (Build.AstraWorkshop.Active && IsLoaded) Build.AstraWorldLayout.Refresh(this);
             if (!PerfProbe.Capturing) { StateChanged?.Invoke(); return; }
             // while a window is open, charge each subscriber for its own time: "StateChanged is slow" is not a
             // finding, "which handler" is
@@ -607,7 +655,7 @@ namespace GeodeEmpire.Core
             Notify($"{sup.Name} ordered. Delivery at the pallet.", NotificationKind.Success);
             Tutorial.Notify("crate_bought");
             if (State.CrateCounter >= 2) Tutorial.Notify("upgrade_or_crate");
-            StateChanged?.Invoke();
+            RaiseStateChanged();
             // sources gated on crates bought unlock here too, not only after a sale
             foreach (var id in Economy.SupplierCatalog.EvaluateUnlocks(State))
                 Notify($"New supplier available: {Economy.SupplierCatalog.Get(id).Name}", NotificationKind.Discovery);
@@ -650,6 +698,12 @@ namespace GeodeEmpire.Core
             if (!CanAfford(up.Price)) { reason = $"{UI.UiKit.Money(up.Price - State.Cash)} more"; return false; }
             float cheapest = Economy.SupplierCatalog.Get(Economy.SupplierCatalog.Local).Price;
             if (State.Cash - up.Price < cheapest && !HasProcessableMaterial()) { reason = $"Keep {UI.UiKit.Money(cheapest)} for a crate"; return false; }
+            var receiving = FindAnyObjectByType<ReceivingArea>();
+            if (receiving != null)
+            {
+                string delivery = receiving.EquipmentRefusal(upgradeId);
+                if (delivery != null) { reason = delivery; return false; }
+            }
             return true;
         }
 
@@ -666,7 +720,7 @@ namespace GeodeEmpire.Core
             State.Stats.DealerAdvances++;
             AddCash(advance, "advance");
             Notify($"The dealer fronts you {UI.UiKit.Money(advance)} against your next crate. Rough week.", NotificationKind.Warning);
-            StateChanged?.Invoke();
+            RaiseStateChanged();
         }
 
         public bool BuyUpgrade(string upgradeId, out string error)
@@ -682,7 +736,7 @@ namespace GeodeEmpire.Core
                 if (upgradeId == Economy.UpgradeCatalog.SawBlade) State.BladeWear = 0f;
                 Audio.WorkshopAudio.Play2D("ui_buy", 0.7f);
                 Notify($"{up.Name} fitted.", NotificationKind.Success);
-                StateChanged?.Invoke();
+                RaiseStateChanged();
                 FlushSave("supplies");
                 return true;
             }
@@ -720,7 +774,7 @@ namespace GeodeEmpire.Core
             }
             else Notify($"{up.Name} installed.", NotificationKind.Success);
             Tutorial.Notify("upgrade_or_crate");
-            StateChanged?.Invoke();
+            RaiseStateChanged();
             FlushSave("upgrade");
             return true;
         }

@@ -467,7 +467,11 @@ namespace GeodeEmpire.Player
         public void PickUp(SpecimenEntity e)
         {
             if (e == null || Held != null) return;
+            bool recovering = e.Record.InRecovery;
+            var recoveredFrom = e.Record.Location;
             if (e.Zone != null) e.Zone.Take(e);
+            // A recovery parcel has no PlacementZone.Take to restore the opened layout from its packing pose.
+            if (recovering && e.IsOpened && !e.IsPiece) e.ApplyPose(DisplayPose.Natural);
             if (e.IsOpened && !e.Record.HasOpenPose) e.CommitOpenPose();   // leaving the bench: freeze the opened layout on the rock's own base plane
             Held = e;
             e.Locked = false;
@@ -475,6 +479,23 @@ namespace GeodeEmpire.Player
             e.SetCollidersEnabled(false);
             e.transform.SetParent(null, true);
             e.Record.Location = SpecimenLocation.Held;
+            e.Record.RecoveryCrateId = null;
+            if (recovering)
+            {
+                // Match taking stock from its original fixture; packing preserves its designation until this pickup.
+                if (recoveredFrom == SpecimenLocation.SaleSlot) e.Record.AskingPrice = 0f;
+                var session = GameSession.Instance;
+                if (session != null && session.State != null)
+                {
+                    if (recoveredFrom == SpecimenLocation.DisplaySlot)
+                    {
+                        session.State.Stats.SpecimensKept = session.State.DisplayedCount();
+                        Workshop.DisplayCabinet.RecomputePrestige(session.State);
+                    }
+                    session.RaiseStateChanged();
+                    session.QueueSave("recovery-picked");
+                }
+            }
             _heldLerp = 0f;
             _inspectRot = Quaternion.identity;
             if (Controller != null) Controller.CarryMassKg = e.Geology.MassKg;

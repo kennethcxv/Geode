@@ -63,6 +63,11 @@ namespace GeodeEmpire.Build
             // 3. doorways, openings and the counter's serving space stay clear
             foreach (var p in ShopPlan.Portals)
                 if (BoxTouchesAabb(centre, half, rot, p)) return Result.No("it blocks a doorway");
+            var receiving = Object.FindAnyObjectByType<ReceivingArea>();
+            if (receiving != null && receiving.SharedDeliveries)
+                foreach (var point in receiving.Slots())
+                    if (BoxTouchesAabb(centre, half, rot, new Bounds(point, new Vector3(1.2f, 2f, .8f))))
+                        return Result.No("keep the marked receiving spaces clear");
 
             // 4. nothing solid where the body goes: walls, shell, other fixtures, machines
             int n = Physics.OverlapBoxNonAlloc(centre, half - Vector3.one * Tolerance, _hits, rot, ~0, QueryTriggerInteraction.Ignore);
@@ -89,7 +94,8 @@ namespace GeodeEmpire.Build
             }
             foreach (var other in PlaceableFixture.All)
             {
-                if (other == null || other == f || !other.isActiveAndEnabled || other.Clearance <= 0.01f) continue;
+                if (other == null || other == f || !other.isActiveAndEnabled || !other.Sited
+                    || (other.Body != null && !other.Body.activeInHierarchy) || other.Clearance <= 0.01f) continue;
                 var op = other.Pose;
                 other.ClearanceBox(op.Position, op.Yaw, out var oc, out var oh, out var orot);
                 if (BoxesOverlap(centre, half, rot, oc, oh, orot)) return Result.No("it blocks the working space at the " + other.DisplayName.ToLowerInvariant());
@@ -225,7 +231,7 @@ namespace GeodeEmpire.Build
         private static int _gw, _gh, _maskFrame = -10000;
 
         /// <summary>Force the walkable mask to be measured again (after a fixture moves).</summary>
-        public static void InvalidateMask() => _maskFrame = -10000;
+        public static void InvalidateMask() { _maskFrame = -10000; _anchorFrame = -1; }
 
         private static void EnsureMask()
         {

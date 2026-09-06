@@ -1,0 +1,49 @@
+{
+  "scope": "Phase 3 candidate fresh layout diagnostic; not the primary full career or complete controller UI acceptance",
+  "qa": "7cc90f36fa074ea0bbacd1d5f8ea338b",
+  "purchase": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ ok = True, error = , before = 120, after = 45, crates = 1, specimens = 10, tablet = True }",
+      "compiler": "Roslyn"
+    }
+  },
+  "open": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ SaveId = 1153a3ac458d493a90b873ff7300e35a, Cash = 45, ShopOpen = True, inside = OPEN, outside = OPEN, ids = S0001-F50D,S0002-C835,S0003-334E,S0004-520C,S0005-7BFE,S0006-7503,S0007-A5DD,S0008-B0D4,S0009-3F12,S0010-3730, receiving = 1 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "reload": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ sameSave = True, beforeCash = 45, afterCash = 45, specimensSame = True, LayoutRevision = 1, DisplayCapacity = 0, SaleCapacity = 6, ShopOpen = True, crates = 1, entities = 1, free = 1 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "close": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ ShopOpen = False, inside = CLOSED, outside = CLOSED, crates = 1, qa = Playing }",
+      "compiler": "Roslyn"
+    }
+  },
+  "finish": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ phase = Finished, endedUtc = 2026-09-06T20:58:45.1090720Z, originalDataUnchanged = True, path = , guard = True, scene = Assets/GeodeEmpire/Scenes/Workshop_AstraCandidate.unity, dirty = False }",
+      "compiler": "Roslyn"
+    }
+  },
+  "inputLimits": "Physical tablet initially opened by controller in prior context. Navigation/close taps after recovery did not act consistently as application focus repeatedly became false. Diagnostic purchase/sign/continue used normal production APIs, no cash/unlock injection. UI menu/controller acceptance remains pending.",
+  "screenshots": [
+    "Output/AstraQA/7cc90f36fa074ea0bbacd1d5f8ea338b/tablet-controller-open.png",
+    "Output/AstraQA/7cc90f36fa074ea0bbacd1d5f8ea338b/first-order-after-open.png"
+  ]
+}

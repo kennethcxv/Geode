@@ -46,10 +46,14 @@ namespace GeodeEmpire.Build
 
         public void Refresh()
         {
-            SeatCrates();
+            var receiving = FindAnyObjectByType<Workshop.ReceivingArea>();
+            bool shared = receiving != null && receiving.SharedDeliveries;
+            if (shared) receiving.ReceiveEquipment(Slots.Count);
+            else SeatCrates();
             var pending = new List<PlaceableFixture>();
             foreach (var f in PlaceableFixture.All)
-                if (f != null && f.Owned && f.Movable && !f.SitedByDefault && !f.Pose.Placed) pending.Add(f);
+                if (f != null && f.Owned && f.Movable && !f.SitedByDefault && !f.Pose.Placed && (!shared || f.Pose.Delivered)) pending.Add(f);
+            pending.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
             for (int i = 0; i < Slots.Count; i++)
             {
                 var slot = Slots[i];
@@ -57,6 +61,7 @@ namespace GeodeEmpire.Build
                 slot.Fixture = i < pending.Count ? pending[i] : null;
                 bool on = slot.Fixture != null;
                 if (slot.Root.activeSelf != on) slot.Root.SetActive(on);
+                if (on && shared) slot.Root.transform.SetPositionAndRotation(slot.Fixture.Pose.DeliveryPosition, Quaternion.identity);
                 if (on && slot.Label != null) slot.Label.Text = slot.Fixture.DisplayName.ToUpperInvariant();
                 var crate = slot.Root.GetComponent<DeliveryCrate>();
                 if (crate != null) crate.Slot = slot;

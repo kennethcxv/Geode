@@ -61,9 +61,24 @@ namespace GeodeEmpire.Economy
         public const string UvLamp = "inspect_uv";
         // starter retail (§15.1)
         public const string CounterTable = "retail_counter_table";
+        public const string WashStation = "wash_station";
+        public const string AppraisalStation = "appraisal_station";
+        public const string StorageShelf = "storage_shelf";
 
         public static readonly UpgradeDefinition[] All =
         {
+            new UpgradeDefinition { Id = WashStation, Category = "CLEANING", Name = "Manual Wash Station", Price = 140f, Order = 2, Requires = BackRoom,
+                Description = "A shallow wash basin on a compact cabinet, with a brush and rinse supply.",
+                Effect = "Clean the actual surface of rough and rinse opened specimens.",
+                WorldChange = "Delivered crated. Unpack and place it in the processing room with its working side clear." },
+            new UpgradeDefinition { Id = AppraisalStation, Category = "BENCH", Name = "Inspection & Appraisal Bench", Price = 160f, Order = 3, Requires = BackRoom,
+                Description = "A compact weighing and inspection bench for documenting opened specimens.",
+                Effect = "Weigh and appraise stock before deciding what to keep or sell. Basic retail already accepts an opened rock at its estimated value.",
+                WorldChange = "Delivered crated. Place it with room to stand and inspect the specimen." },
+            new UpgradeDefinition { Id = StorageShelf, Category = "STORAGE", Name = "Utility Shelving", Price = 90f, Order = 4, Requires = BackRoom,
+                Description = "A narrow shelf for workshop supplies.",
+                Effect = "Organizes supplies and packaging without occupying a work surface.",
+                WorldChange = "Delivered flat-packed. Choose a clear back-room or office wall." },
             new UpgradeDefinition { Id = Loupe, Category = "BENCH", Name = "Jeweller's Loupe", Price = 45f, Order = -1,
                 Description = "A folding 10x brass loupe for reading rock up close.",
                 Effect = "Hold a rock and raise the loupe: exposed mineral, banding, hairline cracks and chips come into focus. It never shows what is inside.",

@@ -1,0 +1,30 @@
+{
+  "scope": "Copied version-4 career migration to candidate revision1, no career-value injection",
+  "qa": "3aacb312aa10425c96b740c628c41f2d",
+  "comparison": "Python exact full record comparison: no meaningful specimen changes; only world poses and added empty recovery field. All existing IDs, seeds, condition, histories, ownership, cash, bills and rent retained.",
+  "placement": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ entities = 17, crates = 2, occupied = WashZone:WashTub=S0015-8B62 active=True, fixtures = storage_shelf=True;appraisal_station=True;wash_station=True, rent = 122 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "reload": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ exactStateSame = True, save = 140e70b158f042049603ce094dc23f36, specimens = 18, live = 17, crates = 2, placed = 3, credit = 0, cash = 3321.66 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "finish": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ phase = Finished, endedUtc = 2026-09-06T21:03:40.1506000Z, originalDataUnchanged = True, path = , guard = True, dirty = False }",
+      "compiler": "Roslyn"
+    }
+  },
+  "limits": "Source career contains 18 records, one sold and one wash occupant, two open crates; no committed cut or collection occupant, so those require separate diagnostic."
+}

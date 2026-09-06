@@ -108,7 +108,7 @@ namespace GeodeEmpire.Save
         private static void Migrate(GameState s)
         {
             if (s.Version < 1) s.Version = 1;
-            if (s.DisplayCapacity <= 0) s.DisplayCapacity = 8;
+            if (s.Version < 3 && s.DisplayCapacity <= 0) s.DisplayCapacity = 8;
             s.Upgrades ??= new System.Collections.Generic.List<string>();
             s.UnlockedSuppliers ??= new System.Collections.Generic.List<string>();
             s.TutorialSteps ??= new System.Collections.Generic.List<string>();

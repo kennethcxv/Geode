@@ -112,9 +112,11 @@ namespace GeodeEmpire.Build
         {
             Available.Clear();
             var st = GameSession.Instance != null ? GameSession.Instance.State : null;
+            var receiving = FindAnyObjectByType<Workshop.ReceivingArea>();
             foreach (var f in PlaceableFixture.All)
             {
                 if (f == null || !f.Movable || !f.Owned) continue;
+                if (receiving != null && receiving.SharedDeliveries && !f.Sited && !f.Pose.Delivered) continue;
                 Available.Add(f);
             }
             Available.Sort((a, b) =>

@@ -77,7 +77,7 @@ namespace GeodeEmpire.Workshop
             if (session != null) { session.Loaded -= Apply; session.StateChanged -= Apply; }
         }
 
-        private void Apply()
+        public void Apply()
         {
             bool back = BackRoomOpen, shop = ShopFrontOpen;
             Set(BackRoomRoot, back);

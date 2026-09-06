@@ -26,6 +26,11 @@ namespace GeodeEmpire.Workshop
         /// </summary>
         public Transform KerbAnchor, BayAnchor;
 
+        /// <summary>Astra's measured receiving marks are shared by stock and equipment. Legacy scenes retain their old layout.</summary>
+        public bool SharedDeliveries;
+        public Vector3[] StarterCells = System.Array.Empty<Vector3>();
+        public Vector3[] BayCells = System.Array.Empty<Vector3>();
+
         /// <summary>A crate and its lid need this much floor; two crates closer than this are touching.</summary>
         public const float SlotRadius = 0.62f;
 
@@ -57,10 +62,11 @@ namespace GeodeEmpire.Workshop
         {
             if (!PremisesExpansion.BackRoomOpen)
             {
-                foreach (var c in KerbCells) yield return c;
+                foreach (var c in StarterCells.Length > 0 ? StarterCells : KerbCells) yield return c;
                 yield break;
             }
-            foreach (var c in Cells) yield return c;
+            foreach (var c in BayCells.Length > 0 ? BayCells : Cells) yield return c;
+            if (BayCells.Length > 0) yield break;
             if (WorkshopExpansion.Stage3Active) foreach (var c in Stage3Cells) yield return c;
         }
 
@@ -104,6 +110,7 @@ namespace GeodeEmpire.Workshop
         {
             var session = GameSession.Instance;
             if (session == null) return false;
+            if (SharedDeliveries) return Build.ReceivingManifest.Occupied(session.State, spot, SlotRadius);
             foreach (var c in session.Crates.Values)
             {
                 if (c == null) continue;
@@ -112,6 +119,68 @@ namespace GeodeEmpire.Workshop
                 if (d.sqrMagnitude < SlotRadius * SlotRadius) return true;
             }
             return false;
+        }
+
+        /// <summary>Only physical fixtures need receiving space; tool fittings and leases do not.</summary>
+        public string EquipmentRefusal(string upgradeId)
+        {
+            if (!SharedDeliveries) return null;
+            int parcels = 0, waiting = 0;
+            foreach (var fixture in Build.PlaceableFixture.All)
+            {
+                if (fixture == null || !fixture.Movable || fixture.SitedByDefault) continue;
+                if (fixture.RequiresUpgrade == upgradeId) parcels++;
+                if (fixture.Owned && !fixture.Pose.Placed) waiting++;
+            }
+            if (parcels == 0) return null;
+            var delivery = FindAnyObjectByType<Build.FixtureDelivery>();
+            int availableParcels = delivery != null ? Mathf.Max(0, delivery.Slots.Count - waiting) : 0;
+            return parcels <= FreeSlots && parcels <= availableParcels ? null
+                : $"This delivery needs {parcels} receiving space(s). Unpack and place equipment or break down an empty crate first.";
+        }
+
+        /// <summary>Receive older pending ownership without losing overflow or overlapping a stock crate.</summary>
+        public void ReceiveEquipment(int visibleParcelCapacity)
+        {
+            if (!SharedDeliveries) return;
+            var session = GameSession.Instance;
+            if (session?.State == null) return;
+            var pending = new List<Build.PlaceableFixture>();
+            foreach (var fixture in Build.PlaceableFixture.All)
+                if (fixture != null && fixture.Owned && fixture.Movable && !fixture.SitedByDefault && !fixture.Pose.Placed)
+                    pending.Add(fixture);
+            // Purchase order, then stable fixture ID for a multiple-parcel upgrade. Never depend on Unity find order.
+            pending.Sort((a, b) => {
+                int c = session.State.Upgrades.IndexOf(a.RequiresUpgrade).CompareTo(session.State.Upgrades.IndexOf(b.RequiresUpgrade));
+                return c != 0 ? c : string.CompareOrdinal(a.Id, b.Id);
+            });
+            int received = 0;
+            foreach (var fixture in pending) if (fixture.Pose.Delivered) received++;
+            foreach (var fixture in pending)
+            {
+                if (fixture.Pose.Delivered || received >= visibleParcelCapacity) continue;
+                if (!Build.ReceivingManifest.TryReceive(session.State, fixture.Id, Slots(), SlotRadius)) continue;
+                received++;
+                session.QueueSave("equipment-received");
+            }
+        }
+
+        /// <summary>Restore already-owned stock/recovery parcels as finite spaces become available; never buys or rerolls stock.</summary>
+        public void ReceiveWaitingCrates()
+        {
+            var session = GameSession.Instance;
+            if (!SharedDeliveries || session == null || !session.IsLoaded || session.State == null) return;
+            foreach (var crate in session.State.Crates)
+            {
+                if (crate.Delivered) continue;
+                var point = FreeSpot();
+                if (point == null) break;
+                crate.Position = point.Value;
+                crate.Rotation = Quaternion.identity;
+                crate.Delivered = true;
+                session.RestoreDeliveredCrate(crate);
+                session.QueueSave("waiting-stock-received");
+            }
         }
 
         /// <summary>The first free space, or null when goods-in is full. Never guesses.</summary>

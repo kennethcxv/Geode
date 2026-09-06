@@ -59,6 +59,11 @@ namespace GeodeEmpire.Save
         public ulong Seed;
         public string SupplierId;
         public string CrateId;
+        /// <summary>Temporary physical recovery container. CrateId remains the specimen's original provenance.</summary>
+        public string RecoveryCrateId;
+        public bool InRecovery => !string.IsNullOrEmpty(RecoveryCrateId);
+        public bool IsInside(CrateRecord crate) => crate != null && (InRecovery
+            ? RecoveryCrateId == crate.Id : Location == SpecimenLocation.InCrate && CrateId == crate.Id);
         public SpecimenCondition Condition = new SpecimenCondition();
         public SpecimenLocation Location;
         public int LocationIndex;
@@ -128,6 +133,7 @@ namespace GeodeEmpire.Save
         public ulong Seed;
         public bool Opened;
         public bool Delivered;
+        public bool Recovery;
         public Vector3 Position;
         public Quaternion Rotation = Quaternion.identity;
         public List<string> SpecimenIds = new List<string>();
@@ -247,6 +253,9 @@ namespace GeodeEmpire.Save
         public float Yaw;
         /// <summary>The player has positioned it. Until then a bought fixture waits in the receiving bay.</summary>
         public bool Placed;
+        /// <summary>The equipment parcel has a physical receiving cell. False keeps overflow owned and waiting.</summary>
+        public bool Delivered;
+        public Vector3 DeliveryPosition;
     }
 
     /// <summary>Whole career save. Versioned; new fields get sensible defaults on load.</summary>
@@ -282,7 +291,7 @@ namespace GeodeEmpire.Save
     public sealed class GameState
     {
         /// <summary>1 = V4 career; 2 = V5 (provenance, calls, history, favourites, certification, market, auctions, letters, exhibition).</summary>
-        public const int CurrentVersion = 4;
+        public const int CurrentVersion = 5;
 
         public int Version = CurrentVersion;
         public string SaveId;
@@ -292,6 +301,10 @@ namespace GeodeEmpire.Save
         public float Cash;
         /// <summary>Player's opening-hours choice. A new business starts closed while its owner gets ready.</summary>
         public bool ShopOpen;
+        /// <summary>Zero identifies a career whose coordinates still use the original workshop.</summary>
+        public int LayoutRevision;
+        /// <summary>Replacement leases granted by an incompatible floor-plan change never raise an old career's rent.</summary>
+        public float LayoutRentCredit;
         public int CrateCounter;
         public int SpecimenCounter;
         public List<SpecimenRecord> Specimens = new List<SpecimenRecord>();

@@ -1,0 +1,19 @@
+{
+  "initialTrace": {
+    "success": true,
+    "message": "Console logs (2 entries, filter: all, source: cache, last 180s, text: 'Astra restore diagnostic'):\n23:26:46 [LOG] [Astra restore diagnostic] selected=ClampZone fit=\n23:26:46 [LOG] [Astra restore diagnostic] before S0005-756C: ClampZone active=True locked=False full=False\n"
+  },
+  "negativeControl": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ diagnostic = stale zone lock negative control, lockBefore = False, lockedAfter = False, RecoveryCrateId = REC-A1-S0005-756C, live = False, CutProgress = 0.37 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "controlTrace": {
+    "success": true,
+    "message": "Console logs (4 entries, filter: all, source: cache, last 180s, text: 'Astra restore diagnostic'):\n23:27:53 [LOG] [Astra restore diagnostic] selected=NONE fit=\n23:27:53 [LOG] [Astra restore diagnostic] before S0005-756C: ClampZone active=True locked=True full=False\n23:26:46 [LOG] [Astra restore diagnostic] selected=ClampZone fit=\n23:26:46 [LOG] [Astra restore diagnostic] before S0005-756C: ClampZone active=True locked=False full=False\n"
+  },
+  "conclusion": "Same saved committed cut restores correctly with Clamp.Locked=false; forced stale Locked=true makes FindZone return null, routes it to recovery, and Loaded later clears the lock. ApplyVisibility does not refresh machine-owned zone locks before RebuildWorld. This proves restoration depends incorrectly on stale runtime availability. The exact earlier natural timing was not captured."
+}

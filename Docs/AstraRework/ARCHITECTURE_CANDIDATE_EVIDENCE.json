@@ -1,0 +1,29 @@
+{
+  "scene": "Assets/GeodeEmpire/Scenes/Workshop_AstraCandidate.unity",
+  "status": "Primary shell/minimum kit applied, incomplete and NOT accepted for gameplay",
+  "startupEnabled": false,
+  "buildSettings": false,
+  "productionWorkshopSHA256": "ffaf74cd0e9097457ac40e826c1442ce35b901f18096fed27d8402ebc2d125fc",
+  "preservedDeliveryComponentFileIDs": [
+    166829470,
+    1990628459,
+    616842567
+  ],
+  "nativePrimaryWallCheck": "CrackingBench, StarterCounter and SellOutbox actual non-trigger colliders vs shell: zero penetrations >1mm",
+  "missingMaterialRendererCount": 10,
+  "missingMaterialStatus": "All ten are inactive COL_ proxy mesh children in two checkout kits; CheckoutKitBuilder disables imported COL_ children after extracting collision bounds. Visible missing material count is zero.",
+  "capture": "Architecture/candidate-eye.png, 1500\u00d71000 native temporary-camera render in Edit Mode; no Play or final art acceptance",
+  "unfinished": [
+    "attach OPEN/CLOSED signs",
+    "finish late fixtures and lease/stage roots",
+    "safe explicit save-coordinate and ownership migration",
+    "shared receiving real purchase/place/stock flow",
+    "actual KBM/controller and four-layout customer stress",
+    "performance and visual acceptance"
+  ],
+  "knownLimits": [
+    "Old geometry archived inactive under EditorOnly root, not removed yet",
+    "New station upgrade prices provisional",
+    "GameSession disabled deliberately until migration exists"
+  ]
+}

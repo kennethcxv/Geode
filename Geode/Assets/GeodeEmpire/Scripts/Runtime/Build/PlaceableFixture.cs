@@ -78,9 +78,9 @@ namespace GeodeEmpire.Build
         private bool _defaultCaptured;
 
         /// <summary>Remember where the scene put it, once: build mode falls back to this until the player sites it.</summary>
-        public void CaptureDefault()
+        public void CaptureDefault(bool force = false)
         {
-            if (_defaultCaptured) return;
+            if (_defaultCaptured && !force) return;
             _defaultCaptured = true;
             DefaultPosition = transform.position;
             DefaultYaw = transform.eulerAngles.y;

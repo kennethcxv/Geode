@@ -340,6 +340,188 @@
         }
       ],
       "failures": []
+    },
+    {
+      "label": "architecture-migration-editmode",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/486b935ad08940ddabb3ce736293c3df/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/486b935ad08940ddabb3ce736293c3df/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T20:23:05.0525610Z",
+      "endedUtc": "2026-09-06T20:24:02.6511100Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "astra-candidate-fresh",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/7cc90f36fa074ea0bbacd1d5f8ea338b/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/7cc90f36fa074ea0bbacd1d5f8ea338b/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T20:33:22.3576190Z",
+      "endedUtc": "2026-09-06T20:58:45.1090720Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "astra-candidate-legacy-copy",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/3aacb312aa10425c96b740c628c41f2d/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/3aacb312aa10425c96b740c628c41f2d/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T20:59:47.0170680Z",
+      "endedUtc": "2026-09-06T21:03:40.1506000Z",
+      "copiedCareer": true,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "astra-candidate-recovery-stress",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/92704506fa5b418bb05db94c24e4f0bc/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/92704506fa5b418bb05db94c24e4f0bc/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T21:05:18.9591360Z",
+      "endedUtc": "2026-09-06T21:12:46.0184750Z",
+      "copiedCareer": true,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "astra-recovery-pickup-regression",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/e342a712056446d3a697b99e4a39e6be/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/e342a712056446d3a697b99e4a39e6be/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T21:14:58.4634830Z",
+      "endedUtc": "2026-09-06T21:23:42.0975120Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "astra-saw-restore-order-probe",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/e7a313dda0f64fc6b0a214dcfcf40dc7/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/e7a313dda0f64fc6b0a214dcfcf40dc7/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T21:26:14.7041460Z",
+      "endedUtc": "2026-09-06T21:29:16.2084250Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "label": "astra-saw-restore-order-regression",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9ee440f7acb6407a9abfc40d8d7bd4a8/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/9ee440f7acb6407a9abfc40d8d7bd4a8/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T21:30:04.2645760Z",
+      "endedUtc": "2026-09-06T21:32:19.0404550Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
     }
   ],
   "input_helper": {

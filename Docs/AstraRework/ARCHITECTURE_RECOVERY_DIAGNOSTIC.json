@@ -1,0 +1,52 @@
+{
+  "qa": "92704506fa5b418bb05db94c24e4f0bc",
+  "setup": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ SaveId = astra-architecture-recovery-stress, fixtures = 15, upgrades = 32, displaced = S0001-6A0F,S0002-6CF8,S0003-5E06, collection = S0004-49C8, cut = S0005-756C, cutProgress = 0.37, exactPath = /Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/92704506fa5b418bb05db94c24e4f0bc/player-data/geode_career.json }",
+      "compiler": "Roslyn"
+    }
+  },
+  "pickup": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ held = S0001-6A0F, originalLot = C001, recovery = , remaining = 0, zone = RackLow, zoneCanInteract = True, oneLive = 1 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "overflow": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ placed = Rack, zone = RackLow, oldParcelRemoved = True, nextDelivered = True, nextPosition = (-4.15, 0.12, 5.47), physicalCrates = 4, remainingFree = 0, cut = 0.37 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "collectionQueued": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ id = S0004-49C8, parcel = REC-A1-S0004-49C8, Delivered = False, location = DisplaySlot, beforeValue = 123.95, afterValue = 123.95, preservedName = Migration collection witness, cut = 0.37, queued = REC-A1-S0004-49C8 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "collectionOpened": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ Id = S0004-49C8, Opened = True, Favorite = True, AppraisedValue = 123.95, Location = DisplaySlot, RecoveryCrateId = REC-A1-S0004-49C8, HasOpenPose = False, liveCount = 1, position = (-2.80, 0.26, 5.47), remaining = 1, prestige = 0, kept = 0, displayed = 1, value = 123.95 }",
+      "compiler": "Roslyn"
+    }
+  },
+  "defect": {
+    "success": true,
+    "message": "Executed (legacy Run()).",
+    "data": {
+      "result": "{ diagnosticValue = 623.95, beforePrestige = 2, afterPrestige = 2, beforeKept = 1, afterKept = 1, actualDisplayed = 0, actualValue = 0, held = S0004-49C8, recovery = , openPose = True, top = (0.00, -0.04, 0.00) }",
+      "compiler": "Roslyn"
+    }
+  },
+  "limits": "Synthetic diagnostic. Collection value intentionally changed to623.95 and aggregates synchronized before pickup to exercise prestige2. No ordinary career acceptance."
+}

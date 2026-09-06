@@ -26,7 +26,7 @@ namespace GeodeEmpire.Workshop
         public bool IsOpened => Record.Opened;
         public int RemainingRocks
         {
-            get { int n = 0; foreach (var r in _rocks) if (r != null && r.Record.Location == SpecimenLocation.InCrate) n++; return n; }
+            get { int n = 0; foreach (var r in _rocks) if (r != null && r.Record.IsInside(Record)) n++; return n; }
         }
 
         public static CrateEntity Create(CrateRecord record, GameSession session)
@@ -47,6 +47,16 @@ namespace GeodeEmpire.Workshop
                 c.SetOpenColliders();
             }
             session.RegisterCrate(c);
+            if (record.Recovery)
+            {
+                var shop = Object.FindAnyObjectByType<Retail.RetailShop>();
+                if (shop != null && shop.LabelFont != null)
+                {
+                    var label = UI.WorldLabel.Create(go.transform, shop.LabelFont, shop.LabelMaterial, .025f, new Color(.94f, .89f, .76f));
+                    label.transform.localPosition = new Vector3(0f, .43f, -.36f);
+                    label.Text = "RECOVERY\n" + (record.SpecimenIds.Count > 0 ? record.SpecimenIds[0] : record.Id);
+                }
+            }
             return c;
         }
 
@@ -77,7 +87,7 @@ namespace GeodeEmpire.Workshop
 
         public override string GetPrompt(PlayerInteractor player)
         {
-            if (!Record.Opened) return "Open crate";
+            if (!Record.Opened) return Record.Recovery ? "Open recovery parcel — your original specimen" : "Open crate";
             return "Break down empty crate";
         }
 
@@ -144,7 +154,7 @@ namespace GeodeEmpire.Workshop
             while (index < Record.SpecimenIds.Count)
             {
                 var rec = _session.State.FindSpecimen(Record.SpecimenIds[index++]);
-                if (rec == null || rec.Location != SpecimenLocation.InCrate) continue;
+                if (rec == null || !rec.IsInside(Record)) continue;
                 var e = _session.Spawn(rec, Bed.position, Quaternion.identity, false);
                 e.gameObject.SetActive(false);
                 into.Add(e);
@@ -159,6 +169,7 @@ namespace GeodeEmpire.Workshop
         public void RestoreRock(SpecimenRecord rec)
         {
             var e = _session.Spawn(rec, rec.WorldPosition, rec.WorldRotation, false);
+            if (Record.Recovery && e.IsOpened && !e.IsPiece) e.ApplyPose(DisplayPose.Closed);
             e.SetStaticCollidable();
             _rocks.Add(e);
             if (rec.WorldPosition.sqrMagnitude < 1e-6f) _needsRepack = true;
@@ -182,7 +193,11 @@ namespace GeodeEmpire.Workshop
         private void PackRocks(List<SpecimenEntity> rocks)
         {
             var rng = new SeededRandom(Record.Seed ^ 0xABCDUL);
-            foreach (var e in rocks) if (!e.gameObject.activeSelf) e.gameObject.SetActive(true);
+            foreach (var e in rocks)
+            {
+                if (!e.gameObject.activeSelf) e.gameObject.SetActive(true);
+                if (Record.Recovery && e.IsOpened && !e.IsPiece) e.ApplyPose(DisplayPose.Closed);
+            }
             rocks.Sort((a, b) => Footprint(b).CompareTo(Footprint(a)));
 
             const float gap = 0.018f, margin = 0.03f;
@@ -263,13 +278,14 @@ namespace GeodeEmpire.Workshop
             _session.UnregisterCrate(this);
             _session.QueueSave("crate-removed");
             Destroy(gameObject);
+            _session.RaiseStateChanged(); // releasing a receiving cell may admit an already-owned equipment parcel
         }
 
         private void LateUpdate()
         {
             // rocks that left the crate no longer count against it
             for (int i = _rocks.Count - 1; i >= 0; i--)
-                if (_rocks[i] == null || _rocks[i].Record.Location != SpecimenLocation.InCrate) _rocks.RemoveAt(i);
+                if (_rocks[i] == null || !_rocks[i].Record.IsInside(Record)) _rocks.RemoveAt(i);
         }
     }
 }

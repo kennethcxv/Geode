@@ -230,6 +230,13 @@ namespace GeodeEmpire.UI
             word = "Damaged"; rank = 0;
         }
 
+        private string PhysicalLocation(SpecimenRecord record)
+        {
+            if (!record.InRecovery) return LocationName(record.Location);
+            var crate = _s.State.FindCrate(record.RecoveryCrateId);
+            return crate != null && crate.Delivered ? "Recovery parcel in goods-in" : "Recovery parcel waiting for space";
+        }
+
         private static string LocationName(SpecimenLocation l) => l switch
         {
             SpecimenLocation.InCrate => "Unopened crates",
@@ -342,7 +349,7 @@ namespace GeodeEmpire.UI
                 {
                     var sub = UiKit.Box(_rows, "inv-subrow");
                     UiKit.Label(sub, r.Favorite ? "★" : "·", "inv-bullet");
-                    UiKit.Label(sub, LocationName(r.Location), "inv-cell", "inv-col-item", "muted");
+                    UiKit.Label(sub, PhysicalLocation(r), "inv-cell", "inv-col-item", "muted");
                     UiKit.Label(sub, r.Appraised ? "Appraised" : "Not appraised", "inv-cell", "inv-col-cat", "muted");
                     UiKit.Label(sub, $"{r.Geology.MassKg:0.00} kg", "inv-cell", "inv-col-qty2", "muted");
                     UiKit.Label(sub, UiKit.Money(r.EstimatedValue()), "inv-cell", "inv-col-val", "muted");
@@ -353,28 +360,29 @@ namespace GeodeEmpire.UI
         private void DrawLocations()
         {
             _subtitle.text = "Where the stock physically is right now. A piece is only worth something where a customer can reach it.";
-            var counts = new Dictionary<SpecimenLocation, (int n, float v)>();
+            var counts = new Dictionary<string, (int n, float v)>();
             int items = 0;
             float value = 0f;
             if (_s != null && _s.State != null)
                 foreach (var r in _s.State.Specimens)
                 {
                     if (r == null || !Counts(r)) continue;
-                    counts.TryGetValue(r.Location, out var e);
+                    string location = PhysicalLocation(r);
+                    counts.TryGetValue(location, out var e);
                     float v = r.EstimatedValue();
-                    counts[r.Location] = (e.n + 1, e.v + v);
+                    counts[location] = (e.n + 1, e.v + v);
                     items++; value += v;
                 }
             _totalItems.text = $"Total Items: {items}";
             _totalValue.text = $"Total Value: {UiKit.Money(value)}";
             _empty.text = counts.Count == 0 ? "Nothing in stock anywhere yet." : "";
             _empty.style.display = counts.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
-            var keys = new List<SpecimenLocation>(counts.Keys);
+            var keys = new List<string>(counts.Keys);
             keys.Sort((a, b) => counts[b].v.CompareTo(counts[a].v));
             foreach (var k in keys)
             {
                 var row = UiKit.Box(_rows, "inv-row");
-                UiKit.Label(row, LocationName(k), "inv-cell", "inv-col-item");
+                UiKit.Label(row, k, "inv-cell", "inv-col-item");
                 UiKit.Label(row, counts[k].n + (counts[k].n == 1 ? " piece" : " pieces"), "inv-cell", "inv-col-cat", "muted");
                 UiKit.Label(row, UiKit.Money(counts[k].v), "inv-cell", "inv-col-val", "accent");
             }

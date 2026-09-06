@@ -52,7 +52,7 @@ namespace GeodeEmpire.Build
                 // a purchase the player has not sited yet is waiting in a crate: say so once
                 bool pending = f.Owned && f.Movable && !f.SitedByDefault && (pose == null || !pose.Placed);
                 if (pending && _announced.Add(f.Id))
-                    GameSession.Instance?.Notify($"{f.DisplayName} delivered to the receiving bay. Press {GameInput.Glyph("Build")} to choose where it goes.", NotificationKind.Info);
+                    GameSession.Instance?.Notify($"{f.DisplayName} is waiting for placement. Unpack its parcel in goods-in; clear a receiving space if the delivery is waiting.", NotificationKind.Info);
                 else if (!pending) _announced.Remove(f.Id);
             }
             PlacementValidator.InvalidateMask();
