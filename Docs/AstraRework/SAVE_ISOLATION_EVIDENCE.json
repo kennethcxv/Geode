@@ -678,6 +678,32 @@
         }
       ],
       "failures": []
+    },
+    {
+      "label": "astra-promoted-workshop-entry",
+      "manifestPath": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0848a0f12ff64bcea3bf958a3bcd836f/session.json",
+      "originalDirectory": "/Users/kenneth/Library/Application Support/DefaultCompany/Geode",
+      "isolatedDirectory": "/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0848a0f12ff64bcea3bf958a3bcd836f/player-data",
+      "phase": "Finished",
+      "startedUtc": "2026-09-06T23:55:16.4848940Z",
+      "endedUtc": "2026-09-07T00:01:06.0305770Z",
+      "copiedCareer": false,
+      "originalDataUnchanged": true,
+      "originals": [
+        {
+          "name": "geode_career.json",
+          "sha256": "7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946"
+        },
+        {
+          "name": "geode_career.json.bak",
+          "sha256": "3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f"
+        },
+        {
+          "name": "settings.json",
+          "sha256": "b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340"
+        }
+      ],
+      "failures": []
     }
   ],
   "input_helper": {

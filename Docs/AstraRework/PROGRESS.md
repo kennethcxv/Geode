@@ -1,12 +1,12 @@
 # Astra durable recovery state
 
-Updated 2026-09-07 01:53 local after final architecture regression, before checkpoint and production promotion. Interruptions never complete the goal.
+Updated 2026-09-07 02:03 local after production promotion and real keyboard/controller walking; entering Phase4. Interruptions never complete the goal.
 
 ## Authority, branch and phase
 
 Authoritative master: `GEODE_EMPIRE_ASTRA6_FULL_PROJECT_REWORK_STEAM_READINESS_MASTER_SPEC.md` at repository root. Active goal: the entire ASTRA FULL PROJECT REWORK + STEAM READINESS, accepted only by the playable game and all master Definitions of Done.
 
-Branch `astra/full-project-rework`. Latest LOCAL checkpoint `5eeef7f934243fad11c9ffa71113f396a890b5be` contains tested starter guidance and room lighting. It follows machine-gating checkpoint `7df7e3956e2c5b99ca33001a05e91f6b07541aa7` and QA-incomplete architecture checkpoint `12ef41003e818c223bcf80bc829a63ab5b1724bf`. All three NOT pushed; full architecture remains unaccepted. Latest verified safety commit `01deb7d6475d230029a5e17d3f57771f6026fdab` committed/pushed and remote verified; main unchanged. Measured-study checkpoint `a364f7809b75a2a1e8db887373dccff418289a5f`. Latest known-good gameplay code milestone `6874769a6c349ffb38926d5ec2f39dc6dec39548`, committed and pushed, remote verified. Earlier safety milestone `39463d22b7fe4b0a7b4f35d56e50a355485af914`; integrity/baseline `c506e58`. Main/origin main remains `1632ff25f1178c5dd0a7617e9a6fdcc329530344`. No history rewrite or force push.
+Branch `astra/full-project-rework`. Latest LOCAL functional architecture checkpoint `4f1b4ae` contains navigation/standing/autosave regressions and29passingtests. Prior `5eeef7f934243fad11c9ffa71113f396a890b5be` contains tested starter guidance and room lighting. It follows machine-gating checkpoint `7df7e3956e2c5b99ca33001a05e91f6b07541aa7` and QA-incomplete architecture checkpoint `12ef41003e818c223bcf80bc829a63ab5b1724bf`. Local architecture checkpoints NOT yet pushed; final art/whole-game acceptance remains open. Latest verified safety commit `01deb7d6475d230029a5e17d3f57771f6026fdab` committed/pushed and remote verified; main unchanged. Measured-study checkpoint `a364f7809b75a2a1e8db887373dccff418289a5f`. Latest known-good gameplay code milestone `6874769a6c349ffb38926d5ec2f39dc6dec39548`, committed and pushed, remote verified. Earlier safety milestone `39463d22b7fe4b0a7b4f35d56e50a355485af914`; integrity/baseline `c506e58`. Main/origin main remains `1632ff25f1178c5dd0a7617e9a6fdcc329530344`. No history rewrite or force push.
 
 Checkout/opening/input P0/P1 regression work is complete at 6874769. Return to master phase order: baseline truth audit and selected art targets → entire architecture/storefront/customer flow → visible assets → geodes/core/audio/UI/progression/performance/full QA. Do not keep polishing checkout or import the parked bench before architecture.
 
@@ -14,7 +14,12 @@ Checkout/opening/input P0/P1 regression work is complete at 6874769. Return to m
 
 QA24 `c43f112e745a48f69afe9821a4ceb379` FINISHED2026-09-06T23:30:15.081713Z. GuardTRUE, override cleared, candidate Edit Mode clean, wallC temporaryyaw reverted180. All24sessions finished/indexed; actualthreeprotectedhashes recheckedunchanged. No input/observer/test/build/tool/Blender/image job. Before risky source/scene fix: rootcause preserved in ARCHITECTURE_WALL_C_ROOT_CAUSE.json and navigation regression report. Yaw-only control changed all9browsepoints z6.63→4.73, all9pathsComplete WITHOUTrebake; reviewed capture shows shelf facingroom. Existingprototypeart remainsbelowtarget.
 
-EXACT NEXT OPERATION: create coherent functional architecture commit, then native SaveScene candidate→Workshop with saveAsCopy=true preserving Workshop.meta GUID269a87f726d4240969a7890ea226ab06. Open Workshop throughUnity and isolated QA27 production-entry/actualwalking smoke, then Phase4entire visible asset reauthoring. ARCHITECTURE_MILESTONE.md records scoped acceptance and outstanding art/global gates. Do not rerun candidate builder one-shots. Candidate is still clean/unpromoted before this operation; originalWorkshopSHAffaf74cd… unchanged.
+EXACT NEXT OPERATION: commit/push verified production promotion, then beginPhase4 fullvisibleassetrework. Production Workshop saved/clean andbuildpath unchanged; originalGUID269a87f726d4240969a7890ea226ab06,all4234componentIDs/types,91zones,3typedDeliveryIDs preserved,nativemissing0. NewintentionalWorkshopSHA `e6b441802e6a6b4678b68954fce3f170f261dcc3fd0cb0cb9c4e05962d855465` (the earlierffaf74cd… is pre-promotionhistory, NOTexpectedcurrenthash). Functionalcheckpoint4f1b4ae0635791d1168f3a24db37e4e02ecc4d00 local; promotioncommitnext. Nativepromote operation HAS RUN, do not repeatcandidatebuilders.
+
+QA27 `0848a0f12ff64bcea3bf958a3bcd836f` FINISHED2026-09-07T00:01:06.030577Z. All27QAfinished/indexed, overridecleared,guardTRUE,all3realplayerhashesunchanged. No test/build/input/observer/Blender/image/tooljob. Actual freshproduction120/counteronly/0earnedbodies. NO teleport/cash/unlock/stock injection: keyboardA alignsdoor(-5.31→-5.52), S .75s exits(-5.52,-2.02)→(-5.52,-3.82); gamepadforward .8s reenters(-5.52,-1.90); gamepadstrafe1.3s followsstarterfrontaisle to(-2.4,-1.9); look.2s turns35.105deg towardbench. Doorphysicallyopensnormally; cash120unchanged, actualtutorialrespondsto3mwalking. Nativecapturesviewed; belowconcept/prototypebenchandmaterials requirePhase4. ARCHITECTURE_PRODUCTION_PROMOTION.json. Runtimeerrors0last900s, compiledclean29tests; no integrityregression.
+
+Phase4next: storefront/shell/door/window material andgeometryfamily, thenminimumstarterworkbench/counter/laptop/tools/receiving; followentire121FBX+13familymanifest, notoneprop-onlypolish. ReadART_DIRECTION and selectedDay1B/storeA concepts, comparepromotedUnityframes, extendexistinggen_props/hq/export pipeline with editablesources/staging, inspectBlender live andrender, import viaUnity preserveGUIDs/components, Playcompare/profile. Parkedbluebenchdraft remainsunimported, usefulwhenstarterkitfamilybegins. ActiveBlender sceneAstra_Bench_Review_01 eightobjectsunsaved, originalscenespreserved; nojob.
+
 
 QA26 `d8d2b18fc2e0435ea599a7e5efc01035` FINISHED2026-09-06T23:50:40.941102Z. All26sessionsfinished/indexed, overridecleared,guardTRUE. CopiedactuallegacySaveId140e70b158f042049603ce094dc23f36:18records→18, no specimen differences exceptworldposes; cash3321.66/bills/alloldownership exact;17live/2crates/washoccupantS0015-8B62 retained; all3migratedfixturesvalid/carving; ContinuewholeStateexact. Scopedjob15410bb6-17e7-4834-9782-f554ae9fe9f3 FINISHED29PASS/0FAIL/0SKIP,1.22s. Compilationclean/no runtimeerrors. No input/observer/test/build/Blender/image/tooljob. Protectedactual3hashesunchanged. Nativeproductionpromotion next is intentional, not unexpecteddirtyscene.
 
@@ -48,7 +53,7 @@ Prior verifiedPhase3cases: QA16exactlegacy18records/17live/oneSold/oneWash/twoop
 
 ProtectedSHA256: career7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946; backup3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f; settingsb18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340. Workshopffaf74cd0e9097457ac40e826c1442ce35b901f18096fed27d8402ebc2d125fc. DisableDomainReload+DisableSceneReloadunchanged. No newplayersafetyincident. Historicalreal21:13:25writeinitiatorUNPROVEN,newerfilespreserved.
 
-CaptureonlyUnityoffscreenwindows. GenericbundleactivationcanfocuswrongEditor; pinnedport9015lastPID81300. Focuschangeswithconcurrentuserinput; neverinferinputsuccessfromscheduling. No desktopcapture. Source edits require Exit/Finish first; QA24 now finished.
+CaptureonlyUnityoffscreenwindows. GenericbundleactivationcanfocuswrongEditor; pinnedport9015lastPID81300. Focuschangeswithconcurrentuserinput; neverinferinputsuccessfromscheduling. No desktopcapture. Source edits require Exit/Finish first; allQAcurrentlyfinished.
 
 ## Completed milestones
 
@@ -66,7 +71,7 @@ CaptureonlyUnityoffscreenwindows. GenericbundleactivationcanfocuswrongEditor; pi
 
 ## Unity, Blender and isolation
 
-Unity6000.6.0f1 MCP responsive, correct Geode project. Edit Mode, clean saved Workshop_AstraCandidate; not compiling/updating. Candidate startup enabled, production Workshop unchanged. No build settings promotion. Original Play options DisableDomainReload+DisableSceneReload. Twenty-six finished isolation sessions; override cleared. Automation guard persists TRUE. Protected real hashes above, never replace with historical hashes.
+Unity6000.6.0f1 MCP responsive, correct Geode project. Edit Mode, clean saved production Workshop; not compiling/updating. Promoted Workshop startup enabled; build settings retain existing Title→Workshop paths and original scene GUID. Candidate remains the tested checkpoint source. Original Play options DisableDomainReload+DisableSceneReload. Twenty-seven finished isolation sessions; override cleared. Automation guard persists TRUE. Protected real hashes above, never replace with historical hashes.
 
 Recovery boundary: after prior QA finished at 19:14:39 local, the real career ran/migrated for about eight seconds and saved at 19:14:53–54. Trigger unproven, predates subsequent recovery compile/tests. Same real career/cash/count; newer real files preserved, never rolled back. `PLAYER_DATA_RECOVERY_BOUNDARY.json`. Historical first-nine-session career/backup hash `d45f8931de0d03eb7bba7ccf024b9162fa5f5cd0d2f54f0139a4eb01bc462694` is NOT current player state.
 
@@ -80,7 +85,7 @@ Latest scoped job `59eb3483-008a-4a28-9e0f-25c30770ed88`: FINISHED 50/0/0, 3.83 
 
 Full baseline: 135 cases, 134 pass, one P1 timeout ProcessingChoiceTests.HammerVsSawReport (371.57s vs 180s limit), full run 847.81s. BuildPiece 496–776ms vs whole Build 187–255ms; repeated noise-backed surface rays are the lead. A slower inlining trial was discarded. Do not raise timeout, weaken samples or hide hitches with animation delay. Fix in geometry/performance phase.
 
-Original production Workshop still has wrong starter kit/architecture; candidate fixes are unpromoted. Architecture navigation/autosave/WallC/customer standing P1s resolved by QA24–26; functional milestone ready for checkpoint/promotion. Starter station guidance corrected and verified. Current whole-game defects: inverted brush/contact presentation; dirty wash occupant always resumes despite “tap to take” promise; wash Escape can also pause (PauseMenu excludes wash from BenchActive); giant UI/HUD blocks; geometry hitches; NPC mannequins. Full machine outcomes, four-layout customer stress, no-cheat career, full controller/KBM, standalone and performance remain unaccepted.
+Production Workshop now carries the tested minimum kit and full revised architecture. Architecture navigation/autosave/WallC/customer standing P1s resolved by QA24–26; functional milestone ready for checkpoint/promotion. Starter station guidance corrected and verified. Current whole-game defects: inverted brush/contact presentation; dirty wash occupant always resumes despite “tap to take” promise; wash Escape can also pause (PauseMenu excludes wash from BenchActive); giant UI/HUD blocks; geometry hitches; NPC mannequins. Full machine outcomes, four-layout customer stress, no-cheat career, full controller/KBM, standalone and performance remain unaccepted.
 
 Audio clips exported read-only from the pure bank; `AUDIO_BASELINE.md`, `Baseline/audio-review.mp3` and index. The tool cannot provide audio input to this model, so perceptual listening is explicitly NOT complete. Source confirms constant nonspatial filtered-noise/60–120Hz ambience. Do not claim audio sounds good/bad or passes from code/RMS. A supported listening review is required later.
 
@@ -94,15 +99,15 @@ Historical master, final/Fable/V4/V5/V6, starter/core-loop specs and principal r
 
 ## Exact next actions
 
-1. Checkpoint functional architecture, native-promote candidate to Workshop preserving GUID/references, and smoke production entry with isolated QA27 and actual walking.
-2. Resume Phase4 full visible asset reauthoring from the manifest, concept→Blender→Unity→capture→critique→profile. Architectural shell/storefront and minimum starter kit first; then all visible families, not bench-only polishing.
-3. Continue master Phase5–14. Full art/geodes/audio/UI/customers/economy/performance/no-cheatcareer/standalone/fullQA remain unaccepted; global P1 wash/geometry/UI work stays scheduled. Main remains safe.
+1. Commit/push the verified production promotion. Then Phase4 storefront/shell/essential starter kit assets through existingBlender→Unitypipeline.
+2. Work through the full visible assetmanifest, concept→Blender→Unity→capture→critique→profile. Respect measuredarchitecture/gates/references andsharedmaterials/lowcostcolliders. No redoing acceptedcheckout/integrity/navigation absentrealregression.
+3. Continue masterPhase5–14. Art/geodes/audio/UI/customers/economy/performance/no-cheatcareer/standalone/fullQA remainunaccepted; globalP1wash/geometry/UI staysscheduled. Mainremainssafe.
 
 Resource/workflow:8GB M2; heavy Blender/Unity tests/builds sequential. Narrow project logs, never broad process arguments. Source edits → immediate request_recompile → wait/recover → errors. Timeout → inspect underlying process before retry. Diagnostics with injected states are not the primary no-cheat career. Native Game captures use explicit window dimensions, focus=false.
 
 ## Modified/uncommitted files
 
-Since local5eeef7f: candidate navigation/WallC scene, WorkshopSceneBuilder.AstraCandidate.cs, PlaceableFixture/FixtureWorld/BuildMode/PlacementValidator; PROGRESS, SAVE_ISOLATION_EVIDENCE, final nav/customer/legacy/test evidence, ARCHITECTURE_MILESTONE. Stage only these intentional architecture changes for checkpoint. Parked: M_Felt.mat legacy _Color sync, Tools/Blender/gen_props.py, ArtSource/Blender/Props/prop_workbench.blend. Do not blindly stage/import parked work. Native Unity serialization whitespace preserved. Source/doc diff checks required.
+Since local4f1b4ae: intentional productionWorkshop.unity promotion, PROGRESS/PLAN/SAVE_ISOLATION_EVIDENCE/ARCHITECTURE_MILESTONE andnewARCHITECTURE_PRODUCTION_PROMOTION.json. These are the promotioncommit scope. Parked/uncommitted: M_Felt.mat legacy_Color sync,Tools/Blender/gen_props.py bluebench/sourceexport,ArtSource/Blender/Props/prop_workbench.blend. Do notblindlystage/importparkedwork. Source/docdiffchecksrequired; nativeUnityscene whitespacepreserved.
 
 ## ASTRA CAPACITY / INTERRUPTION RECOVERY
 

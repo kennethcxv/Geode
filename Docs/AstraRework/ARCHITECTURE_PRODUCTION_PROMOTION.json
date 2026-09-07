@@ -1,0 +1,109 @@
+{
+  "scope": "Production Workshop promotion and isolated fresh entry. No cash/unlock/stock injection; keyboard/gamepad events scheduled on normal Dynamic updates. No teleport used for these entrance/aisle movements.",
+  "results": "Minimumstarter120/counteronly; keyboard A aligns centre then S moves(-5.52,-2.02)→(-5.52,-3.82) outside; gamepadforward reenters to(-5.52,-1.90); gamepadstrafe reaches(-2.40,-1.90), lookyaw35.10. Door remainsphysicallycollidable and opensnormally. Cash120 unchanged. Nativecapturesreviewed; artbelowconceptrequiresPhase4.",
+  "captureDirectory": "Geode/Output/AstraQA/0848a0f12ff64bcea3bf958a3bcd836f",
+  "captures": [
+    "promoted-starter.png",
+    "keyboard-outside-through-door.png",
+    "controller-back-inside.png",
+    "controller-starter-aisle.png"
+  ],
+  "readbacks": {
+    "architecturePromotion": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ promoted = Assets/GeodeEmpire/Scenes/Workshop.unity, componentCount = 4234, guid = 269a87f726d4240969a7890ea226ab06, sourceStill = Assets/GeodeEmpire/Scenes/Workshop_AstraCandidate.unity, sourceDirty = False }",
+        "compiler": "Roslyn"
+      }
+    },
+    "architecturePromotedReadback": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"scene\":\"Assets/GeodeEmpire/Scenes/Workshop.unity\",\"isDirty\":false,\"componentCount\":4234,\"allComponentIdsAndTypesPreserved\":true,\"nativeMissing\":0,\"deliveries\":[{\"fileId\":166829470,\"typed\":true},{\"fileId\":1990628459,\"typed\":true},{\"fileId\":616842567,\"typed\":true}],\"zones\":91,\"astra\":true,\"guard\":true}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa27Prepare": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"label\":\"astra-promoted-workshop-entry\",\"manifestPath\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0848a0f12ff64bcea3bf958a3bcd836f/session.json\",\"originalDirectory\":\"/Users/kenneth/Library/Application Support/DefaultCompany/Geode\",\"isolatedDirectory\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0848a0f12ff64bcea3bf958a3bcd836f/player-data\",\"phase\":\"Prepared\",\"startedUtc\":\"2026-09-06T23:55:16.4848940Z\",\"endedUtc\":\"\",\"copiedCareer\":false,\"originalDataUnchanged\":false,\"originals\":[{\"name\":\"geode_career.json\",\"sha256\":\"7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946\"},{\"name\":\"geode_career.json.bak\",\"sha256\":\"3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f\"},{\"name\":\"settings.json\",\"sha256\":\"b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340\"}],\"failures\":[]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa27Validated": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ guard = True, directoryOverride = /Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0848a0f12ff64bcea3bf958a3bcd836f/player-data, career = /Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0848a0f12ff64bcea3bf958a3bcd836f/player-data/geode_career.json, settings = /Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0848a0f12ff64bcea3bf958a3bcd836f/player-data/settings.json, scene = Assets/GeodeEmpire/Scenes/Workshop.unity }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa27Fresh": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"scene\":\"Assets/GeodeEmpire/Scenes/Workshop.unity\",\"dirty\":false,\"Cash\":120.0,\"Upgrades\":[\"retail_counter_table\"],\"earnedBodies\":0,\"player\":\"(-5.31, 0.04, -2.02)\",\"yaw\":0.0,\"focused\":true,\"movement\":true,\"look\":true,\"inputBusy\":false}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa27KbmExitStart": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ input = keyboard S .75s to walk through the starter doorway, before = (-5.52, 0.04, -2.02), yaw = 0, focused = True }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa27KbmExitResult": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ inputBusy = False, player = (-5.52, 0.02, -3.82), yaw = 0, focused = True }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa27GamepadEntryStart": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ input = gamepad left stick forward .8s through the door, before = (-5.52, 0.02, -3.82), yaw = 0, focused = True }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa27GamepadEntryResult": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{\"inputBusy\":false,\"player\":\"(-5.52, 0.04, -1.90)\",\"yaw\":0.0,\"focused\":true,\"cash\":120.0,\"doors\":[{\"name\":\"StarterEntrance\",\"leaf\":\"(0.0, 265.0, 0.0)\"}]}",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa27GamepadAisleLook": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ input = gamepad look right .2s, player = (-2.40, 0.04, -1.90), yawBefore = 0 }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa27GamepadAisleResult": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ inputBusy = False, player = (-2.40, 0.04, -1.90), yaw = 35.10499, focused = True, cash = 120 }",
+        "compiler": "Roslyn"
+      }
+    },
+    "qa27Finish": {
+      "success": true,
+      "message": "Executed (legacy Run()).",
+      "data": {
+        "result": "{ finish = {\"label\":\"astra-promoted-workshop-entry\",\"manifestPath\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0848a0f12ff64bcea3bf958a3bcd836f/session.json\",\"originalDirectory\":\"/Users/kenneth/Library/Application Support/DefaultCompany/Geode\",\"isolatedDirectory\":\"/Users/kenneth/Documents/GitHub/Geode/Geode/Output/AstraQA/0848a0f12ff64bcea3bf958a3bcd836f/player-data\",\"phase\":\"Finished\",\"startedUtc\":\"2026-09-06T23:55:16.4848940Z\",\"endedUtc\":\"2026-09-07T00:01:06.0305770Z\",\"copiedCareer\":false,\"originalDataUnchanged\":true,\"originals\":[{\"name\":\"geode_career.json\",\"sha256\":\"7741f17c948a3fc20d053867ca9ba726dc42b6807a7442824f2646b6d4a58946\"},{\"name\":\"geode_career.json.bak\",\"sha256\":\"3ee18e29db190dad365f0254eeb8166c42d33f4cdb39bedda12ee40dcf74032f\"},{\"name\":\"settings.json\",\"sha256\":\"b18f7ce0a4380393f11cec0a10190fdcaab62e359206c404b01ad120bb642340\"}],\"failures\":[]}, guard = True, directoryOverride = , scene = Assets/GeodeEmpire/Scenes/Workshop.unity, dirty = False, inputBusy = False }",
+        "compiler": "Roslyn"
+      }
+    }
+  }
+}
